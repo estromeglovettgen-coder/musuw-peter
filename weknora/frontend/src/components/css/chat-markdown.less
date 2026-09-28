@@ -1,0 +1,185 @@
+@import './chat-hljs.less';
+
+// QAPanel.tsx is the visual source of truth for chat prose. Rich business
+// content (tables, code, Mermaid, protected images) keeps its original behavior
+// but uses the same neutral typography and geometry.
+.chat-markdown-typography() {
+  font-size: 14.5px;
+  color: #111827;
+  line-height: 1.625;
+  letter-spacing: normal;
+  -webkit-font-smoothing: antialiased;
+
+  @media (max-width: 767px) { font-size: 14px; }
+
+  :deep(.stream-fade-tail) {
+    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,.7) 30%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,.7) 30%, rgba(0,0,0,0) 100%);
+  }
+
+  :deep(p) { margin: 0; color: #1f2937; line-height: 1.625; }
+  :deep(p + p) { margin-top: 10px; }
+  :deep(p:has(> .citation:only-child)) { margin: 4px 0 6px; }
+  :deep(p:has(.citation)) { line-height: 1.625; }
+  :deep(p:has(.citation) + p:has(> img:only-child)),
+  :deep(p:has(> .citation:only-child) + p:has(> img:only-child)) { margin-top: 8px; }
+
+  :deep(p.md-strong-title) { margin: 14px 0 6px; color: #111827; font-weight: 700; line-height: 1.375; }
+  :deep(p.md-strong-title:first-child) { margin-top: 0; }
+  :deep(strong) { color: #030712; font-weight: 700; }
+  :deep(em) { font-style: italic; }
+  :deep(del) { text-decoration: line-through; opacity: .72; }
+
+  :deep(h1) { margin: 16px 0 8px; color: #111827; font-size: 18px; line-height: 1.4; font-weight: 800; }
+  :deep(h2) { margin: 16px 0 8px; padding-bottom: 4px; color: #111827; font-size: 16px; line-height: 1.4; font-weight: 700; }
+  :deep(h3) { margin: 14px 0 6px; color: #111827; font-size: 14px; line-height: 1.375; font-weight: 700; }
+  :deep(h4),:deep(h5),:deep(h6) { margin: 14px 0 6px; color: #111827; line-height: 1.45; font-weight: 700; }
+  :deep(h4) { font-size: 14px; }
+  :deep(h5) { font-size: 13px; }
+  :deep(h6) { font-size: 12px; color: #4b5563; }
+  :deep(h1:first-child),:deep(h2:first-child),:deep(h3:first-child),:deep(h4:first-child),:deep(h5:first-child),:deep(h6:first-child) { margin-top: 0; }
+
+  :deep(ul),:deep(ol) { margin: 6px 0 10px; padding-left: 20px; }
+  :deep(ul) { list-style-type: disc; }
+  :deep(ol) { list-style-type: decimal; }
+  :deep(li) { margin: 4px 0; padding-left: 2px; color: #1f2937; line-height: 1.625; }
+  :deep(li::marker) { color: #9ca3af; font-weight: 700; }
+  :deep(li > p) { margin: 0; }
+  :deep(li > ul),:deep(li > ol) { margin: 4px 0 0; }
+  :deep(li:has(> input[type='checkbox'])) { list-style: none; margin-left: -20px; padding-left: 0; }
+  :deep(li:has(> input[type='checkbox'])::marker) { content: none; }
+  :deep(li input[type='checkbox']) { margin: 0 8px 0 0; vertical-align: middle; accent-color: #111827; }
+
+  :deep(blockquote) { margin: 10px 0; padding: 6px 0 6px 12px; border-left: 2px solid #d1d5db; color: #6b7280; font-style: normal; line-height: 1.625; }
+  :deep(blockquote p) { color: inherit; line-height: inherit; }
+  :deep(hr) { margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb; }
+
+  :deep(a) { color: #374151; text-decoration: underline; text-decoration-color: #9ca3af; text-underline-offset: 3px; }
+  :deep(a:hover) { color: #030712; text-decoration-color: #374151; }
+
+  :deep(kbd) { display: inline-block; padding: 2px 6px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; color: #374151; font-family: var(--app-font-family-mono); font-size: 11px; font-weight: 500; line-height: 1.4; box-shadow: 0 1px 0 rgb(0 0 0 / 5%); }
+  :deep(code):not(pre code) { padding: 2px 4px; border-radius: 5px; background: #f3f4f6; color: #374151; font-family: var(--app-font-family-mono); font-size: 12px; font-weight: 500; }
+
+  :deep(pre:not(.chat-code-block__pre):not(.chat-mermaid-block__canvas)) { margin: 10px 0; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 12px; overflow-x: auto; background: #f9fafb; color: #1f2937; font-size: 12px; line-height: 1.55; }
+  :deep(pre:not(.chat-code-block__pre):not(.chat-mermaid-block__canvas) code) { padding: 0; background: none; font-size: inherit; font-weight: 400; }
+
+  :deep(.chat-code-block) { margin: 10px 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 5%); }
+  :deep(.chat-code-block__header) { min-height: 34px; padding: 6px 10px 6px 12px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #f9fafb; }
+  :deep(.chat-code-block__lang) { color: #6b7280; font-size: 11px; line-height: 1.2; font-weight: 600; }
+  :deep(.chat-code-block__copy) { margin: 0; padding: 4px 7px; border: 0; border-radius: 7px; display: inline-flex; align-items: center; gap: 5px; background: transparent; color: #6b7280; font-size: 11px; font-weight: 500; cursor: pointer; }
+  :deep(.chat-code-block__copy:hover) { background: #f3f4f6; color: #111827; }
+  :deep(.chat-code-block__copy.is-error) { color: #dc2626; }
+  :deep(.chat-code-block__pre) { margin: 0; padding: 12px 14px; overflow-x: auto; background: #fbfbfb; font-size: 12px; line-height: 1.55; }
+  :deep(.chat-code-block__pre code) { display: block; padding: 0; background: transparent; font-size: inherit; font-weight: 400; white-space: pre; }
+
+  :deep(.chat-mermaid-block) { margin: 10px 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 5%); }
+  :deep(.chat-mermaid-block__header) { min-height: 34px; padding: 6px 10px 6px 12px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f9fafb; }
+  :deep(.chat-mermaid-block__badge) { display: inline-flex; align-items: center; gap: 6px; color: #6b7280; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  :deep(.chat-mermaid-block__expand) { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: #6b7280; cursor: pointer; }
+  :deep(.chat-mermaid-block__expand:hover:not(:disabled)) { background: #f3f4f6; color: #111827; }
+  :deep(.chat-mermaid-block__expand:disabled),:deep(.chat-mermaid-block__expand.is-disabled) { opacity: .35; cursor: not-allowed; }
+  :deep(.chat-mermaid-block__canvas) { margin: 0; padding: 18px 14px; overflow-x: auto; border: 0; background: #fff; text-align: center; cursor: zoom-in; }
+  :deep(.chat-mermaid-block__canvas svg),:deep(pre.mermaid svg) { max-width: 100%; height: auto; }
+  :deep(.chat-mermaid-block__canvas .label),:deep(.chat-mermaid-block__canvas .nodeLabel),:deep(.chat-mermaid-block__canvas .edgeLabel) { font-family: var(--app-font-family); }
+  :deep(.chat-mermaid-block--loading .streaming-mermaid-loading) { margin: 0; max-width: none; min-height: 200px; border: 0; border-radius: 0; }
+  :deep(pre.mermaid:not(.chat-mermaid-block__canvas)) { margin: 10px 0; padding: 18px 14px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; overflow-x: auto; text-align: center; cursor: zoom-in; }
+
+  :deep(.chat-markdown-table) { width: fit-content; max-width: 100%; margin: 12px 0; overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
+  :deep(table) { width: max-content; min-width: 0; border-collapse: separate; border-spacing: 0; font-size: 12px; line-height: 1.55; }
+  :deep(table thead) { background: #f9fafb; }
+  :deep(table tbody tr:nth-child(2n)) { background: rgb(249 250 251 / 60%); }
+  :deep(table th),:deep(table td) { padding: 7px 10px; border: 0; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+  :deep(table th) { color: #374151; font-weight: 700; background: #f9fafb; }
+  :deep(table th:last-child),:deep(table td:last-child) { border-right: 0; }
+  :deep(table tbody tr:last-child td) { border-bottom: 0; }
+  :deep(table th[align='center']),:deep(table td[align='center']) { text-align: center; }
+  :deep(table th[align='right']),:deep(table td[align='right']) { text-align: right; }
+
+  :deep(img) { max-width: 80%; max-height: 300px; width: auto; height: auto; margin: 10px 0; border: 1px solid #e5e7eb; border-radius: 12px; display: block; object-fit: contain; cursor: pointer; transition: transform 160ms ease; }
+  :deep(img[data-img-loading]),:deep(img[data-protected-src][src^='data:image/gif;base64']) { width: 260px; height: 180px; min-width: min(260px,80%); min-height: 180px; max-width: 80%; object-fit: cover; cursor: default; background: linear-gradient(100deg,#f3f4f6 30%,#e5e7eb 50%,#f3f4f6 70%); background-size: 200% 100%; animation: chat-img-skeleton 1.2s ease-in-out infinite; }
+  :deep(p:has(> img:only-child)) { margin: 10px 0; line-height: 0; }
+  :deep(.mermaid) { margin: 0; }
+  @keyframes chat-img-skeleton { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  // A sandbox-generated file that is not an image (HTML chart, CSV, document)
+  // is referenced inline as a card instead of being embedded: the artifacts are
+  // self-contained pages up to a megabyte, and an iframe per reference would be
+  // both slow and an active-content risk. Clicking opens the artifact drawer's
+  // sandboxed preview. It must stay inline â Markdown wraps the reference in a
+  // paragraph, and a block element would be hoisted out of it by the parser.
+  :deep(.artifact-ref-card) {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(420px, 100%);
+    margin: 0.75em 0;
+    padding: 8px 14px 8px 10px;
+    border: 1px solid var(--td-component-stroke);
+    border-radius: 10px;
+    background: var(--td-bg-color-container);
+    cursor: pointer;
+    vertical-align: middle;
+    text-align: left;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      border-color: var(--td-brand-color);
+      background: var(--td-bg-color-container-hover);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--td-brand-color);
+      outline-offset: 2px;
+    }
+  }
+
+  :deep(.artifact-ref-card--pending) {
+    cursor: default;
+    opacity: 0.7;
+
+    &:hover {
+      border-color: var(--td-component-stroke);
+      background: var(--td-bg-color-container);
+    }
+  }
+
+  :deep(.artifact-ref-card__icon) {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-secondary);
+  }
+
+  :deep(.artifact-ref-card__glyph) {
+    width: 17px;
+    height: 17px;
+  }
+
+  :deep(.artifact-ref-card__text) {
+    display: inline-flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  :deep(.artifact-ref-card__name) {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--td-text-color-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :deep(.artifact-ref-card__hint) {
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--td-text-color-placeholder);
+  }
+
+  .chat-markdown-hljs();
+}

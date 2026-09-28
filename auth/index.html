@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="noindex,nofollow" name="robots" />
+    <link rel="icon" type="image/png" href="/musuw-logo.png?v=20260822" />
+    <style>
+      /* Visible before configuration, application modules, or fonts arrive. */
+      #musuw-startup { position: fixed; inset: 0; box-sizing: border-box; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; background: #fff; color: #111827; text-align: center; font: 14px/1.6 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      #musuw-startup strong { font-size: 28px; line-height: 1.2; letter-spacing: -1px; }
+      #musuw-startup p { max-width: 320px; margin: 18px 0 0; color: #6b7280; }
+      #musuw-startup .startup-progress { width: 36px; height: 3px; margin-top: 24px; border-radius: 2px; background: currentColor; opacity: .35; animation: startup-pulse 1.5s ease-in-out infinite; }
+      #musuw-startup button { margin-top: 20px; min-height: 44px; padding: 8px 22px; border: 1px solid #d1d5db; border-radius: 12px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+      #musuw-startup button[hidden] { display: none; }
+      #musuw-startup button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+      html[theme-mode="dark"] #musuw-startup { background: #151619; color: #f3f4f6; }
+      html[theme-mode="dark"] #musuw-startup p { color: #a1a1aa; }
+      html[theme-mode="dark"] #musuw-startup button { border-color: #41434a; }
+      @keyframes startup-pulse { 50% { opacity: .75; } }
+      @media (prefers-reduced-motion: reduce) { #musuw-startup .startup-progress { animation: none; } }
+    </style>
+    <title>Musuw</title>
+  </head>
+  <body>
+<div id="root">
+  <main id="musuw-startup">
+    <strong>Musuw</strong>
+    <span class="startup-progress" aria-hidden="true"></span>
+    <p id="musuw-startup-status" role="status">Opening Musuw…</p>
+    <button id="musuw-startup-retry" type="button" hidden>Try again</button>
+    <noscript><p>请启用 JavaScript 以继续。 / Enable JavaScript to continue.</p></noscript>
+  </main>
+</div>
+<script>
+(function () {
+  var startup = document.getElementById('musuw-startup');
+  var status = document.getElementById('musuw-startup-status');
+  var retry = document.getElementById('musuw-startup-retry');
+  var preferred = [];
+  try { preferred.push(new URLSearchParams(location.search).get('lang')); } catch (_) {}
+  try { preferred.push(localStorage.getItem('locale')); } catch (_) {}
+  try {
+    var cookie = document.cookie.match(/(?:^|;\s*)musuw_locale=([^;]*)/);
+    if (cookie) preferred.push(decodeURIComponent(cookie[1]));
+  } catch (_) {}
+  preferred = preferred.concat(navigator.languages || [navigator.language]);
+  var language = preferred.find(function (value) { return /^(zh|en|ko|ru)([-_]|$)/i.test(value || ''); }) || 'en';
+  var chinese = /^zh([-_]|$)/i.test(language);
+  var copy = chinese
+    ? ['正在打开 Musuw…', '连接比平时慢，你可以继续等待或重试。', '页面未能加载，请检查网络后重试。', '重试']
+    : ['Opening Musuw…', 'This is taking longer than usual. You can wait or try again.', 'The page could not load. Check your connection and try again.', 'Try again'];
+  startup.lang = chinese ? 'zh-CN' : 'en';
+  status.textContent = copy[0];
+  retry.textContent = copy[3];
+  retry.addEventListener('click', function () { location.reload(); });
+  function show(index) {
+    if (!startup.isConnected) return;
+    status.textContent = copy[index];
+    retry.hidden = false;
+  }
+  var slowTimer = setTimeout(function () { show(1); }, 10000);
+  function failed(event) {
+    if (event.type === 'error' && event.target !== window && event.target.tagName !== 'SCRIPT') return;
+    clearTimeout(slowTimer);
+    show(2);
+  }
+  // A rejected bootstrap or a missing module must leave a usable recovery
+  // action. Only this pre-mount screen is affected; mounted app errors keep
+  // their existing handling.
+  window.addEventListener('error', failed, true);
+  window.addEventListener('unhandledrejection', failed);
+})();
+</script>
+    <script src="/config.js"></script>
+    <script src="/src/main.tsx" type="module"></script>
+  </body>
+</html>

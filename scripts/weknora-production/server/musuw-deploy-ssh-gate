@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# ForcedCommand entry point for the dedicated musuw-deploy SSH key.
+set -euo pipefail
+
+reject() {
+    printf '%s\n' 'deployment SSH command rejected' >&2
+    exit 2
+}
+
+# This argument is fixed by authorized_keys, never by the remote caller.
+[ "$#" -le 1 ] || reject
+gate_mode="${1:-application}"
+case "$gate_mode" in application|operations-only) ;; *) reject ;; esac
+
+original_command="${SSH_ORIGINAL_COMMAND:-}"
+[ -n "$original_command" ] || reject
+
+# No shell syntax or multi-line payload is part of the protocol. Reject it
+# before tokenisation so `read` cannot silently ignore a trailing command.
+case "$original_command" in
+    *$'\n'*|*$'\r'*|*';'*|*'|'*|*'&'*|*'$('*|*')'*|*'{'*|*'}'*|*'<'*|*'>'*|*'`'*|*'\\'*|*'"'*|*"'"*) reject ;;
+esac
+
+read -r -a command_words <<< "$original_command"
+[ "${#command_words[@]}" -gt 0 ] || reject
+
+safe_revision() {
+    [[ "$1" =~ ^[0-9a-fA-F]{40}$ ]]
+}
+
+safe_release_id() {
+    case "$1" in
+        musuw-*) safe_revision "${1#musuw-}" ;;
+        *) return 1 ;;
+    esac
+}
+
+test_mode=false
+if [ "${MUSUW_DEPLOY_GATE_TEST_MODE:-0}" = 1 ] && [ "${EUID:-1}" -ne 0 ]; then
+    test_mode=true
+fi
+root_prefix=''
+if [ "$test_mode" = true ]; then
+    root_prefix="${MUSUW_DEPLOY_GATE_ROOT:-}"
+    [ -n "$root_prefix" ] || reject
+fi
+
+# The SSH protocol carries the real server path even in local tests; the
+# privileged wrapper alone applies its test-root prefix to filesystem calls.
+spool_root='/var/lib/musuw-deploy/incoming'
+if [ "$test_mode" = true ]; then
+    wrapper="${MUSUW_DEPLOY_GATE_WRAPPER:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/musuw-deploy-gate}"
+    rsync_bin="${MUSUW_DEPLOY_GATE_RSYNC_BIN:-$(command -v rsync || true)}"
+else
+    wrapper='/usr/local/sbin/musuw-deploy-gate'
+    rsync_bin='/usr/bin/rsync'
+fi
+
+invoke_wrapper() {
+    [ -x "$wrapper" ] || reject
+    if [ "$test_mode" = true ]; then
+        exec "$wrapper" "$@"
+    fi
+    [ -x /usr/bin/sudo ] || reject
+    exec /usr/bin/sudo -n -- "$wrapper" "$@"
+}
+
+if [ "$gate_mode" = operations-only ]; then
+    [ "${#command_words[@]}" -eq 4 ] || reject
+    [ "${command_words[0]}" = musuw-operations ] || reject
+    [ "${command_words[1]}" = deploy ] || reject
+    [[ "${command_words[2]}" =~ ^[0-9a-f]{40}$ ]] || reject
+    [[ "${command_words[3]}" =~ ^[0-9a-f]{64}$ ]] || reject
+    wrapper='/usr/local/sbin/musuw-operations-deploy-gate'
+    if [ "$test_mode" = true ]; then
+        wrapper="${MUSUW_OPERATIONS_GATE_WRAPPER:-$wrapper}"
+    fi
+    invoke_wrapper deploy "${command_words[2]}" "${command_words[3]}"
+fi
+
+if [ "${command_words[0]}" = 'musuw-gate' ]; then
+    [ "${#command_words[@]}" -eq 3 ] || reject
+    case "${command_words[1]}" in
+        prepare|deploy) ;;
+        *) reject ;;
+    esac
+    safe_revision "${command_words[2]}" || reject
+    invoke_wrapper "${command_words[1]}" "${command_words[2]}"
+fi
+
+# rsync invokes the remote side as `rsync --server ... . DEST`. Only push mode
+# into one exact SHA spool is useful here; sender mode, deletion, alternate
+# roots and command hooks are rejected before the wrapper is reached.
+[ "${command_words[0]}" = rsync ] || reject
+[ "${command_words[1]:-}" = --server ] || reject
+[ "${#command_words[@]}" -ge 5 ] || reject
+[ "${command_words[${#command_words[@]}-2]}" = . ] || reject
+
+last_index=$((${#command_words[@]} - 1))
+destination="${command_words[$last_index]}"
+case "$destination" in
+    "$spool_root"/*) ;;
+    *) reject ;;
+esac
+relative_destination="${destination#"$spool_root"/}"
+relative_destination="${relative_destination%/}"
+IFS=/ read -r release_id component remainder <<< "$relative_destination"
+safe_release_id "$release_id" || reject
+destination_scope="$component"
+[ -z "$remainder" ] || destination_scope="$component/$remainder"
+case "$destination_scope" in
+    source|source/weknora|source/auth|source/integration/weknora-production|\
+    source/scripts/weknora-production|source/deploy) ;;
+    *) reject ;;
+esac
+
+for ((index = 2; index < last_index - 1; index += 1)); do
+    token="${command_words[$index]}"
+    case "$token" in
+        --sender|--delete|--delete-*|--remove-*|--rsync-path=*|-e|-f|-R|-K|-L|-b) reject ;;
+        --partial|--dirs|--timeout=120) ;;
+        -[vloguDtpre.iLsfxCIu.]* )
+            short_flags="${token#-}"
+            if [[ "$token" =~ ^-[lprtD]+$ ]]; then
+                :
+            elif [[ "$token" =~ ^-[vloguDtpre.iLsfxCIu.]+$ ]]; then
+                for required_flag in l D t p r e; do
+                    case "$short_flags" in
+                        *"$required_flag"*) ;;
+                        *) reject ;;
+                    esac
+                done
+            else
+                reject
+            fi
+            ;;
+        --*) reject ;;
+        *) reject ;;
+    esac
+done
+
+[ -x "$rsync_bin" ] || reject
+exec "$rsync_bin" "${command_words[@]:1}"

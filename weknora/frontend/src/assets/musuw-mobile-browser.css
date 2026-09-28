@@ -1,0 +1,208 @@
+/* Mobile browser geometry only. Keep the existing desktop and theme tokens. */
+.visual-mobile-header,
+.visual-mobile-backdrop { display: none; }
+
+@media (max-width: 760px) {
+  html, body, #app { min-width: 0; }
+  .main.musuw-workspace-surface {
+    height: 100dvh;
+    flex-direction: column;
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+    box-sizing: border-box;
+  }
+  html .main.musuw-workspace-surface .visual-mobile-header{
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    padding: env(safe-area-inset-top) 12px 0;
+    border-bottom: 1px solid var(--td-component-border);
+    background: var(--musuw-surface);
+  }
+  html .main.musuw-workspace-surface .visual-mobile-header > img{ width: 30px; height: 30px; object-fit: contain; }
+  html .main.musuw-workspace-surface .visual-mobile-header > button{
+    width: 44px; height: 44px; padding: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 12px;
+    background: transparent; color: var(--td-text-color-primary); cursor: pointer;
+  }
+  html .main.musuw-workspace-surface .visual-mobile-header .t-icon{ width: 22px; height: 22px; font-size: 22px; }
+  html .main.musuw-workspace-surface .visual-mobile-header > button:focus-visible{ outline: 2px solid var(--td-text-color-primary); }
+  html .main.musuw-workspace-surface .visual-mobile-backdrop{
+    display: block; position: fixed; inset: 0; z-index: 999;
+    width: 100%; height: 100%; border: 0;
+    background: rgb(0 0 0 / 32%);
+  }
+  html .main.musuw-workspace-surface .visual-sidebar.is-collapsed{ display: none; }
+  html .main.musuw-workspace-surface .visual-sidebar:not(.is-collapsed){
+    position: fixed; inset: 0 auto 0 0; z-index: 1000;
+    width: min(320px, 86vw); min-width: 0; height: 100dvh;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    transition: none;
+  }
+  html .main.musuw-workspace-surface .visual-sidebar__header-icon{ width: 44px; height: 44px; }
+  html .main.musuw-workspace-surface .visual-sidebar__primary{ min-height: 44px; }
+  html .main.musuw-workspace-surface .visual-sidebar__primary-copy > span:last-child,
+  html .main.musuw-workspace-surface .visual-sidebar__primary.is-new > span{ font-size: 14px; }
+  html .main.musuw-workspace-surface .platform-route-outlet{ width: 100%; flex: 1 1 0; }
+
+  /* Lists use the whole phone width instead of a permanent directory rail. */
+  html .main.musuw-workspace-surface .visual-kb-list,
+  html .main.musuw-workspace-surface .agent-list-content,
+  html .main.musuw-workspace-surface .org-list-content,
+  html .main.musuw-workspace-surface .visual-knowledge-page{ padding: 16px 12px !important; gap: 12px !important; }
+  html .main.musuw-workspace-surface .visual-kb-list__header{ padding-bottom: 14px !important; }
+  html .main.musuw-workspace-surface .visual-kb-list__content,
+  html .main.musuw-workspace-surface .agent-list-main,
+  html .main.musuw-workspace-surface .org-list-main{ padding: 0 0 max(12px, env(safe-area-inset-bottom)) !important; }
+  html .main.musuw-workspace-surface .visual-kb-list__create,
+  html .main.musuw-workspace-surface .agent-create-btn{ min-height: 44px !important; }
+  html .main.musuw-workspace-surface .visual-knowledge-header{ flex: 0 0 auto; gap: 12px; padding-bottom: 12px; }
+  html .main.musuw-workspace-surface .visual-knowledge-breadcrumb{ min-width: 0; }
+  html .main.musuw-workspace-surface .visual-knowledge-breadcrumb__current{ min-width: 0; max-width: 52vw; }
+  html .main.musuw-workspace-surface .visual-knowledge-header__actions,
+  html .main.musuw-workspace-surface .visual-knowledge-tabs{ width: 100%; box-sizing: border-box; }
+  html .main.musuw-workspace-surface .visual-knowledge-tabs > button,
+  html .main.musuw-workspace-surface .visual-knowledge-tabs > .t-popup{ flex: 1 1 0; }
+  html .main.musuw-workspace-surface .visual-knowledge-tabs button{ min-height: 40px; justify-content: center; }
+  html .main.musuw-workspace-surface .visual-knowledge-documents{ flex-direction: column; gap: 10px; }
+  html .main.musuw-workspace-surface .visual-knowledge-documents .visual-folder-tree{
+    width: 100%; flex: 0 0 auto; max-height: 200px;
+  }
+  html .main.musuw-workspace-surface .visual-folder-tree.is-collapsed{ border-radius: 12px; }
+  html .main.musuw-workspace-surface .visual-folder-tree.is-collapsed .visual-folder-tree__collapsed-trigger{
+    min-height: 44px; padding: 10px 12px; flex-direction: row; align-items: center;
+  }
+  html .main.musuw-workspace-surface .visual-folder-tree .visual-folder-tree__header{ min-height: 44px; padding: 0 12px; }
+  html .main.musuw-workspace-surface .visual-folder-tree .visual-folder-tree__collapse{ width: 44px; height: 44px; }
+  html .main.musuw-workspace-surface .visual-folder-tree .visual-folder-row{ min-height: 44px; }
+  html .main.musuw-workspace-surface .visual-knowledge-content{ min-width: 0; min-height: 0; flex: 1 1 0; }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar{
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 8px; padding: 8px; overflow: visible;
+  }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar__left{
+    min-width: 0; width: 100%; flex: 0 0 auto;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 8px;
+  }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar .visual-knowledge-path-pill,
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar .visual-knowledge-search{ max-width: none; min-width: 0; width: 100%; box-sizing: border-box; }
+  html .main.musuw-workspace-surface .visual-knowledge-path-pill{ min-height: 44px; }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar .visual-knowledge-filters{
+    grid-column: 1 / -1; width: 100%; display: flex; gap: 6px; overflow: visible;
+  }
+  html .main.musuw-workspace-surface .visual-knowledge-filters > *{ min-width: 0; flex: 1 1 0; }
+  html .main.musuw-workspace-surface .visual-knowledge-filters .visual-knowledge-filter-button{ width: 100%; min-width: 0; min-height: 44px !important; padding: 0 8px; justify-content: center; font-size: 13px !important; }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar__right{ justify-content: space-between; gap: 8px; }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar .visual-knowledge-view-toggle{ flex: 0 0 auto; }
+  html .main.musuw-workspace-surface .visual-knowledge-view-toggle button{ width: 40px !important; height: 40px !important; }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar .visual-upload-source{ min-width: 0; flex: 1 1 auto; justify-content: flex-end; gap: 6px; }
+  html .main.musuw-workspace-surface .visual-knowledge-toolbar .visual-upload-source__trigger{ min-height: 44px !important; padding-inline: 10px; font-size: 13px !important; }
+  html .main.musuw-workspace-surface .visual-knowledge-search .t-input{ height: 44px; }
+  html .main.musuw-workspace-surface .visual-knowledge-scroll{ overscroll-behavior-y: contain; padding-bottom: env(safe-area-inset-bottom); }
+  html .main.musuw-workspace-surface .visual-document-grid,
+  html .main.musuw-workspace-surface .visual-knowledge-skeleton-grid{ grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; }
+  html .main.musuw-workspace-surface .visual-folder-card{ height: 96px; padding: 14px; }
+  html .main.musuw-workspace-surface .visual-folder-card__main{ flex-direction: row; align-items: center; padding-right: 36px; }
+  html .main.musuw-workspace-surface .visual-document-card__title,
+  html .main.musuw-workspace-surface .visual-folder-card__title{ font-size: 14px !important; line-height: 22px; }
+  html .main.musuw-workspace-surface .visual-document-card__description{ font-size: 13px !important; line-height: 21px; }
+  html .main.musuw-workspace-surface .visual-document-card__more{ flex-basis: 40px; width: 40px; height: 40px; margin: -8px -8px 0 0; opacity: 1; }
+  html .main.musuw-workspace-surface .visual-document-list{ overflow-x: hidden !important; box-sizing: border-box; }
+  html .main.musuw-workspace-surface .visual-document-list__more{ opacity: 1; min-width: 40px; width: 40px !important; height: 40px !important; }
+  html .main.musuw-workspace-surface .visual-document-list__header,
+  html .main.musuw-workspace-surface .visual-document-list__row{ min-width: 0; grid-template-columns: 30px minmax(0, 1fr) 68px 40px !important; padding-inline: 8px !important; }
+  html .main.musuw-workspace-surface .visual-document-list__cell:is(.is-tag, .is-source, .is-size, .is-time){ display: none; }
+
+  /* Keep chat tools and model selection readable, with stable touch targets. */
+  html .main.musuw-workspace-surface .visual-new-chat-stack{ width: calc(100% - 24px); padding-block: 28px; gap: 20px; }
+  html .main.musuw-workspace-surface .visual-new-chat-title{ font-size: 28px; }
+  html .main.musuw-workspace-surface .visual-chat-scroll{ padding: 64px 16px 16px; }
+  html .main.musuw-workspace-surface .visual-chat-input{ width: calc(100% - 24px); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  html .main.musuw-workspace-surface .visual-chat-header{ max-width: calc(100% - 24px); left: 12px; }
+  html .main.musuw-workspace-surface .visual-chat-header__menu-button{ width: 40px; height: 40px; flex-basis: 40px; }
+  html .main.musuw-workspace-surface .visual-chat-composer__surface{ padding: 12px !important; }
+  html .main.musuw-workspace-surface .visual-chat-composer__textarea{ font-size: 16px !important; line-height: 24px !important; }
+  html .main.musuw-workspace-surface .visual-chat-composer__toolbar{ flex-wrap: wrap; gap: 6px; }
+  html .main.musuw-workspace-surface .visual-chat-composer__tools{ flex: 1 1 100%; gap: 4px !important; }
+  html .main.musuw-workspace-surface .visual-chat-composer__tool{ min-width: 40px; flex-basis: 40px; width: 40px !important; height: 40px !important; }
+  html .main.musuw-workspace-surface .visual-chat-composer__actions{ width: 100%; justify-content: flex-end; gap: 8px; }
+  html .main.musuw-workspace-surface .visual-chat-composer__combined-picker{ max-width: calc(100% - 52px); min-height: 40px; }
+  html .main.musuw-workspace-surface .visual-chat-composer__send{ width: 44px !important; height: 44px !important; }
+  html .visual-chat-composer__overlay .visual-chat-composer__model-menu { max-height: var(--visual-mobile-menu-max-height, calc(100dvh - 32px)); overflow-y: auto; border-radius: 16px; overscroll-behavior: contain; }
+  html .visual-model-selector__chat-panel .visual-model-selector__chat-flyout { position: static; width: 100%; max-width: 100%; margin: 4px 0 0 !important; box-shadow: none; }
+
+  html .visual-model-selector__chat-panel .visual-model-selector__chat-row,
+  html .visual-model-selector__chat-panel .visual-model-selector__chat-option,
+  html body .visual-tag-filter-popup .visual-knowledge-filter-options .visual-knowledge-filter-option,
+  html .visual-tag-filter .visual-tag-filter__chip,
+  html .visual-mention-menu .visual-mention-group-entry,
+  html .visual-mention-menu .visual-mention-item,
+  html .visual-mention-menu .visual-mention-back { min-height: 44px !important; }
+  html .main.musuw-workspace-surface .visual-document-batch { flex-direction: column; align-items: stretch; overflow: visible; }
+  html .main.musuw-workspace-surface .visual-document-batch__summary { justify-content: space-between; }
+  html .main.musuw-workspace-surface .visual-document-batch__actions { flex-wrap: wrap; justify-content: flex-start; }
+  html .main.musuw-workspace-surface .visual-document-batch__button,
+  html .main.musuw-workspace-surface .visual-document-batch__clear { min-height: 44px; }
+  html .visual-batch-modal .visual-batch-modal__header > button { width: 44px; height: 44px; }
+  html .visual-batch-modal .visual-batch-modal__select-all,
+  html .visual-batch-modal .visual-batch-modal__cancel,
+  html .visual-batch-modal .visual-batch-modal__delete { min-height: 44px; }
+
+  /* Wiki keeps its existing list/reader; stack them on a phone. */
+  html .main.musuw-workspace-surface .wiki-browser { flex-direction: column; }
+  html .main.musuw-workspace-surface .wiki-sidebar { width: 100%; min-width: 0; min-height: 0; flex: 0 1 240px; max-height: 36%; border-right: 0; border-bottom: 1px solid var(--td-component-border); }
+  html .main.musuw-workspace-surface .wiki-sidebar-header { margin-left: 0; padding-inline: 0; }
+  html .main.musuw-workspace-surface .wiki-content { min-height: 0; }
+  html .main.musuw-workspace-surface .wiki-reader { padding: 16px 4px; }
+  html .main.musuw-workspace-surface .wiki-reader-title-row { flex-wrap: wrap; gap: 12px; }
+  html .main.musuw-workspace-surface .wiki-graph-search-container { width: calc(100% - 24px); top: 12px; left: 12px; }
+  html .main.musuw-workspace-surface .wiki-graph-canvas { min-height: 0; }
+  html .main.musuw-workspace-surface .wiki-graph-legend { top: auto; bottom: 12px; right: 12px; max-width: calc(100% - 48px); max-height: 36%; overflow-y: auto; }
+
+  /* Drawers retain their contents, but cannot keep a desktop minimum width. */
+  .t-drawer__content-wrapper--right,
+  .t-drawer__content-wrapper--left { width: 100vw !important; max-width: 100vw !important; height: 100dvh !important; box-sizing: border-box; }
+  .doc-drawer-resize-handle,
+  .trace-drawer-resize-handle { display: none !important; }
+  .t-drawer.doc-main-drawer .t-drawer__header { padding: max(12px, env(safe-area-inset-top)) 52px 12px 16px !important; }
+  .t-drawer.doc-main-drawer .t-drawer__body { padding: 16px 12px max(16px, env(safe-area-inset-bottom)) !important; }
+  .t-drawer.doc-main-drawer .t-drawer__close-btn { width: 44px; height: 44px; top: max(6px, env(safe-area-inset-top)); right: 4px; }
+  .t-drawer.doc-main-drawer .doc-drawer-header { min-width: 0; gap: 8px; }
+  .t-drawer.doc-main-drawer .doc-drawer-header-title { font-size: 14px !important; }
+  .t-drawer.doc-main-drawer .header-action-btn { min-width: 36px; height: 40px; }
+  .t-drawer.doc-main-drawer .doc-drawer-body { min-width: 0; }
+  .document-preview .preview-markdown { padding: 16px !important; }
+  .document-preview .preview-toolbar { opacity: 1 !important; }
+  .t-dialog { max-width: calc(100vw - 24px) !important; max-height: calc(100dvh - 24px) !important; }
+  .t-dialog__body { max-height: calc(100dvh - 170px); overflow-y: auto; }
+  html .visual-settings-overlay { padding: 0; }
+  .visual-settings-overlay .visual-settings-modal { width: 100%; height: 100dvh; max-height: 100dvh; flex-direction: column; border-radius: 0; }
+  .visual-settings-modal .visual-settings-sidebar { width: 100%; flex: 0 0 auto; flex-direction: row; align-items: center; gap: 8px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; }
+  .visual-settings-modal .visual-settings-close-wrap { flex: 0 0 auto; padding: 0; }
+  .visual-settings-modal .visual-settings-close { width: 44px; height: 44px; }
+  .visual-settings-modal .visual-settings-nav { min-width: 0; flex: 1 1 auto; flex-direction: row; overflow-x: auto; }
+  html .visual-settings-modal .agent-editor-tabs { display: flex; flex-direction: row; gap: 4px; }
+  .visual-settings-modal .visual-settings-nav__item { width: auto; min-height: 40px; flex: 0 0 auto; white-space: nowrap; }
+  html .visual-settings-modal .visual-settings-content .setting-row { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+  html .visual-settings-modal .visual-settings-content .setting-control { width: 100% !important; max-width: none !important; flex: 0 0 auto !important; justify-content: flex-start !important; }
+  .visual-settings-modal .visual-settings-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .visual-settings-modal .visual-settings-footer button { min-height: 44px; }
+  /* iOS avoids zooming the page when a form control has a readable font size. */
+  .main input:not([type=checkbox]):not([type=radio]),
+  .t-dialog input:not([type=checkbox]):not([type=radio]),
+  .t-drawer input:not([type=checkbox]):not([type=radio]),
+  .visual-settings-modal input:not([type=checkbox]):not([type=radio]),
+  .visual-settings-modal textarea,
+  .t-dialog textarea,
+  .t-drawer textarea { font-size: 16px !important; }
+  :root[theme-mode="dark"] .visual-mobile-header > img { filter: invert(1); }
+}
+
+/* Hover-only menus must remain discoverable on touch screens. */
+@media (max-width: 760px) and (hover: none) {
+  .visual-document-card__more,
+  .visual-folder-row__more { opacity: 1 !important; }
+}

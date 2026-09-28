@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# Root-owned half of the isolated staging deployment seam. Only the fixed
+# prepare/deploy/verify verbs are accepted; production's gate and roots are separate.
+set -euo pipefail
+
+if [ "${MUSUW_STAGING_DEPLOY_GATE_TEST_MODE:-0}" != 1 ] || [ "${EUID:-1}" -eq 0 ]; then
+    PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    export PATH
+fi
+
+die() { printf '%s\n' "$1" >&2; exit 1; }
+safe_revision() { [ "$#" -eq 1 ] && [[ "$1" =~ ^[0-9a-fA-F]{40}$ ]]; }
+safe_app_ref() { [ "$#" -eq 1 ] && [[ "$1" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]; }
+safe_frontend_ref() { [ "$#" -eq 1 ] && [[ "$1" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]; }
+
+test_mode=false
+if [ "${MUSUW_STAGING_DEPLOY_GATE_TEST_MODE:-0}" = 1 ] && [ "${EUID:-1}" -ne 0 ]; then
+    test_mode=true
+fi
+if [ "$test_mode" = false ] && [ "${EUID:-1}" -ne 0 ]; then
+    die 'musuw staging deploy gate must run as root'
+fi
+root_prefix=''
+if [ "$test_mode" = true ]; then
+    root_prefix="${MUSUW_STAGING_DEPLOY_GATE_ROOT:-}"
+    [ -n "$root_prefix" ] || die 'staging test gate root is unavailable'
+    root_prefix="$(cd "$root_prefix" && pwd -P)"
+fi
+
+release_root="${root_prefix}/opt/weknora-staging/releases"
+current_link="${root_prefix}/opt/weknora-staging/current"
+runtime_dir="${root_prefix}/opt/weknora/staging-runtime"
+spool_root="${root_prefix}/var/lib/musuw-staging-deploy/incoming"
+deploy_user='musuw-staging-deploy'
+
+require_command() { command -v "$1" >/dev/null 2>&1 || die "required staging gate command is unavailable: $1"; }
+for command_name in bash cat find id install mv ps readlink; do require_command "$command_name"; done
+
+safe_dir() { [ -d "$1" ] && [ ! -L "$1" ] || die "unsafe staging deployment directory: $1"; }
+ensure_root_dirs() {
+    [ ! -e "$release_root" ] || [ -d "$release_root" ] || die 'staging release root has an unsafe type'
+    [ ! -e "$spool_root" ] || [ -d "$spool_root" ] || die 'staging spool root has an unsafe type'
+    install -d -m 755 "$release_root" "$spool_root"
+    safe_dir "$release_root"
+    safe_dir "$spool_root"
+}
+
+current_target() {
+    local target link_target link_dir
+    if [ ! -e "$current_link" ] && [ ! -L "$current_link" ]; then printf '%s' ''; return 0; fi
+    [ -L "$current_link" ] || die 'staging current path is not a symlink'
+    target="$(readlink -f "$current_link" 2>/dev/null || true)"
+    if [ -z "$target" ]; then
+        link_target="$(readlink "$current_link" 2>/dev/null || true)"
+        [ -n "$link_target" ] || die 'staging current target is unavailable'
+        case "$link_target" in /*) target="$link_target" ;; *) target="$(dirname "$current_link")/$link_target" ;; esac
+        link_dir="$(cd "$target" 2>/dev/null && pwd -P || true)"
+        target="$link_dir"
+    fi
+    case "$target" in "$release_root"/*/source) ;; *) die 'staging current target is outside the approved root' ;; esac
+    [ -d "$target" ] && [ ! -L "$target" ] || die 'staging current target is unavailable'
+    printf '%s' "$target"
+}
+
+assert_not_current() { [ "$1" != "$(current_target)" ] || die 'requested staging release is already current'; }
+active_release_process() {
+    local process_list pid args
+    process_list="$(ps -eo pid=,args= 2>/dev/null || ps -eo pid=,command= 2>/dev/null)" || die 'active staging release processes could not be inspected'
+    while IFS=' ' read -r pid args; do
+        case "$pid" in ''|*[!0-9]*) continue ;; esac
+        [ "$pid" = "$$" ] && continue
+        case "$args" in *scripts/weknora-staging/release-ci.sh*) return 0 ;; esac
+    done <<< "$process_list"
+    return 1
+}
+assert_no_active_release() { active_release_process && die "staging release process is active for $release_id" || true; }
+
+clear_exact_tree() { [ -d "$1" ] && [ ! -L "$1" ] || die "unsafe staging deployment tree: $1"; find "$1" -mindepth 1 -depth -delete; }
+incoming_dir() { printf '%s/%s' "$spool_root" "$release_id"; }
+incoming_source() { printf '%s/source' "$(incoming_dir)"; }
+prepared_marker() { printf '%s/.prepared' "$(incoming_dir)"; }
+release_dir() { printf '%s/%s' "$release_root" "$release_id"; }
+
+prepare_incoming() {
+    local incoming marker marker_tmp
+    ensure_root_dirs
+    assert_not_current "$(release_dir)/source"
+    assert_no_active_release
+    incoming="$(incoming_dir)"
+    if [ -e "$incoming" ] || [ -L "$incoming" ]; then
+        [ -d "$incoming" ] && [ ! -L "$incoming" ] || die 'staging incoming directory has an unsafe type'
+        clear_exact_tree "$incoming"
+    else
+        install -d -m 755 "$incoming"
+    fi
+    install -d -m 755 \
+        "$incoming/source" "$incoming/source/weknora" \
+        "$incoming/source/integration/weknora-production" \
+        "$incoming/source/integration/weknora-staging" \
+        "$incoming/source/scripts/weknora-staging" "$incoming/source/deploy"
+    if [ "$test_mode" = false ]; then
+        id "$deploy_user" >/dev/null 2>&1 || die 'dedicated staging deployment account is unavailable'
+        chown "$deploy_user:$deploy_user" "$incoming/source" "$incoming/source/weknora" \
+            "$incoming/source/integration" "$incoming/source/integration/weknora-production" \
+            "$incoming/source/integration/weknora-staging" "$incoming/source/scripts" \
+            "$incoming/source/scripts/weknora-staging" "$incoming/source/deploy"
+    fi
+    marker="$(prepared_marker)"
+    marker_tmp="$incoming/.prepared.$$"
+    printf '%s\n' "$revision" > "$marker_tmp"
+    chmod 600 "$marker_tmp"
+    [ "$test_mode" = true ] || chown root:root "$marker_tmp"
+    mv -f "$marker_tmp" "$marker"
+    [ "$test_mode" = true ] || chown root:root "$marker"
+    printf '%s\n' "staging release prepared: $release_id"
+}
+
+verify_prepared_source() {
+    local source="$1" manifest_script="$1/scripts/weknora-staging/source-manifest.sh"
+    [ -d "$source" ] && [ ! -L "$source" ] || die 'staging source spool is unavailable'
+    [ -z "$(find "$source" -type l -print -quit)" ] || die 'staging source contains a symbolic link'
+    [ -z "$(find "$source" \( -type b -o -type c -o -type p -o -type s \) -print -quit)" ] || die 'staging source contains a special file'
+    [ -f "$manifest_script" ] && [ ! -L "$manifest_script" ] || die 'staging source manifest verifier is unavailable'
+    [ -f "$source/deploy/source-manifest.sha256" ] && [ ! -L "$source/deploy/source-manifest.sha256" ] || die 'staging source checksum manifest is unavailable'
+    WEKNORA_STAGING_RUNTIME_DIR="$runtime_dir" WEKNORA_STAGING_REVISION="$revision" \
+        bash "$manifest_script" verify "$source" >/dev/null
+}
+
+freeze_source() { find "$1" -mindepth 1 -type d -exec chmod a-w {} +; find "$1" -type f -exec chmod a-w {} +; }
+
+deploy_release() {
+    local incoming source marker release target helper ghcr_username ghcr_token
+    IFS= read -r ghcr_username || die 'GHCR username is missing from staging deploy stream'
+    IFS= read -r ghcr_token || die 'GHCR token is missing from staging deploy stream'
+    case "$ghcr_username" in ''|*[!A-Za-z0-9._-]*) die 'GHCR username is unsafe' ;; esac
+    [ -n "$ghcr_token" ] || die 'GHCR token is empty'
+    ensure_root_dirs
+    release="$(release_dir)"
+    target="$release/source"
+    assert_not_current "$target"
+    assert_no_active_release
+    incoming="$(incoming_dir)"
+    source="$(incoming_source)"
+    marker="$(prepared_marker)"
+    [ -f "$marker" ] && [ ! -L "$marker" ] || die 'staging incoming directory is not prepared'
+    [ "$(cat "$marker")" = "$revision" ] || die 'staging prepared revision does not match requested SHA'
+    verify_prepared_source "$source"
+    freeze_source "$source"
+    if [ -e "$release" ] || [ -L "$release" ]; then
+        [ -d "$release" ] && [ ! -L "$release" ] || die 'staging release directory has an unsafe type'
+        clear_exact_tree "$release"
+    else
+        install -d -m 755 "$release"
+    fi
+    mv "$source" "$target"
+    [ "$test_mode" = true ] || chown -R root:root "$release"
+    helper="$target/scripts/weknora-staging/release-ci.sh"
+    [ -f "$helper" ] && [ ! -L "$helper" ] || die 'staging release CI helper is unavailable'
+    if [ "$test_mode" = false ] || [ "${MUSUW_STAGING_DEPLOY_GATE_SKIP_RELEASE_CI:-0}" != 1 ]; then
+        printf '%s\n%s\n' "$ghcr_username" "$ghcr_token" |
+            WEKNORA_STAGING_RUNTIME_DIR="$runtime_dir" WEKNORA_STAGING_REVISION="$revision" \
+                bash "$helper" "$revision"
+    fi
+    unset ghcr_username ghcr_token
+    clear_exact_tree "$incoming"
+    rmdir "$incoming" 2>/dev/null || true
+    printf '%s\n' "staging release deployed: $release_id"
+}
+
+verify_current() {
+    local expected_app="$1" expected_frontend="$2" current helper expected
+    safe_app_ref "$expected_app" || die 'staging expected app image is unsafe'
+    safe_frontend_ref "$expected_frontend" || die 'staging expected frontend image is unsafe'
+    current="$(current_target)"
+    expected="$(release_dir)/source"
+    [ "$current" = "$expected" ] || die 'requested staging release is not current'
+    helper="$current/scripts/weknora-staging/verify-deployed.sh"
+    [ -f "$helper" ] && [ ! -L "$helper" ] || die 'staging deployed verifier is unavailable'
+    WEKNORA_STAGING_RUNTIME_DIR="$runtime_dir" WEKNORA_STAGING_REVISION="$revision" \
+    WEKNORA_STAGING_EXPECTED_APP_IMAGE="$expected_app" \
+    WEKNORA_STAGING_EXPECTED_FRONTEND_IMAGE="$expected_frontend" \
+        bash "$helper"
+}
+
+[ "$#" -ge 2 ] || die 'usage: musuw-staging-gate prepare|deploy <full-sha> | verify <full-sha> <app-ref> <frontend-ref>'
+verb="$1"
+revision="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+safe_revision "$revision" || die 'staging release revision is unsafe'
+release_id="musuw-$revision"
+case "$verb" in
+    prepare) [ "$#" -eq 2 ] || die 'staging prepare argument count is invalid'; prepare_incoming ;;
+    deploy) [ "$#" -eq 2 ] || die 'staging deploy argument count is invalid'; deploy_release ;;
+    verify) [ "$#" -eq 4 ] || die 'staging verify argument count is invalid'; verify_current "$3" "$4" ;;
+    *) die 'unknown musuw staging deploy gate protocol' ;;
+esac

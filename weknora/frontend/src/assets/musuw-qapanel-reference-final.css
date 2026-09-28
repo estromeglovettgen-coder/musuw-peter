@@ -1,0 +1,126 @@
+/*
+ * Direct @视觉文件/QAPanel.tsx closure.
+ * This file owns only exact counterpart geometry/glyphs; native WeKnora-only
+ * capabilities continue to render inside the same reference visual language.
+ */
+
+:root {
+  --mvc-icon-at-sign: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M16%208v5a3%203%200%200%200%206%200v-1a10%2010%200%201%200-4%208%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* QAPanel uses Lucide AtSign (18px), not a typographic @ character. */
+.visual-chat-composer__tool.is-at .visual-chat-composer__at { display: none !important; }
+.visual-chat-composer__tool.is-at::before {
+  content: "";
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  background: currentColor;
+  -webkit-mask: var(--mvc-icon-at-sign) center / contain no-repeat;
+  mask: var(--mvc-icon-at-sign) center / contain no-repeat;
+}
+
+/* Reference @ menu: w-64 (256px), p-2, rounded-xl, compact rows. Native
+ * KB/File/Tag/MCP/Skill grouping remains because it is WeKnora behavior. */
+.visual-mention-menu {
+  width: 256px !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: 388px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%) !important;
+}
+.visual-mention-list {
+  padding: 8px !important;
+  scrollbar-width: thin;
+}
+.visual-mention-group-entry,
+.visual-mention-back,
+.visual-mention-item {
+  min-height: 30px !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  gap: 8px !important;
+  color: #4b5563 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.visual-mention-group-entry:hover,
+.visual-mention-group-entry.is-active,
+.visual-mention-back:hover,
+.visual-mention-item:hover,
+.visual-mention-item.is-active {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+/* Direct reference items use a plain 16px glyph. Native group hierarchy gets
+ * the same compact tile without restoring old WeKnora chrome. */
+.visual-mention-group-entry__icon,
+.visual-mention-item__icon {
+  flex: 0 0 24px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 6px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+}
+.visual-mention-group-entry__icon .t-icon,
+.visual-mention-item__icon .t-icon { font-size: 14px !important; }
+.visual-mention-group-entry__label,
+.visual-mention-item__copy strong {
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+.visual-mention-group-entry.is-active .visual-mention-group-entry__label,
+.visual-mention-item.is-active .visual-mention-item__copy strong { font-weight: 600 !important; }
+.visual-mention-group-entry__count {
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  font-size: 9px !important;
+}
+.visual-mention-section-label {
+  padding: 7px 10px 3px !important;
+  color: #9ca3af !important;
+  font-size: 9px !important;
+  line-height: 14px !important;
+  letter-spacing: .04em !important;
+}
+.visual-mention-back {
+  margin-bottom: 4px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+.visual-mention-empty { min-height: 72px !important; padding: 16px 10px !important; font-size: 11px !important; }
+
+/* Detail flyouts use the same reference card/popover family. */
+.visual-mention-detail-popup .t-popup__content {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%) !important;
+}
+.visual-mention-detail { width: 256px !important; padding: 12px !important; font-size: 10px !important; line-height: 16px !important; }
+
+/* Native dark preference keeps behavior visible while retaining reference
+ * geometry. */
+:root[theme-mode="dark"] .visual-mention-menu,
+:root[theme-mode="dark"] .visual-mention-detail-popup .t-popup__content {
+  border-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-surface, #1d1f23) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}
+:root[theme-mode="dark"] .visual-mention-group-entry:hover,
+:root[theme-mode="dark"] .visual-mention-group-entry.is-active,
+:root[theme-mode="dark"] .visual-mention-back:hover,
+:root[theme-mode="dark"] .visual-mention-item:hover,
+:root[theme-mode="dark"] .visual-mention-item.is-active,
+:root[theme-mode="dark"] .visual-mention-group-entry__icon,
+:root[theme-mode="dark"] .visual-mention-item__icon {
+  background: var(--mvc-hover, #25272c) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}

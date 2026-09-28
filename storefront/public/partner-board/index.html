@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>Musuw 推广榜单</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .totals{display:flex;gap:42px;flex-wrap:wrap;padding:0 0 26px;margin-bottom:24px;border-bottom:1px solid #e5e5e5}
+    .metric-label{color:#737373;font-size:12px;margin-bottom:5px}.metric-value{font-size:25px;letter-spacing:-.7px;font-variant-numeric:tabular-nums;font-weight:600}
+    .metric-sub{font-size:11px;color:#737373;margin-top:4px}.order-pages{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:14px;color:#737373;font-size:12px}
+    button{cursor:pointer}.order-pages button{background:white;border:1px solid #d4d4d4;border-radius:5px;padding:5px 10px;color:#262626}.order-pages button:disabled{opacity:.4;cursor:default}
+    .board-footer{margin-top:18px;color:#737373;font-size:12px;line-height:1.8}.detail-heading{display:flex;justify-content:space-between}.code-button{font:inherit;border:0;background:transparent;padding:0;text-align:left;color:inherit;cursor:pointer}
+    .partners-offer{max-width:none}
+    .commission-lookup{margin:0 0 34px;padding:18px 20px;border:1px solid #e5e5e5;border-radius:8px;background:#fafafa}.lookup-label{display:block;margin-bottom:9px;font-size:13px;font-weight:600}.lookup-bar{display:flex;gap:8px;max-width:540px}.lookup-bar input{flex:1;min-width:0;max-width:380px}.lookup-submit{border:1px solid #171717;border-radius:6px;background:#171717;color:#fff;padding:7px 18px;white-space:nowrap;font:inherit;font-size:13px}.lookup-result{margin-top:16px;padding-top:15px;border-top:1px solid #e5e5e5}.lookup-result[hidden]{display:none}.lookup-result-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.lookup-scope{margin-left:12px;color:#737373;font-size:12px}.lookup-orders{border:0;padding:0;background:transparent;color:#525252;font-size:12px;text-decoration:underline;text-underline-offset:3px}.lookup-values{display:flex;gap:36px;flex-wrap:wrap;margin:14px 0 0}.lookup-values dt{color:#737373;font-size:12px}.lookup-values dd{margin:4px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}.lookup-message{margin:0;color:#737373;font-size:13px}
+    .language-switch{display:flex;gap:4px;border:1px solid #e5e5e5;padding:3px;border-radius:7px}.language-switch button{border:0;background:transparent;color:#737373;padding:5px 10px;border-radius:4px;font-size:12px}.language-switch button[aria-pressed="true"]{background:#f0f0f0;color:#171717;font-weight:600}
+    .currency-unit{margin-left:5px;font-size:10px;color:#737373;letter-spacing:.05em}.code-search{border:1px solid #d4d4d4;border-radius:6px;padding:7px 10px;min-width:170px;font:inherit;background:white;color:#171717}.board-pages{padding:16px 0}.empty-results{padding:28px!important;text-align:center;color:#737373}.partners-table th{white-space:normal}.partners-table th:nth-child(2){width:27%}.partners-table th:nth-child(3){width:19%}.partners-table th:nth-child(4),.partners-table th:nth-child(5){width:22%}.orders-table td{white-space:nowrap}.metric-sub{max-width:260px}.partners-meta{margin-left:0;flex-basis:100%}
+    @media(max-width:700px){.partner-row .money-cell:nth-child(4)::before{content:attr(data-period)}.partner-row .money-cell:nth-child(5)::before{content:attr(data-lifetime)}.orders-table td{white-space:normal}}
+    @media(max-width:600px){.totals{gap:20px}.metric-value{font-size:21px}.partners-main{padding-top:30px}.order-pages{gap:8px;flex-wrap:wrap}}
+  </style>
+</head>
+<body>
+<div class="partners-page">
+  <header class="partners-header"><a class="partners-brand" href="https://musuw.com"><img src="musuw-logo.png" alt="">musuw</a><div class="language-switch" aria-label="Language"><button type="button" data-lang="zh" aria-pressed="true">中文</button><button type="button" data-lang="en" aria-pressed="false">English</button></div></header>
+  <main class="partners-main">
+    <section class="commission-lookup"><form id="commission-form"><label for="commission-code" class="lookup-label" data-i18n="lookupTitle">查我的佣金</label><div class="lookup-bar"><input id="commission-code" class="code-search" type="search" maxlength="64" autocomplete="off" spellcheck="false" placeholder="输入完整折扣码"><button class="lookup-submit" type="submit" data-i18n="lookupSubmit">查询佣金</button></div></form><div id="lookup-result" class="lookup-result" aria-live="polite" hidden></div></section>
+    <section class="partners-intro"><p class="partners-eyebrow" data-i18n="eyebrow">合作伙伴看板</p><h1 data-i18n="title">推广榜单</h1><p class="partners-offer" data-i18n="offer">新客户首笔实付 100% 佣金，后续实际付费 20%。</p></section>
+    <section class="totals" aria-label="推广汇总" id="totals"></section>
+    <section class="partners-toolbar" id="ranking-heading"><label for="month-select" data-i18n="month">统计月份</label><select id="month-select"></select><span class="partners-meta" id="meta"></span></section>
+    <section class="board-section"><div class="table-wrap"><table class="partners-table"><thead><tr><th data-i18n="rank">排名</th><th data-i18n="code">折扣码</th><th class="align-right" data-i18n="customers">新付费客户</th><th class="align-right" id="commission-heading">期间佣金</th><th class="align-right" data-i18n="lifetime">累计佣金</th></tr></thead><tbody id="ranking"></tbody></table></div><div class="order-pages board-pages" id="board-pages"></div></section>
+    <p class="board-footer"><strong data-i18n="disclosure">数据为合成记录，仅用于功能与口径展示，不代表真实订单或收益。</strong> <span data-i18n="footer"></span></p>
+  </main>
+</div>
+<script src="data.js"></script><script src="app.js"></script>
+</body></html>

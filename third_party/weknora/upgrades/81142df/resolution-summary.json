@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "fixedTarget": "81142dfd17b2778087e95d3a317483a2fd909b91",
+  "localDeltaPaths": 708,
+  "upstreamDeltaPaths": 1051,
+  "overlapPaths": 158,
+  "unionPaths": 1601,
+  "counts": {
+    "adapt-musuw-for-target": 193,
+    "adapt-upstream-for-musuw": 117,
+    "adopt-upstream-deletion": 4,
+    "adopt-upstream-exact": 725,
+    "append-upstream-migration": 42,
+    "compose-three-way": 151,
+    "preserve-musuw-deletion": 25,
+    "preserve-musuw-exact": 344
+  },
+  "blocking": []
+}

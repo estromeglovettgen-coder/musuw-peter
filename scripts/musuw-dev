@@ -1,0 +1,495 @@
+#!/usr/bin/env bash
+# Native daily-development entrypoint for Musuw on top of official WeKnora.
+#
+# Docker is intentionally limited to stateful / native dependency services.
+# The Go app and both browser bundles run directly from this checkout, so
+# frontend edits use Vite HMR and backend restarts only compile changed Go.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+weknora_root="$repo_root/weknora"
+candidate_dir="$repo_root/integration/weknora-candidate"
+runtime_dir="$repo_root/.runtime/weknora"
+candidate_env="$runtime_dir/candidate.env"
+auth_public_env="$runtime_dir/auth-public.env"
+paddle_sandbox_env="$runtime_dir/paddle-sandbox.env"
+state_dir="$runtime_dir/host-dev"
+paddle_api_key_service=com.musuw.local-admin.paddle-api-key
+paddle_webhook_secret_service=com.musuw.local-admin.paddle-webhook-secret
+langfuse_public_key_service=com.musuw.local-admin.langfuse-public-key
+langfuse_secret_key_service=com.musuw.local-admin.langfuse-secret-key
+paddle_keychain_account=musuw-admin-test
+
+: "${MUSUW_DEV_FRONTEND_PORT:=4190}"
+: "${MUSUW_DEV_AUTH_PORT:=4191}"
+: "${MUSUW_DEV_BACKEND_PORT:=18090}"
+: "${MUSUW_DEV_DB_PORT:=15432}"
+: "${MUSUW_DEV_REDIS_PORT:=16380}"
+: "${MUSUW_DEV_DOCREADER_PORT:=15051}"
+: "${MUSUW_DEV_NEO4J_HTTP_PORT:=17474}"
+: "${MUSUW_DEV_NEO4J_BOLT_PORT:=17687}"
+: "${MUSUW_DEV_SEARXNG_PORT:=8890}"
+export MUSUW_DEV_FRONTEND_PORT MUSUW_DEV_AUTH_PORT MUSUW_DEV_BACKEND_PORT
+export MUSUW_DEV_DB_PORT MUSUW_DEV_REDIS_PORT MUSUW_DEV_DOCREADER_PORT
+export MUSUW_DEV_NEO4J_HTTP_PORT MUSUW_DEV_NEO4J_BOLT_PORT MUSUW_DEV_SEARXNG_PORT
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/musuw-dev <command>
+
+Daily host development (no application Docker build):
+  up                 Start Docker dependencies, then host Go + auth Vite + UI Vite
+  down               Stop host processes and only the dependency containers
+  status             Show host process / dependency status and local URLs
+  app                Run WeKnora Go directly on the host
+  auth               Run the retained Google/email auth Vite server on the host
+  web                Run the WeKnora Vite server with HMR on the host
+
+Dependency-only Docker controls (named volumes are always preserved):
+  deps up            Start PostgreSQL, Redis, DocReader, Neo4j, and SearXNG
+  deps down          Stop only those dependency containers
+  deps status        Show only those dependency containers
+
+Production-like validation:
+  preview            Restore container-only SearXNG routing, then run the existing full Docker rebuild
+  check              Validate generated host topology without starting a service
+
+Host browser URL: http://localhost:4190
+Host backend URL: http://127.0.0.1:18090/health
+
+`up` never builds an app image. It runs `go run ./cmd/server`, auth Vite, and
+WeKnora Vite directly from this checkout. Docker is used only for dependencies
+above; keep `preview` / the existing release scripts for container builds.
+
+Convenience wrappers: scripts/musuw-preview and scripts/musuw-release.
+EOF
+}
+
+die() {
+  printf '%s\n' "$1" >&2
+  exit 1
+}
+
+validate_port() {
+  local value="$1"
+  [[ "$value" =~ ^[0-9]+$ ]] || die 'development port must be numeric'
+  [ "$value" -ge 1 ] && [ "$value" -le 65535 ] || die 'development port must be between 1 and 65535'
+}
+
+for port in \
+  "$MUSUW_DEV_FRONTEND_PORT" "$MUSUW_DEV_AUTH_PORT" "$MUSUW_DEV_BACKEND_PORT" \
+  "$MUSUW_DEV_DB_PORT" "$MUSUW_DEV_REDIS_PORT" "$MUSUW_DEV_DOCREADER_PORT" \
+  "$MUSUW_DEV_NEO4J_HTTP_PORT" "$MUSUW_DEV_NEO4J_BOLT_PORT" "$MUSUW_DEV_SEARXNG_PORT"; do
+  validate_port "$port"
+done
+
+load_env_file() {
+  local file="$1"
+  local line key value
+  [ -r "$file" ] || die 'required local runtime configuration is unavailable'
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      ''|'#'*) continue ;;
+    esac
+    [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || die 'local runtime configuration contains an invalid assignment'
+    key="${line%%=*}"
+    value="${line#*=}"
+    export "$key=$value"
+  done < "$file"
+}
+
+load_paddle_public_env() {
+  local file="$1"
+  local line key value
+  [ -r "$file" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      ''|'#'*) continue ;;
+    esac
+    [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || die 'Paddle Sandbox runtime contains an invalid assignment'
+    key="${line%%=*}"
+    case "$key" in
+      MUSUW_PADDLE_API_KEY|MUSUW_PADDLE_WEBHOOK_SECRET) continue ;;
+    esac
+    value="${line#*=}"
+    export "$key=$value"
+  done < "$file"
+}
+
+apply_host_product_edition_override() {
+  case "${MUSUW_DEV_PRODUCT_EDITION:-}" in
+    '') return 0 ;;
+    lite|standard) export MUSUW_PRODUCT_EDITION="$MUSUW_DEV_PRODUCT_EDITION" ;;
+    *) die 'development product edition must be lite or standard' ;;
+  esac
+}
+
+read_secret() {
+  local path="$1"
+  [ -r "$path" ] && [ ! -L "$path" ] || die 'required host-development secret is unavailable'
+  local value
+  value="$(tr -d '\r\n' < "$path")"
+  [ -n "$value" ] || die 'required host-development secret is empty'
+  printf '%s' "$value"
+}
+
+read_keychain_secret() {
+  local service="$1"
+  local account="$2"
+  local value
+  command -v security >/dev/null 2>&1 || die 'macOS Keychain command is unavailable'
+  value="$(security find-generic-password -w -s "$service" -a "$account" 2>/dev/null || true)"
+  [ -n "$value" ] || die 'required host-development Keychain secret is unavailable'
+  printf '%s' "$value"
+}
+
+prepare_runtime() {
+  "$repo_root/scripts/weknora-candidate/prepare-local-runtime.sh" >/dev/null
+  "$repo_root/scripts/weknora-candidate/prepare-runtime.sh" >/dev/null
+}
+
+load_host_environment() {
+  prepare_runtime
+  load_env_file "$candidate_env"
+  load_env_file "$auth_public_env"
+  load_paddle_public_env "$paddle_sandbox_env"
+  apply_host_product_edition_override
+  if ! grep -q '^LOG_FORMAT=' "$candidate_env"; then
+    unset LOG_FORMAT
+  fi
+
+  export OIDC_AUTH_CLIENT_ID="$(read_secret "$runtime_dir/secrets/oidc_client_id")"
+  export OIDC_AUTH_CLIENT_SECRET="$(read_secret "$runtime_dir/secrets/oidc_client_secret")"
+  export MUSUW_PADDLE_API_KEY="$(read_keychain_secret "$paddle_api_key_service" "$paddle_keychain_account")"
+  export MUSUW_PADDLE_WEBHOOK_SECRET="$(read_keychain_secret "$paddle_webhook_secret_service" "$paddle_keychain_account")"
+  export LANGFUSE_PUBLIC_KEY="$(read_keychain_secret "$langfuse_public_key_service" "$paddle_keychain_account")"
+  export LANGFUSE_SECRET_KEY="$(read_keychain_secret "$langfuse_secret_key_service" "$paddle_keychain_account")"
+  export LANGFUSE_ENABLED=true
+  export LANGFUSE_HOST=https://jp.cloud.langfuse.com
+  export LANGFUSE_RELEASE=musuw-test
+  export LANGFUSE_ENVIRONMENT=test
+  # These are host-only addresses. The candidate.env remains Docker-native and
+  # can still be consumed unchanged by the preview/release compose interface.
+  export DB_HOST=127.0.0.1
+  export DB_PORT="$MUSUW_DEV_DB_PORT"
+  export RETRIEVE_DRIVER="${RETRIEVE_DRIVER:-postgres}"
+  export REDIS_ADDR="127.0.0.1:${MUSUW_DEV_REDIS_PORT}"
+  export DOCREADER_ADDR="127.0.0.1:${MUSUW_DEV_DOCREADER_PORT}"
+  export DOCREADER_TRANSPORT=grpc
+  export NEO4J_URI="bolt://127.0.0.1:${MUSUW_DEV_NEO4J_BOLT_PORT}"
+  export SERVER_HOST=127.0.0.1
+  export SERVER_PORT="$MUSUW_DEV_BACKEND_PORT"
+  export FRONTEND_BASE_URL="http://localhost:${MUSUW_DEV_FRONTEND_PORT}"
+  export APP_EXTERNAL_URL="http://localhost:${MUSUW_DEV_FRONTEND_PORT}"
+  export LOCAL_STORAGE_BASE_DIR="$runtime_dir/host-files"
+  export VITE_DEV_PROXY_TARGET="http://127.0.0.1:${MUSUW_DEV_BACKEND_PORT}"
+  export VITE_AUTH_DEV_TARGET="http://127.0.0.1:${MUSUW_DEV_AUTH_PORT}"
+  export MUSUW_DEV_LOCAL_AUTH=true
+  export VITE_MUSUW_DEV_LOCAL_AUTH=true
+  # The container candidate pins openrouter.ai to a freshly resolved public IP.
+  # Host development cannot use Compose extra_hosts, so trust only that same
+  # fixed platform endpoint through WeKnora's native SSRF whitelist. This also
+  # avoids local proxy DNS fake-IP ranges without weakening other destinations.
+  export SSRF_WHITELIST_EXTRA="${SSRF_WHITELIST_EXTRA:+${SSRF_WHITELIST_EXTRA},}openrouter.ai"
+  install -d -m 700 "$LOCAL_STORAGE_BASE_DIR" "$state_dir"
+}
+
+candidate_compose() {
+  docker compose \
+    --project-name weknora-v072-candidate \
+    --env-file "$candidate_env" \
+    -f "$weknora_root/docker-compose.yml" \
+    -f "$candidate_dir/compose.yaml" \
+    -f "$candidate_dir/compose.host-dev.yaml" \
+    --profile neo4j \
+    --profile searxng \
+    "$@"
+}
+
+deps_up() {
+  prepare_runtime
+  candidate_compose up -d --no-build --force-recreate postgres redis docreader neo4j searxng
+  printf '%s\n' 'Musuw host dependencies are ready; no app or frontend container was started.'
+}
+
+deps_down() {
+  [ -r "$candidate_env" ] || return 0
+  candidate_compose stop postgres redis docreader neo4j searxng
+  printf '%s\n' 'Musuw host dependencies stopped; named volumes were preserved.'
+}
+
+deps_status() {
+  [ -r "$candidate_env" ] || die 'local candidate runtime has not been prepared'
+  candidate_compose ps postgres redis docreader neo4j searxng
+}
+
+set_searxng_endpoint() {
+  local endpoint="$1"
+  [ -r "$candidate_env" ] || return 0
+  local has_table
+  has_table="$(candidate_compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -Atqc "SELECT to_regclass('public.web_search_providers') IS NOT NULL" 2>/dev/null || true)"
+  [ "$has_table" = 't' ] || return 0
+  # psql expands variables when it reads SQL from stdin; `-c` treats this
+  # parameterized statement as raw text on the host/Compose combination used
+  # here. Keep the value out of the SQL string and use psql's literal form.
+  printf '%s\n' "UPDATE web_search_providers SET parameters = jsonb_set(COALESCE(parameters, '{}'::jsonb), '{base_url}', to_jsonb(:'base_url'::text), true), updated_at = CURRENT_TIMESTAMP WHERE provider = 'searxng' AND deleted_at IS NULL" \
+    | candidate_compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" \
+      -v ON_ERROR_STOP=1 -v "base_url=$endpoint" \
+      >/dev/null
+}
+
+configure_host_search() {
+  set_searxng_endpoint "http://127.0.0.1:${MUSUW_DEV_SEARXNG_PORT}"
+}
+
+configure_container_search() {
+  set_searxng_endpoint 'http://searxng:8080'
+}
+
+port_is_busy() {
+  lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | grep -q .
+}
+
+require_free_port() {
+  local port="$1"
+  local label="$2"
+  if port_is_busy "$port"; then
+    printf '%s\n' "$label needs port $port, but it is already in use. Stop the Docker preview with scripts/weknora-local.sh down, or choose a different MUSUW_DEV_*_PORT." >&2
+    exit 1
+  fi
+}
+
+wait_for_http() {
+  local url="$1"
+  local seconds="$2"
+  local deadline=$(( $(date +%s) + seconds ))
+  until curl -fsS --connect-timeout 2 "$url" >/dev/null 2>&1; do
+    [ "$(date +%s)" -lt "$deadline" ] || return 1
+    sleep 1
+  done
+}
+
+pid_file() {
+  printf '%s/%s.pid' "$state_dir" "$1"
+}
+
+stop_host_processes() {
+  local name pid file
+  for name in web auth app; do
+    file="$(pid_file "$name")"
+    [ -r "$file" ] || continue
+    pid="$(tr -d '[:space:]' < "$file")"
+    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+    fi
+    rm -f "$file"
+  done
+}
+
+# Mirror upstream main's host-development behavior: once the reviewed AnyDoc
+# archive exists for this machine, link it into every Musuw host backend run.
+# An explicitly supplied GO_BUILD_TAGS (including an empty value) remains an
+# operator override.
+host_anydoc_archive() {
+  case "$(uname -s)-$(uname -m)" in
+    Darwin-arm64) printf '%s\n' "$weknora_root/third_party/anydoc-go/lib/darwin_arm64/libanydoc_go.a" ;;
+    Darwin-x86_64) printf '%s\n' "$weknora_root/third_party/anydoc-go/lib/darwin_amd64/libanydoc_go.a" ;;
+    Linux-x86_64)
+      if [ -f "$weknora_root/third_party/anydoc-go/lib/linux_amd64_gnu/libanydoc_go.a" ]; then
+        printf '%s\n' "$weknora_root/third_party/anydoc-go/lib/linux_amd64_gnu/libanydoc_go.a"
+      else
+        printf '%s\n' "$weknora_root/third_party/anydoc-go/lib/linux_amd64_musl/libanydoc_go.a"
+      fi
+      ;;
+    Linux-aarch64)
+      if [ -f "$weknora_root/third_party/anydoc-go/lib/linux_arm64_gnu/libanydoc_go.a" ]; then
+        printf '%s\n' "$weknora_root/third_party/anydoc-go/lib/linux_arm64_gnu/libanydoc_go.a"
+      else
+        printf '%s\n' "$weknora_root/third_party/anydoc-go/lib/linux_arm64_musl/libanydoc_go.a"
+      fi
+      ;;
+    *) printf '\n' ;;
+  esac
+}
+
+enable_host_anydoc_build_tag() {
+  if [ -n "${GO_BUILD_TAGS+x}" ]; then
+    export GO_BUILD_TAGS
+    return
+  fi
+
+  local archive
+  archive="$(host_anydoc_archive)"
+  if [ -n "$archive" ] && [ -f "$archive" ]; then
+    export GO_BUILD_TAGS=anydoc
+    printf '%s\n' 'AnyDoc archive detected; host backend will use the official AnyDoc parser.'
+  else
+    printf '%s\n' 'AnyDoc archive is absent; run `cd weknora && make anydoc-lib` to enable the main parser default.' >&2
+  fi
+}
+
+run_app() {
+  load_host_environment
+  require_free_port "$MUSUW_DEV_BACKEND_PORT" 'host Go backend'
+  export CGO_CFLAGS='-Wno-deprecated-declarations -Wno-gnu-folding-constant'
+  if [ "$(uname)" = Darwin ]; then
+    export CGO_LDFLAGS='-Wl,-no_warn_duplicate_libraries'
+  fi
+  enable_host_anydoc_build_tag
+  local ldflags
+  ldflags="$(cd "$weknora_root" && ./scripts/get_version.sh ldflags) -X 'google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn'"
+  cd "$weknora_root"
+  go run -tags "${GO_BUILD_TAGS:-}" -ldflags="$ldflags" ./cmd/server
+}
+
+run_auth() {
+  load_host_environment
+  require_free_port "$MUSUW_DEV_AUTH_PORT" 'host auth Vite server'
+  cd "$repo_root/auth"
+  npm run dev -- --host 127.0.0.1 --port "$MUSUW_DEV_AUTH_PORT" --strictPort
+}
+
+run_web() {
+  load_host_environment
+  require_free_port "$MUSUW_DEV_FRONTEND_PORT" 'host WeKnora Vite server'
+  cd "$weknora_root/frontend"
+  npm run dev -- --host 127.0.0.1 --port "$MUSUW_DEV_FRONTEND_PORT" --strictPort
+}
+
+start_background() {
+  local name="$1"
+  shift
+  local file
+  file="$(pid_file "$name")"
+  if [ -r "$file" ] && kill -0 "$(tr -d '[:space:]' < "$file")" 2>/dev/null; then
+    die "host $name is already running; use scripts/musuw-dev down first"
+  fi
+  "$@" </dev/null >"$state_dir/$name.log" 2>&1 &
+  printf '%s\n' "$!" > "$file"
+}
+
+start_all() {
+  # If a later readiness check fails, do not leave a host Go/Vite process
+  # behind. Dependency containers intentionally remain available for a retry.
+  trap 'stop_host_processes' ERR INT TERM EXIT
+  load_host_environment
+  require_free_port "$MUSUW_DEV_BACKEND_PORT" 'host Go backend'
+  require_free_port "$MUSUW_DEV_AUTH_PORT" 'host auth Vite server'
+  require_free_port "$MUSUW_DEV_FRONTEND_PORT" 'host WeKnora Vite server'
+  deps_up
+  start_background app run_app
+  if ! wait_for_http "http://127.0.0.1:${MUSUW_DEV_BACKEND_PORT}/health" 180; then
+    tail -n 80 "$state_dir/app.log" >&2 || true
+    stop_host_processes
+    die 'host Go backend did not become healthy'
+  fi
+  configure_host_search
+  start_background auth run_auth
+  if ! wait_for_http "http://127.0.0.1:${MUSUW_DEV_AUTH_PORT}/auth/start" 45; then
+    tail -n 80 "$state_dir/auth.log" >&2 || true
+    stop_host_processes
+    die 'host auth Vite server did not become ready'
+  fi
+  start_background web run_web
+  if ! wait_for_http "http://localhost:${MUSUW_DEV_FRONTEND_PORT}/" 45; then
+    tail -n 80 "$state_dir/web.log" >&2 || true
+    stop_host_processes
+    die 'host WeKnora Vite server did not become ready'
+  fi
+  printf '%s\n' "Musuw host development is ready at http://localhost:${MUSUW_DEV_FRONTEND_PORT}"
+  printf '%s\n' 'Frontend changes use HMR; restart only `scripts/musuw-dev app` after Go changes.'
+  trap 'stop_host_processes' INT TERM EXIT
+  wait "$(cat "$(pid_file web)")"
+}
+
+status() {
+  printf '%s\n' 'Host processes:'
+  local name pid file
+  for name in app auth web; do
+    file="$(pid_file "$name")"
+    if [ -r "$file" ]; then
+      pid="$(tr -d '[:space:]' < "$file")"
+      if kill -0 "$pid" 2>/dev/null; then
+        printf '  %s: running (pid %s)\n' "$name" "$pid"
+      else
+        printf '  %s: stopped\n' "$name"
+      fi
+    else
+      printf '  %s: stopped\n' "$name"
+    fi
+  done
+  printf '%s\n' 'Docker dependencies:'
+  if [ -r "$candidate_env" ]; then
+    deps_status
+  else
+    printf '%s\n' '  local candidate runtime has not been prepared'
+  fi
+  printf 'URLs: http://localhost:%s | http://127.0.0.1:%s/health\n' "$MUSUW_DEV_FRONTEND_PORT" "$MUSUW_DEV_BACKEND_PORT"
+}
+
+check() {
+  prepare_runtime
+  candidate_compose config -q
+  load_host_environment
+  printf '%s\n' 'host development topology is valid: Docker dependencies plus host Go/auth/Vite processes'
+}
+
+preview() {
+  prepare_runtime
+  "$repo_root/scripts/weknora-local.sh" rebuild
+  configure_container_search
+}
+
+command_name="${1:-}"
+case "$command_name" in
+  up)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    start_all
+    ;;
+  down)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    stop_host_processes
+    deps_down
+    ;;
+  status)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    status
+    ;;
+  app)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    run_app
+    ;;
+  auth)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    run_auth
+    ;;
+  web)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    run_web
+    ;;
+  deps)
+    case "${2:-}" in
+      up) [ "$#" -eq 2 ] && deps_up || { usage >&2; exit 2; } ;;
+      down) [ "$#" -eq 2 ] && deps_down || { usage >&2; exit 2; } ;;
+      status) [ "$#" -eq 2 ] && deps_status || { usage >&2; exit 2; } ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    ;;
+  preview)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    preview
+    ;;
+  check)
+    [ "$#" -eq 1 ] || { usage >&2; exit 2; }
+    check
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

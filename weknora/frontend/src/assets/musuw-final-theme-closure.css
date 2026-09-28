@@ -1,0 +1,2529 @@
+/*
+ * Final native-theme closure.
+ *
+ * @视觉文件 is the light/default visual authority. Dark theme is a WeKnora
+ * behavior contract, so reference-translated/native-only surfaces added after
+ * musuw-visual-preference-compat.css must still react to theme-mode="dark".
+ * Geometry is intentionally unchanged here.
+ */
+
+:root[theme-mode="dark"] {
+  /* QAPanel late-loaded mention popup. */
+  .visual-mention-menu,
+  .visual-mention-detail-popup .t-popup__content,
+  .visual-mention-detail {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+  .visual-mention-group-entry,
+  .visual-mention-back,
+  .visual-mention-item,
+  .visual-mention-detail__meta button { color: var(--mvc-muted-strong) !important; }
+  .visual-mention-group-entry:hover,
+  .visual-mention-group-entry.is-active,
+  .visual-mention-back:hover,
+  .visual-mention-item:hover,
+  .visual-mention-item.is-active,
+  .visual-mention-group-entry__icon,
+  .visual-mention-item__icon,
+  .visual-mention-group-entry__count,
+  .visual-mention-detail__header span {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-mention-item__copy strong,
+  .visual-mention-detail__header strong { color: var(--mvc-text-strong) !important; }
+  .visual-mention-item__copy small,
+  .visual-mention-section-label,
+  .visual-mention-detail p,
+  .visual-mention-detail__meta { color: var(--mvc-muted) !important; }
+
+  /* DocumentListView late-loaded exact geometry layer. */
+  .visual-document-list,
+  .visual-document-list__body,
+  .visual-document-list__row,
+  .visual-document-card,
+  .visual-knowledge-skeleton-card {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-document-list__header {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted) !important;
+  }
+  .visual-document-list__row:hover,
+  .visual-document-list__row.is-menu-open,
+  .visual-document-list__row.is-selected,
+  .visual-document-list__file-icon,
+  .visual-document-list__tag,
+  .visual-document-list__tag-overflow,
+  .visual-document-list__add-tag {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-document-list__file-copy strong { color: var(--mvc-text-strong) !important; }
+  .visual-document-list__file-copy small,
+  .visual-document-list__source-label,
+  .visual-document-list__mono { color: var(--mvc-muted) !important; }
+
+  /* Knowledge-list native scope/status additions. */
+  .visual-kb-workspace {
+    background: var(--mvc-page) !important;
+  }
+  .visual-kb-warning,
+  .visual-kb-upload-status article,
+  .visual-shared-detail,
+  .visual-shared-detail dl > div {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-kb-upload-status__icon,
+  .visual-kb-section small { background: var(--mvc-hover) !important; color: var(--mvc-muted) !important; }
+  .visual-kb-upload-status__copy strong,
+  .visual-shared-detail > header h3,
+  .visual-shared-detail dd { color: var(--mvc-text-strong) !important; }
+  .visual-kb-warning,
+  .visual-kb-upload-status__copy,
+  .visual-kb-section,
+  .visual-shared-detail dt { color: var(--mvc-muted) !important; }
+
+  /* Knowledge-base native list/detail surfaces.  These components keep the
+   * reference geometry in their scoped styles, but their original white-only
+   * fills must resolve to the same dark tokens as the surrounding shell. */
+  .visual-kb-list,
+  .visual-kb-list__header,
+  .visual-kb-list__skeleton,
+  .visual-knowledge-header,
+  .visual-knowledge-tabs,
+  .visual-knowledge-toolbar,
+  .visual-folder-tree,
+  .visual-folder-card,
+  .visual-document-card,
+  .visual-reference-kb-card {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-kb-list,
+  .visual-knowledge-header { background: transparent !important; }
+  .visual-kb-list__header,
+  .visual-knowledge-header { border-bottom-color: var(--mvc-line) !important; }
+  .visual-kb-list__title-row .t-icon,
+  .visual-kb-list__header h1,
+  .visual-knowledge-breadcrumb__current,
+  .visual-knowledge-header__plain-tab,
+  .visual-folder-tree__title,
+  .visual-folder-row.is-active.is-root,
+  .visual-folder-row.is-active:not(.is-root),
+  .visual-folder-card__title,
+  .visual-document-card__title,
+  .visual-reference-kb-card__title strong,
+  .visual-reference-kb-card__more:hover {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-kb-list__header p,
+  .visual-knowledge-breadcrumb,
+  .visual-knowledge-header__subtitle,
+  .visual-folder-row,
+  .visual-folder-row__count,
+  .visual-folder-tree__collapsed-trigger,
+  .visual-folder-tree__collapse,
+  .visual-folder-card__footer,
+  .visual-document-card__description,
+  .visual-document-card__footer,
+  .visual-reference-kb-card__description,
+  .visual-reference-kb-card__origin,
+  .visual-reference-kb-card__more,
+  .visual-reference-kb-card__state,
+  .visual-knowledge-tabs button,
+  .visual-knowledge-path-pill,
+  .visual-knowledge-path-pill__segment,
+  .visual-knowledge-filter-button,
+  .visual-knowledge-view-toggle button {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-knowledge-tabs,
+  .visual-knowledge-view-toggle,
+  .visual-knowledge-path-pill,
+  .visual-knowledge-filter-button,
+  .visual-folder-tree__header,
+  .visual-folder-row:hover,
+  .visual-folder-row.is-active.is-root,
+  .visual-folder-row.is-active:not(.is-root),
+  .visual-folder-row__more:hover,
+  .visual-reference-kb-card__state,
+  .visual-reference-kb-card__badge,
+  .visual-kb-section small {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+  }
+  .visual-folder-row.is-active.is-root {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-active) !important;
+  }
+  .visual-knowledge-tabs button:hover,
+  .visual-knowledge-filter-button:hover,
+  .visual-knowledge-view-toggle button:hover,
+  .visual-folder-tree__collapsed-trigger:hover,
+  .visual-folder-tree__collapse:hover,
+  .visual-folder-row__more:hover,
+  .visual-reference-kb-card__favorite:hover,
+  .visual-reference-kb-card__more:hover,
+  .visual-kb-section:hover { color: var(--mvc-text-strong) !important; }
+  .visual-knowledge-tabs button.is-active,
+  .visual-knowledge-view-toggle button.is-active,
+  .visual-knowledge-filter-button.is-active {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  /* TDesign icons carry their own legacy color instead of inheriting the
+   * tab button color. Keep inactive, hover/focus, and active states on the
+   * same dark semantic tokens as their labels. */
+  .visual-knowledge-tabs button .t-icon { color: var(--mvc-muted-strong) !important; }
+  .visual-knowledge-tabs button:hover .t-icon,
+  .visual-knowledge-tabs button:focus-visible .t-icon { color: var(--mvc-text-strong) !important; }
+  .visual-knowledge-tabs button.is-active .t-icon { color: var(--mvc-text-strong) !important; }
+  /* Card icons retain the source palette's dark navy even when their card
+   * surface switches to dark. Lift them to the muted text token so folder and
+   * document affordances remain visible at rest and on hover. */
+  .visual-folder-card__icon,
+  .visual-document-card__file-icon {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-folder-card:hover .visual-folder-card__icon,
+  .visual-document-card:hover .visual-document-card__file-icon,
+  .visual-folder-card:focus-visible .visual-folder-card__icon,
+  .visual-document-card:focus-visible .visual-document-card__file-icon {
+    color: var(--mvc-text-strong) !important;
+  }
+
+  /* The breadcrumb's scoped light hover rules otherwise paint a black
+   * control over the dark header. Keep the back/current buttons and their
+   * chevrons on one coherent surface/text pair in every interaction state. */
+  .visual-knowledge-breadcrumb__back { color: var(--mvc-muted-strong) !important; }
+  .visual-knowledge-breadcrumb__section { color: var(--mvc-muted) !important; }
+  .visual-knowledge-breadcrumb__sep { color: var(--mvc-muted) !important; }
+  .visual-knowledge-breadcrumb__back .t-icon,
+  .visual-knowledge-breadcrumb__current .t-icon { color: inherit !important; }
+  .visual-knowledge-breadcrumb__back:hover,
+  .visual-knowledge-breadcrumb__current:hover:not(:disabled),
+  .visual-knowledge-breadcrumb__back:focus-visible,
+  .visual-knowledge-breadcrumb__current:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-knowledge-path-pill__segment.is-root,
+  .visual-knowledge-path-pill__segment.is-current { color: var(--mvc-text-strong) !important; }
+  .visual-knowledge-toolbar .t-input,
+  .visual-knowledge-toolbar .t-date-range-picker,
+  /* Repeat the select class to outrank the component's scoped !important
+   * declarations when its lazy CSS is loaded after this shared layer. */
+  .visual-knowledge-select.visual-knowledge-select .t-select-input {
+    border: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
+  }
+  .visual-knowledge-select.visual-knowledge-select .t-select-input .t-input {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-knowledge-toolbar .t-input:hover,
+  .visual-knowledge-toolbar .t-input.t-is-focused,
+  .visual-knowledge-select.visual-knowledge-select .t-select-input:hover .t-input,
+  .visual-knowledge-select.visual-knowledge-select .t-select-input.t-is-focused .t-input {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-knowledge-select.visual-knowledge-select.is-active .t-input {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-folder-tree__header,
+  .visual-folder-tree__body,
+  .visual-folder-row__rename,
+  .visual-folder-menu,
+  .visual-reference-kb-card-menu,
+  .visual-card-menu {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-folder-row__rename {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-surface-raised) !important;
+  }
+  .visual-folder-menu__item,
+  .visual-reference-kb-card-menu button,
+  .visual-card-menu__target,
+  .visual-card-menu__back,
+  .visual-card-menu__mode {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-folder-menu__item:hover,
+  .visual-reference-kb-card-menu button:hover,
+  .visual-card-menu__target:hover,
+  .visual-card-menu__mode.is-active {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-reference-kb-card__footer,
+  .visual-folder-card__footer,
+  .visual-document-card__footer,
+  .visual-card-menu__back { border-color: var(--mvc-line) !important; }
+  .visual-reference-kb-card__favorite { color: var(--mvc-muted) !important; }
+  .visual-document-card__more:hover,
+  .visual-document-card__more.is-active,
+  .visual-document-card__tag,
+  .visual-document-card__tag-overflow,
+  .visual-document-card__add-tag,
+  .visual-document-card__type,
+  .visual-card-menu__destination,
+  .visual-document-popover__tags span {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-document-card__status.is-draft {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted) !important;
+  }
+  body .visual-document-popover {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+  body .visual-document-popover__title { color: var(--mvc-text-strong) !important; }
+  body .visual-document-popover__description,
+  body .visual-document-popover__draft,
+  body .visual-document-popover__source,
+  body .visual-document-popover__extra,
+  body .visual-document-popover__meta,
+  body .visual-document-popover__meta strong,
+  body .visual-document-popover__hint { color: var(--mvc-muted) !important; }
+  body .visual-document-popover__meta { border-top-color: var(--mvc-line) !important; }
+
+  /* Scoped KnowledgeBase styles use !important for the teleported select
+   * popup, so keep the dark override equally explicit and body-reachable. */
+  /* The KnowledgeBase filters use TDesign's popup root/content pair. Keep
+   * the root transparent and let the content own the single scene-model
+   * panel, otherwise the light bridge and dark closure paint two frames. */
+  body .visual-knowledge-select-popup {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  body .visual-knowledge-select-popup .t-popup__content {
+    margin: 0 !important;
+    padding: 6px !important;
+    border: 1px solid var(--mvc-line) !important;
+    border-radius: 16px !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+  body .visual-knowledge-select-popup .t-select__list {
+    border-color: transparent !important;
+    background: transparent !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  body .visual-knowledge-select-popup .t-select-option:hover,
+  body .visual-knowledge-select-popup .t-select-option.t-is-selected {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  body .visual-tag-filter-popup .t-popup__content {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+  body .visual-tag-filter {
+    background: transparent !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: none !important;
+  }
+  body .visual-tag-filter__chip,
+  body .visual-tag-filter > footer button {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  body .visual-tag-filter__chip:hover,
+  body .visual-tag-filter__chip.is-active,
+  body .visual-tag-filter > footer button:hover {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  body .visual-tag-filter > header strong { color: var(--mvc-text-strong) !important; }
+  body .visual-tag-filter > header span,
+  body .visual-tag-filter__chip small,
+  body .visual-tag-filter__body p { color: var(--mvc-muted) !important; }
+  body .visual-tag-filter > footer { border-top-color: var(--mvc-line) !important; }
+
+  /* Graph search is an in-page TDesign select rather than a teleported
+   * dropdown.  The generic visual contract targets every knowledge-page
+   * input with a light !important fill, so close this exact dark graph
+   * selector (including the nested prefix/suffix input) here. */
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-select-input {
+    border: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
+  }
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-select-input .t-input,
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-input {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-input:hover,
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-input.t-is-focused,
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-select-input.t-is-focused {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-knowledge-page.is-graph-tab .graph-search-select .t-input__inner {
+    color: inherit !important;
+  }
+  body .wiki-graph-search-dropdown,
+  body .wiki-graph-help-popup {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  body .wiki-graph-search-dropdown .t-popup__content,
+  body .wiki-graph-help-popup .t-popup__content,
+  body .wiki-graph-drawer .t-drawer__content-wrapper,
+  body .wiki-graph-drawer .t-drawer__content,
+  body .wiki-graph-drawer .t-drawer__header,
+  body .wiki-graph-drawer .t-drawer__footer {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  body .wiki-graph-search-dropdown .t-select-option,
+  body .wiki-graph-search-dropdown .t-select-option:hover,
+  body .wiki-graph-search-dropdown .t-select-option.t-is-selected {
+    color: var(--mvc-muted-strong) !important;
+  }
+  body .wiki-graph-search-dropdown .t-select-option:hover,
+  body .wiki-graph-search-dropdown .t-select-option.t-is-selected {
+    background: var(--mvc-hover) !important;
+  }
+  /* Graph SVG labels and the selected-node pulse are created imperatively,
+   * so their hard-coded light-theme attributes bypass TDesign variables.
+   * Override only the dark graph canvas; node fill/type colors stay intact. */
+  .visual-knowledge-page.is-graph-tab .wiki-graph-canvas svg text {
+    fill: var(--mvc-text-strong) !important;
+  }
+  .visual-knowledge-page.is-graph-tab .wiki-graph-canvas svg .node-active-ring {
+    stroke: var(--mvc-line-strong) !important;
+  }
+
+  /* Restored native Agent / Organization directory surfaces. */
+  .agent-list-container,
+  .agent-list-content {
+    background: var(--mvc-page) !important;
+    color: var(--mvc-text) !important;
+  }
+  .agent-list-main {
+    background: transparent !important;
+    color: var(--mvc-text) !important;
+  }
+  .org-list-container,
+  .org-list-content,
+  .org-list-main {
+    background: var(--mvc-page) !important;
+    color: var(--mvc-text) !important;
+  }
+  .agent-list-content > .header {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-page) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .agent-card,
+  .agent-card-skeleton {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 28%) !important;
+  }
+  .agent-list-content .header-action-btn:not(.agent-create-header-btn) {
+    border-color: #3f3f46 !important;
+    background: #27272a !important;
+    color: #d4d4d8 !important;
+  }
+  .agent-list-content .agent-create-header-btn {
+    border-color: #f4f4f5 !important;
+    background: #f4f4f5 !important;
+    color: #18181b !important;
+  }
+  .agent-list-content .agent-create-header-btn:hover,
+  .agent-list-content .agent-create-header-btn:focus-visible {
+    border-color: #fff !important;
+    background: #fff !important;
+    color: #09090b !important;
+  }
+  .org-list-content > .header,
+  .org-card,
+  .org-card-skeleton,
+  .org-list-content .header-action-btn,
+  .org-list-content .org-join-btn {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .org-list-content .title-row h2,
+  .org-card .card-title,
+  .org-list-main .empty-txt { color: var(--mvc-text-strong) !important; }
+  .agent-list-content .title-row h2,
+  .agent-card .card-title,
+  .agent-list-main .empty-txt { color: var(--mvc-text-strong) !important; }
+  .agent-list-content .header-subtitle,
+  .agent-card .card-description,
+  .agent-section-header,
+  .agent-list-main .empty-desc { color: var(--mvc-muted-strong) !important; }
+  .org-list-content .header-subtitle,
+  .org-card .card-description,
+  .org-section-header,
+  .org-list-main .empty-desc { color: var(--mvc-muted) !important; }
+  .agent-card .builtin-avatar,
+  .org-card .org-avatar,
+  .agent-card .agent-avatar-small,
+  .agent-card .feature-badge,
+  .org-card .feature-badge,
+  .agent-card .builtin-badge,
+  .org-card .relation-role-tag,
+  .org-card .pending-requests-badge,
+  .agent-section-count,
+  .org-section-count,
+  .agent-card .agent-favorite-star:hover,
+  .agent-card .more-wrap:hover,
+  .org-card .more-wrap:hover {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .org-card:hover { border-color: var(--mvc-line-strong) !important; box-shadow: var(--mvc-shadow) !important; }
+  .agent-card:hover {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-hover) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+
+  /* Native list-space and cross-tenant switcher chrome. */
+  .list-space-sidebar,
+  .tenant-dropdown,
+  .visual-user-tenant-submenu {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-sidebar) !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+  .list-space-sidebar .icon-item-labeled,
+  .list-space-sidebar .sidebar-item,
+  .tenant-item,
+  .visual-user-tenant-submenu__item { color: var(--mvc-muted-strong) !important; }
+  .list-space-sidebar .icon-item-labeled:hover,
+  .list-space-sidebar .sidebar-item:hover,
+  .list-space-sidebar .icon-item-labeled.active,
+  .list-space-sidebar .sidebar-item.active,
+  .tenant-item:hover,
+  .tenant-item.selected,
+  .visual-user-tenant-submenu__item:hover,
+  .visual-user-tenant-submenu__item.is-current,
+  .visual-user-tenant-submenu__create:hover {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+
+  /* Reference-style UserMenu surfaces added after the earlier preference file. */
+  .visual-user-menu__dropdown,
+  .visual-user-menu__account,
+  .visual-user-menu__tenant,
+  .visual-user-menu__item {
+    border-color: var(--mvc-line) !important;
+    background-color: var(--mvc-surface) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-user-menu__account:hover,
+  .visual-user-menu__tenant.is-open,
+  .visual-user-menu__tenant.is-clickable:hover,
+  .visual-user-menu__item:hover { background: var(--mvc-hover) !important; color: var(--mvc-text-strong) !important; }
+  .visual-user-menu__account-copy strong,
+  .visual-user-menu__tenant-copy strong,
+  .visual-user-tenant-submenu__copy strong { color: var(--mvc-text-strong) !important; }
+  .visual-user-menu__account-copy small,
+  .visual-user-menu__tenant-copy small,
+  .visual-user-tenant-submenu__copy small { color: var(--mvc-muted) !important; }
+
+  /* Invitation bell + inbox. */
+  .global-invitation-bell__btn,
+  .t-dialog:has(.invitation-list),
+  .t-dialog:has(.invitation-list) .invitation-card {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: var(--mvc-shadow) !important;
+  }
+  .t-dialog:has(.invitation-list) .tenant-name,
+  .t-dialog:has(.invitation-list) .t-dialog__header { color: var(--mvc-text-strong) !important; }
+  .t-dialog:has(.invitation-list) .my-invitations-desc,
+  .t-dialog:has(.invitation-list) .invitation-card-meta { color: var(--mvc-muted) !important; }
+
+  /* Settings panes: the reference keeps one title/row rhythm across General,
+   * Usage, Models and User profile. These late rules neutralize the legacy
+   * white-only component styles without changing their behavior or data flow.
+   */
+  .visual-settings-modal,
+  .visual-settings-sidebar,
+  .visual-settings-content,
+  .visual-settings-content__inner,
+  .visual-general-settings,
+  .visual-model-settings,
+  .usage-billing,
+  .user-profile {
+    border-color: #27272a !important;
+    background: #18181b !important;
+    color: #e4e4e7 !important;
+  }
+  .visual-settings-sidebar { background: rgb(9 9 11 / 60%) !important; }
+  .visual-settings-close,
+  .visual-general-settings__select-control,
+  .visual-model-selector__consumer-control,
+  .usage-billing__secondary {
+    border-color: #3f3f46 !important;
+    background: #27272a !important;
+    color: #d4d4d8 !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-settings-close:hover,
+  .visual-general-settings__select-control:hover,
+  .visual-general-settings__select-control:focus-visible,
+  .visual-model-selector__consumer-control:hover,
+  .visual-model-selector__consumer-control:focus-visible,
+  .usage-billing__secondary:hover {
+    border-color: #52525b !important;
+    background: #3f3f46 !important;
+    color: #f4f4f5 !important;
+  }
+  .visual-settings-nav__item,
+  .visual-settings-nav__item > span,
+  .visual-general-settings__select-value,
+  .visual-model-selector__consumer-value,
+  .usage-billing__copy,
+  .usage-billing__row,
+  .user-profile .setting-control .info-value { color: #d4d4d8 !important; }
+  .visual-settings-nav__item.is-active { background: #27272a !important; color: #f4f4f5 !important; border-color: #3f3f46 !important; }
+  .visual-settings-nav__item:hover { background: #27272a !important; color: #f4f4f5 !important; }
+  .visual-settings-close .t-icon,
+  .visual-general-settings__select-control > .t-icon,
+  .visual-model-selector__consumer-control > .t-icon { color: #a1a1aa !important; }
+
+  .visual-general-settings__select-dropdown,
+  .visual-model-selector__consumer-dropdown,
+  .visual-model-selector__chat-panel,
+  .visual-model-selector__chat-flyout,
+  .visual-chat-composer__model-menu {
+    border-color: #3f3f46 !important;
+    background: #27272a !important;
+    color: #e4e4e7 !important;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 32%) !important;
+  }
+  .visual-general-settings__select-option,
+  .visual-model-selector__consumer-option,
+  .visual-model-selector__chat-option { color: #d4d4d8 !important; }
+  .visual-general-settings__select-option:hover,
+  .visual-general-settings__select-option.is-selected,
+  .visual-model-selector__consumer-option:hover,
+  .visual-model-selector__consumer-option:focus-visible,
+  .visual-model-selector__consumer-option.is-selected,
+  .visual-model-selector__chat-option:hover,
+  .visual-model-selector__chat-option.is-active,
+  .visual-model-selector__chat-option.is-selected {
+    background: #3f3f46 !important;
+    color: #f4f4f5 !important;
+  }
+  .visual-general-settings__select-check,
+  .visual-model-selector__consumer-check,
+  .visual-model-selector__chat-check { color: #f4f4f5 !important; }
+  .visual-model-selector__consumer-option.is-locked,
+  .visual-model-selector__consumer-lock,
+  .visual-model-selector__chat-lock,
+  .visual-model-selector__consumer-state,
+  .visual-model-selector__chat-empty { color: #a1a1aa !important; }
+  .visual-model-selector__consumer-option.is-locked:hover,
+  .visual-model-selector__consumer-option.is-locked:focus-visible,
+  .visual-model-selector__chat-option.is-locked:hover,
+  .visual-model-selector__chat-option.is-locked.is-active { background: var(--mvc-surface-raised) !important; }
+
+  .visual-model-settings .consumer-scene-settings,
+  .visual-model-settings .consumer-scene-settings__row,
+  .visual-model-settings .visual-model-tabs,
+  .visual-general-settings .visual-setting-row,
+  .user-profile .setting-row,
+  .usage-billing__row { border-color: #27272a !important; }
+  .visual-model-settings .consumer-scene-settings { background: transparent !important; }
+  .visual-model-settings .consumer-scene-settings__copy strong,
+  .visual-general-settings__header h2,
+  .visual-settings-content :is(.section-header h2, h2, h3),
+  .usage-billing__section > h3,
+  .usage-billing__copy strong,
+  .usage-billing__meter-meta > strong,
+  .user-profile .setting-info label { color: #f4f4f5 !important; }
+  .visual-model-settings .consumer-scene-settings__copy span,
+  .visual-general-settings__header p,
+  .visual-settings-content :is(.section-description, .setting-info .desc, .visual-setting-row__copy p),
+  .usage-billing__copy small,
+  .usage-billing__meter-meta > small,
+  .user-profile .setting-info .desc { color: #a1a1aa !important; }
+  .usage-billing__card,
+  .user-profile .settings-group {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  .usage-billing__notice--action { border-color: var(--mvc-line) !important; background: var(--mvc-surface-raised) !important; }
+  .usage-billing__meter { background: #27272a !important; }
+  .usage-billing__meter span { background: #f4f4f5 !important; }
+
+  /* Keep dropdowns and selectors above the scrolling title/row layers. The
+   * content viewport remains scrollable; child surfaces never clip a popup. */
+  .visual-settings-content__inner,
+  .visual-model-settings,
+  .consumer-scene-settings,
+  .consumer-scene-settings__grid,
+  .consumer-scene-settings__row,
+  .visual-general-settings,
+  .visual-general-settings .visual-setting-list { overflow: visible !important; }
+  .visual-model-selector--consumer-scene,
+  .visual-general-settings__select { z-index: 2; }
+
+  /* A selector's menu is positioned inside its own stacking context. Raise
+   * only the active root above the remaining scene rows so their controls do
+   * not paint over the open options in dark mode. */
+  .visual-model-selector--consumer-scene.is-open { z-index: 3; }
+  .visual-general-settings__select:has(.visual-general-settings__select-dropdown) { z-index: 3; }
+
+}
+
+/* Light mode does not assign a base z-index to scene selectors, but keeping
+ * the open-state layer explicit makes the contract deterministic in both
+ * themes and when a parent surface establishes a stacking context. */
+.visual-model-selector--consumer-scene.is-open { z-index: 3; }
+
+/* All four consumer settings pages use one title strip.  Keep the cadence in
+ * this final shared layer so child components cannot drift back to their
+ * legacy h2/h3 spacing while their business cards remain unchanged. */
+.visual-settings-content .visual-settings-page-header {
+  margin: 0 0 8px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  background: transparent !important;
+}
+.visual-settings-content .visual-settings-page-header__copy { min-width: 0 !important; }
+.visual-settings-content .visual-settings-page-header__title {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: normal !important;
+}
+.visual-settings-content .visual-settings-page-header__description {
+  margin: 2px 0 0 !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+/* The profile bridge predates the shared title strip and is more specific;
+ * explicitly align it with the same contract. */
+.visual-settings-content .user-profile .visual-settings-page-header {
+  margin: 0 0 8px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+:root[theme-mode="dark"] .visual-settings-content .visual-settings-page-header {
+  border-bottom-color: #27272a !important;
+}
+:root[theme-mode="dark"] .visual-settings-content h2.visual-settings-page-header__title {
+  color: #fff !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .visual-settings-page-header__description {
+  color: #a1a1aa !important;
+}
+
+/* Chat dark contrast closure.  The chat/sidebar components keep their
+ * reference geometry in scoped styles, but a few direct controls still carry
+ * light-mode foregrounds.  Keep these overrides narrow and semantic so the
+ * light theme, interaction behavior, and status colors remain untouched. */
+:root[theme-mode="dark"] {
+  /* Sidebar navigation, knowledge-base shortcut, and session history. */
+  .visual-sidebar__primary.is-kb,
+  .visual-sidebar__primary.is-kb .visual-sidebar__primary-copy,
+  .visual-sidebar__primary.is-kb .visual-sidebar__primary-copy > span:last-child,
+  .visual-session-row,
+  .visual-session-row__title,
+  .visual-session-row__title > span,
+  .visual-sidebar__session-group > h4,
+  .visual-sidebar__empty,
+  .visual-sidebar__loading-more,
+  .visual-user-menu__trigger {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-sidebar__primary.is-kb:hover,
+  .visual-sidebar__primary.is-kb:focus-visible,
+  .visual-session-row:hover,
+  .visual-user-menu__trigger:hover,
+  .visual-user-menu__trigger[aria-expanded="true"] {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-sidebar__primary.is-kb.is-active,
+  .visual-session-row.is-active,
+  .visual-session-row.is-selected {
+    background: var(--mvc-active) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-sidebar__primary.is-kb.is-active .visual-sidebar__primary-copy,
+  .visual-sidebar__primary.is-kb.is-active .visual-sidebar__primary-copy > span:last-child,
+  .visual-session-row.is-active .visual-session-row__title,
+  .visual-session-row.is-active .visual-session-row__title > span,
+  .visual-session-row.is-selected .visual-session-row__title,
+  .visual-session-row.is-selected .visual-session-row__title > span {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-sidebar__primary.is-kb .visual-sidebar__kb-count {
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-sidebar__primary.is-kb .t-icon,
+  .visual-session-row .t-icon,
+  .visual-user-menu__trigger .t-icon,
+  .visual-sidebar__icon-button .t-icon,
+  .visual-sidebar__rail-button .t-icon {
+    color: inherit !important;
+  }
+
+  /* The textarea is the direct native element (not a TDesign wrapper). */
+  .visual-chat-composer__textarea {
+    color: var(--mvc-text) !important;
+    caret-color: var(--mvc-text) !important;
+  }
+  .visual-chat-composer__textarea::placeholder {
+    color: var(--mvc-faint) !important;
+  }
+  .visual-chat-composer__tool,
+  .visual-chat-composer__tool > .t-icon,
+  .visual-chat-composer__tool > svg,
+  .visual-chat-composer__tool::before {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-chat-composer__tool:hover,
+  .visual-chat-composer__tool.is-active,
+  .visual-chat-composer__tool:focus-visible,
+  .visual-chat-composer__tool:hover > .t-icon,
+  .visual-chat-composer__tool.is-active > .t-icon,
+  .visual-chat-composer__tool:focus-visible > .t-icon,
+  .visual-chat-composer__tool:hover > svg,
+  .visual-chat-composer__tool.is-active > svg,
+  .visual-chat-composer__tool:focus-visible > svg,
+  .visual-chat-composer__tool:hover::before,
+  .visual-chat-composer__tool.is-active::before,
+  .visual-chat-composer__tool:focus-visible::before {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-composer__tool.is-disabled,
+  .visual-chat-composer__tool[aria-disabled="true"] {
+    color: var(--mvc-faint) !important;
+  }
+  .visual-chat-composer__tool.is-disabled > .t-icon,
+  .visual-chat-composer__tool[aria-disabled="true"] > .t-icon,
+  .visual-chat-composer__tool.is-disabled::before,
+  .visual-chat-composer__tool[aria-disabled="true"]::before {
+    color: inherit !important;
+  }
+
+  /* Send remains a high-contrast dark-theme action; disabled is a raised
+   * surface rather than the light gray button from the source component. */
+  .visual-chat-composer__send:not(.is-disabled):not(:disabled) {
+    background: var(--mvc-active) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-composer__send:hover:not(.is-disabled):not(:disabled) {
+    background: var(--mvc-line-strong) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-composer__send:active:not(.is-disabled):not(:disabled) {
+    background: var(--mvc-hover) !important;
+  }
+  .visual-chat-composer__send.is-disabled,
+  .visual-chat-composer__send:disabled {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-faint) !important;
+    box-shadow: none !important;
+  }
+  .visual-chat-composer__send:focus-visible {
+    outline: 2px solid var(--mvc-line-strong) !important;
+    outline-offset: 2px;
+  }
+  .visual-chat-composer__send > .t-icon,
+  .visual-chat-composer__send::before {
+    color: inherit !important;
+  }
+
+  /* Compact picker capsule and its two-row/flyout menu. */
+  .visual-chat-composer__model-picker {
+    border-color: var(--mvc-line) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-chat-composer__model-picker.is-open {
+    border-color: var(--mvc-line-strong) !important;
+    box-shadow: 0 0 0 1px var(--mvc-line-strong), 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-chat-composer__model-picker-model {
+    color: var(--mvc-text) !important;
+  }
+  .visual-chat-composer__model-picker-effort,
+  .visual-chat-composer__model-picker > .t-icon {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-chat-composer__model-picker:focus-visible {
+    outline: 2px solid var(--mvc-line-strong) !important;
+    outline-offset: 2px;
+  }
+  .visual-model-selector__chat-row,
+  .visual-model-selector__chat-row-label {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-model-selector__chat-row-value {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-model-selector__chat-row.is-disabled .visual-model-selector__chat-row-value {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-model-selector__chat-row:hover,
+  .visual-model-selector__chat-row:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-model-selector__chat-row:hover .visual-model-selector__chat-row-value,
+  .visual-model-selector__chat-row:focus-visible .visual-model-selector__chat-row-value {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-model-selector__chat-row-trailing > .t-icon {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-model-selector__chat-option {
+    background: transparent !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-model-selector__chat-option:hover,
+  .visual-model-selector__chat-option.is-active {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-model-selector__chat-option.is-selected,
+  .visual-model-selector__chat-option.is-selected.is-active,
+  .visual-model-selector__chat-option.is-selected:hover {
+    background: var(--mvc-active) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-model-selector__chat-option.is-locked,
+  .visual-model-selector__chat-option.is-locked .visual-model-selector__chat-option-copy strong,
+  .visual-model-selector__chat-lock {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-model-selector__chat-option.is-locked:hover,
+  .visual-model-selector__chat-option.is-locked.is-active {
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-model-selector__chat-option-copy strong {
+    color: inherit !important;
+  }
+  .visual-model-selector__chat-check {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-model-selector__chat-flyout-heading,
+  .visual-model-selector__chat-empty {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-model-selector__chat-back,
+  .visual-model-selector__chat-back > .t-icon {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-model-selector__chat-back:hover,
+  .visual-model-selector__chat-back:focus-visible,
+  .visual-model-selector__chat-back:hover > .t-icon,
+  .visual-model-selector__chat-back:focus-visible > .t-icon {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-model-selector__chat-title {
+    color: var(--mvc-text-strong) !important;
+  }
+
+  /* Rendered chat messages are outside the composer subtree and several of
+   * their scoped source styles still carry light-only ink and white cards.
+   * Close the full message surface here so streamed prose, attachments,
+   * reasoning, code, tables and Mermaid remain readable in dark mode. */
+  .visual-assistant-message,
+  .visual-assistant-markdown,
+  .visual-user-message {
+    color: var(--mvc-text) !important;
+  }
+  .visual-assistant-resource,
+  .visual-user-resource,
+  .visual-user-attachment {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted-strong) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-assistant-resource__icon,
+  .visual-user-resource__icon,
+  .visual-user-attachment__icon,
+  .visual-user-attachment__arrow {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-user-attachment__icon {
+    background: var(--mvc-hover) !important;
+  }
+  .visual-user-attachment__copy strong {
+    color: var(--mvc-text) !important;
+  }
+  .visual-user-attachment__copy small {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-user-attachment.is-previewable:hover,
+  .visual-user-attachment.is-previewable:focus-visible {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-user-image {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-user-message__bubble {
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-user-message__bubble:hover {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+
+  .visual-assistant-toolbar,
+  .visual-assistant-toolbar__button,
+  .visual-assistant-toolbar__button.is-muted,
+  .visual-assistant-toolbar__loading,
+  .visual-assistant-image-loading {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-assistant-toolbar__button:hover,
+  .visual-assistant-toolbar__button:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-assistant-toolbar__loading,
+  .visual-assistant-image-loading {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+  }
+  .visual-assistant-markdown img {
+    border-color: var(--mvc-line) !important;
+  }
+
+  .visual-thinking-panel,
+  .visual-thinking-panel__header,
+  .visual-thinking-panel__content {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-thinking-panel__done,
+  .visual-thinking-panel__chevron {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-thinking-panel__spinner {
+    border-color: var(--mvc-muted) !important;
+    border-right-color: transparent !important;
+  }
+  .visual-thinking-panel__header:hover:not(:disabled),
+  .visual-thinking-panel__header:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+
+  .visual-assistant-markdown :is(p, li) {
+    color: var(--mvc-text) !important;
+  }
+  .visual-assistant-markdown :is(h1, h2, h3, h4, h5, h6, strong, .md-strong-title) {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-assistant-markdown li::marker,
+  .visual-assistant-markdown blockquote,
+  .visual-assistant-markdown .chat-code-block__lang,
+  .visual-assistant-markdown .chat-code-block__copy,
+  .visual-assistant-markdown .chat-mermaid-block__badge,
+  .visual-assistant-markdown .chat-mermaid-block__expand {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-assistant-markdown blockquote {
+    border-left-color: var(--mvc-line-strong) !important;
+  }
+  .visual-assistant-markdown hr {
+    border-top-color: var(--mvc-line) !important;
+  }
+  .visual-assistant-markdown a {
+    color: var(--td-brand-color-5, #8ab4ff) !important;
+    text-decoration-color: var(--mvc-muted) !important;
+  }
+  .visual-assistant-markdown a:hover,
+  .visual-assistant-markdown a:focus-visible {
+    color: var(--td-brand-color-4, #a7c7ff) !important;
+    text-decoration-color: currentColor !important;
+  }
+  .visual-assistant-markdown :is(kbd, code:not(pre code)) {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-assistant-markdown pre:not(.chat-code-block__pre):not(.chat-mermaid-block__canvas) {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-assistant-markdown .chat-code-block,
+  .visual-assistant-markdown .chat-mermaid-block {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-assistant-markdown .chat-code-block__header,
+  .visual-assistant-markdown .chat-mermaid-block__header {
+    border-bottom-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+  }
+  .visual-assistant-markdown .chat-code-block__copy:hover,
+  .visual-assistant-markdown .chat-code-block__copy:focus-visible,
+  .visual-assistant-markdown .chat-mermaid-block__expand:hover:not(:disabled),
+  .visual-assistant-markdown .chat-mermaid-block__expand:focus-visible:not(:disabled) {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-assistant-markdown .chat-code-block__pre,
+  .visual-assistant-markdown .chat-mermaid-block__canvas,
+  .visual-assistant-markdown pre.mermaid:not(.chat-mermaid-block__canvas) {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-assistant-markdown .chat-markdown-table {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+  }
+  .visual-assistant-markdown table thead,
+  .visual-assistant-markdown table th {
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-assistant-markdown table tbody tr:nth-child(2n) {
+    background: var(--mvc-hover) !important;
+  }
+  .visual-assistant-markdown table td {
+    color: var(--mvc-text) !important;
+  }
+  .visual-assistant-markdown :is(table th, table td) {
+    border-color: var(--mvc-line) !important;
+  }
+  .visual-assistant-markdown img[data-img-loading],
+  .visual-assistant-markdown img[data-protected-src][src^='data:image/gif;base64'] {
+    background: linear-gradient(100deg, var(--mvc-surface-raised) 30%, var(--mvc-hover) 50%, var(--mvc-surface-raised) 70%) !important;
+    background-size: 200% 100% !important;
+  }
+
+  /* Agent answers rendered by the streaming path use the legacy
+   * answer-content/markdown-content mount instead of the visual wrapper.
+   * Keep that real DOM shape on the same dark contract so plain paragraphs and
+   * rich blocks cannot inherit the light markdown palette. */
+  .answer-content.markdown-content {
+    color: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content :is(p, li) {
+    color: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content :is(h1, h2, h3, h4, h5, h6, strong, .md-strong-title) {
+    color: var(--mvc-text-strong) !important;
+  }
+  .answer-content.markdown-content li::marker,
+  .answer-content.markdown-content blockquote,
+  .answer-content.markdown-content .chat-code-block__lang,
+  .answer-content.markdown-content .chat-code-block__copy,
+  .answer-content.markdown-content .chat-mermaid-block__badge,
+  .answer-content.markdown-content .chat-mermaid-block__expand {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .answer-content.markdown-content blockquote {
+    border-left-color: var(--mvc-line-strong) !important;
+  }
+  .answer-content.markdown-content hr {
+    border-top-color: var(--mvc-line) !important;
+  }
+  .answer-content.markdown-content a {
+    color: var(--td-brand-color-5, #8ab4ff) !important;
+    text-decoration-color: var(--mvc-muted) !important;
+  }
+  .answer-content.markdown-content a:hover,
+  .answer-content.markdown-content a:focus-visible {
+    color: var(--td-brand-color-4, #a7c7ff) !important;
+    text-decoration-color: currentColor !important;
+  }
+  .answer-content.markdown-content :is(kbd, code:not(pre code)) {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content pre:not(.chat-code-block__pre):not(.chat-mermaid-block__canvas) {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content .chat-code-block,
+  .answer-content.markdown-content .chat-mermaid-block {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .answer-content.markdown-content .chat-code-block__header,
+  .answer-content.markdown-content .chat-mermaid-block__header {
+    border-bottom-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+  }
+  .answer-content.markdown-content .chat-code-block__copy:hover,
+  .answer-content.markdown-content .chat-code-block__copy:focus-visible,
+  .answer-content.markdown-content .chat-mermaid-block__expand:hover:not(:disabled),
+  .answer-content.markdown-content .chat-mermaid-block__expand:focus-visible:not(:disabled) {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .answer-content.markdown-content .chat-code-block__pre,
+  .answer-content.markdown-content .chat-mermaid-block__canvas,
+  .answer-content.markdown-content pre.mermaid:not(.chat-mermaid-block__canvas) {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content .chat-markdown-table {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+  }
+  .answer-content.markdown-content table thead,
+  .answer-content.markdown-content table th {
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .answer-content.markdown-content table tbody tr:nth-child(2n) {
+    background: var(--mvc-hover) !important;
+  }
+  .answer-content.markdown-content table td {
+    color: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content :is(table th, table td) {
+    border-color: var(--mvc-line) !important;
+  }
+  .answer-content.markdown-content img[data-img-loading],
+  .answer-content.markdown-content img[data-protected-src][src^='data:image/gif;base64'] {
+    background: linear-gradient(100deg, var(--mvc-surface-raised) 30%, var(--mvc-hover) 50%, var(--mvc-surface-raised) 70%) !important;
+    background-size: 200% 100% !important;
+  }
+  .answer-content.markdown-content .chat-mermaid-block__canvas :is(text, .label, .nodeLabel, .edgeLabel),
+  .answer-content.markdown-content pre.mermaid :is(text, .label, .nodeLabel, .edgeLabel) {
+    color: var(--mvc-text) !important;
+    fill: var(--mvc-text) !important;
+  }
+  .answer-content.markdown-content .chat-mermaid-block__canvas .node :is(rect, circle, ellipse, polygon, path),
+  .answer-content.markdown-content pre.mermaid .node :is(rect, circle, ellipse, polygon, path) {
+    stroke: var(--mvc-line-strong) !important;
+    fill: var(--mvc-surface-raised) !important;
+  }
+  .answer-content.markdown-content .chat-mermaid-block__canvas .edgePath path,
+  .answer-content.markdown-content pre.mermaid .edgePath path {
+    stroke: var(--mvc-muted-strong) !important;
+  }
+  .answer-content.markdown-content .hljs,
+  .answer-content.markdown-content .hljs-subst { color: #e6edf3 !important; }
+  .answer-content.markdown-content .hljs-keyword,
+  .answer-content.markdown-content .hljs-doctag,
+  .answer-content.markdown-content .hljs-template-tag,
+  .answer-content.markdown-content .hljs-template-variable,
+  .answer-content.markdown-content .hljs-type,
+  .answer-content.markdown-content .hljs-variable.language_ { color: #ff7b72 !important; }
+  .answer-content.markdown-content :is(.hljs-title, .hljs-title.class_, .hljs-title.function_) { color: #d2a8ff !important; }
+  .answer-content.markdown-content :is(.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id, .hljs-section) { color: #79c0ff !important; }
+  .answer-content.markdown-content :is(.hljs-regexp, .hljs-string, .hljs-meta .hljs-string) { color: #a5d6ff !important; }
+  .answer-content.markdown-content :is(.hljs-built_in, .hljs-symbol) { color: #ffa657 !important; }
+  .answer-content.markdown-content :is(.hljs-comment, .hljs-code, .hljs-formula) { color: #8b949e !important; }
+  .answer-content.markdown-content :is(.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo) { color: #7ee787 !important; }
+
+  /* Mermaid's generated SVG can carry its light theme inline. Keep labels and
+   * node chrome readable without changing graph semantics or click behavior. */
+  .visual-assistant-markdown .chat-mermaid-block__canvas :is(text, .label, .nodeLabel, .edgeLabel),
+  .visual-assistant-markdown pre.mermaid :is(text, .label, .nodeLabel, .edgeLabel) {
+    color: var(--mvc-text) !important;
+    fill: var(--mvc-text) !important;
+  }
+  .visual-assistant-markdown .chat-mermaid-block__canvas .node :is(rect, circle, ellipse, polygon, path),
+  .visual-assistant-markdown pre.mermaid .node :is(rect, circle, ellipse, polygon, path) {
+    stroke: var(--mvc-line-strong) !important;
+    fill: var(--mvc-surface-raised) !important;
+  }
+  .visual-assistant-markdown .chat-mermaid-block__canvas .edgePath path,
+  .visual-assistant-markdown pre.mermaid .edgePath path {
+    stroke: var(--mvc-muted-strong) !important;
+  }
+
+  /* GitHub-dark-compatible syntax colors keep every token above 4.5:1 on the
+   * message code surface while preserving the existing syntax categories. */
+  .visual-assistant-markdown .hljs,
+  .visual-assistant-markdown .hljs-subst {
+    color: #e6edf3 !important;
+  }
+  .visual-assistant-markdown .hljs-keyword,
+  .visual-assistant-markdown .hljs-doctag,
+  .visual-assistant-markdown .hljs-template-tag,
+  .visual-assistant-markdown .hljs-template-variable,
+  .visual-assistant-markdown .hljs-type,
+  .visual-assistant-markdown .hljs-variable.language_ {
+    color: #ff7b72 !important;
+  }
+  .visual-assistant-markdown :is(.hljs-title, .hljs-title.class_, .hljs-title.function_) {
+    color: #d2a8ff !important;
+  }
+  .visual-assistant-markdown :is(.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id, .hljs-section) {
+    color: #79c0ff !important;
+  }
+  .visual-assistant-markdown :is(.hljs-regexp, .hljs-string, .hljs-meta .hljs-string) {
+    color: #a5d6ff !important;
+  }
+  .visual-assistant-markdown :is(.hljs-built_in, .hljs-symbol) {
+    color: #ffa657 !important;
+  }
+  .visual-assistant-markdown :is(.hljs-comment, .hljs-code, .hljs-formula) {
+    color: #8b949e !important;
+  }
+  .visual-assistant-markdown :is(.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo) {
+    color: #7ee787 !important;
+  }
+
+  /* Conversation title/menu, request metadata and upload cards live in
+   * separate component/teleport roots. They must use the same dark contract
+   * as the composer instead of retaining their scoped white surfaces. */
+  .visual-chat-header {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-chat-header.is-docked {
+    border-bottom-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+  }
+  .visual-chat-header__title,
+  .visual-chat-header__edit-input {
+    color: var(--mvc-text) !important;
+  }
+  .visual-chat-header__pin,
+  .visual-chat-header__menu-button {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-chat-header__menu-button:hover:not(:disabled),
+  .visual-chat-header__menu-button:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-header__edit-input {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    caret-color: var(--mvc-text) !important;
+  }
+  .visual-chat-header__edit-input:focus {
+    border-color: var(--mvc-line-strong) !important;
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 8%) !important;
+  }
+  .visual-chat-header-menu-popup .t-popup__content {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: 0 14px 34px rgb(0 0 0 / 36%) !important;
+  }
+  .visual-chat-header-menu__item {
+    background: transparent !important;
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-chat-header-menu__item:hover,
+  .visual-chat-header-menu__item:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-header-menu__item .t-icon {
+    color: inherit !important;
+  }
+  .visual-chat-header-menu__item.is-danger {
+    color: #ff7b72 !important;
+  }
+  .visual-chat-header-menu__item.is-danger:hover,
+  .visual-chat-header-menu__item.is-danger:focus-visible {
+    background: rgb(248 81 73 / 16%) !important;
+    color: #ff938a !important;
+  }
+  .visual-chat-header-menu__divider {
+    background: var(--mvc-line) !important;
+  }
+  .visual-chat-header-confirm strong {
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-header-confirm p {
+    color: var(--mvc-muted-strong) !important;
+  }
+  .visual-chat-header-confirm__actions button {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text) !important;
+  }
+  .visual-chat-header-confirm__actions button:hover,
+  .visual-chat-header-confirm__actions button:focus-visible {
+    border-color: var(--mvc-line-strong) !important;
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-chat-header-confirm__actions button.is-danger {
+    border-color: #f85149 !important;
+    background: #b62324 !important;
+    color: #fff !important;
+  }
+
+  .visual-request-info__trigger {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-muted) !important;
+  }
+  .visual-request-info__trigger:hover,
+  .visual-request-info__trigger:focus-visible,
+  .visual-request-info__header button:hover,
+  .visual-request-info__header button:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-request-info-popup .t-popup__content {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: 0 14px 34px rgb(0 0 0 / 36%) !important;
+  }
+  .visual-request-info__header {
+    border-bottom-color: var(--mvc-line) !important;
+  }
+  .visual-request-info__header strong,
+  .visual-request-info__row dd {
+    color: var(--mvc-text) !important;
+  }
+  .visual-request-info__header button,
+  .visual-request-info__row dt,
+  .visual-request-info__empty {
+    color: var(--mvc-muted) !important;
+  }
+
+  .visual-attachment-list {
+    border-bottom-color: var(--mvc-line) !important;
+  }
+  .visual-attachment-card {
+    border-color: var(--mvc-line) !important;
+    background: var(--mvc-surface-raised) !important;
+    color: var(--mvc-text) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+  }
+  .visual-attachment-card.is-failed {
+    border-color: rgb(248 81 73 / 55%) !important;
+    background: rgb(248 81 73 / 10%) !important;
+  }
+  .visual-attachment-card__icon,
+  .visual-attachment-card__copy small,
+  .visual-attachment-card__status,
+  .visual-attachment-card__remove {
+    color: var(--mvc-muted) !important;
+  }
+  .visual-attachment-card__copy strong {
+    color: var(--mvc-text) !important;
+  }
+  .visual-attachment-card__remove:hover,
+  .visual-attachment-card__remove:focus-visible {
+    background: var(--mvc-hover) !important;
+    color: var(--mvc-text-strong) !important;
+  }
+  .visual-attachment-card.is-ready .visual-attachment-card__status {
+    color: #7ee787 !important;
+  }
+  .visual-attachment-card.is-failed .visual-attachment-card__status {
+    color: #ff7b72 !important;
+  }
+  .visual-attachment-card__progress {
+    background: var(--mvc-hover) !important;
+  }
+  .visual-attachment-card__progress > span {
+    background: var(--mvc-muted-strong) !important;
+  }
+}
+
+/* TDesign owns drawer open/closed state on the content wrapper. Its fixed,
+ * viewport-sized root is only a positioning shell and must never become a
+ * painted panel: a closed wrapper remains mounted with visibility:hidden.
+ * Keep display/visibility native; put fill, border and shadow on the panel. */
+body .t-drawer.t-drawer--right.mcp-drawer {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+body .t-drawer.t-drawer--right.mcp-drawer > .t-drawer__content-wrapper {
+  border-left: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  box-shadow: -18px 0 50px rgb(15 23 42 / 16%) !important;
+}
+body .t-drawer.t-drawer--right.wiki-graph-drawer {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+body .t-drawer.t-drawer--right.wiki-graph-drawer > .t-drawer__content-wrapper {
+  box-shadow: -4px 0 16px rgb(0 0 0 / 8%) !important;
+}
+:root[theme-mode="dark"] body .t-drawer.t-drawer--right.mcp-drawer {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] body .t-drawer.t-drawer--right.mcp-drawer > .t-drawer__content-wrapper {
+  border-left-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-surface, #1d1f23) !important;
+  box-shadow: -18px 0 50px rgb(0 0 0 / 36%) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dark interactive surfaces and teleported controls                          */
+/* -------------------------------------------------------------------------- */
+
+/* TDesign overlays are attached directly to body, outside the workspace that
+ * normally exports these variables. Keep a single semantic palette at that
+ * boundary so selects, popups and drawers cannot fall back to light defaults. */
+:root[theme-mode="dark"] body {
+  --td-bg-color-page: var(--mvc-page);
+  --td-bg-color-container: var(--mvc-surface);
+  --td-bg-color-container-select: var(--mvc-surface);
+  --td-bg-color-container-hover: var(--mvc-hover);
+  --td-bg-color-container-active: var(--mvc-active);
+  --td-bg-color-secondarycontainer: var(--mvc-surface-raised);
+  --td-bg-color-secondarycontainer-hover: var(--mvc-hover);
+  --td-bg-color-secondarycontainer-active: var(--mvc-active);
+  --td-bg-color-component: var(--mvc-surface-raised);
+  --td-bg-color-component-hover: var(--mvc-hover);
+  --td-bg-color-component-active: var(--mvc-active);
+  --td-bg-color-component-disabled: var(--mvc-surface-raised);
+  --td-bg-color-specialcomponent: var(--mvc-surface-raised);
+  --td-component-stroke: var(--mvc-line);
+  --td-component-border: var(--mvc-line-strong);
+  --td-text-color-primary: var(--mvc-text);
+  --td-text-color-secondary: var(--mvc-muted-strong);
+  --td-text-color-placeholder: var(--mvc-muted);
+  --td-text-color-disabled: var(--mvc-faint);
+}
+
+:root[theme-mode="dark"] .visual-sidebar__mark img,
+:root[theme-mode="dark"] .visual-sidebar__collapsed-logo img {
+  filter: invert(1);
+  opacity: .94;
+}
+:root[theme-mode="dark"] .visual-sidebar__collapsed-logo {
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text-strong) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+}
+
+:root[theme-mode="dark"] .visual-folder-tree__collapsed-trigger:hover,
+:root[theme-mode="dark"] .visual-folder-tree__collapse:hover {
+  background: transparent !important;
+  color: var(--mvc-text-strong) !important;
+}
+
+:root[theme-mode="dark"] .visual-document-batch {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 30%) !important;
+}
+:root[theme-mode="dark"] .visual-document-batch__count { color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] .visual-document-batch__clear { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] .visual-document-batch__button {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] .visual-document-batch__clear:hover,
+:root[theme-mode="dark"] .visual-document-batch__button:hover:not(:disabled) {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] .visual-document-batch__button.is-danger { border-color: rgb(248 81 73 / 48%) !important; color: #ff7b72 !important; }
+:root[theme-mode="dark"] .visual-document-batch__button.is-danger:hover:not(:disabled) { background: rgb(248 81 73 / 14%) !important; color: #ff938a !important; }
+
+:root[theme-mode="dark"] .visual-shared-detail__overlay { background: rgb(0 0 0 / 44%) !important; }
+:root[theme-mode="dark"] .visual-shared-detail > header,
+:root[theme-mode="dark"] .visual-shared-detail > footer { border-color: var(--mvc-line) !important; }
+:root[theme-mode="dark"] .visual-shared-detail > header button { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] .visual-shared-detail > header button:hover { background: var(--mvc-hover) !important; color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] .visual-shared-detail > footer button {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .visual-shared-detail > footer button:hover { background: var(--mvc-hover) !important; color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] .visual-shared-detail > footer button.is-primary {
+  border-color: var(--mvc-text-strong) !important;
+  background: var(--mvc-text-strong) !important;
+  color: var(--mvc-page) !important;
+}
+
+:root[theme-mode="dark"] body .visual-session-menu-popup .t-popup__content {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .visual-session-menu__item { color: var(--mvc-muted-strong) !important; }
+:root[theme-mode="dark"] body .visual-session-menu__icon { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] body .visual-session-menu__item:hover,
+:root[theme-mode="dark"] body .visual-session-menu__item:focus-visible { background: var(--mvc-hover) !important; color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] body .visual-session-menu__item.is-danger { color: #ff7b72 !important; }
+:root[theme-mode="dark"] body .visual-session-menu__item.is-danger:hover { background: rgb(248 81 73 / 14%) !important; color: #ff938a !important; }
+:root[theme-mode="dark"] body .visual-session-menu__item.is-danger .visual-session-menu__icon { color: inherit !important; }
+:root[theme-mode="dark"] body .visual-session-menu__divider { background: var(--mvc-line) !important; }
+:root[theme-mode="dark"] body .visual-session-confirm h4 { color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] body .visual-session-confirm p { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] body .visual-session-confirm__button {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] body .visual-session-confirm__button:hover { background: var(--mvc-hover) !important; color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] .visual-session-row__edit-input {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .visual-session-row__more:hover { background: var(--mvc-hover) !important; color: var(--mvc-text-strong) !important; }
+
+:root[theme-mode="dark"] body .t-drawer.doc-main-drawer { background: transparent !important; }
+:root[theme-mode="dark"] body .doc-main-drawer.t-drawer > .t-drawer__content-wrapper {
+  border-left-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: -18px 0 50px rgb(0 0 0 / 42%) !important;
+}
+:root[theme-mode="dark"] body .doc-main-drawer .t-drawer__content,
+:root[theme-mode="dark"] body .doc-main-drawer .t-drawer__header,
+:root[theme-mode="dark"] body .doc-main-drawer .t-drawer__body {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] body .doc-main-drawer .doc-drawer-header-icon {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .doc-main-drawer .doc-drawer-header-title,
+:root[theme-mode="dark"] body .doc-main-drawer .setting-drawer__section-title,
+:root[theme-mode="dark"] body .doc-main-drawer .doc-detail-value { color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] body .doc-main-drawer .doc-detail-label,
+:root[theme-mode="dark"] body .doc-main-drawer .metadata-empty { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] body .doc-main-drawer .header-action-btn,
+:root[theme-mode="dark"] body .doc-main-drawer .icon-action-btn { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] body .doc-main-drawer .header-action-btn:hover,
+:root[theme-mode="dark"] body .doc-main-drawer .icon-action-btn:hover,
+:root[theme-mode="dark"] body .doc-main-drawer .icon-action-btn.is-active {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .doc-main-drawer .setting-drawer__section,
+:root[theme-mode="dark"] body .doc-main-drawer .metadata-item { border-color: var(--mvc-line) !important; }
+:root[theme-mode="dark"] body .doc-main-drawer .metadata-item,
+:root[theme-mode="dark"] body .doc-main-drawer .summary_wrapper,
+:root[theme-mode="dark"] body .doc-main-drawer .chunk-item {
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+}
+
+:root[theme-mode="dark"] body .t-select .t-fake-arrow { color: var(--mvc-muted-strong) !important; }
+:root[theme-mode="dark"] body .t-select .t-fake-arrow--active { color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] body .visual-knowledge-select-popup .t-select-option.t-is-selected::after { background: var(--mvc-text-strong) !important; }
+
+:root[theme-mode="dark"] body .visual-kb-selector,
+:root[theme-mode="dark"] body .visual-kb-switcher,
+:root[theme-mode="dark"] body .visual-session-filter__panel {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .visual-kb-selector__search,
+:root[theme-mode="dark"] body .visual-kb-option__icon,
+:root[theme-mode="dark"] body .visual-kb-option__check,
+:root[theme-mode="dark"] body .visual-kb-selector__selected-count,
+:root[theme-mode="dark"] body .visual-kb-switcher__icon {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .visual-kb-selector__search input { color: var(--mvc-text) !important; }
+:root[theme-mode="dark"] body .visual-kb-selector__footer { border-color: var(--mvc-line) !important; background: var(--mvc-surface) !important; }
+:root[theme-mode="dark"] body .visual-kb-option,
+:root[theme-mode="dark"] body .visual-kb-switcher__row,
+:root[theme-mode="dark"] body .visual-session-filter__option { color: var(--mvc-muted-strong) !important; }
+:root[theme-mode="dark"] body .visual-kb-option:hover,
+:root[theme-mode="dark"] body .visual-kb-option.is-highlighted,
+:root[theme-mode="dark"] body .visual-kb-option.is-selected,
+:root[theme-mode="dark"] body .visual-kb-selector__footer button:hover,
+:root[theme-mode="dark"] body .visual-kb-switcher__row:hover,
+:root[theme-mode="dark"] body .visual-kb-switcher__row.is-current,
+:root[theme-mode="dark"] body .visual-session-filter__option:hover,
+:root[theme-mode="dark"] body .visual-session-filter__option.is-active {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-kb-option.is-selected .visual-kb-option__check {
+  border-color: var(--mvc-text-strong) !important;
+  background: var(--mvc-text-strong) !important;
+  color: var(--mvc-page) !important;
+}
+:root[theme-mode="dark"] body .visual-kb-switcher__check,
+:root[theme-mode="dark"] body .visual-session-filter__check { color: var(--mvc-text-strong) !important; }
+
+:root[theme-mode="dark"] .visual-session-filter__trigger,
+:root[theme-mode="dark"] .visual-session-filter__icon,
+:root[theme-mode="dark"] .visual-session-filter__chevron { color: var(--mvc-muted) !important; }
+:root[theme-mode="dark"] .visual-session-filter__trigger:hover,
+:root[theme-mode="dark"] .visual-session-filter__trigger[aria-expanded="true"] {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+
+/* Prompt templates are used by the Agent editor.  Keep their two-line content
+ * in the same semantic dark surface while leaving placement and scrolling to
+ * the component. */
+:root[theme-mode="dark"] body .t-popup__content:has(> .template-popup) {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .template-item {
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .template-item:hover {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .template-header {
+  border-color: var(--mvc-line) !important;
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .template-title,
+:root[theme-mode="dark"] body .template-name { color: var(--mvc-text-strong) !important; }
+:root[theme-mode="dark"] body .template-desc { color: var(--mvc-muted) !important; }
+
+/* Login language, activity filters and tag chips use custom listboxes but still
+ * resolve to the same semantic dark surface/state palette. */
+:root[theme-mode="dark"] body .language-switch > button,
+:root[theme-mode="dark"] body .language-dropdown,
+:root[theme-mode="dark"] body .t-popup__content:has(> .kb-activity-filter-menu),
+:root[theme-mode="dark"] body .tag-filter-popup .t-popup__content,
+:root[theme-mode="dark"] body .visual-tag-filter-popup .t-popup__content {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .language-switch > button:hover,
+:root[theme-mode="dark"] body .language-switch > button:focus-visible {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .language-option,
+:root[theme-mode="dark"] body .kb-activity-filter-option,
+:root[theme-mode="dark"] body .tag-filter-chip,
+:root[theme-mode="dark"] body .visual-tag-filter__chip,
+:root[theme-mode="dark"] body .kb-activity-filter-trigger,
+:root[theme-mode="dark"] body .doc-tag-filter-trigger,
+:root[theme-mode="dark"] body .integrations-agent-filter {
+  border-color: var(--mvc-line) !important;
+  background: transparent !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .language-option:hover,
+:root[theme-mode="dark"] body .language-option:focus-visible,
+:root[theme-mode="dark"] body .language-option.active,
+:root[theme-mode="dark"] body .kb-activity-filter-option:hover,
+:root[theme-mode="dark"] body .kb-activity-filter-option:focus-visible,
+:root[theme-mode="dark"] body .kb-activity-filter-option.active,
+:root[theme-mode="dark"] body .tag-filter-chip:hover,
+:root[theme-mode="dark"] body .tag-filter-chip:focus-visible,
+:root[theme-mode="dark"] body .tag-filter-chip.active,
+:root[theme-mode="dark"] body .visual-tag-filter__chip:hover,
+:root[theme-mode="dark"] body .visual-tag-filter__chip:focus-visible,
+:root[theme-mode="dark"] body .visual-tag-filter__chip.is-active,
+:root[theme-mode="dark"] body .kb-activity-filter-trigger:hover,
+:root[theme-mode="dark"] body .kb-activity-filter-trigger:focus-visible,
+:root[theme-mode="dark"] body .kb-activity-filter-trigger.active,
+:root[theme-mode="dark"] body .doc-tag-filter-trigger:hover,
+:root[theme-mode="dark"] body .doc-tag-filter-trigger:focus-visible,
+:root[theme-mode="dark"] body .doc-tag-filter-trigger.open,
+:root[theme-mode="dark"] body .integrations-agent-filter:hover,
+:root[theme-mode="dark"] body .integrations-agent-filter:focus-visible,
+:root[theme-mode="dark"] body .integrations-agent-filter.integrations-agent-filter--active {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .language-option .check-icon,
+:root[theme-mode="dark"] body .kb-activity-filter-option-check {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .integrations-agent-filter-popup .t-dropdown__menu {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .integrations-agent-filter-popup .t-dropdown__item {
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .integrations-agent-filter-popup .t-dropdown__item:hover,
+:root[theme-mode="dark"] body .integrations-agent-filter-popup .t-dropdown__item.t-is-active {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Authority convergence: menus, Settings profile and Agent controls          */
+/* -------------------------------------------------------------------------- */
+
+/* DocumentActionMenu is shared by the knowledge list and card views.  Its
+ * component geometry is native, but its scoped colors are light-only, so the
+ * teleported dark popup needs one late semantic owner for every nested mode. */
+:root[theme-mode="dark"] body .visual-list-menu,
+:root[theme-mode="dark"] body .visual-card-menu,
+:root[theme-mode="dark"] body .visual-document-actions {
+  background: transparent !important;
+  color: var(--mvc-muted-strong) !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item {
+  background: transparent !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item .t-icon {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item:hover,
+:root[theme-mode="dark"] body .visual-list-menu__back:hover,
+:root[theme-mode="dark"] body .visual-list-menu__target:hover,
+:root[theme-mode="dark"] body .visual-card-menu__back:hover,
+:root[theme-mode="dark"] body .visual-card-menu__target:hover {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item:hover .t-icon {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item.is-danger,
+:root[theme-mode="dark"] body .visual-document-actions__item.is-danger .t-icon {
+  color: #ff7b72 !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item.is-danger::before {
+  background: var(--mvc-line) !important;
+}
+:root[theme-mode="dark"] body .visual-document-actions__item.is-danger:hover {
+  background: rgb(248 81 73 / 14%) !important;
+  color: #ff938a !important;
+}
+:root[theme-mode="dark"] body .visual-list-menu__back,
+:root[theme-mode="dark"] body .visual-list-menu__target,
+:root[theme-mode="dark"] body .visual-list-menu__mode,
+:root[theme-mode="dark"] body .visual-card-menu__back,
+:root[theme-mode="dark"] body .visual-card-menu__target,
+:root[theme-mode="dark"] body .visual-card-menu__mode {
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-list-menu__target small,
+:root[theme-mode="dark"] body .visual-list-menu__state,
+:root[theme-mode="dark"] body .visual-list-menu__mode small {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .visual-card-menu__state,
+:root[theme-mode="dark"] body .visual-card-menu__target-count,
+:root[theme-mode="dark"] body .visual-card-menu__mode small {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .visual-list-menu__destination,
+:root[theme-mode="dark"] body .visual-list-menu__mode,
+:root[theme-mode="dark"] body .visual-card-menu__destination,
+:root[theme-mode="dark"] body .visual-card-menu__mode {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-list-menu__mode strong,
+:root[theme-mode="dark"] body .visual-card-menu__mode strong {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-list-menu__mode:hover,
+:root[theme-mode="dark"] body .visual-list-menu__mode.is-active,
+:root[theme-mode="dark"] body .visual-card-menu__mode:hover,
+:root[theme-mode="dark"] body .visual-card-menu__mode.is-active {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-list-menu, .visual-card-menu) .t-loading {
+  color: var(--mvc-muted) !important;
+}
+
+:root[theme-mode="dark"] body :is(.visual-list-menu__actions, .visual-card-menu__actions) .t-button--variant-outline {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-list-menu__actions, .visual-card-menu__actions) .t-button--variant-outline:hover {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-list-menu__actions, .visual-card-menu__actions) .t-button--theme-primary {
+  border-color: var(--mvc-text-strong) !important;
+  background: var(--mvc-text-strong) !important;
+  color: var(--mvc-page) !important;
+}
+
+/* FolderPickerMenu paints the one authoritative shell when it is used on its
+ * own. Card/list move menus already paint that shell and therefore flatten
+ * only their direct nested picker. */
+:root[theme-mode="dark"] body .visual-folder-picker {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-muted-strong) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-list-menu--move, .visual-card-menu--move) > .visual-folder-picker {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__back,
+:root[theme-mode="dark"] body .visual-folder-picker__select,
+:root[theme-mode="dark"] body .visual-folder-picker__create-button,
+:root[theme-mode="dark"] body .visual-folder-picker__cancel-create {
+  background: transparent !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__row:hover {
+  background: var(--mvc-hover) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__back:hover,
+:root[theme-mode="dark"] body .visual-folder-picker__row.is-current .visual-folder-picker__select {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__folder-icon {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__check {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__create-button:hover,
+:root[theme-mode="dark"] body .visual-folder-picker__cancel-create:hover {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__input {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+  caret-color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__input::placeholder {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .visual-folder-picker__input:focus {
+  border-color: var(--mvc-line-strong) !important;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 8%) !important;
+}
+
+/* TDesign puts checked state on the label, not the nested input span. */
+:root:not([theme-mode="dark"]) body :is(.visual-list-menu, .visual-card-menu) .t-radio:hover .t-radio__input,
+:root:not([theme-mode="dark"]) body :is(.visual-list-menu, .visual-card-menu) .t-radio.t-is-checked .t-radio__input {
+  border-color: #111827 !important;
+  background-color: #fff !important;
+}
+:root:not([theme-mode="dark"]) body :is(.visual-list-menu, .visual-card-menu) .t-radio.t-is-checked .t-radio__input::after {
+  background-color: #111827 !important;
+}
+:root:not([theme-mode="dark"]) body :is(.visual-document-list, .visual-document-card, .visual-document-batch) .t-checkbox.t-is-checked .t-checkbox__input {
+  border-color: #111827 !important;
+  background-color: #111827 !important;
+}
+:root:not([theme-mode="dark"]) body :is(.visual-document-list, .visual-document-card, .visual-document-batch) .t-checkbox.t-is-checked .t-checkbox__input::after {
+  border-color: #fff !important;
+}
+:root[theme-mode="dark"] body :is(.visual-list-menu, .visual-card-menu) .t-radio:hover .t-radio__input,
+:root[theme-mode="dark"] body :is(.visual-list-menu, .visual-card-menu) .t-radio.t-is-checked .t-radio__input {
+  border-color: var(--mvc-text-strong) !important;
+  background-color: var(--mvc-surface-raised) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-list-menu, .visual-card-menu) .t-radio.t-is-checked .t-radio__input::after {
+  background-color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-document-list, .visual-document-card, .visual-document-batch) .t-checkbox.t-is-checked .t-checkbox__input {
+  border-color: var(--mvc-text-strong) !important;
+  background-color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body :is(.visual-document-list, .visual-document-card, .visual-document-batch) .t-checkbox.t-is-checked .t-checkbox__input::after {
+  border-color: var(--mvc-page) !important;
+}
+
+/* The source profile uses the current BEM rows.  Older closure selectors still
+ * mention the pre-migration setting-row markup and therefore miss these nodes. */
+:root[theme-mode="dark"] .visual-settings-content .user-profile__row {
+  border-bottom-color: #27272a !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .user-profile__label {
+  color: #f4f4f5 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 600 !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .user-profile .info-value {
+  color: #e4e4e7 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 500 !important;
+}
+
+/* AgentEditor uses TDesign primitives for behavior only.  Paint their final
+ * states here so the older broad radio/switch bridge cannot replace the
+ * authority's neutral white/zinc segmented, toggle and footer palette. */
+.agent-editor-modal .agent-segmented-control {
+  border-color: rgb(229 231 235 / 60%) !important;
+  background: #f3f4f6 !important;
+}
+.agent-editor-modal .agent-segmented-control .t-radio-button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #4b5563 !important;
+  padding: 6px 14px !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+  transition: all 200ms ease-in-out !important;
+}
+.agent-editor-modal .agent-segmented-control[data-guide="agent-create-mode"] .t-radio-button {
+  padding-inline: 16px !important;
+}
+.agent-editor-modal .agent-segmented-control .t-radio-button.t-is-checked {
+  background: #fff !important;
+  color: #111827 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.agent-editor-modal .agent-segmented-control .t-radio-button:not(.t-is-checked):hover {
+  color: #111827 !important;
+}
+.agent-editor-modal .settings-footer-actions .t-button {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 8px 16px !important;
+  border-radius: 12px !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+}
+.agent-editor-modal .settings-footer-actions .t-button--theme-primary {
+  padding-inline: 20px !important;
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.agent-editor-modal .settings-footer-actions .t-button--variant-outline {
+  border-color: #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.agent-editor-modal .settings-footer-actions .t-button--theme-primary:hover {
+  border-color: #000 !important;
+  background: #000 !important;
+}
+.agent-editor-modal .settings-footer-actions .t-button--variant-outline:hover {
+  background: #f3f4f6 !important;
+}
+.agent-editor-modal .t-switch {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 24px !important;
+  border: 2px solid transparent !important;
+  border-radius: 9999px !important;
+  background: #e5e7eb !important;
+  box-sizing: border-box !important;
+  transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out !important;
+}
+.agent-editor-modal .t-switch.t-is-checked {
+  background: #111827 !important;
+}
+.agent-editor-modal .t-switch .t-switch__handle,
+.agent-editor-modal .t-switch.t-is-checked .t-switch__handle {
+  top: 0 !important;
+  left: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  transform: translateX(0) !important;
+}
+.agent-editor-modal .t-switch .t-switch__handle {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%), 0 1px 2px rgb(0 0 0 / 6%) !important;
+  transition: transform 200ms ease-in-out !important;
+}
+.agent-editor-modal .t-switch.t-is-checked .t-switch__handle {
+  transform: translateX(20px) !important;
+}
+.agent-editor-modal .t-switch .t-switch__handle::before {
+  background: #fff !important;
+  transition: background-color 200ms ease-in-out !important;
+}
+.agent-editor-modal .t-switch:active:not(.t-is-disabled):not(.t-is-loading) .t-switch__handle::before {
+  right: 0 !important;
+  left: 0 !important;
+}
+
+:root[theme-mode="dark"] .agent-editor-modal .agent-segmented-control {
+  border-color: rgb(63 63 70 / 60%) !important;
+  background: #27272a !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .agent-segmented-control .t-radio-button {
+  background: transparent !important;
+  color: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .agent-segmented-control .t-radio-button:hover {
+  color: #fff !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .agent-segmented-control .t-radio-button.t-is-checked {
+  background: #3f3f46 !important;
+  color: #fff !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .t-switch {
+  background: #3f3f46 !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .t-switch .t-switch__handle::before {
+  background: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .t-switch.t-is-checked {
+  background: #f4f4f5 !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .t-switch.t-is-checked .t-switch__handle::before {
+  background: #18181b !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .settings-footer-actions .t-button--theme-primary {
+  border-color: #f4f4f5 !important;
+  background: #f4f4f5 !important;
+  color: #18181b !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .settings-footer-actions .t-button--theme-primary:hover {
+  border-color: #fff !important;
+  background: #fff !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .settings-footer-actions .t-button--variant-outline {
+  border-color: #3f3f46 !important;
+  background: #18181b !important;
+  color: #d4d4d8 !important;
+}
+:root[theme-mode="dark"] .agent-editor-modal .settings-footer-actions .t-button--variant-outline:hover {
+  background: #27272a !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dark-mode color closure for the two document/citation surfaces             */
+/* -------------------------------------------------------------------------- */
+
+/* ChatReferencesDrawer owns a custom aside rather than a TDesign drawer. Its
+ * header has a light-only reference fill, so the panel body switches to dark
+ * while the top strip remains white. Paint that strip with the same semantic
+ * dark surface as the rest of the drawer. */
+:root[theme-mode="dark"] .visual-references-panel__header {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .visual-references-panel__dot,
+:root[theme-mode="dark"] .visual-references-panel__count,
+:root[theme-mode="dark"] .visual-references-panel__close {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] .visual-references-panel__count {
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] .visual-references-panel__close:hover,
+:root[theme-mode="dark"] .visual-references-panel__close:focus-visible {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+
+/* DocumentPreview's light reference layer uses explicit !important colors.
+ * That light-only preview chrome otherwise wins over the dark drawer
+ * tokens (especially the TXT/Markdown code surface shown in the document
+ * detail screenshot), leaving pale text on a white card. Keep all preview
+ * states on the existing dark semantic palette without changing light mode. */
+:root[theme-mode="dark"] .document-preview {
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-toolbar {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted-strong) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-toolbar .t-button {
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-toolbar .t-button:hover,
+:root[theme-mode="dark"] .document-preview .preview-toolbar .t-button:focus-visible {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-loading,
+:root[theme-mode="dark"] .document-preview .preview-error,
+:root[theme-mode="dark"] .document-preview .preview-unsupported {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-loading .loading-text,
+:root[theme-mode="dark"] .document-preview .preview-error p,
+:root[theme-mode="dark"] .document-preview .preview-unsupported p,
+:root[theme-mode="dark"] .document-preview .preview-unsupported .unsupported-hint {
+  color: var(--mvc-muted) !important;
+}
+
+/* Text/Markdown/Excel are rendered into the preview component itself (unlike
+ * a PDF iframe or a native document page), so both the container and its
+ * generated content need an explicit dark surface/ink pair. */
+:root[theme-mode="dark"] .document-preview .preview-text .code-preview,
+:root[theme-mode="dark"] .document-preview .preview-markdown,
+:root[theme-mode="dark"] .document-preview .preview-excel .excel-container {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-text .code-preview code.hljs {
+  background: transparent !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-text .code-preview code.hljs .hljs-subst {
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-markdown .markdown-body {
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-markdown .markdown-body :is(h1, h2, h3, h4, h5, h6, strong) {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-markdown .markdown-body :is(p, li, td) {
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-markdown .markdown-body :is(pre, blockquote) {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-markdown .markdown-body code:not(pre code) {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-excel .excel-container table,
+:root[theme-mode="dark"] .document-preview .preview-excel .excel-container td,
+:root[theme-mode="dark"] .document-preview .preview-excel .excel-container th {
+  border-color: var(--mvc-line) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .document-preview .preview-excel .excel-container th,
+:root[theme-mode="dark"] .document-preview .excel-sheet-name {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+
+:root[theme-mode="dark"] .document-preview.is-fullscreen {
+  background: var(--mvc-page) !important;
+  color: var(--mvc-text) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Knowledge-base toolbar authority                                          */
+/* -------------------------------------------------------------------------- */
+
+/* The document toolbar is the only consumer of this contract.  The homepage
+ * composer/model picker intentionally has different geometry and is not
+ * included here.  Keep all three filters and both source actions on the same
+ * 36px scene-model control rhythm; width remains content-driven so labels are
+ * never shortened to an ellipsis. */
+body .visual-knowledge-toolbar .visual-knowledge-filter-button,
+body .visual-knowledge-toolbar .visual-upload-source__trigger {
+  box-sizing: border-box !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  border-radius: 12px !important;
+  gap: 8px !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .visual-knowledge-toolbar .visual-knowledge-filter-button {
+  width: auto !important;
+  min-width: 128px !important;
+}
+body .visual-knowledge-toolbar .visual-knowledge-filter-button > span:not(.visual-knowledge-filter-button__clear) {
+  min-width: max-content !important;
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+body .visual-knowledge-toolbar .visual-upload-source__trigger {
+  width: auto !important;
+}
+body .visual-knowledge-toolbar .visual-upload-source__trigger:not(.visual-upload-source__link-trigger) {
+  border: 1px solid #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+body .visual-knowledge-toolbar .visual-upload-source__link-trigger {
+  border: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+body .visual-knowledge-toolbar .visual-upload-source__trigger:not(.visual-upload-source__link-trigger):hover,
+body .visual-knowledge-toolbar .visual-upload-source__trigger:not(.visual-upload-source__link-trigger):focus-visible {
+  border-color: #000 !important;
+  background: #000 !important;
+  color: #fff !important;
+}
+body .visual-knowledge-toolbar .visual-upload-source__link-trigger:hover,
+body .visual-knowledge-toolbar .visual-upload-source__link-trigger:focus-visible {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+body .visual-tag-filter-popup .visual-knowledge-filter-options {
+  width: 288px !important;
+  max-width: min(288px, calc(100vw - 32px)) !important;
+  max-height: 256px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  flex-wrap: nowrap !important;
+  gap: 2px !important;
+  padding: 6px !important;
+}
+body .visual-tag-filter-popup .visual-knowledge-filter-options .visual-knowledge-filter-option {
+  width: 100% !important;
+  min-height: 36px !important;
+  box-sizing: border-box !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+@media (min-width: 640px) {
+  body .visual-knowledge-toolbar .visual-knowledge-filter-button,
+  body .visual-knowledge-toolbar .visual-upload-source__trigger,
+  body .visual-tag-filter-popup .visual-knowledge-filter-options .visual-knowledge-filter-option {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+}
+
+/* The directory can change available width without changing the viewport. */
+@container knowledge-content (max-width: 1120px) {
+  body .visual-knowledge-toolbar .visual-knowledge-filter-button,
+  body .visual-knowledge-toolbar .visual-upload-source__trigger {
+    min-width: 0 !important;
+    padding: 8px !important;
+    gap: 4px !important;
+    font-size: 12px !important;
+  }
+  body .visual-knowledge-toolbar .visual-knowledge-filter-button > .t-icon:first-child,
+  body .visual-knowledge-toolbar .visual-upload-source__trigger > .t-icon:first-child {
+    display: none !important;
+  }
+}
+
+/* Dark mode reverses only the primary Add Document action, matching the
+ * Agent/KnowledgeBase directory CTA contract.  Import URL stays neutral. */
+:root[theme-mode="dark"] body .visual-knowledge-toolbar .visual-upload-source__trigger:not(.visual-upload-source__link-trigger) {
+  border-color: #f4f4f5 !important;
+  background: #f4f4f5 !important;
+  color: #18181b !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+}
+:root[theme-mode="dark"] body .visual-knowledge-toolbar .visual-upload-source__trigger:not(.visual-upload-source__link-trigger):hover,
+:root[theme-mode="dark"] body .visual-knowledge-toolbar .visual-upload-source__trigger:not(.visual-upload-source__link-trigger):focus-visible {
+  border-color: #fff !important;
+  background: #fff !important;
+  color: #09090b !important;
+}
+:root[theme-mode="dark"] body .visual-knowledge-toolbar .visual-upload-source__link-trigger {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+}
+:root[theme-mode="dark"] body .visual-knowledge-toolbar .visual-upload-source__link-trigger:hover,
+:root[theme-mode="dark"] body .visual-knowledge-toolbar .visual-upload-source__link-trigger:focus-visible {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-tag-filter-popup .visual-knowledge-filter-options,
+:root[theme-mode="dark"] body .visual-tag-filter-popup .visual-knowledge-filter-options .visual-knowledge-filter-option {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .visual-tag-filter-popup .visual-knowledge-filter-options .visual-knowledge-filter-option:hover,
+:root[theme-mode="dark"] body .visual-tag-filter-popup .visual-knowledge-filter-options .visual-knowledge-filter-option.is-active {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+
+/* The shared confirmation popup is also the owner of the Agent delete
+ * dialog.  Keep its dark palette paired with the native light contract while
+ * leaving organization/tenant dialogs outside this surface. */
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog,
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .circle-title,
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog .visual-kb-delete strong {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .circle-icon {
+  color: #ff7b72 !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .del-circle-txt,
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog .visual-kb-delete p {
+  color: var(--mvc-muted) !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .circle-btn-txt,
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .circle-btn-txt:hover:not(:disabled),
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button:hover:not(:disabled) {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .circle-btn-txt.confirm,
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button.is-danger {
+  border-color: #b91c1c !important;
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+:root[theme-mode="dark"] body .t-dialog.visual-confirm-dialog .circle-btn-txt.confirm:hover:not(:disabled),
+:root[theme-mode="dark"] body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button.is-danger:hover:not(:disabled) {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #fff !important;
+}
+
+/* MemoryWorkspaceSettings uses the same segmented write-mode control as the
+ * Agent editor. Keep it on the shared authority without changing the home
+ * composer or any tenant/organization surface. */
+.memory-workspace-settings .agent-segmented-control {
+  border-color: rgb(229 231 235 / 60%) !important;
+  background: #f3f4f6 !important;
+}
+.memory-workspace-settings .agent-segmented-control .t-radio-button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #4b5563 !important;
+  padding: 6px 14px !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+  transition: all 200ms ease-in-out !important;
+}
+.memory-workspace-settings .agent-segmented-control .t-radio-button.t-is-checked {
+  background: #fff !important;
+  color: #111827 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.memory-workspace-settings .agent-segmented-control .t-radio-button:not(.t-is-checked):hover {
+  color: #111827 !important;
+}
+:root[theme-mode="dark"] .memory-workspace-settings .agent-segmented-control {
+  border-color: rgb(63 63 70 / 60%) !important;
+  background: #27272a !important;
+}
+:root[theme-mode="dark"] .memory-workspace-settings .agent-segmented-control .t-radio-button {
+  background: transparent !important;
+  color: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .memory-workspace-settings .agent-segmented-control .t-radio-button:hover {
+  color: #fff !important;
+}
+:root[theme-mode="dark"] .memory-workspace-settings .agent-segmented-control .t-radio-button.t-is-checked {
+  background: #3f3f46 !important;
+  color: #fff !important;
+}

@@ -1,0 +1,8 @@
+- [x] Reproduce draft/disabled status for all 179 imported documents.
+- [x] Add scoped manual-curation fields and preserve native indexing.
+- [x] Skip automatic enrichment/Wiki for curated manual documents.
+- [x] Add a read-only capability marker to fail closed on older servers.
+- [x] Run targeted and complete Go tests.
+- [ ] Sanitize all public manual and Wiki text; verify no internal review notes remain.
+- [ ] Deploy the backend through staging and production release gates.
+- [ ] Canary one document, then publish remaining documents with status, chunks, search, Wiki and browser checks.

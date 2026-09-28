@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="vS9ylGV6pFQKk3FgNEpR0o9jKV--P_Gnrv4M8rHDNus" />
+    <meta name="google-site-verification" content="7lQwhi1oEZApp6nxmYt0FYHmfTn226ffpQH4ZTMAYHc" />
+    <meta
+      name="description"
+      content="将 PDF、文档和笔记整理成 AI 知识库，跨资料提问、查看原文引用，并通过相互关联的 Wiki 页面与知识图谱持续积累知识。"
+    />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="musuw" />
+    <meta property="og:title" content="musuw AI 知识库｜文档问答、来源引用与 Wiki" />
+    <meta
+      property="og:description"
+      content="将 PDF、文档和笔记整理成 AI 知识库，跨资料提问、查看原文引用，并通过相互关联的 Wiki 页面与知识图谱持续积累知识。"
+    />
+    <meta property="og:url" content="https://musuw.com/" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:image" content="https://musuw.com/images/musuw-social-card.png" />
+    <meta property="og:image:alt" content="Musuw: cited answers, connected Wiki, and knowledge graph; actual product screenshot with an example document" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="musuw AI 知识库｜文档问答、来源引用与 Wiki" />
+    <meta
+      name="twitter:description"
+      content="将 PDF、文档和笔记整理成 AI 知识库，跨资料提问、查看原文引用，并通过相互关联的 Wiki 页面与知识图谱持续积累知识。"
+    />
+    <meta name="twitter:url" content="https://musuw.com/" />
+    <meta name="twitter:image" content="https://musuw.com/images/musuw-social-card.png" />
+    <meta name="twitter:image:alt" content="Musuw: cited answers, connected Wiki, and knowledge graph; actual product screenshot with an example document" />
+    <link rel="canonical" href="https://musuw.com/" />
+    <link rel="icon" href="/favicon.ico?v=20260822" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260822" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260822" />
+    <link rel="manifest" href="/site.webmanifest?v=20260822" />
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("musuw-theme");
+          const isDark = savedTheme
+            ? savedTheme === "dark"
+            : matchMedia("(prefers-color-scheme: dark)").matches;
+          const theme = isDark ? "dark" : "light";
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+    <script id="musuw-structured-data" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://musuw.com/#organization",
+            "name": "musuw",
+            "url": "https://musuw.com/",
+            "logo": "https://musuw.com/musuw-logo-512.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://musuw.com/#website",
+            "name": "musuw",
+            "url": "https://musuw.com/",
+            "publisher": { "@id": "https://musuw.com/#organization" },
+            "inLanguage": ["zh-CN", "en"]
+          }
+        ]
+      }
+    </script>
+    <title>musuw AI 知识库｜文档问答、来源引用与 Wiki</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

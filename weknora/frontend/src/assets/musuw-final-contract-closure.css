@@ -1,0 +1,197 @@
+/*
+ * Final cross-layer closure rules.
+ * Loaded after all visual translation layers to resolve collisions between
+ * exact @视觉文件 glyph mappings and native WeKnora-only controls.
+ */
+
+/* Native Sidebar extensions have no direct @视觉文件 glyph. Do not let the
+ * exact Folder mask intended for the reference KB button overwrite them. */
+.visual-sidebar__primary.is-native::before { display: none !important; }
+.visual-sidebar__primary.is-native .visual-sidebar__primary-copy > .t-icon {
+  display: inline-flex !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+  font-size: 16px !important;
+  color: currentColor !important;
+}
+.visual-sidebar__collapsed-nav:has(.t-icon-usergroup)::before,
+.visual-sidebar__collapsed-nav:has(.t-icon-system-sum)::before { display: none !important; }
+.visual-sidebar__collapsed-nav:has(.t-icon-usergroup) > .t-icon,
+.visual-sidebar__collapsed-nav:has(.t-icon-system-sum) > .t-icon {
+  display: inline-flex !important;
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+  color: currentColor !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* QAPanel.tsx exact counterpart closure                                      */
+/* -------------------------------------------------------------------------- */
+/* Reference core order: Image → Attachment → @ → Model → Thinking → Send.
+ * Native Agent/WebSearch controls are retained ahead of the Model/Thinking pair
+ * because they are WeKnora behavior with no direct @视觉文件 counterpart. */
+.visual-chat-composer__select { order: 40; }
+.visual-chat-composer__tool:has(svg) { order: 50; }
+.visual-chat-composer__model { order: 80; }
+.visual-chat-composer__thinking { order: 90; }
+.visual-chat-composer__submit { order: 100; }
+
+/* Model Selector Pill: QAPanel.tsx lines 528–579. */
+.visual-chat-composer__model {
+  min-width: 0 !important;
+  max-width: 160px !important;
+  min-height: 26px !important;
+  padding: 4px 10px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: rgb(229 231 235 / 80%) !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+.visual-chat-composer__model:hover {
+  background: #dcdfe4 !important;
+  color: #374151 !important;
+}
+.visual-chat-composer__model > span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.visual-chat-composer__model .t-icon { color: #6b7280 !important; }
+
+/* The current authority uses a 224px card. Its complete chrome and positioning
+ * live beside the Vue component so this late closure layer cannot override it. */
+.visual-chat-composer__model-options > button {
+  min-height: 30px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+}
+.visual-chat-composer__model-copy strong {
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+.visual-chat-composer__model-options > button.is-selected .visual-chat-composer__model-copy strong {
+  font-weight: 600 !important;
+}
+.visual-chat-composer__model-copy small {
+  max-width: 132px !important;
+  font-size: 9px !important;
+  line-height: 13px !important;
+}
+
+/* Keep exact QAPanel native textarea geometry even when browser field-sizing
+ * support chooses a smaller intrinsic box. */
+.visual-chat-composer__textarea {
+  min-height: 44px !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+}
+
+/* Native invitation inbox: behavior has no direct @视觉文件 counterpart, so
+ * borrow SettingsModal/card chrome without altering accept/decline semantics. */
+.t-dialog:has(.invitation-list) {
+  width: min(540px, calc(100vw - 32px)) !important;
+  max-width: 540px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+.t-dialog:has(.invitation-list) .t-dialog__header {
+  padding: 18px 20px 12px !important;
+  color: #111827 !important;
+  font-size: 15px !important;
+  line-height: 22px !important;
+  font-weight: 700 !important;
+}
+.t-dialog:has(.invitation-list) .t-dialog__body { padding: 0 20px 20px !important; }
+.t-dialog:has(.invitation-list) .my-invitations-desc {
+  margin: 0 0 14px !important;
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.t-dialog:has(.invitation-list) .invitation-list { gap: 8px !important; }
+.t-dialog:has(.invitation-list) .invitation-card {
+  gap: 12px !important;
+  padding: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%) !important;
+}
+.t-dialog:has(.invitation-list) .tenant-name {
+  color: #111827 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 700 !important;
+}
+.t-dialog:has(.invitation-list) .invitation-card-meta {
+  gap: 3px !important;
+  color: #6b7280 !important;
+  font-size: 10px !important;
+  line-height: 15px !important;
+}
+.t-dialog:has(.invitation-list) .invitation-card-meta .meta-icon { color: #9ca3af !important; }
+.t-dialog:has(.invitation-list) .invitation-card-actions { gap: 6px !important; }
+.t-dialog:has(.invitation-list) .invitation-card-actions .t-button {
+  min-height: 30px !important;
+  padding: 6px 10px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  box-shadow: none !important;
+}
+.t-dialog:has(.invitation-list) .invitation-card-actions .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+.t-dialog:has(.invitation-list) .invitation-card-actions .t-button--theme-primary:hover {
+  border-color: #000 !important;
+  background: #000 !important;
+}
+
+/* The visual export is neutral; native organization/agent brand artwork is
+ * informational rather than semantic status, so reduce saturation without
+ * hiding the underlying behavior or source identity. */
+.agent-list-container :is(.org-icon,.card-bottom-source img),
+.org-list-container :is(.org-create-icon,.stat-agent-icon),
+.settings-overlay > .settings-modal :is(.nav-icon-img,.org-icon) {
+  filter: grayscale(1) contrast(.85) !important;
+  opacity: .72 !important;
+}
+
+/* Dark mode is native behavior; keep the reference counterpart's geometry but
+ * paint the equivalent native dark surfaces. */
+:root[theme-mode="dark"] .visual-chat-composer__model {
+  background: var(--mvc-hover, #25272c) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__model:hover {
+  background: var(--mvc-active, #30333a) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__model-picker {
+  background: var(--mvc-hover, #25272c) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__model-picker:hover,
+:root[theme-mode="dark"] .visual-chat-composer__model-picker[aria-expanded="true"] {
+  background: var(--mvc-active, #30333a) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__model-picker-effort,
+:root[theme-mode="dark"] .visual-chat-composer__model-picker .t-icon {
+  color: var(--mvc-muted, #a9adb5) !important;
+}
+/* Native semantic status colors are deliberately not neutralized here. */

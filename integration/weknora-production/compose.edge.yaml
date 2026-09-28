@@ -1,0 +1,14 @@
+# The existing Cloudflare tunnel resolves `web:8080` on this external network,
+# so the fixed frontend Nginx is the route surface; no extra proxy is needed.
+services:
+  frontend:
+    networks:
+      WeKnora-network: {}
+      edge:
+        aliases:
+          - web
+
+networks:
+  edge:
+    external: true
+    name: musnow-production_edge

@@ -1,0 +1,544 @@
+name: Deploy storefront
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      immutable_ref:
+        description: Full commit SHA to build and deploy (must belong to main)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: storefront-production
+  # Cloudflare mutation must finish its smoke probe and retain rollback evidence.
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify storefront
+    # A workflow_run is emitted for every completed CI attempt.  Only the
+    # canonical repository's successful CI run may select its immutable
+    # head_sha; dispatch remains an explicit, separately re-checked path.
+    if: >-
+      github.repository == 'estromeglovettgen-coder/musuw' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.name == 'CI' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.repository.full_name == 'estromeglovettgen-coder/musuw'
+        )
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      release_sha: ${{ steps.resolve.outputs.release_sha }}
+      ci_workflow_run: ${{ steps.resolve.outputs.ci_workflow_run }}
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.immutable_ref }}
+          fetch-depth: 0
+          # Read-only checkout credentials are needed for the origin/main
+          # ancestry proof; this workflow has no write permission.
+          persist-credentials: true
+      - name: Resolve and verify immutable storefront revision
+        id: resolve
+        env:
+          REQUESTED_REF: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.immutable_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          EVENT_WORKFLOW_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          EVENT_WORKFLOW_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          EVENT_WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_WORKFLOW_REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+          EVENT_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          requested="${REQUESTED_REF:?immutable storefront ref is required}"
+          if [ "$EVENT_NAME" = workflow_run ]; then
+            test "$EVENT_REPOSITORY" = estromeglovettgen-coder/musuw
+            test "$EVENT_WORKFLOW_REPOSITORY" = estromeglovettgen-coder/musuw
+            test "$EVENT_WORKFLOW_NAME" = CI
+            test "$EVENT_WORKFLOW_CONCLUSION" = success
+            test "$EVENT_WORKFLOW_HEAD_BRANCH" = main
+            test "$requested" = "$EVENT_WORKFLOW_HEAD_SHA"
+            [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]
+            [[ "$EVENT_WORKFLOW_RUN_ID" =~ ^[0-9]+$ ]]
+            ci_workflow_run="$EVENT_WORKFLOW_RUN_ID"
+          elif [ "$EVENT_NAME" = workflow_dispatch ]; then
+            test "$EVENT_REF" = refs/heads/main
+            [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]
+          else
+            echo "unsupported deploy event: $EVENT_NAME" >&2
+            exit 1
+          fi
+          selected_sha="$(git rev-parse "$requested^{commit}")"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$selected_sha"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$actual" refs/remotes/origin/main
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            runs="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$actual&per_page=100")"
+            ci_workflow_run="$(jq -er --arg sha "$actual" '
+              [.workflow_runs[]? | select(.name == "CI" and .head_sha == $sha and .conclusion == "success")]
+              | sort_by(.created_at) | last | .id
+            ' <<<"$runs")"
+            [[ "$ci_workflow_run" =~ ^[0-9]+$ ]]
+          fi
+          {
+            printf 'release_sha=%s\n' "$actual"
+            printf 'ci_workflow_run=%s\n' "$ci_workflow_run"
+          } >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+      - name: Install storefront dependencies
+        run: npm ci --prefix storefront --ignore-scripts
+      - name: Run storefront tests and build
+        env:
+          VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID }}
+        run: npm --prefix storefront test
+      - name: Validate Wrangler bundle without uploading
+        working-directory: storefront
+        run: npx wrangler deploy --dry-run --config wrangler.jsonc
+      - name: Preserve the tested static bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: storefront-dist
+          path: storefront/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy storefront Worker
+    needs: build
+    environment: storefront-production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.release_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Assert deploy checkout matches build SHA
+        env:
+          RELEASE_SHA: ${{ needs.build.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+      - name: Install Wrangler from the locked storefront manifest
+        run: npm ci --prefix storefront --ignore-scripts
+      - name: Restore the tested static bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: storefront-dist
+          path: storefront/dist
+      - name: Confirm the artifact is complete
+        run: test -s storefront/dist/index.html
+      - name: Capture Wrangler version and previous deployment
+        id: preflight
+        working-directory: storefront
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler --version | tee "$RUNNER_TEMP/musuw-wrangler-version.txt"
+          npx wrangler deployments list --json --config wrangler.jsonc | tee "$RUNNER_TEMP/musuw-storefront-previous-deployments.json"
+          jq -e 'type == "array"' "$RUNNER_TEMP/musuw-storefront-previous-deployments.json" >/dev/null
+          previous_version_id="$(jq -er '
+            [ .[] | select((.versions // []) | length > 0) ]
+            | sort_by(.created_on)
+            | last
+            | .versions[]
+            | select((.percentage // 0) == 100)
+            | .version_id
+          ' "$RUNNER_TEMP/musuw-storefront-previous-deployments.json")"
+          [[ "$previous_version_id" =~ ^[0-9a-fA-F-]{36}$ ]]
+          printf 'previous_version_id=%s\n' "$previous_version_id" >> "$GITHUB_OUTPUT"
+      - name: Prepare and verify the bounded homepage customer-service channel
+        id: customer_service
+        working-directory: storefront
+        env:
+          CUSTOMER_SERVICE_CHANNEL_ID: ${{ secrets.MUSUW_CUSTOMER_SERVICE_CHANNEL_ID }}
+          CUSTOMER_SERVICE_PUBLISH_TOKEN: ${{ secrets.MUSUW_CUSTOMER_SERVICE_PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+          configured=false
+          if [ -z "$CUSTOMER_SERVICE_CHANNEL_ID" ] && [ -z "$CUSTOMER_SERVICE_PUBLISH_TOKEN" ]; then
+            echo 'Homepage customer service is not configured; the launcher will stay disabled.'
+            CUSTOMER_SERVICE_CHANNEL_ID=__disabled__
+            CUSTOMER_SERVICE_PUBLISH_TOKEN=__disabled__
+          else
+            test -n "$CUSTOMER_SERVICE_CHANNEL_ID"
+            test -n "$CUSTOMER_SERVICE_PUBLISH_TOKEN"
+            [[ "$CUSTOMER_SERVICE_CHANNEL_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
+            [[ "$CUSTOMER_SERVICE_PUBLISH_TOKEN" =~ ^em_[A-Za-z0-9_-]{43}$ ]]
+            case "$CUSTOMER_SERVICE_CHANNEL_ID$CUSTOMER_SERVICE_PUBLISH_TOKEN" in
+              *$'\n'*|*$'\r'*) printf '%s\n' 'customer-service bindings must be single-line values' >&2; exit 1 ;;
+            esac
+            # Prove the production application has the public Lite runtime and
+            # this exact channel/origin before any Cloudflare version changes.
+            readiness="$RUNNER_TEMP/musuw-customer-service-readiness.json"
+            curl --fail --silent --show-error --retry 4 --retry-all-errors --retry-delay 3 \
+              --connect-timeout 10 --max-time 30 --request POST \
+              -H 'Accept: application/json' \
+              -H "Authorization: Embed $CUSTOMER_SERVICE_PUBLISH_TOKEN" \
+              -H 'Origin: https://musuw.com' \
+              -o "$readiness" \
+              "https://app.musuw.com/api/v1/embed/$CUSTOMER_SERVICE_CHANNEL_ID/exchange"
+            jq -e '
+              .success == true and
+              (.data.session_token | type == "string" and startswith("ems_")) and
+              (.data.expires_in | type == "number" and . > 0)
+            ' "$readiness" >/dev/null
+            configured=true
+          fi
+          secrets_file="$RUNNER_TEMP/musuw-storefront-secrets.json"
+          umask 077
+          jq -n \
+            --arg channel "$CUSTOMER_SERVICE_CHANNEL_ID" \
+            --arg publishToken "$CUSTOMER_SERVICE_PUBLISH_TOKEN" \
+            '{MUSUW_CUSTOMER_SERVICE_CHANNEL_ID:$channel,MUSUW_CUSTOMER_SERVICE_PUBLISH_TOKEN:$publishToken}' \
+            > "$secrets_file"
+          chmod 0600 "$secrets_file"
+          test "$(stat -c '%a' "$secrets_file")" = 600
+          {
+            printf 'configured=%s\n' "$configured"
+            printf 'secrets_file=%s\n' "$secrets_file"
+          } >> "$GITHUB_OUTPUT"
+      - name: Deploy the storefront only
+        id: deploy_worker
+        working-directory: storefront
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RELEASE_SHA: ${{ needs.build.outputs.release_sha }}
+          CUSTOMER_SERVICE_SECRETS_FILE: ${{ steps.customer_service.outputs.secrets_file }}
+        run: |
+          set -euo pipefail
+          if ! npx wrangler deploy --strict --config wrangler.jsonc \
+            --secrets-file "$CUSTOMER_SERVICE_SECRETS_FILE" \
+            --message "musuw storefront $RELEASE_SHA" \
+            --tag "github-$RELEASE_SHA" 2>&1 | tee "$RUNNER_TEMP/musuw-storefront-deploy.log"; then
+            {
+              printf 'storefront deploy failed for %s\n' "$RELEASE_SHA"
+              printf 'previous deployment snapshot:\n'
+              cat "$RUNNER_TEMP/musuw-storefront-previous-deployments.json"
+              printf 'deploy log:\n'
+              cat "$RUNNER_TEMP/musuw-storefront-deploy.log"
+              printf 'rollback evidence: redeploy the prior Cloudflare version from the captured snapshot.\n'
+            } > "$RUNNER_TEMP/musuw-storefront-rollback-evidence.txt"
+            exit 1
+          fi
+          npx wrangler deployments list --json --config wrangler.jsonc | tee "$RUNNER_TEMP/musuw-storefront-current-deployments.json"
+      - name: Smoke-test public storefront aliases and locale
+        id: smoke
+        env:
+          RELEASE_SHA: ${{ needs.build.outputs.release_sha }}
+          CUSTOMER_SERVICE_CHANNEL_ID: ${{ secrets.MUSUW_CUSTOMER_SERVICE_CHANNEL_ID }}
+          CUSTOMER_SERVICE_CONFIGURED: ${{ steps.customer_service.outputs.configured }}
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/musuw-storefront-smoke.txt"
+          for origin in https://musuw.com https://www.musuw.com; do
+            headers="$RUNNER_TEMP/musuw-headers-${origin#https://}.txt"
+            body="$RUNNER_TEMP/musuw-body-${origin#https://}.html"
+            curl --fail --location --max-redirs 2 --silent --show-error --retry 8 --retry-delay 3 --connect-timeout 10 --max-time 30 \
+              -D "$headers" -o "$body" "$origin/"
+            grep -Eiq '^content-language:[[:space:]]*(en|zh-CN)' "$headers"
+            grep -Eiq '<html[^>]+lang="(en|zh-CN)"' "$body"
+            grep -Eiq 'window\.__MUSUW_LOCALE__[[:space:]]*=[[:space:]]*"(en|zh-CN)"' "$body"
+            printf '%s release=%s content-language=%s\n' "$origin" "$RELEASE_SHA" "$(grep -i '^content-language:' "$headers" | tr -d '\r' | tr '\n' ' ')" | tee -a "$RUNNER_TEMP/musuw-storefront-smoke.txt"
+
+            customer_config="$RUNNER_TEMP/musuw-customer-service-${origin#https://}.json"
+            customer_config_ready=false
+            for attempt in $(seq 1 12); do
+              customer_config_status="$(curl --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 \
+                --connect-timeout 10 --max-time 30 -o "$customer_config" -w '%{http_code}' \
+                "$origin/_musuw/customer-service/config" || true)"
+              if [ "$customer_config_status" = 200 ]; then
+                if [ "$CUSTOMER_SERVICE_CONFIGURED" = true ]; then
+                  if jq -e --arg channel "$CUSTOMER_SERVICE_CHANNEL_ID" \
+                    '.enabled == true and .channelId == $channel and (.publishToken | not) and (.publish_token | not)' \
+                    "$customer_config" >/dev/null; then
+                    customer_config_ready=true
+                    break
+                  fi
+                elif jq -e '.enabled == false' "$customer_config" >/dev/null; then
+                  customer_config_ready=true
+                  break
+                fi
+              fi
+              if [ "$attempt" -lt 12 ]; then sleep 5; fi
+            done
+            if [ "$customer_config_ready" != true ]; then
+              printf 'customer-service config did not converge for %s (last status=%s)\n' \
+                "$origin" "${customer_config_status:-unavailable}" >&2
+              exit 1
+            fi
+            if [ "$CUSTOMER_SERVICE_CONFIGURED" = true ]; then
+              customer_token="$RUNNER_TEMP/musuw-customer-service-token-${origin#https://}.json"
+              curl --fail --silent --show-error --retry 8 --retry-delay 3 --connect-timeout 10 --max-time 30 \
+                -H "Origin: $origin" -o "$customer_token" "$origin/_musuw/customer-service/token"
+              jq -e '.token | type == "string" and startswith("ems_")' "$customer_token" >/dev/null
+              jq -e '.expiresIn | type == "number" and . > 0' "$customer_token" >/dev/null
+              printf '%s customer-service=configured short-token=ok\n' "$origin" \
+                | tee -a "$RUNNER_TEMP/musuw-storefront-smoke.txt"
+            else
+              printf '%s customer-service=disabled\n' "$origin" \
+                | tee -a "$RUNNER_TEMP/musuw-storefront-smoke.txt"
+            fi
+          done
+          # Public language URLs must be stable even with an opposite preference.
+          for locale in zh-CN en; do
+            page_path=/
+            cookie_locale=en
+            if [ "$locale" = en ]; then page_path=/en; cookie_locale=zh-CN; fi
+            locale_ready=false
+            for attempt in $(seq 1 12); do
+              curl --fail --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 30 \
+                -H "Cookie: musuw_locale=$cookie_locale" \
+                -D "$RUNNER_TEMP/musuw-seo-$locale.headers" -o "$RUNNER_TEMP/musuw-seo-$locale.html" "https://musuw.com$page_path"
+              if grep -Fq "<link rel=\"canonical\" href=\"https://musuw.com$page_path\">" "$RUNNER_TEMP/musuw-seo-$locale.html" && \
+                grep -Eiq "<html[^>]*[[:space:]]lang=\"$locale\"([[:space:]]|>)" "$RUNNER_TEMP/musuw-seo-$locale.html" && \
+                grep -Eiq "^content-language:[[:space:]]*$locale[[:space:]]*$" "$RUNNER_TEMP/musuw-seo-$locale.headers" && \
+                grep -Fq 'hreflang="en" href="https://musuw.com/en"' "$RUNNER_TEMP/musuw-seo-$locale.html" && \
+                grep -Fq 'hreflang="zh-CN" href="https://musuw.com/"' "$RUNNER_TEMP/musuw-seo-$locale.html"; then
+                locale_ready=true
+                break
+              fi
+              if [ "$attempt" -lt 12 ]; then sleep 5; fi
+            done
+            if [ "$locale_ready" != true ]; then
+              printf 'storefront locale did not converge for locale=%s\n' "$locale" >&2
+              exit 1
+            fi
+            printf 'https://musuw.com%s fixed-language=%s canonical=ok hreflang=ok\n' "$page_path" "$locale" | tee -a "$RUNNER_TEMP/musuw-storefront-smoke.txt"
+          done
+          canonical_ready=false
+          for attempt in $(seq 1 12); do
+            canonical_status="$(curl --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 30 \
+              -D "$RUNNER_TEMP/musuw-www-canonical.headers" -o /dev/null -w '%{http_code}' 'https://www.musuw.com/?lang=en&source=seo-smoke' || true)"
+            if [ "$canonical_status" = 301 ] && \
+              grep -Eiq '^location:[[:space:]]*https://musuw.com/en\?source=seo-smoke[[:space:]]*$' "$RUNNER_TEMP/musuw-www-canonical.headers"; then
+              canonical_ready=true
+              break
+            fi
+            if [ "$attempt" -lt 12 ]; then sleep 5; fi
+          done
+          if [ "$canonical_ready" != true ]; then
+            printf 'storefront canonical redirect did not converge (last status=%s)\n' "${canonical_status:-unavailable}" >&2
+            exit 1
+          fi
+          for locale in zh en; do
+            headers="$RUNNER_TEMP/musuw-partners-$locale.headers"
+            body="$RUNNER_TEMP/musuw-partners-$locale.html"
+            if [ "$locale" = zh ]; then
+              expected_title='<title>Musuw 推广榜单</title>'
+            else
+              expected_title='<title>Musuw Partner Leaderboard</title>'
+            fi
+            partner_page_ready=false
+            for attempt in $(seq 1 12); do
+              curl --fail --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 30 \
+                -D "$headers" -o "$body" "https://partners.musuw.com/?lang=$locale"
+              if grep -Fq 'id="commission-form"' "$body" && \
+                grep -Fq '数据为合成记录，仅用于功能与口径展示，不代表真实订单或收益。' "$body" && \
+                grep -Fq "$expected_title" "$body"; then
+                partner_page_ready=true
+                break
+              fi
+              if [ "$attempt" -lt 12 ]; then sleep 5; fi
+            done
+            if [ "$partner_page_ready" != true ]; then
+              printf 'partner board did not converge to the expected release for locale=%s\n' "$locale" >&2
+              exit 1
+            fi
+            if grep -Eq '<title>[^<]*(模拟数据|Simulated data)[^<]*</title>' "$body"; then
+              printf 'unexpected simulation label in partner board title for locale=%s\n' "$locale" >&2
+              exit 1
+            fi
+            grep -Eiq '^x-robots-tag:.*noindex' "$headers"
+            grep -Eiq '^content-language:[[:space:]]*(en|zh-CN)' "$headers"
+          done
+          for asset in app.js data.js style.css musuw-logo.png; do
+            partner_asset_ready=false
+            for attempt in $(seq 1 12); do
+              curl --fail --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 30 \
+                -o "$RUNNER_TEMP/musuw-partners-$asset" "https://partners.musuw.com/$asset"
+              if cmp --silent "storefront/public/partner-board/$asset" "$RUNNER_TEMP/musuw-partners-$asset"; then
+                partner_asset_ready=true
+                break
+              fi
+              if [ "$attempt" -lt 12 ]; then sleep 5; fi
+            done
+            if [ "$partner_asset_ready" != true ]; then
+              printf 'partner board asset did not converge to the expected release: %s\n' "$asset" >&2
+              exit 1
+            fi
+          done
+          partner_api_status="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            -o /dev/null -w '%{http_code}' https://partners.musuw.com/api/v1/partners/leaderboard)"
+          test "$partner_api_status" = 404
+          printf 'https://partners.musuw.com release=%s bilingual-static-board=ok api=404\n' "$RELEASE_SHA" | tee -a "$RUNNER_TEMP/musuw-storefront-smoke.txt"
+      - name: Probe product auth handoff without coupling storefront health
+        id: auth_handoff
+        continue-on-error: true
+        run: |
+          curl --fail --silent --show-error --retry 8 --retry-delay 3 --connect-timeout 10 --max-time 30 \
+            -D "$RUNNER_TEMP/musuw-app-auth-start-headers.txt" -o /dev/null https://app.musuw.com/auth/start
+      - name: Roll back Cloudflare Worker after deploy or smoke failure
+        if: failure() && (steps.deploy_worker.outcome == 'failure' || steps.smoke.outcome == 'failure')
+        working-directory: storefront
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PREVIOUS_VERSION_ID: ${{ steps.preflight.outputs.previous_version_id }}
+        run: |
+          set -euo pipefail
+          [[ "$PREVIOUS_VERSION_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
+          rollback_status=0
+          npx wrangler rollback "$PREVIOUS_VERSION_ID" --yes \
+            --message "musuw storefront rollback after failed deploy/smoke" 2>&1 | tee "$RUNNER_TEMP/musuw-storefront-rollback.log" || rollback_status=$?
+          if [ "$rollback_status" -ne 0 ]; then
+            {
+              printf 'automatic Cloudflare rollback FAILED for version %s (status %s)\n' "$PREVIOUS_VERSION_ID" "$rollback_status"
+              cat "$RUNNER_TEMP/musuw-storefront-rollback.log"
+            } > "$RUNNER_TEMP/musuw-storefront-rollback-evidence.txt"
+            exit 1
+          fi
+          reprobe_status=0
+          for origin in https://musuw.com https://www.musuw.com; do
+            if ! curl --fail --silent --show-error --retry 8 --retry-delay 3 --connect-timeout 10 --max-time 30 \
+              -D "$RUNNER_TEMP/musuw-rollback-headers-${origin#https://}.txt" -o /dev/null "$origin/"; then
+              reprobe_status=1
+            fi
+          done
+          {
+            printf 'automatic Cloudflare rollback completed to version %s; reprobe_status=%s\n' "$PREVIOUS_VERSION_ID" "$reprobe_status"
+            cat "$RUNNER_TEMP/musuw-storefront-rollback.log"
+          } > "$RUNNER_TEMP/musuw-storefront-rollback-evidence.txt"
+          # Preserve the failed deployment/smoke status after proving recovery.
+          exit 1
+      - name: Write storefront release manifest and checksum
+        if: always()
+        env:
+          RELEASE_SHA: ${{ needs.build.outputs.release_sha }}
+          SOURCE_EVENT_SHA: ${{ needs.build.outputs.release_sha }}
+          WORKFLOW_RUN: ${{ github.run_id }}
+          CI_WORKFLOW_RUN: ${{ needs.build.outputs.ci_workflow_run }}
+          DEPLOY_OUTCOME: ${{ steps.deploy_worker.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          AUTH_HANDOFF_OUTCOME: ${{ steps.auth_handoff.outcome }}
+        run: |
+          set -euo pipefail
+          repository_provenance='third_party/weknora/active-upstream-source.json'
+          repository_provenance_sha256=''
+          if [ -f "$repository_provenance" ]; then
+            repository_provenance_sha256="$(sha256sum "$repository_provenance" | awk '{print $1}')"
+          fi
+          source_manifest="$RUNNER_TEMP/musuw-storefront-source-manifest.sha256"
+          source_checksum=''
+          if [ -d storefront/dist ]; then
+            find storefront/dist -type f -print0 | LC_ALL=C sort -z | xargs -0 -r sha256sum > "$source_manifest"
+            source_checksum="$(sha256sum "$source_manifest" | awk '{print $1}')"
+          fi
+          wrangler_version=''
+          [ -f "$RUNNER_TEMP/musuw-wrangler-version.txt" ] && wrangler_version="$(tr '\n' ' ' < "$RUNNER_TEMP/musuw-wrangler-version.txt")"
+          previous_json='[]'
+          current_json='[]'
+          [ -s "$RUNNER_TEMP/musuw-storefront-previous-deployments.json" ] && previous_json="$(cat "$RUNNER_TEMP/musuw-storefront-previous-deployments.json")"
+          [ -s "$RUNNER_TEMP/musuw-storefront-current-deployments.json" ] && current_json="$(cat "$RUNNER_TEMP/musuw-storefront-current-deployments.json")"
+          deployed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          health_result=failed
+          auth_handoff=unchecked
+          if [ "$AUTH_HANDOFF_OUTCOME" = success ]; then
+            auth_handoff=reachable
+          elif [ "$AUTH_HANDOFF_OUTCOME" = failure ]; then
+            auth_handoff=unreachable
+          fi
+          worker_version_id=''
+          if [ "$DEPLOY_OUTCOME" = success ] && [ "$SMOKE_OUTCOME" = success ]; then
+            health_result=healthy
+            [[ "$CI_WORKFLOW_RUN" =~ ^[0-9]+$ ]]
+            [[ "$source_checksum" =~ ^[0-9a-fA-F]{64}$ ]]
+            worker_version_id="$(jq -er '
+              [ .[] | select((.versions // []) | length > 0) ]
+              | sort_by(.created_on) | last | .versions[]
+              | select((.percentage // 0) == 100) | .version_id
+            ' <<<"$current_json")"
+            [[ "$worker_version_id" =~ ^[0-9a-fA-F-]{36}$ ]]
+          fi
+          jq -n \
+            --arg schema_version 'musuw.release.v1' \
+            --arg commit_sha "$RELEASE_SHA" \
+            --arg source_event_sha "$SOURCE_EVENT_SHA" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow_run "$WORKFLOW_RUN" \
+            --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg ci_workflow_run "$CI_WORKFLOW_RUN" \
+            --arg wrangler_version "$wrangler_version" \
+            --arg source_manifest 'musuw-storefront-source-manifest.sha256' \
+            --arg source_manifest_sha256 "$source_checksum" \
+            --arg repository_provenance "$repository_provenance" \
+            --arg repository_provenance_sha256 "$repository_provenance_sha256" \
+            --arg target 'cloudflare:musuw-site' \
+            --arg deployed_at "$deployed_at" \
+            --arg health_result "$health_result" \
+            --arg worker_version_id "$worker_version_id" \
+            --arg auth_handoff "$auth_handoff" \
+            --argjson previous "$previous_json" \
+            --argjson current "$current_json" \
+            '{schema_version:$schema_version,commit_sha:$commit_sha,source_event_sha:$source_event_sha,repository:$repository,workflow:"Deploy storefront",workflow_run:$workflow_run,workflow_attempt:$workflow_attempt,ci_workflow_run:$ci_workflow_run,target:$target,deployed_at:$deployed_at,health_result:$health_result,worker_version_id:(if $worker_version_id == "" then null else $worker_version_id end),auth_handoff:$auth_handoff,wrangler_version:$wrangler_version,source_manifest:$source_manifest,source_manifest_sha256:(if $source_manifest_sha256 == "" then null else $source_manifest_sha256 end),repository_provenance:$repository_provenance,repository_provenance_sha256:$repository_provenance_sha256,cloudflare_previous_deployments:$previous,cloudflare_current_deployments:$current,server_release_id:null,server_source_bundle_sha256:null}' \
+            > "$RUNNER_TEMP/musuw-storefront-release-manifest.json"
+          sha256sum "$RUNNER_TEMP/musuw-storefront-release-manifest.json" > "$RUNNER_TEMP/musuw-storefront-release-manifest.json.sha256"
+      - name: Upload storefront release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storefront-release-${{ needs.build.outputs.release_sha }}
+          path: |
+            ${{ runner.temp }}/musuw-wrangler-version.txt
+            ${{ runner.temp }}/musuw-storefront-previous-deployments.json
+            ${{ runner.temp }}/musuw-storefront-current-deployments.json
+            ${{ runner.temp }}/musuw-storefront-deploy.log
+            ${{ runner.temp }}/musuw-storefront-smoke.txt
+            ${{ runner.temp }}/musuw-storefront-rollback-evidence.txt
+            ${{ runner.temp }}/musuw-storefront-source-manifest.sha256
+            ${{ runner.temp }}/musuw-storefront-release-manifest.json
+            ${{ runner.temp }}/musuw-storefront-release-manifest.json.sha256
+          if-no-files-found: warn
+          retention-days: 30

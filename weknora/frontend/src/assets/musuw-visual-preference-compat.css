@@ -1,0 +1,306 @@
+/*
+ * Visual-contract compatibility for native user preferences.
+ *
+ * The reference export defines the default light appearance. Musuw/WeKnora
+ * additionally owns font, font-size and theme preferences. Those preferences
+ * are behavior, not presentation-only implementation details, so migrated
+ * visual surfaces must continue to honor them.
+ */
+
+/* The default app font is already Inter/Noto Sans SC/JetBrains Mono. Do not
+ * shadow a user's persisted font choice inside visual-* descendants. `inherit`
+ * intentionally walks back to the root --app-font-* values written by useFont. */
+:where([class^="visual-"], [class*=" visual-"]) {
+  --app-font-family: inherit !important;
+  --app-font-family-mono: inherit !important;
+}
+
+/* OnlineKnowledgeEditorDrawer reference default is max-w-2xl = 672px. The
+ * native editor remains resizable and keeps persisted custom widths; only the
+ * untouched legacy default (760px) is translated to the reference default.
+ * Keep the resize hit target on the painted drawer edge as well. */
+.visual-manual-editor[style*="width: 760px"] {
+  width: min(672px, 100vw) !important;
+}
+.visual-manual-editor__resize-handle[style*="right: 760px"] {
+  right: min(672px, 100vw) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Native dark-theme contract                                                  */
+/* -------------------------------------------------------------------------- */
+
+:root[theme-mode="dark"] {
+  --mvc-page: #151619;
+  --mvc-sidebar: #1a1b1f;
+  --mvc-surface: #1d1f23;
+  --mvc-surface-raised: #202227;
+  --mvc-hover: #25272c;
+  --mvc-active: #30333a;
+  --mvc-line: #31343a;
+  --mvc-line-strong: #484c54;
+  --mvc-text: #f2f2f2;
+  --mvc-text-strong: #ffffff;
+  --mvc-muted: #c2c2c2;
+  --mvc-muted-strong: #dedede;
+  --mvc-faint: #9c9c9c;
+  --mvc-shadow: 0 18px 48px rgb(0 0 0 / 32%);
+}
+
+/* Application shells */
+:root[theme-mode="dark"] .visual-sidebar {
+  background: var(--mvc-sidebar) !important;
+  border-color: var(--mvc-line) !important;
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] .visual-chat-view,
+:root[theme-mode="dark"] .visual-chat-input,
+:root[theme-mode="dark"] .visual-new-chat-view,
+:root[theme-mode="dark"] .visual-kb-list,
+:root[theme-mode="dark"] .visual-knowledge-page,
+:root[theme-mode="dark"] .visual-settings-modal,
+:root[theme-mode="dark"] .visual-settings-sidebar,
+:root[theme-mode="dark"] .visual-settings-content,
+:root[theme-mode="dark"] .visual-references-panel,
+:root[theme-mode="dark"] .visual-manual-editor,
+:root[theme-mode="dark"] .visual-manual-editor__header,
+:root[theme-mode="dark"] .visual-manual-editor__content {
+  background: var(--mvc-page) !important;
+  color: var(--mvc-text) !important;
+  border-color: var(--mvc-line) !important;
+}
+:root[theme-mode="dark"] .visual-sidebar__primary.is-new,
+:root[theme-mode="dark"] .visual-user-menu__dropdown,
+:root[theme-mode="dark"] .visual-user-menu__account,
+:root[theme-mode="dark"] .visual-reference-kb-card,
+:root[theme-mode="dark"] .visual-kb-list__skeleton,
+:root[theme-mode="dark"] .visual-plan-card,
+:root[theme-mode="dark"] .visual-chat-suggestion,
+:root[theme-mode="dark"] .visual-new-chat-suggestion,
+:root[theme-mode="dark"] .visual-chat-composer__image,
+:root[theme-mode="dark"] .visual-chat-resource,
+:root[theme-mode="dark"] .visual-reference-item,
+:root[theme-mode="dark"] .visual-manual-editor__editor,
+:root[theme-mode="dark"] .visual-manual-editor__pane,
+:root[theme-mode="dark"] .visual-manual-editor__preview,
+:root[theme-mode="dark"] .visual-batch-modal,
+:root[theme-mode="dark"] .visual-session-menu-popup .t-popup__content,
+:root[theme-mode="dark"] .visual-chat-composer__mode-menu,
+:root[theme-mode="dark"] .visual-chat-composer__model-menu {
+  background: var(--mvc-surface) !important;
+  border-color: var(--mvc-line) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow);
+}
+
+/* Composer: the unfocused reference gray card becomes the equivalent dark
+ * raised surface; focus remains a clean surface rather than reverting white. */
+:root[theme-mode="dark"] .visual-chat-composer__surface {
+  background: var(--mvc-surface-raised) !important;
+  border-color: var(--mvc-line) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__surface:hover,
+:root[theme-mode="dark"] .visual-chat-composer__surface:focus-within {
+  border-color: var(--mvc-line-strong) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__surface:focus-within {
+  background: var(--mvc-surface) !important;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 24%) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__textarea .t-textarea__inner,
+:root[theme-mode="dark"] .visual-chat-composer__textarea textarea {
+  color: var(--mvc-text) !important;
+  caret-color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .visual-chat-composer__textarea .t-textarea__inner::placeholder,
+:root[theme-mode="dark"] .visual-chat-composer__textarea textarea::placeholder {
+  color: var(--mvc-faint) !important;
+}
+
+/* Neutral buttons / rows / chips */
+:root[theme-mode="dark"] .visual-sidebar__header-icon:hover,
+:root[theme-mode="dark"] .visual-sidebar__collapsed-control:hover,
+:root[theme-mode="dark"] .visual-sidebar__collapsed-nav:hover,
+:root[theme-mode="dark"] .visual-sidebar__primary.is-kb:hover,
+:root[theme-mode="dark"] .visual-user-menu__trigger:hover,
+:root[theme-mode="dark"] .visual-user-menu__trigger[aria-expanded="true"],
+:root[theme-mode="dark"] .visual-user-menu__item:hover,
+:root[theme-mode="dark"] .visual-session-row:hover,
+:root[theme-mode="dark"] .visual-session-row.is-active,
+:root[theme-mode="dark"] .visual-session-row.is-selected,
+:root[theme-mode="dark"] .visual-session-menu__item:hover,
+:root[theme-mode="dark"] .visual-batch-modal__select-all,
+:root[theme-mode="dark"] .visual-batch-modal__row:hover,
+:root[theme-mode="dark"] .visual-batch-modal__row.is-selected,
+:root[theme-mode="dark"] .visual-settings-nav__item:hover,
+:root[theme-mode="dark"] .visual-settings-nav__item.is-active,
+:root[theme-mode="dark"] .visual-plan-metric,
+:root[theme-mode="dark"] .visual-reference-item:hover,
+:root[theme-mode="dark"] .visual-manual-editor__toolbar,
+:root[theme-mode="dark"] .visual-manual-editor__tool:hover {
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] .visual-sidebar__primary.is-kb.is-active,
+:root[theme-mode="dark"] .visual-sidebar__collapsed-nav.is-active,
+:root[theme-mode="dark"] .visual-batch-modal__row.is-selected {
+  background: var(--mvc-active) !important;
+  border-color: var(--mvc-line-strong) !important;
+}
+
+/* Typography: preserve semantic status colors by targeting structural copy,
+ * not generic descendants or .is-error/.is-danger/.is-published states. */
+:root[theme-mode="dark"] .visual-user-menu__identity strong,
+:root[theme-mode="dark"] .visual-user-menu__account strong,
+:root[theme-mode="dark"] .visual-new-chat-title,
+:root[theme-mode="dark"] .visual-reference-kb-card__title strong,
+:root[theme-mode="dark"] .visual-settings-title,
+:root[theme-mode="dark"] .visual-general-settings__header h2,
+:root[theme-mode="dark"] .visual-setting-row__copy label,
+:root[theme-mode="dark"] .visual-plan-card__identity strong,
+:root[theme-mode="dark"] .visual-plan-metric strong,
+:root[theme-mode="dark"] .visual-references-panel__heading h3,
+:root[theme-mode="dark"] .visual-reference-item__title-row h5,
+:root[theme-mode="dark"] .visual-reference-item__title,
+:root[theme-mode="dark"] .visual-manual-editor__heading h3,
+:root[theme-mode="dark"] .visual-manual-editor__section > h4,
+:root[theme-mode="dark"] .visual-manual-editor__field > label {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] .visual-user-menu__identity small,
+:root[theme-mode="dark"] .visual-user-menu__account small,
+:root[theme-mode="dark"] .visual-chat-suggestions__caption,
+:root[theme-mode="dark"] .visual-new-chat-suggestions__heading,
+:root[theme-mode="dark"] .visual-reference-kb-card__description,
+:root[theme-mode="dark"] .visual-general-settings__header p,
+:root[theme-mode="dark"] .visual-setting-row__copy p,
+:root[theme-mode="dark"] .visual-plan-card__note,
+:root[theme-mode="dark"] .visual-reference-section > h4,
+:root[theme-mode="dark"] .visual-reference-item__source,
+:root[theme-mode="dark"] .visual-reference-item__snippet,
+:root[theme-mode="dark"] .visual-manual-editor__heading p,
+:root[theme-mode="dark"] .visual-manual-editor__field > p {
+  color: var(--mvc-muted) !important;
+}
+
+/* Borders and separators */
+:root[theme-mode="dark"] .visual-sidebar__footer,
+:root[theme-mode="dark"] .visual-user-menu__divider,
+:root[theme-mode="dark"] .visual-reference-kb-card__footer,
+:root[theme-mode="dark"] .visual-settings-sidebar,
+:root[theme-mode="dark"] .visual-setting-row,
+:root[theme-mode="dark"] .visual-references-panel__header,
+:root[theme-mode="dark"] .visual-manual-editor__header,
+:root[theme-mode="dark"] .visual-manual-editor__toolbar,
+:root[theme-mode="dark"] .visual-manual-editor__footer,
+:root[theme-mode="dark"] .visual-batch-modal__header,
+:root[theme-mode="dark"] .visual-batch-modal__footer {
+  border-color: var(--mvc-line) !important;
+}
+
+/* TDesign widgets teleported to body must follow the selected native theme.
+ * This intentionally comes after the light reference bridge. */
+:root[theme-mode="dark"] body .t-dialog,
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup),
+:root[theme-mode="dark"] body .t-popup__content:not(.wiki-graph-help-popup):not(.visual-mention-detail-popup):not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup):not(:has(.wiki-graph-help)):not(:has(.kp-proccfg-pop)):not(:has(.visual-folder-picker)) {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] body .t-dialog__header,
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option.t-is-selected {
+  color: var(--mvc-text-strong) !important;
+}
+:root[theme-mode="dark"] body .t-dialog__body,
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option {
+  color: var(--mvc-muted-strong) !important;
+}
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option:hover,
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option.t-is-selected {
+  background: var(--mvc-hover) !important;
+}
+:root[theme-mode="dark"] .musuw-workspace-surface:not(:has(.visual-knowledge-page.is-graph-tab)) .t-input,
+:root[theme-mode="dark"] .musuw-workspace-surface:not(:has(.visual-knowledge-page.is-graph-tab)) .t-textarea__inner,
+:root[theme-mode="dark"] body .t-dialog .t-input,
+:root[theme-mode="dark"] body .t-dialog .t-textarea__inner {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .musuw-workspace-surface:not(:has(.visual-knowledge-page.is-graph-tab)) .t-select-input,
+:root[theme-mode="dark"] body .t-dialog:not(:has(.share-form)) .t-select-input {
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] .musuw-workspace-surface:not(:has(.visual-knowledge-page.is-graph-tab)) .t-select-input .t-input,
+:root[theme-mode="dark"] body .t-dialog:not(:has(.share-form)) .t-select-input .t-input {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-text) !important;
+}
+:root[theme-mode="dark"] .musuw-workspace-surface:not(:has(.visual-knowledge-page.is-graph-tab)) .t-input.t-is-focused,
+:root[theme-mode="dark"] body .t-dialog .t-input.t-is-focused {
+  border-color: var(--mvc-line-strong) !important;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 5%) !important;
+}
+:root[theme-mode="dark"] .musuw-workspace-surface:not(:has(.visual-knowledge-page.is-graph-tab)) .t-select-input.t-is-focused .t-input,
+:root[theme-mode="dark"] body .t-dialog:not(:has(.share-form)) .t-select-input.t-is-focused .t-input {
+  border-color: var(--mvc-line-strong) !important;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 5%) !important;
+}
+
+/* Reference-defined semantic blue in the online knowledge editor remains blue
+ * in dark mode because it conveys the reference's editor focus/accent state. */
+:root[theme-mode="dark"] .visual-manual-editor__heading-icon {
+  background: #12233f !important;
+  border-color: #244b7c !important;
+  color: #69a7ff !important;
+}
+
+/* Native TDesign selects use the same two-node popup structure in every
+ * non-chat settings surface: `.t-select__dropdown` is the positioning root
+ * and its child `.t-popup__content` is the painted panel. Keep only that
+ * child on the dark surface so the root cannot create a second frame. */
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) > .t-popup__content {
+  margin: 0 !important;
+  padding: 6px !important;
+  border: 1px solid var(--mvc-line) !important;
+  border-radius: 16px !important;
+  background: var(--mvc-surface) !important;
+  color: var(--mvc-muted-strong) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+
+/* `visual-scene-select` is the ordinary (non-homepage) TDesign equivalent
+ * of the scene-model selector. Its trigger must resolve to the same dark
+ * surface; the homepage chat selector has a separate class and is untouched.
+ */
+:root[theme-mode="dark"] body .visual-scene-select.visual-scene-select .t-select-input {
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] body .visual-scene-select.visual-scene-select .t-select-input .t-input {
+  border-color: var(--mvc-line) !important;
+  background: var(--mvc-surface-raised) !important;
+  color: var(--mvc-muted-strong) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+}
+:root[theme-mode="dark"] body .visual-scene-select.visual-scene-select .t-select-input .t-input:hover:not(.t-is-disabled),
+:root[theme-mode="dark"] body .visual-scene-select.visual-scene-select .t-select-input.t-is-focused .t-input {
+  border-color: var(--mvc-line-strong) !important;
+  background: var(--mvc-hover) !important;
+  color: var(--mvc-text-strong) !important;
+}

@@ -1,0 +1,154 @@
+/*
+ * DocumentPreview visual closure.
+ * Rendering/fetch/fullscreen behavior remains in document-preview.vue; this
+ * file only changes the visible container, toolbar and state presentation.
+ */
+
+.document-preview {
+  color: #374151 !important;
+  font-family: var(--app-font-family) !important;
+}
+.document-preview .preview-toolbar {
+  top: 8px !important;
+  right: 8px !important;
+  padding: 4px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: rgb(255 255 255 / 92%) !important;
+  color: #6b7280 !important;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 7%) !important;
+  opacity: 0 !important;
+  backdrop-filter: blur(8px) !important;
+  transition: opacity 150ms ease !important;
+}
+.document-preview:hover .preview-toolbar,
+.document-preview .preview-toolbar:focus-within { opacity: 1 !important; }
+.document-preview .preview-toolbar .t-button {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+}
+.document-preview .preview-toolbar .t-button:hover { background: #f3f4f6 !important; color: #111827 !important; }
+
+.document-preview .preview-loading,
+.document-preview .preview-error,
+.document-preview .preview-unsupported {
+  min-height: 240px !important;
+  padding: 32px 20px !important;
+  gap: 8px !important;
+  border: 1px dashed #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #f9fafb !important;
+  color: #9ca3af !important;
+  box-sizing: border-box !important;
+}
+.document-preview .preview-loading .loading-text,
+.document-preview .preview-error p,
+.document-preview .preview-unsupported p {
+  margin: 0 !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.document-preview .preview-unsupported .unsupported-hint { color: #9ca3af !important; font-size: 10px !important; }
+.document-preview .preview-error > .t-icon { color: #dc2626 !important; }
+.document-preview .preview-error .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+
+.document-preview .preview-pdf,
+.document-preview .preview-pptx,
+.document-preview .preview-docx .docx-container,
+.document-preview .preview-excel .excel-container,
+.document-preview .preview-markdown,
+.document-preview .preview-text .code-preview {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.document-preview .preview-pdf,
+.document-preview .preview-pptx,
+.document-preview .preview-docx,
+.document-preview .preview-image,
+.document-preview .preview-excel,
+.document-preview .preview-markdown,
+.document-preview .preview-text,
+.document-preview .preview-audio { color: #374151 !important; }
+.document-preview .pdf-iframe { border-radius: 12px !important; background: #f9fafb !important; }
+.document-preview .preview-image { padding: 16px 0 !important; }
+.document-preview .preview-image .image-wrapper { gap: 8px !important; }
+.document-preview .preview-image .image-wrapper img {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #f9fafb !important;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 7%) !important;
+}
+.document-preview .preview-image .image-info { color: #9ca3af !important; font-size: 10px !important; }
+.document-preview .preview-markdown { padding: 20px 24px !important; }
+.document-preview .preview-text .code-preview {
+  margin: 0 !important;
+  padding: 16px !important;
+  background: #fafafa !important;
+  color: #1f2937 !important;
+  font-family: var(--app-font-family-mono) !important;
+  font-size: 12px !important;
+  line-height: 1.625 !important;
+}
+.document-preview .preview-excel .excel-container { background: #fff !important; }
+.document-preview .excel-sheet-name {
+  color: #111827 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+.document-preview .excel-container table { border-color: #e5e7eb !important; color: #374151 !important; font-size: 11px !important; }
+.document-preview .excel-container td,
+.document-preview .excel-container th { border-color: #e5e7eb !important; }
+.document-preview .excel-container th { background: #f9fafb !important; color: #4b5563 !important; }
+
+.document-preview .preview-audio {
+  padding: 32px 20px !important;
+}
+.document-preview .preview-audio .audio-wrapper {
+  width: min(420px, 100%) !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+}
+.document-preview .preview-audio .audio-filename { color: #111827 !important; font-size: 12px !important; font-weight: 600 !important; }
+.document-preview .preview-audio .audio-element { width: 100% !important; }
+
+.document-preview.is-fullscreen {
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  background: #fff !important;
+  color: #374151 !important;
+}
+.document-preview.is-fullscreen .preview-toolbar {
+  top: 16px !important;
+  right: 16px !important;
+  opacity: 1 !important;
+}
+.document-preview.is-fullscreen .preview-pdf,
+.document-preview.is-fullscreen .preview-pptx,
+.document-preview.is-fullscreen .preview-docx,
+.document-preview.is-fullscreen .preview-image,
+.document-preview.is-fullscreen .preview-excel,
+.document-preview.is-fullscreen .preview-markdown,
+.document-preview.is-fullscreen .preview-text,
+.document-preview.is-fullscreen .preview-audio {
+  border-radius: 16px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-preview .preview-toolbar { transition: none !important; }
+}

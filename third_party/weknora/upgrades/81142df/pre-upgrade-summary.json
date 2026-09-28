@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "upstreamRepository": "https://github.com/Tencent/WeKnora.git",
+  "base": {
+    "tag": "v0.7.2",
+    "commit": "3d5d8bfcdfeeea266b292b71cea616847af28d0f",
+    "tree": "7251449b3d71ef5d7d157874c2c705c58a210202",
+    "prefixedAuditTree": "212384e2a8ca5c036159bc8a6386e994e7b29ee6"
+  },
+  "target": {
+    "refAtAudit": "refs/heads/main",
+    "commit": "81142dfd17b2778087e95d3a317483a2fd909b91",
+    "tree": "37eaafdd6c276d2d1ddffffe1f39f8b38fd7cc03"
+  },
+  "currentWorktree": {
+    "prefixedAuditTree": "fb468c34a8ed49142aee7f1aeaa0e81db2daa561",
+    "sourceDirectory": "weknora",
+    "includesNonIgnoredUntrackedFiles": true,
+    "delta": {
+      "added": 343,
+      "modified": 344,
+      "deleted": 21,
+      "total": 708,
+      "localOnly": 550,
+      "overlap": 158
+    }
+  },
+  "upstreamDelta": {
+    "added": 490,
+    "modified": 557,
+    "deleted": 4,
+    "total": 1051,
+    "upstreamOnly": 893,
+    "overlap": 158
+  },
+  "policy": {
+    "namedExamplesAreWhitelist": false,
+    "defaultLocalDecision": "preserve",
+    "overlapDecision": "three-way-preserve-musuw",
+    "allowedReplacementEvidence": [
+      "bug",
+      "dead-duplicate",
+      "semantically-equivalent-upstream-strictly-better"
+    ]
+  }
+}

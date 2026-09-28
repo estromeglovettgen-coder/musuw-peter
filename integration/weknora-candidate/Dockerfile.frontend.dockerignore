@@ -1,0 +1,17 @@
+# The candidate UI build must not transfer legacy sources, runtime data, or
+# credentials.  These are the only static inputs the image can copy.
+**
+!weknora
+!weknora/frontend
+!weknora/frontend/dist
+!weknora/frontend/dist/**
+!weknora/frontend/docker-entrypoint.sh
+!auth
+!auth/dist
+!auth/dist/**
+!integration
+!integration/weknora-candidate
+!integration/weknora-candidate/Dockerfile.frontend
+!integration/weknora-candidate/Dockerfile.frontend.dockerignore
+!integration/weknora-candidate/nginx.conf.template
+!integration/weknora-candidate/auth-shell.nginx.conf

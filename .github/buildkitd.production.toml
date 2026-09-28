@@ -1,0 +1,3 @@
+[worker.oci]
+  gc = true
+  max-parallelism = 2

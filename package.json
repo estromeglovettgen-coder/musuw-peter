@@ -1,0 +1,71 @@
+{
+  "name": "musuw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Musuw consumer knowledge workspace built on WeKnora main at 81142df.",
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.16.0"
+  },
+  "packageManager": "npm@11.16.0",
+  "scripts": {
+    "dev": "bash scripts/musuw-dev up",
+    "dev:down": "bash scripts/musuw-dev down",
+    "dev:status": "bash scripts/musuw-dev status",
+    "dev:check": "bash scripts/musuw-dev check",
+    "deps": "bash scripts/musuw-dev deps up",
+    "deps:down": "bash scripts/musuw-dev deps down",
+    "preview": "bash scripts/musuw-preview",
+    "release": "bash scripts/musuw-release",
+    "app:build": "npm --prefix weknora/frontend run build-with-types",
+    "app:e2e:batch": "playwright test --config=playwright.session-batch.config.ts",
+    "app:test": "npm --prefix weknora/frontend test",
+    "admin:build": "npm --prefix weknora/frontend run build-with-types",
+    "admin:e2e": "playwright test --config=playwright.operations.config.ts",
+    "admin:e2e:recovery": "playwright test --config=playwright.operations-recovery.config.ts",
+    "admin:test": "node --test scripts/musuw-admin-*.test.mjs",
+    "admin:deploy:test": "python3 scripts/operations-deploy.test.py",
+    "auth:build": "npm --prefix auth run build",
+    "auth:test": "npm --prefix auth test",
+    "homepage:build": "npm --prefix storefront run build",
+    "homepage:test": "npm --prefix storefront test",
+    "upgrade:contract": "node --test scripts/weknora-upgrade-contract.test.mjs",
+    "upgrade:ledger": "node scripts/ci/generate-weknora-resolution-ledger.mjs",
+    "build": "npm run app:build && npm run auth:build && npm run homepage:build"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1116.0",
+    "@zip.js/zip.js": "2.8.31",
+    "ai": "7.0.22",
+    "drizzle-orm": "0.45.2",
+    "graphile-worker": "0.17.3",
+    "next": "16.2.10",
+    "pg": "8.22.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "@tailwindcss/postcss": "4.3.2",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.20.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.10",
+    "postcss": "8.5.15",
+    "prettier": "3.9.0",
+    "tailwindcss": "4.3.2",
+    "tsx": "4.23.1",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "4.1.10"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.10"
+    }
+  }
+}

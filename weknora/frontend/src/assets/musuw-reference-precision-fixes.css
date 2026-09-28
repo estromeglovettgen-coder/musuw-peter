@@ -1,0 +1,373 @@
+/*
+ * Reference precision fixes.
+ *
+ * Presentation only. This file narrows residual visible differences between the
+ * Google AI Studio TSX reference and the rebuilt Vue surfaces. It intentionally
+ * does not target Graph/Trace internals and does not alter handlers, stores,
+ * routes, APIs, permissions, or conditional rendering.
+ */
+
+/* The reference owns typography on migrated visual surfaces. Keep theme/color
+ * behavior native, but do not let a user-selected app font change pixel metrics
+ * inside a surface that is being compared against the exported reference. */
+:where([class^="visual-"], [class*=" visual-"]) {
+  --app-font-family: "Inter Variable", "Inter", "Noto Sans SC Variable", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --app-font-family-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-synthesis: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* OnlineKnowledgeEditorDrawer.tsx -> manual-knowledge-editor.vue              */
+/* -------------------------------------------------------------------------- */
+
+.visual-manual-editor__overlay {
+  background: rgb(0 0 0 / 40%) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* The business surface is resizable in Musuw. Preserve that behavior, but the
+ * untouched/default state must match max-w-2xl (672px) from the reference. Once
+ * the user actually drags to another width this selector no longer matches. */
+.visual-manual-editor[style*="width: 760px"] {
+  width: min(672px, 100vw) !important;
+}
+
+.visual-manual-editor {
+  border-left-color: #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+
+.visual-manual-editor__header {
+  padding: 16px 24px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  border-bottom-color: #f3f4f6 !important;
+  background: #fff !important;
+}
+
+.visual-manual-editor__heading { gap: 12px !important; align-items: center !important; }
+.visual-manual-editor__heading-icon {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  border: 1px solid rgb(186 224 255 / 50%) !important;
+  border-radius: 999px !important;
+  background: #e6f4ff !important;
+  color: #1677ff !important;
+}
+.visual-manual-editor__heading-icon .t-icon { font-size: 20px !important; }
+.visual-manual-editor__heading h3 {
+  font-size: 15px !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+}
+.visual-manual-editor__heading p {
+  margin-top: 2px !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+.visual-manual-editor__close {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+}
+.visual-manual-editor__close .t-icon { font-size: 18px !important; }
+
+.visual-manual-editor__content {
+  padding: 0 24px !important;
+  background: #fff !important;
+}
+.visual-manual-editor__section {
+  padding: 20px 0 0 !important;
+  border-bottom: 0 !important;
+  gap: 16px !important;
+}
+.visual-manual-editor__section.is-editor {
+  padding-top: 24px !important;
+  padding-bottom: 20px !important;
+  gap: 12px !important;
+}
+.visual-manual-editor__section > h4 {
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #111827 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.visual-manual-editor__section > h4::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: #1677ff;
+}
+.visual-manual-editor__field { gap: 6px !important; }
+.visual-manual-editor__field > label {
+  color: #374151 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+.visual-manual-editor__field > p { font-size: 10px !important; line-height: 15px !important; }
+.visual-manual-editor__field .t-input {
+  min-height: 34px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+}
+.visual-manual-editor__field .t-input:hover,
+.visual-manual-editor__field .t-input:hover { border-color: #d1d5db !important; }
+.visual-manual-editor__field .t-input.t-is-focused,
+.visual-manual-editor__field .t-input.t-is-focused {
+  border-color: #1677ff !important;
+  box-shadow: 0 0 0 1px rgb(22 119 255 / 20%) !important;
+}
+
+.visual-manual-editor__editor {
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.visual-manual-editor__editor:focus-within {
+  border-color: #1677ff !important;
+  box-shadow: 0 0 0 1px rgb(22 119 255 / 20%) !important;
+}
+.visual-manual-editor__toolbar {
+  min-height: 37px !important;
+  padding: 6px 12px !important;
+  border-bottom-color: rgb(229 231 235 / 80%) !important;
+  background: #fafafa !important;
+}
+.visual-manual-editor__format-tools { gap: 2px !important; }
+.visual-manual-editor__tool-group { gap: 2px !important; }
+.visual-manual-editor__divider {
+  height: 14px !important;
+  margin: 0 6px !important;
+  background: #d1d5db !important;
+}
+.visual-manual-editor__tool {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 5px !important;
+  border-radius: 4px !important;
+  color: #374151 !important;
+}
+.visual-manual-editor__tool:hover { background: rgb(229 231 235 / 80%) !important; color: #111827 !important; }
+.visual-manual-editor__tool .t-icon { font-size: 14px !important; }
+.visual-manual-editor__view-toggle {
+  min-height: 26px !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+/* preview -> edit: dark button in the reference */
+.visual-manual-editor__view-toggle:has(.t-icon-edit-1) {
+  background: #262626 !important;
+  color: #fff !important;
+}
+.visual-manual-editor__view-toggle:has(.t-icon-edit-1):hover { background: #000 !important; }
+/* edit -> preview: blue-tinted button in the reference */
+.visual-manual-editor__view-toggle:has(.t-icon-browse) {
+  background: #eff6ff !important;
+  color: #1677ff !important;
+}
+.visual-manual-editor__view-toggle:has(.t-icon-browse):hover { background: #dbeafe !important; }
+.visual-manual-editor__view-toggle .t-icon { font-size: 12px !important; }
+
+.visual-manual-editor__pane { min-height: 380px !important; }
+.visual-manual-editor__textarea .t-textarea__inner {
+  min-height: 380px !important;
+  max-height: 55vh !important;
+  padding: 16px !important;
+  color: #1f2937 !important;
+  font-family: var(--app-font-family-mono) !important;
+  font-size: 12px !important;
+  line-height: 1.625 !important;
+}
+.visual-manual-editor__pane.is-preview {
+  min-height: 380px !important;
+  max-height: 55vh !important;
+  padding: 20px !important;
+}
+.visual-manual-editor__preview { color: #1f2937 !important; font-size: 12px !important; line-height: 1.625 !important; }
+
+.visual-manual-editor__footer {
+  min-height: 58px !important;
+  padding: 14px 24px !important;
+  border-top-color: #f3f4f6 !important;
+  background: #fafafa !important;
+}
+.visual-manual-editor__status,
+.visual-manual-editor__status.is-draft,
+.visual-manual-editor__status.is-published {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #f59e0b !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+.visual-manual-editor__status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 999px;
+  display: inline-block;
+  vertical-align: 1px;
+  background: #fbbf24;
+}
+.visual-manual-editor__footer-actions { gap: 10px !important; }
+.visual-manual-editor__button {
+  min-height: 30px !important;
+  padding: 6px 16px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+.visual-manual-editor__footer-actions .visual-manual-editor__button:first-child {
+  border-color: transparent !important;
+  background: #f3f4f6 !important;
+  color: #4b5563 !important;
+}
+.visual-manual-editor__footer-actions .visual-manual-editor__button:nth-child(2) {
+  border-color: #d1d5db !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.visual-manual-editor__button.is-primary {
+  padding-inline: 20px !important;
+  border-color: #1f2328 !important;
+  background: #1f2328 !important;
+  color: #fff !important;
+}
+.visual-manual-editor__button.is-primary:hover:not(:disabled) { background: #000 !important; }
+/* Resizing is a native capability absent from the reference. Do not remove it,
+ * but keep its extra affordance invisible until the user intentionally hovers. */
+.visual-manual-editor__resize-handle > span { opacity: 0 !important; }
+.visual-manual-editor__resize-handle:hover > span,
+.visual-manual-editor__resize-handle.is-active > span { opacity: 1 !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Musuw-only visible surfaces with no reference component. Keep their native  */
+/* behavior, but remove residual brand-blue/TDesign chrome.                    */
+/* -------------------------------------------------------------------------- */
+
+.global-invitation-bell__btn {
+  border-color: #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #6b7280 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.global-invitation-bell__btn:hover {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 8%) !important;
+}
+
+/* Invitations are native WeKnora behavior. Visually align the dialog with the
+ * reference BatchManageModal/SettingsModal family without changing its DOM. */
+body .t-dialog:has(.my-invitations-desc) {
+  width: min(512px, calc(100vw - 32px)) !important;
+  max-width: 512px !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+body .t-dialog:has(.my-invitations-desc) .t-dialog__header {
+  padding: 16px 24px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+body .t-dialog:has(.my-invitations-desc) .t-dialog__body { padding: 16px 24px 24px !important; }
+body .t-dialog:has(.my-invitations-desc) .my-invitations-desc {
+  margin: 0 0 16px !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+body .t-dialog:has(.my-invitations-desc) .invitation-card {
+  padding: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+body .t-dialog:has(.my-invitations-desc) .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+body .t-dialog:has(.my-invitations-desc) .t-button--theme-primary:hover { background: #000 !important; }
+body .t-dialog:has(.my-invitations-desc) .t-tag {
+  border-color: #e5e7eb !important;
+  border-radius: 6px !important;
+  background: #f3f4f6 !important;
+  color: #4b5563 !important;
+}
+
+/* High-level TDesign drawer chrome used by model/debug/admin surfaces that the
+ * reference does not define. Keep the behavior component, standardize pixels. */
+body .setting-drawer .t-drawer {
+  border-left: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: -18px 0 50px rgb(15 23 42 / 12%) !important;
+}
+body .setting-drawer .t-drawer__header {
+  min-height: 58px !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  background: #fff !important;
+}
+body .setting-drawer .setting-drawer__header-icon {
+  border-radius: 9px !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+body .setting-drawer .setting-drawer__title { color: #111827 !important; font-weight: 700 !important; }
+body .setting-drawer .setting-drawer__subtitle { color: #9ca3af !important; }
+body .setting-drawer .t-drawer__footer {
+  border-top: 1px solid #f3f4f6 !important;
+  background: #fafafa !important;
+}
+body .setting-drawer .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+body .setting-drawer .t-button--theme-primary:hover { background: #000 !important; }
+
+@media (max-width: 760px) {
+  .visual-manual-editor[style] { width: 100% !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-manual-editor__resize-handle > span,
+  .global-invitation-bell__btn { transition: none !important; }
+}

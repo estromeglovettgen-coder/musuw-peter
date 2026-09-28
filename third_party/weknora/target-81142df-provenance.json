@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sourceDirectory": "weknora",
+  "upstream": {
+    "repository": "https://github.com/Tencent/WeKnora.git",
+    "ref": "main",
+    "commit": "81142dfd17b2778087e95d3a317483a2fd909b91",
+    "tree": "37eaafdd6c276d2d1ddffffe1f39f8b38fd7cc03",
+    "regularFileCount": 3284,
+    "version": "main-81142df"
+  },
+  "base": {
+    "tag": "v0.7.2",
+    "commit": "3d5d8bfcdfeeea266b292b71cea616847af28d0f",
+    "tree": "7251449b3d71ef5d7d157874c2c705c58a210202",
+    "regularFileCount": 2798
+  },
+  "migrations": {
+    "postgresLatest": 104,
+    "sqliteLatest": 23
+  }
+}

@@ -1,0 +1,868 @@
+/*
+ * @视觉文件 SettingsModal.tsx visual grammar applied to native WeKnora
+ * settings/editor surfaces. No business selectors are hidden and no events,
+ * v-models, stores, routes, API calls or permission checks are replaced.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Shared modal shell used by AgentEditorModal / OrganizationSettingsModal     */
+/* -------------------------------------------------------------------------- */
+.settings-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1100 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgb(0 0 0 / 45%) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.settings-overlay > .settings-modal {
+  position: relative !important;
+  width: min(896px, 100%) !important;
+  max-width: 896px !important;
+  height: 620px !important;
+  max-height: calc(100dvh - 32px) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid rgb(229 231 235 / 90%) !important;
+  border-radius: 24px !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+.settings-overlay > .settings-modal > .settings-container {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  overflow: hidden !important;
+}
+.settings-overlay > .settings-modal .settings-sidebar {
+  flex: 0 0 192px !important;
+  width: 192px !important;
+  min-width: 0 !important;
+  padding: 16px 12px 12px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-right: 1px solid #f3f4f6 !important;
+  background: #fafafa !important;
+  color: #374151 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.settings-overlay > .settings-modal .sidebar-header {
+  flex: 0 0 auto !important;
+  margin: 0 12px 16px 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.settings-overlay > .settings-modal .sidebar-title {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+.settings-overlay > .settings-modal .settings-nav {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  padding: 0 8px 0 0 !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+}
+.settings-overlay > .settings-modal .nav-group-title {
+  margin: 10px 0 3px !important;
+  padding: 0 10px !important;
+  color: #9ca3af !important;
+  font-size: 9px !important;
+  line-height: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: .04em !important;
+  text-transform: none !important;
+}
+.settings-overlay > .settings-modal .nav-group-title:first-child { margin-top: 0 !important; }
+.settings-overlay > .settings-modal .nav-item {
+  width: 100% !important;
+  min-height: 36px !important;
+  margin: 0 0 3px !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: transparent !important;
+  color: #4b5563 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+}
+.settings-overlay > .settings-modal .nav-item:hover { background: #f9fafb !important; color: #111827 !important; }
+.settings-overlay > .settings-modal .nav-item.active { background: #f3f4f6 !important; color: #111827 !important; font-weight: 700 !important; }
+.settings-overlay > .settings-modal .nav-icon,
+.settings-overlay > .settings-modal .nav-icon-img {
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  margin: 0 !important;
+  font-size: 15px !important;
+  opacity: .85 !important;
+}
+.settings-overlay > .settings-modal .nav-label { min-width: 0 !important; flex: 1 1 auto !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.settings-overlay > .settings-modal .nav-badge {
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 4px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #e5e7eb !important;
+  color: #6b7280 !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+}
+.settings-overlay > .settings-modal .settings-content {
+  min-width: 0 !important;
+  height: 100% !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+}
+.settings-overlay > .settings-modal .content-wrapper {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+.settings-overlay > .settings-modal .close-btn {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
+  z-index: 10 !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border: 1px solid rgb(229 231 235 / 90%) !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+}
+.settings-overlay > .settings-modal .close-btn:hover { background: #f3f4f6 !important; color: #374151 !important; }
+.settings-overlay > .settings-modal .close-btn:focus-visible { outline: 2px solid #d1d5db !important; outline-offset: 2px !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Shared inner section layout — current Settings + Agent/Organization editors */
+/* -------------------------------------------------------------------------- */
+.visual-settings-content .section-header,
+.settings-overlay > .settings-modal .section-header {
+  margin: 0 0 8px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  background: transparent !important;
+}
+.visual-settings-content .section-header h2,
+.settings-overlay > .settings-modal .section-header h2,
+.visual-settings-content .section-header-title h2,
+.settings-overlay > .settings-modal .section-header-title h2 {
+  margin: 0 0 4px !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+.visual-settings-content .section-description,
+.settings-overlay > .settings-modal .section-description {
+  margin: 0 !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+.visual-settings-content .settings-group,
+.settings-overlay > .settings-modal .settings-group {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+.visual-settings-content .setting-row,
+.settings-overlay > .settings-modal .setting-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 14px 0 !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.visual-settings-content .setting-row:last-child,
+.settings-overlay > .settings-modal .setting-row:last-child { border-bottom: 0 !important; }
+.visual-settings-content .setting-row.setting-row-vertical,
+.settings-overlay > .settings-modal .setting-row.setting-row-vertical {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+}
+.visual-settings-content .setting-row.setting-row-vertical > .setting-control,
+.settings-overlay > .settings-modal .setting-row.setting-row-vertical > .setting-control {
+  width: 100% !important;
+  flex: 0 0 auto !important;
+  max-width: none !important;
+  justify-content: flex-start !important;
+}
+.visual-settings-content .setting-info,
+.settings-overlay > .settings-modal .setting-info {
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+}
+.visual-settings-content .setting-info label,
+.settings-overlay > .settings-modal .setting-info label,
+.visual-settings-content .form-label,
+.settings-overlay > .settings-modal .form-label {
+  display: block !important;
+  margin: 0 0 2px !important;
+  color: #111827 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 600 !important;
+}
+.visual-settings-content .setting-info .desc,
+.settings-overlay > .settings-modal .setting-info .desc,
+.visual-settings-content .form-desc,
+.settings-overlay > .settings-modal .form-desc {
+  margin: 0 !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.visual-settings-content .memory-workspace-settings .setting-row.is-disabled .setting-info :is(label,.desc) {
+  color: var(--td-text-color-disabled, #c0c4cc) !important;
+}
+.visual-settings-content .memory-workspace-settings .advanced-toggle {
+  appearance: none !important;
+  justify-content: flex-start !important;
+  border: 0 !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit !important;
+  text-align: left !important;
+}
+.visual-settings-content .memory-workspace-settings .advanced-toggle-copy {
+  flex: 1 1 auto !important;
+  align-items: flex-start !important;
+}
+.visual-settings-content .setting-control,
+.settings-overlay > .settings-modal .setting-control {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 280px !important;
+  flex: 0 1 280px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+.visual-settings-content .setting-control.full-width,
+.settings-overlay > .settings-modal .setting-control.full-width,
+.visual-settings-content .setting-control-full,
+.settings-overlay > .settings-modal .setting-control-full { width: 100% !important; max-width: none !important; }
+
+/* Compact secondary navigation shared by Model, Memory and Agent settings. */
+.visual-settings-content .visual-model-tabs {
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  display: flex !important;
+  gap: 2px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  scrollbar-width: none !important;
+}
+.visual-settings-content .visual-model-tabs::-webkit-scrollbar { display: none !important; }
+.visual-settings-content .visual-model-tabs__item {
+  position: relative !important;
+  min-height: 36px !important;
+  flex: 0 0 auto !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  font: inherit !important;
+  font-size: 11px !important;
+  line-height: 18px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+.visual-settings-content .visual-model-tabs__item:hover { color: #4b5563 !important; }
+.visual-settings-content .visual-model-tabs__item.is-active { color: #111827 !important; }
+.visual-settings-content .visual-model-tabs__item.is-active::after {
+  content: '' !important;
+  position: absolute !important;
+  right: 8px !important;
+  bottom: -1px !important;
+  left: 8px !important;
+  height: 1px !important;
+  background: #111827 !important;
+}
+
+/* TDesign fields */
+.visual-settings-content .t-input,
+.visual-settings-content .t-select-input,
+.visual-settings-content .t-input-number,
+.settings-overlay > .settings-modal .t-input,
+.settings-overlay > .settings-modal .t-select-input,
+.settings-overlay > .settings-modal .t-input-number {
+  min-height: 34px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+.visual-settings-content .t-textarea__inner,
+.settings-overlay > .settings-modal .t-textarea__inner {
+  border-color: #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  line-height: 1.625 !important;
+}
+.visual-settings-content .t-input:hover,
+.visual-settings-content .t-select-input:hover,
+.visual-settings-content .t-textarea__inner:hover,
+.settings-overlay > .settings-modal .t-input:hover,
+.settings-overlay > .settings-modal .t-select-input:hover,
+.settings-overlay > .settings-modal .t-textarea__inner:hover { border-color: #d1d5db !important; }
+.visual-settings-content .t-input.t-is-focused,
+.visual-settings-content .t-select-input.t-is-focused,
+.visual-settings-content .t-textarea__inner:focus,
+.settings-overlay > .settings-modal .t-input.t-is-focused,
+.settings-overlay > .settings-modal .t-select-input.t-is-focused,
+.settings-overlay > .settings-modal .t-textarea__inner:focus {
+  border-color: #9ca3af !important;
+  box-shadow: 0 0 0 2px rgb(17 24 39 / 5%) !important;
+}
+.visual-settings-content .t-select,
+.settings-overlay > .settings-modal .t-select { width: 100% !important; }
+
+/* Neutral buttons. Semantic danger/success remain untouched. */
+.visual-settings-content .t-button--theme-primary:not(.t-button--theme-danger),
+.settings-overlay > .settings-modal .t-button--theme-primary:not(.t-button--theme-danger) {
+  border-color: #111827 !important;
+  border-radius: 9px !important;
+  background: #111827 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+}
+.visual-settings-content .t-button--theme-primary:not(.t-button--theme-danger):hover,
+.settings-overlay > .settings-modal .t-button--theme-primary:not(.t-button--theme-danger):hover { border-color: #000 !important; background: #000 !important; }
+.visual-settings-content .t-button--theme-default,
+.settings-overlay > .settings-modal .t-button--theme-default {
+  border-color: #e5e7eb !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+}
+.visual-settings-content .t-button--theme-default:hover,
+.settings-overlay > .settings-modal .t-button--theme-default:hover { border-color: #d1d5db !important; background: #f9fafb !important; color: #111827 !important; }
+
+/* Cards/panels created by the native settings pages. */
+.visual-settings-content :is(.setting-card,.config-card,.provider-card,.ds-card,.node-item,.relation-item,.engine-card,.model-card,.invite-card,.settings-card,.status-card,.info-card,.mcp-card,.member-card,.sandbox-card,.skill-card,.backend-card,.store-card,.env-skill-card,.env-sandbox-card),
+.settings-overlay > .settings-modal :is(.setting-card,.config-card,.provider-card,.ds-card,.node-item,.relation-item,.engine-card,.model-card,.invite-card,.settings-card,.status-card,.info-card,.mcp-card,.member-card,.sandbox-card,.skill-card,.backend-card,.store-card,.env-skill-card,.env-sandbox-card) {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%) !important;
+}
+.visual-settings-content :is(.setting-card,.config-card,.provider-card,.ds-card,.node-item,.relation-item,.engine-card,.model-card,.settings-card,.mcp-card,.sandbox-card,.skill-card,.backend-card,.store-card,.env-skill-card,.env-sandbox-card):hover,
+.settings-overlay > .settings-modal :is(.setting-card,.config-card,.provider-card,.ds-card,.node-item,.relation-item,.engine-card,.model-card,.settings-card,.mcp-card,.sandbox-card,.skill-card,.backend-card,.store-card,.env-skill-card,.env-sandbox-card):hover {
+  border-color: #d1d5db !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 7%) !important;
+  transform: none !important;
+}
+
+/* Resource creation remains an action, not an already-configured card. */
+.visual-settings-content :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add),
+.settings-overlay > .settings-modal :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add) {
+  border-color: #d1d5db !important;
+  border-style: dashed !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.visual-settings-content :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add):hover,
+.settings-overlay > .settings-modal :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add):hover {
+  border-color: #9ca3af !important;
+  border-style: dashed !important;
+  background: #f9fafb !important;
+  box-shadow: none !important;
+}
+
+/* Main's resource cards keep their domain content but use ModelSettings scale. */
+.visual-settings-content :is(.provider-card__badge,.ds-card__badge,.skill-card__badge,.backend-card__badge,.store-card__badge) {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+.visual-settings-content :is(.provider-card__title,.ds-card__title,.skill-card__title,.backend-card__title,.store-card__title) {
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 600 !important;
+}
+.visual-settings-content :is(.provider-card__subtitle,.ds-card__subtitle,.skill-card__desc,.backend-card__subtitle,.store-card__subtitle) {
+  color: #9ca3af !important;
+  font-size: 10px !important;
+  line-height: 15px !important;
+}
+.visual-settings-content :is(.provider-grid,.ds-grid,.backend-grid,.store-grid,.sandbox-grid,.skill-list) {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+  gap: 12px !important;
+}
+.visual-settings-content :is(.provider-card,.ds-card,.node-item,.relation-item) {
+  padding: 12px !important;
+  gap: 10px !important;
+}
+.visual-settings-content :is(.node-list,.relation-list) { gap: 10px !important; }
+.visual-settings-content .strategy-info-panel {
+  margin: 0 0 12px !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-left: 0 !important;
+  border-radius: 10px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+
+/* Agent editor prompt and preset primitives. */
+.visual-settings-content .prompts-outline,
+.settings-overlay > .settings-modal .prompts-outline { gap: 6px !important; }
+.visual-settings-content .prompts-outline__pill,
+.settings-overlay > .settings-modal .prompts-outline__pill,
+.visual-settings-content .placeholder-tag,
+.settings-overlay > .settings-modal .placeholder-tag,
+.visual-settings-content .detail-tag,
+.settings-overlay > .settings-modal .detail-tag,
+.visual-settings-content .scope-chip,
+.settings-overlay > .settings-modal .scope-chip {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 7px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  box-shadow: none !important;
+  font-size: 10px !important;
+}
+.visual-settings-content .prompts-outline__pill:hover,
+.visual-settings-content .prompts-outline__pill--active,
+.settings-overlay > .settings-modal .prompts-outline__pill:hover,
+.settings-overlay > .settings-modal .prompts-outline__pill--active,
+.visual-settings-content .placeholder-tag:hover,
+.settings-overlay > .settings-modal .placeholder-tag:hover {
+  border-color: #d1d5db !important;
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+.settings-overlay > .settings-modal .setting-row--emphasize { background: transparent !important; box-shadow: none !important; }
+.settings-overlay > .settings-modal .builtin-avatar,
+.settings-overlay > .settings-modal .name-input-wrapper .agent-avatar-medium {
+  border-color: #e5e7eb !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+
+/* Organization editor invite panel. */
+.settings-overlay > .settings-modal .invite-card { padding: 14px !important; }
+.settings-overlay > .settings-modal .invite-method { padding: 10px 0 !important; }
+.settings-overlay > .settings-modal .invite-method:first-child { padding-top: 0 !important; }
+.settings-overlay > .settings-modal .invite-method-header { color: #374151 !important; font-size: 11px !important; font-weight: 700 !important; }
+.settings-overlay > .settings-modal .invite-icon { color: #9ca3af !important; }
+.settings-overlay > .settings-modal .invite-divider { height: 1px !important; background: #f3f4f6 !important; }
+.settings-overlay > .settings-modal .invite-code-box,
+.settings-overlay > .settings-modal .invite-link-box {
+  min-height: 34px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 9px !important;
+  background: #f9fafb !important;
+  color: #374151 !important;
+}
+.settings-overlay > .settings-modal .tenant-role-hint {
+  margin-bottom: 16px !important;
+  padding: 10px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+}
+
+/* Tables and pagination in restored native settings. */
+.visual-settings-content .t-table,
+.settings-overlay > .settings-modal .t-table {
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font-size: 11px !important;
+}
+.visual-settings-content .t-table th,
+.settings-overlay > .settings-modal .t-table th {
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+.visual-settings-content .t-table td,
+.settings-overlay > .settings-modal .t-table td { border-color: #f3f4f6 !important; }
+.visual-settings-content .t-pagination,
+.settings-overlay > .settings-modal .t-pagination { color: #6b7280 !important; font-size: 10px !important; }
+
+/* Role denied / empty state */
+.visual-settings-content :is(.empty-state,.empty-wrapper,.role-denied),
+.settings-overlay > .settings-modal :is(.empty-state,.empty-wrapper,.role-denied) {
+  color: #9ca3af !important;
+  font-size: 11px !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive behavior keeps the same reference family while remaining usable */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .settings-overlay { padding: 12px !important; }
+  .settings-overlay > .settings-modal { max-height: calc(100dvh - 24px) !important; }
+  .settings-overlay > .settings-modal .settings-sidebar { flex-basis: 192px !important; width: 192px !important; padding: 16px 12px 12px !important; }
+  .settings-overlay > .settings-modal .settings-content { padding: 24px !important; }
+  .settings-overlay > .settings-modal .setting-row,
+  .visual-settings-content .setting-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .settings-overlay > .settings-modal .setting-control,
+  .visual-settings-content .setting-control {
+    width: 100% !important;
+    max-width: none !important;
+    flex-basis: auto !important;
+    justify-content: flex-start !important;
+  }
+}
+@media (min-width: 1024px) {
+  .settings-overlay > .settings-modal {
+    width: min(1024px, 100%) !important;
+    max-width: 1024px !important;
+  }
+}
+@media (max-width: 560px) {
+  .settings-overlay { align-items: stretch !important; padding: 0 !important; }
+  .settings-overlay > .settings-modal { width: 100% !important; max-width: none !important; height: 100% !important; max-height: none !important; border: 0 !important; border-radius: 0 !important; }
+  .settings-overlay > .settings-modal > .settings-container { flex-direction: column !important; }
+  .settings-overlay > .settings-modal .settings-sidebar { width: 100% !important; flex: 0 0 auto !important; max-height: 176px !important; border-right: 0 !important; border-bottom: 1px solid #f3f4f6 !important; }
+  .settings-overlay > .settings-modal .settings-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; overflow-y: hidden !important; }
+  .settings-overlay > .settings-modal .nav-group-title { display: none !important; }
+  .settings-overlay > .settings-modal .nav-item { flex: 0 0 auto !important; width: auto !important; }
+  .settings-overlay > .settings-modal .settings-content { padding: 24px 16px 32px !important; }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dark-theme behavior contract                                                */
+/* -------------------------------------------------------------------------- */
+:root[theme-mode="dark"] .settings-overlay > .settings-modal,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .settings-content,
+:root[theme-mode="dark"] .visual-settings-content {
+  border-color: #27272a !important;
+  background: #18181b !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .settings-sidebar {
+  border-color: #27272a !important;
+  background: rgb(9 9 11 / 60%) !important;
+  color: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .sidebar-title,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .section-header h2,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .setting-info label,
+:root[theme-mode="dark"] .visual-settings-content .section-header h2,
+:root[theme-mode="dark"] .visual-settings-content .setting-info label { color: var(--mvc-text-strong, #fff) !important; }
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .section-header,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .setting-row,
+:root[theme-mode="dark"] .visual-settings-content .section-header,
+:root[theme-mode="dark"] .visual-settings-content .setting-row {
+  border-color: #27272a !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .nav-item:hover,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .nav-item.active,
+:root[theme-mode="dark"] .visual-settings-content .prompts-outline__pill:hover,
+:root[theme-mode="dark"] .visual-settings-content .prompts-outline__pill--active,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .prompts-outline__pill:hover,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .prompts-outline__pill--active,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .invite-code-box,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .invite-link-box,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .tenant-role-hint {
+  border-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-hover, #25272c) !important;
+  color: var(--mvc-text-strong, #fff) !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .visual-model-tabs { border-color: #27272a !important; }
+:root[theme-mode="dark"] .visual-settings-content .visual-model-tabs__item { color: #71717a !important; }
+:root[theme-mode="dark"] .visual-settings-content .visual-model-tabs__item:hover { color: #d4d4d8 !important; }
+:root[theme-mode="dark"] .visual-settings-content .visual-model-tabs__item.is-active { color: #fff !important; }
+:root[theme-mode="dark"] .visual-settings-content .visual-model-tabs__item.is-active::after { background: #f4f4f5 !important; }
+:root[theme-mode="dark"] .visual-settings-content .strategy-info-panel {
+  background: #27272a !important;
+  color: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .visual-settings-content :is(.prompts-outline__pill,.placeholder-tag,.detail-tag,.scope-chip),
+:root[theme-mode="dark"] .settings-overlay > .settings-modal :is(.prompts-outline__pill,.placeholder-tag,.detail-tag,.scope-chip) {
+  border-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-surface-raised, #202227) !important;
+  color: var(--mvc-text-muted, #a1a1aa) !important;
+}
+:root[theme-mode="dark"] .visual-settings-content :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add),
+:root[theme-mode="dark"] .settings-overlay > .settings-modal :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add) {
+  border-color: var(--mvc-line, #31343a) !important;
+  border-style: dashed !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] .visual-settings-content :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add):hover,
+:root[theme-mode="dark"] .settings-overlay > .settings-modal :is(.provider-card--add,.ds-card--add,.backend-card--add,.store-card--add):hover {
+  border-color: #52525b !important;
+  background: var(--mvc-hover, #25272c) !important;
+  box-shadow: none !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .memory-workspace-settings .setting-row.is-disabled .setting-info :is(label,.desc) {
+  color: var(--mvc-text-muted, #71717a) !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .memory-workspace-settings .advanced-toggle {
+  border-bottom-color: #27272a !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .t-switch {
+  background: #3f3f46 !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .t-switch .t-switch__handle::before {
+  background: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .t-switch.t-is-checked {
+  background: #f4f4f5 !important;
+}
+:root[theme-mode="dark"] .visual-settings-content .t-switch.t-is-checked .t-switch__handle::before {
+  background: #18181b !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .nav-item,
+:root[theme-mode="dark"] .visual-settings-content .nav-item {
+  color: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .nav-item.active,
+:root[theme-mode="dark"] .visual-settings-content .nav-item.active {
+  border-color: #3f3f46 !important;
+  background: #27272a !important;
+  color: #fff !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal :is(.t-input,.t-select-input,.t-input-number,.t-textarea__inner),
+:root[theme-mode="dark"] .visual-settings-content :is(.t-input,.t-select-input,.t-input-number,.t-textarea__inner) {
+  border-color: #3f3f46 !important;
+  background: #27272a !important;
+  color: #e4e4e7 !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal :is(.t-input,.t-select-input,.t-input-number,.t-textarea__inner):hover,
+:root[theme-mode="dark"] .visual-settings-content :is(.t-input,.t-select-input,.t-input-number,.t-textarea__inner):hover {
+  border-color: #52525b !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal :is(.setting-card,.config-card,.provider-card,.ds-card,.node-item,.relation-item,.engine-card,.model-card,.invite-card,.settings-card,.status-card,.info-card,.mcp-card,.member-card,.sandbox-card,.skill-card,.backend-card,.store-card,.env-skill-card,.env-sandbox-card),
+:root[theme-mode="dark"] .visual-settings-content :is(.setting-card,.config-card,.provider-card,.ds-card,.node-item,.relation-item,.engine-card,.model-card,.invite-card,.settings-card,.status-card,.info-card,.mcp-card,.member-card,.sandbox-card,.skill-card,.backend-card,.store-card,.env-skill-card,.env-sandbox-card),
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .t-table,
+:root[theme-mode="dark"] .visual-settings-content .t-table {
+  border-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-surface, #1d1f23) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}
+:root[theme-mode="dark"] .settings-overlay > .settings-modal .t-table th,
+:root[theme-mode="dark"] .visual-settings-content .t-table th { background: var(--mvc-hover, #25272c) !important; color: var(--mvc-muted, #c2c2c2) !important; }
+
+/* Consumer UserProfile keeps the SettingsModal source row geometry.  The
+ * legacy settings bridge above remains available to Standard pages; these
+ * later, scoped rules prevent it from flattening the consumer profile rows
+ * rendered in the same dialog. */
+.visual-settings-content .user-profile .section-header {
+  margin: 0 0 8px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+.visual-settings-content .user-profile .section-header h2 {
+  margin: 0 0 4px !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+.visual-settings-content .user-profile .section-header .section-description {
+  margin: 0 !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+.visual-settings-content .user-profile .setting-row {
+  min-height: 64px !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+.visual-settings-content .user-profile .setting-info {
+  min-width: 0 !important;
+  flex: 1 !important;
+  padding: 0 !important;
+}
+.visual-settings-content .user-profile .setting-info label {
+  display: block !important;
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 600 !important;
+}
+.visual-settings-content .user-profile .setting-info .desc {
+  margin: 2px 0 0 !important;
+  color: #777 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.visual-settings-content .user-profile .setting-control {
+  flex-shrink: 0 !important;
+  width: auto !important;
+  max-width: 52% !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Agent prompt pane: one transparent header line and one solid textarea.     */
+/* The authority prompt tab is a plain space-y stack; the native editor's     */
+/* legacy row/card bridge must not add a gray panel or a second divider.       */
+/* -------------------------------------------------------------------------- */
+.agent-editor-content .prompts-panel,
+.agent-editor-content .prompts-panel__header,
+.agent-editor-content .prompts-panel__body,
+.agent-editor-content .prompts-panel__pane {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.agent-editor-content .prompts-panel__header {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-bottom: 0 !important;
+}
+.agent-editor-content .prompts-panel__body {
+  margin: 0 !important;
+  padding: 12px 0 0 !important;
+  border: 0 !important;
+}
+.agent-editor-content .prompts-panel .section-header {
+  margin: 0 0 8px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  background: transparent !important;
+}
+.agent-editor-content .prompts-panel .setting-row {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.agent-editor-content .prompts-panel .setting-row + .setting-row { margin-top: 12px !important; }
+.agent-editor-content .prompts-panel .setting-info .desc {
+  margin: 0 !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+.agent-editor-content .system-prompt-textarea,
+.agent-editor-content .system-prompt-textarea .t-textarea__inner,
+.agent-editor-content .system-prompt-textarea textarea {
+  box-sizing: border-box !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  font-family: var(--app-font-family-mono) !important;
+  font-size: 12px !important;
+  line-height: 1.625 !important;
+}
+.agent-editor-content .system-prompt-textarea textarea {
+  min-height: 200px !important;
+  padding: 14px !important;
+  resize: vertical !important;
+}
+.agent-editor-content .system-prompt-textarea .t-textarea__inner:focus,
+.agent-editor-content .system-prompt-textarea textarea:focus {
+  border-color: #111827 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px #111827 !important;
+}
+.agent-editor-content .suggestion-advanced-divider,
+.agent-editor-content .prompts-panel .effective-tools {
+  border-style: solid !important;
+}
+
+:root[theme-mode="dark"] .agent-editor-content .prompts-panel .section-header {
+  border-bottom-color: #27272a !important;
+}
+:root[theme-mode="dark"] .agent-editor-content .prompts-panel .setting-info .desc {
+  color: #a1a1aa !important;
+}
+:root[theme-mode="dark"] .agent-editor-content .system-prompt-textarea,
+:root[theme-mode="dark"] .agent-editor-content .system-prompt-textarea .t-textarea__inner,
+:root[theme-mode="dark"] .agent-editor-content .system-prompt-textarea textarea {
+  border-color: #3f3f46 !important;
+  background: rgb(39 39 42 / 80%) !important;
+  color: #e4e4e7 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%) !important;
+}
+:root[theme-mode="dark"] .agent-editor-content .system-prompt-textarea .t-textarea__inner:focus,
+:root[theme-mode="dark"] .agent-editor-content .system-prompt-textarea textarea:focus {
+  border-color: #d4d4d8 !important;
+  box-shadow: 0 0 0 1px #d4d4d8 !important;
+}

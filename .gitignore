@@ -1,0 +1,111 @@
+# Dependencies
+**/node_modules/
+**/.venv/
+**/venv/
+
+# Local environment and credentials; documented templates stay versioned
+.env*
+*.env
+*.env.*
+!.env.example
+!**/*.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+
+# Build and generated output
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/.turbo/
+**/.cache/
+**/target/
+*.tsbuildinfo
+next-env.d.ts
+
+# Test and language caches
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+*.py[cod]
+*.test
+coverage.out
+.coverage
+
+# Local runtime, service volumes, databases, and logs
+/.runtime/
+/data/
+/storage/
+/uploads/
+/objects/
+/object-data/
+/minio-data/
+/redis-data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.rdb
+*.aof
+*.dump
+*.log
+*.pid
+
+# Never vendor upstream repository metadata
+**/.git/
+
+# Publish-boundary exclusions (keep generated/runtime material out of history)
+/.codex/
+/.next/
+/.runtime/
+/test-results/
+/backend/
+/web/
+/src/
+/migrations/
+/fixtures/
+/conformance/
+/contracts/
+/toolchains/
+/docker/
+/compose.m35.*
+/scripts/m35/
+/weknora/server
+/weknora/desktop
+**/frontend/dist/
+**/.wrangler/
+**/.vite/
+
+# Active source files that match generic generated-file patterns above.
+!weknora/cli/internal/build/
+!weknora/cli/internal/build/**
+!weknora/docker/Dockerfile.app
+
+# Approved source archives are explicitly allowlisted in SOURCE_MANIFEST.md.
+# Reject other large/generated archives and compiler output by default.
+*.iso
+*.img
+*.dmg
+*.app
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+
+# This active Docker build source has an upstream .app suffix.
+!weknora/docker/Dockerfile.app
+
+# Operating system and editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

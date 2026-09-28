@@ -1,0 +1,6 @@
+{
+  "name": "musuw",
+  "description": "musuw preserves your sources, builds connected knowledge, and answers with exact citations you can inspect.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

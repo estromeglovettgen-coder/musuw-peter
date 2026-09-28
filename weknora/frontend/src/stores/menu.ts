@@ -1,0 +1,178 @@
+import { reactive, ref, computed, watch } from 'vue'
+import { defineStore } from 'pinia'
+import i18n from '@/i18n'
+import { useAuthStore } from '@/stores/auth'
+import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
+import type { DeploymentCapabilityKey } from '@/config/deploymentCapabilities'
+
+type MenuChild = Record<string, any>
+
+interface MenuItem {
+  title: string
+  titleKey?: string
+  icon: string
+  path: string
+  childrenPath?: string
+  children?: MenuChild[]
+  requiredCapability?: DeploymentCapabilityKey
+}
+
+const createMenuChildren = () => reactive<MenuChild[]>([])
+
+export const useMenuStore = defineStore('menuStore', () => {
+  const menuArr = reactive<MenuItem[]>([
+    {
+      title: '',
+      titleKey: 'menu.newChat',
+      icon: 'prefixIcon',
+      path: 'creatChat',
+      childrenPath: 'chat',
+      children: createMenuChildren()
+    },
+    { title: '', titleKey: 'menu.knowledgeBase', icon: 'zhishiku', path: 'knowledge-bases' },
+    { title: '', titleKey: 'creatorMarketplace.title', icon: 'shop', path: 'marketplace' },
+    { title: '', titleKey: 'menu.agents', icon: 'agent', path: 'agents', requiredCapability: 'agents' },
+    { title: '', titleKey: 'menu.organizations', icon: 'organization', path: 'organizations', requiredCapability: 'organizations' },
+    { title: '', titleKey: 'menu.settings', icon: 'setting', path: 'settings' },
+    { title: '', titleKey: 'menu.logout', icon: 'logout', path: 'logout' }
+  ])
+
+  const isFirstSession = ref(false)
+  const firstQuery = ref('')
+  const firstMentionedItems = ref<any[]>([])
+  const firstModelId = ref('')
+  const firstThinking = ref(true)
+  const firstReasoningEffort = ref('')
+  const firstImageFiles = ref<any[]>([])
+  const firstAttachmentFiles = ref<any[]>([])
+  const prefillQuery = ref('')
+  // Keep an unsent homepage draft when visiting the marketplace and returning.
+  // This stays in memory and is discarded when the account or workspace changes.
+  const newChatDraft = ref('')
+  const draftAuth = useAuthStore()
+  watch(() => `${draftAuth.currentUserId || ''}:${draftAuth.effectiveTenantId || ''}`, () => { newChatDraft.value = '' }, { flush: 'sync' })
+
+  const applyMenuTranslations = () => {
+    menuArr.forEach(item => {
+      if (item.titleKey) {
+        item.title = i18n.global.t(item.titleKey)
+      }
+    })
+  }
+
+  applyMenuTranslations()
+
+  watch(
+    () => i18n.global.locale.value,
+    () => {
+      applyMenuTranslations()
+    }
+  )
+
+  // Musuw Lite is deliberately fail-closed: only product-approved top-level
+  // entries are visible. A newly-added upstream menu item must be explicitly
+  // reviewed before it can appear in the consumer product.
+  const liteVisiblePaths = new Set(['creatChat', 'knowledge-bases', 'agents', 'marketplace'])
+
+  const visibleMenuArr = computed(() => {
+    const authStore = useAuthStore()
+    const deploymentCapabilities = useDeploymentCapabilitiesStore()
+    return menuArr.filter(item => {
+      if (authStore.isLiteMode && !liteVisiblePaths.has(item.path)) {
+        return false
+      }
+      if (item.path === 'organizations' && !authStore.hasRole('admin')) {
+        return false
+      }
+      if (!deploymentCapabilities.isSupported(item.requiredCapability)) {
+        return false
+      }
+      return true
+    })
+  })
+
+  const chatMenuIndex = menuArr.findIndex(item => item.path === 'creatChat')
+
+  const clearMenuArr = () => {
+    const chatMenu = menuArr[chatMenuIndex]
+    if (chatMenu && chatMenu.children) {
+      chatMenu.children = createMenuChildren()
+    }
+  }
+
+  const updatemenuArr = (obj: any) => {
+    const chatMenu = menuArr[chatMenuIndex]
+    if (!chatMenu.children) {
+      chatMenu.children = createMenuChildren()
+    }
+    const exists = chatMenu.children.some((item: MenuChild) => item.id === obj.id)
+    if (!exists) {
+      chatMenu.children.push(obj)
+    }
+  }
+
+  const updataMenuChildren = (item: MenuChild) => {
+    const chatMenu = menuArr[chatMenuIndex]
+    if (!chatMenu.children) {
+      chatMenu.children = createMenuChildren()
+    }
+    chatMenu.children.unshift(item)
+  }
+
+  const updatasessionTitle = (sessionId: string, title: string) => {
+    const chatMenu = menuArr[chatMenuIndex]
+    chatMenu.children?.forEach((item: MenuChild) => {
+      if (item.id === sessionId) {
+        item.title = title
+        item.isNoTitle = false
+      }
+    })
+  }
+
+  const changeIsFirstSession = (payload: boolean) => {
+    isFirstSession.value = payload
+  }
+
+  const changeFirstQuery = (payload: string, mentionedItems: any[] = [], modelId: string = '', imageFiles: any[] = [], attachmentFiles: any[] = [], thinking: boolean = true, reasoningEffort: string = '') => {
+    firstQuery.value = payload
+    firstMentionedItems.value = mentionedItems
+    firstModelId.value = modelId
+    firstImageFiles.value = imageFiles
+    firstAttachmentFiles.value = attachmentFiles
+    firstThinking.value = thinking
+    firstReasoningEffort.value = reasoningEffort
+  }
+
+  const setPrefillQuery = (q: string) => {
+    prefillQuery.value = q
+  }
+
+  const consumePrefillQuery = () => {
+    const q = prefillQuery.value
+    prefillQuery.value = ''
+    return q
+  }
+
+  return {
+    menuArr,
+    visibleMenuArr,
+    isFirstSession,
+    firstQuery,
+    newChatDraft,
+    firstMentionedItems,
+    firstModelId,
+    firstThinking,
+    firstReasoningEffort,
+    firstImageFiles,
+    firstAttachmentFiles,
+    prefillQuery,
+    clearMenuArr,
+    updatemenuArr,
+    updataMenuChildren,
+    updatasessionTitle,
+    changeIsFirstSession,
+    changeFirstQuery,
+    setPrefillQuery,
+    consumePrefillQuery
+  }
+})

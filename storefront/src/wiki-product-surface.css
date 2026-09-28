@@ -1,0 +1,334 @@
+/*
+ * The Wiki capability demo is a live product surface, not an image capture.
+ * These rules keep the product proportions readable inside both the desktop
+ * feature frame and narrow/zoomed containers without scaling the whole page
+ * into illegible type.
+ */
+
+.kb-product-preview-wiki {
+  container-type: inline-size;
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.kb-product-preview-wiki .kb-preview-app-sidebar {
+  padding: 14px 8px;
+}
+
+.kb-product-preview-wiki .kb-preview-app-sidebar.is-collapsed {
+  padding: 14px 8px;
+}
+
+.kb-product-preview-wiki .kb-preview-knowledge-page {
+  padding: clamp(10px, 1.8cqw, 24px) clamp(12px, 2.4cqw, 32px);
+  gap: clamp(8px, 1.6cqw, 18px);
+}
+
+.kb-product-preview-wiki .kb-preview-knowledge-header {
+  padding-bottom: clamp(8px, 1.2cqw, 16px);
+  gap: clamp(8px, 1.5cqw, 20px);
+}
+
+.kb-product-preview-wiki .kb-preview-breadcrumb {
+  gap: clamp(4px, 0.6cqw, 8px);
+  font-size: clamp(9px, 1.1cqw, 14px);
+  line-height: 1.35;
+}
+
+.kb-product-preview-wiki .kb-preview-header-copy {
+  gap: clamp(3px, 0.5cqw, 7px);
+}
+
+.kb-product-preview-wiki .kb-preview-header-copy p {
+  max-width: min(62ch, 58cqw);
+  font-size: clamp(8.5px, 1cqw, 13px);
+  line-height: 1.45;
+}
+
+.kb-product-preview-wiki .kb-preview-tabs {
+  padding: clamp(2px, 0.35cqw, 4px);
+  border-radius: clamp(7px, 0.8cqw, 11px);
+}
+
+.kb-product-preview-wiki .kb-preview-tabs > button {
+  min-height: clamp(25px, 3.4cqw, 38px);
+  padding: clamp(4px, 0.65cqw, 8px) clamp(7px, 1cqw, 13px);
+  border-radius: clamp(5px, 0.65cqw, 8px);
+  gap: clamp(3px, 0.5cqw, 7px);
+  font-size: clamp(8px, 1cqw, 13px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-browser {
+  grid-template-columns: minmax(132px, 27%) minmax(0, 1fr);
+  border-top: 1px solid var(--kb-line-soft);
+}
+
+/* The Wiki viewport stays at the product's real scale. Only the demo cursor
+   and linked document content animate. */
+.kb-product-preview.kb-product-preview-wiki .kb-preview-wiki-camera {
+  overflow: hidden;
+  transform: none;
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-sidebar {
+  padding-right: clamp(7px, 1.1cqw, 14px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-search {
+  min-height: clamp(28px, 3.9cqw, 42px);
+  padding-inline: clamp(7px, 1cqw, 12px);
+  gap: clamp(5px, 0.75cqw, 9px);
+  border-radius: clamp(5px, 0.65cqw, 8px);
+  font-size: clamp(9px, 1.1cqw, 14px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-index {
+  min-height: clamp(28px, 3.8cqw, 42px);
+  margin-top: clamp(4px, 0.7cqw, 8px);
+  padding-inline: clamp(7px, 1cqw, 12px);
+  gap: clamp(5px, 0.7cqw, 9px);
+  border-radius: clamp(5px, 0.65cqw, 8px);
+  font-size: clamp(9px, 1.05cqw, 14px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tabbar {
+  min-height: clamp(30px, 4cqw, 44px);
+  gap: clamp(6px, 0.9cqw, 11px);
+  font-size: clamp(8px, 0.95cqw, 13px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree {
+  padding-top: clamp(4px, 0.7cqw, 8px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section {
+  margin-bottom: clamp(3px, 0.5cqw, 7px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section > div {
+  min-height: clamp(23px, 3.4cqw, 36px);
+  grid-template-columns: clamp(10px, 1.5cqw, 16px) minmax(0, 1fr) auto;
+  gap: clamp(3px, 0.5cqw, 7px);
+  padding-inline: clamp(4px, 0.7cqw, 9px);
+  font-size: clamp(9px, 1cqw, 13px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section > div small {
+  font-size: clamp(8px, 0.85cqw, 12px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section > span {
+  min-height: clamp(22px, 3.2cqw, 34px);
+  margin-left: clamp(10px, 1.8cqw, 20px);
+  padding-inline: clamp(5px, 0.8cqw, 10px);
+  gap: clamp(4px, 0.6cqw, 8px);
+  border-radius: clamp(4px, 0.55cqw, 7px);
+  font-size: clamp(8.5px, 0.95cqw, 12.5px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section > span[data-wiki-demo-link="sidebar"] {
+  position: relative;
+  transform-origin: 42% 50%;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 140ms ease;
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section > span[data-wiki-link-state="approaching"] {
+  background: color-mix(in srgb, var(--kb-accent) 7%, var(--kb-surface));
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-tree section > span.is-pressing {
+  background: color-mix(in srgb, var(--kb-accent) 15%, var(--kb-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kb-accent) 8%, transparent);
+  transform: scale(0.975);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-sidebar-fallback {
+  display: none;
+  margin-top: clamp(8px, 1.2cqw, 14px);
+  padding: clamp(5px, 0.75cqw, 9px) clamp(7px, 1cqw, 12px);
+  border: 1px solid var(--kb-line);
+  border-radius: clamp(4px, 0.55cqw, 7px);
+  background: var(--kb-surface);
+  font-size: clamp(9px, 1cqw, 13px);
+  text-decoration: none;
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-sidebar-fallback[data-wiki-link-state="approaching"] {
+  background: color-mix(in srgb, var(--kb-accent) 7%, var(--kb-surface));
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-sidebar-fallback[data-wiki-link-state="pressing"] {
+  background: color-mix(in srgb, var(--kb-accent) 15%, var(--kb-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kb-accent) 8%, transparent);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-reader {
+  padding: 0 clamp(12px, 2.4cqw, 32px) clamp(10px, 1.6cqw, 20px);
+  font-size: clamp(10px, 1.35cqw, 16px);
+  line-height: 1.62;
+}
+
+.kb-product-preview-wiki .kb-preview-reader-back {
+  gap: clamp(4px, 0.6cqw, 8px);
+  margin-bottom: clamp(8px, 1.3cqw, 16px);
+  font-size: clamp(9px, 1cqw, 13px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-title-row {
+  gap: clamp(9px, 1.5cqw, 20px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-title-row,
+.kb-product-preview-wiki .kb-preview-reader-title-block,
+.kb-product-preview-wiki .wiki-reader-aside {
+  min-width: 0;
+}
+
+.kb-product-preview-wiki .kb-preview-reader-title-row h4 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(21px, 2.8cqw, 34px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-badges {
+  gap: clamp(4px, 0.6cqw, 8px);
+  margin-top: clamp(4px, 0.7cqw, 8px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-badges span {
+  padding: clamp(2px, 0.35cqw, 5px) clamp(5px, 0.7cqw, 9px);
+  gap: clamp(3px, 0.45cqw, 6px);
+  border-radius: clamp(3px, 0.45cqw, 6px);
+  font-size: clamp(8px, 0.85cqw, 12px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-actions {
+  gap: clamp(7px, 1cqw, 13px);
+  padding-top: clamp(2px, 0.45cqw, 6px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-time {
+  top: clamp(37px, 5.2cqw, 60px);
+  right: clamp(12px, 2.4cqw, 32px);
+  gap: clamp(4px, 0.5cqw, 7px);
+  font-size: clamp(8px, 0.85cqw, 12px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-main-section {
+  display: block;
+  margin-top: clamp(10px, 1.6cqw, 20px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-reader p {
+  margin: clamp(9px, 1.2cqw, 15px) 0 0;
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-reader .kb-preview-reader-lead {
+  max-width: none;
+  margin-top: 0;
+  color: var(--kb-muted);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-reader h5 {
+  margin-top: clamp(14px, 2cqw, 24px);
+  font-size: clamp(12px, 1.55cqw, 19px);
+  line-height: 1.4;
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-reader ul {
+  margin-top: clamp(6px, 0.9cqw, 11px);
+  padding-left: clamp(14px, 2cqw, 24px);
+}
+
+.kb-product-preview-wiki .kb-preview-wiki-reader li {
+  margin: clamp(2px, 0.35cqw, 4px) 0;
+}
+
+.kb-product-preview-wiki .kb-preview-reader-footer {
+  margin-top: clamp(14px, 2cqw, 24px);
+  padding-top: clamp(8px, 1.2cqw, 16px);
+  gap: clamp(5px, 0.8cqw, 10px);
+  font-size: clamp(8px, 0.9cqw, 12px);
+}
+
+.kb-product-preview-wiki .kb-preview-reader-footer .wiki-reader-footer-row {
+  grid-template-columns: clamp(55px, 7.5cqw, 90px) minmax(0, 1fr);
+  gap: clamp(6px, 0.9cqw, 11px);
+}
+
+@container (max-width: 520px) {
+  /* Collapse the Wiki directory based on the product surface itself, so the
+     same layout remains readable in narrow cards and under browser zoom. */
+  .kb-product-preview-wiki .kb-preview-wiki-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kb-product-preview-wiki .kb-preview-wiki-sidebar {
+    display: none;
+  }
+
+  .kb-product-preview-wiki .kb-preview-wiki-sidebar-fallback {
+    /* Keep the narrow-viewport fallback inside the reader's clipped
+       viewport so the guided cursor lands on the actual link hit target. */
+    display: inline-flex;
+    align-items: center;
+    position: absolute !important;
+    right: clamp(10px, 2cqw, 18px);
+    bottom: clamp(8px, 1.4cqw, 14px);
+    margin-top: 0;
+  }
+
+  .kb-product-preview-wiki .kb-preview-knowledge-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .kb-product-preview-wiki .kb-preview-header-copy {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .kb-product-preview-wiki .kb-preview-header-copy p {
+    max-width: 100%;
+    white-space: normal;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .kb-product-preview-wiki .kb-preview-header-actions {
+    width: 100%;
+  }
+
+  .kb-product-preview-wiki .kb-preview-tabs {
+    width: max-content;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .kb-product-preview-wiki .kb-preview-header-copy p {
+    max-width: 42cqw;
+  }
+
+  .kb-product-preview-wiki .kb-preview-tabs > button {
+    padding-inline: clamp(5px, 0.9cqw, 9px);
+  }
+}
+
+/* Keep the fluid Wiki root authoritative even when the legacy product-demo
+   stylesheet is loaded after component CSS. */
+.kb-product-preview.kb-product-preview-wiki {
+  width: 100%;
+  height: 100%;
+  transform: none;
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+@media (max-width: 520px) {
+  .kb-product-preview.kb-product-preview-wiki {
+    width: 100%;
+    height: 100%;
+    transform: none;
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+}

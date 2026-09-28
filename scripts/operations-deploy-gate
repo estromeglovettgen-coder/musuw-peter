@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# Root-owned deployment adapter. Only immutable GitHub artifacts cross stdin.
+set -euo pipefail
+die() { printf '%s\n' "$1" >&2; exit 1; }
+[ "$#" -eq 3 ] || die 'usage: operations-deploy-gate deploy FULL_SHA ARCHIVE_SHA256'
+[ "$1" = deploy ] || die 'unknown operations deployment action'
+revision="$2"
+checksum="$3"
+[[ "$revision" =~ ^[0-9a-f]{40}$ ]] || die 'operations revision must be a full SHA'
+[[ "$checksum" =~ ^[0-9a-f]{64}$ ]] || die 'operations artifact checksum is invalid'
+prefix=''
+test_mode=false
+if [ "${EUID:-1}" -ne 0 ]; then
+    [ "${MUSUW_OPERATIONS_GATE_TEST_MODE:-0}" = 1 ] || die 'operations gate must run as root'
+    prefix="${MUSUW_OPERATIONS_GATE_TEST_ROOT:?test root is required}"
+    prefix="$(cd "$prefix" && pwd -P)"
+    test_mode=true
+else
+    PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    export PATH
+fi
+root="$prefix/opt/musuw-operations"
+releases="$root/releases"
+current="$root/current"
+extractor="$prefix/usr/local/libexec/musuw-operations-artifact.py"
+[ -d "$releases" ] && [ ! -L "$releases" ] || die 'operations release root unavailable'
+[ -f "$extractor" ] && [ ! -L "$extractor" ] || die 'trusted artifact verifier unavailable'
+[ -f "$root/runtime/production.env" ] || die 'protected operations runtime unavailable'
+exec 9>"$root/deploy.lock"
+flock -n 9 || die 'another operations deployment is active'
+previous=''
+if [ -e "$current" ] || [ -L "$current" ]; then
+    [ -L "$current" ] || die 'operations current must be a symbolic link'
+    previous="$(readlink "$current")"
+    [[ "$previous" =~ ^$releases/[0-9a-f]{40}$ ]] || die 'current release target outside operations root'
+    [ -d "$previous" ] && [ ! -L "$previous" ] || die 'previous release is unavailable'
+fi
+scratch="$(mktemp -d "$root/.incoming.XXXXXX")"
+cleanup() { chmod -R u+w "$scratch"; rm -rf -- "$scratch"; }
+trap cleanup EXIT
+timeout 300 cat > "$scratch/artifact.tgz"
+[ "$(wc -c < "$scratch/artifact.tgz")" -le 1073741824 ] || die 'operations artifact too large'
+[ "$(sha256sum "$scratch/artifact.tgz" | cut -d ' ' -f 1)" = "$checksum" ] || die 'operations artifact checksum mismatch'
+mkdir "$scratch/source"
+if [ "$test_mode" = false ]; then
+    chmod 755 "$scratch"
+    chmod 644 "$scratch/artifact.tgz"
+    chown musuw-operations:musuw-operations "$scratch/source"
+    runuser -u musuw-operations -- python3 "$extractor" extract "$scratch/artifact.tgz" "$scratch/source" "$revision"
+    chown -R root:root "$scratch/source"
+else
+    python3 "$extractor" extract "$scratch/artifact.tgz" "$scratch/source" "$revision"
+fi
+printf '%s\n' "$checksum" > "$scratch/source/.archive-sha256"
+target="$releases/$revision"
+if [ -e "$target" ] || [ -L "$target" ]; then
+    [ -d "$target" ] && [ ! -L "$target" ] || die 'existing release path is unsafe'
+    [ -f "$target/.archive-sha256" ] && [ "$(cat "$target/.archive-sha256")" = "$checksum" ] || die 'immutable operations release already exists with another artifact'
+else
+    mv "$scratch/source" "$target"
+    find "$target" -type d -exec chmod 555 {} +
+    find "$target" -type f -exec chmod a-w {} +
+fi
+switch_current() {
+    ln -s "$1" "$root/.current.$$"
+    python3 -c 'import os,sys; os.replace(sys.argv[1],sys.argv[2])' "$root/.current.$$" "$current"
+}
+healthy() {
+    local attempt
+    for attempt in {1..30}; do
+        if systemctl is-active --quiet musuw-operations.service &&
+            curl --fail --silent --max-time 3 http://127.0.0.1:4187/readyz |
+            python3 -c 'import json,sys; p=json.load(sys.stdin); sys.exit(0 if p.get("status")=="ok" and p.get("environment")=="PRODUCTION" else 1)' 2>/dev/null; then
+            return 0
+        fi
+        [ "$test_mode" = true ] || sleep 1
+    done
+    return 1
+}
+restore() {
+    if [ -n "$previous" ]; then
+        switch_current "$previous"
+        systemctl restart musuw-operations.service && healthy
+    else
+        systemctl stop musuw-operations.service
+        rm -f -- "$current"
+    fi
+}
+switch_current "$target"
+if ! systemctl restart musuw-operations.service || ! healthy; then
+    if restore; then
+        die 'operations deployment failed; previous release restored'
+    fi
+    die 'operations deployment failed and recovery needs operator attention'
+fi
+printf 'operations deployed: %s artifact: %s\n' "$revision" "$checksum"

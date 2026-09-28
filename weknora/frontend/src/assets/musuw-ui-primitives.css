@@ -1,0 +1,46 @@
+/*
+ * Application Views own their presentation. Shared primitives are scoped only
+ * to rebuilt visual-* surfaces so Wiki/Graph and other excluded native surfaces
+ * remain outside this cascade.
+ */
+:where([class^="visual-"], [class*=" visual-"]) {
+  --font-sans: var(
+    --app-font-family,
+    "Inter Variable",
+    "Inter",
+    "Noto Sans SC Variable",
+    "Noto Sans SC",
+    ui-sans-serif,
+    system-ui,
+    sans-serif
+  );
+  --font-mono: var(
+    --app-font-family-mono,
+    "JetBrains Mono Variable",
+    "JetBrains Mono",
+    ui-monospace,
+    SFMono-Regular,
+    monospace
+  );
+  font-family: var(--font-sans);
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+:where([class^="visual-"], [class*=" visual-"])::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:where([class^="visual-"], [class*=" visual-"])::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:where([class^="visual-"], [class*=" visual-"])::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #d1d5db;
+}
+
+:where([class^="visual-"], [class*=" visual-"])::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

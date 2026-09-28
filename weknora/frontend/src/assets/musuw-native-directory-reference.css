@@ -1,0 +1,755 @@
+/*
+ * Native WeKnora directory surfaces rendered in the @视觉文件 language.
+ *
+ * AgentList / OrganizationList / ListSpaceSidebar / TenantSelector are real
+ * WeKnora behavior surfaces with no 1:1 component in the exported visual app.
+ * Their APIs, stores, permissions, router actions and event handlers remain
+ * untouched; only their visible chrome is normalized from the reference
+ * KnowledgeBase / DocumentListView / Sidebar vocabulary.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Shared page shell                                                          */
+/* -------------------------------------------------------------------------- */
+.agent-list-container,
+.org-list-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  overflow: hidden !important;
+  background: rgb(249 250 251 / 30%) !important;
+  color: #374151 !important;
+}
+.agent-list-content,
+.org-list-content {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+.agent-list-content { gap: 18px !important; }
+.visual-kb-list {
+  gap: 18px !important;
+  padding: 24px !important;
+  background: transparent !important;
+}
+.visual-kb-list__header {
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 0 20px !important;
+  border-bottom: 1px solid rgb(229 231 235 / 80%) !important;
+  background: transparent !important;
+}
+.visual-kb-list__heading { margin: 0 !important; padding: 0 !important; }
+.visual-kb-list__title-row {
+  min-height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.visual-kb-list__title-row .t-icon {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 20px !important;
+}
+.visual-kb-list__header h1 {
+  margin: 0 !important;
+  font-size: 20px !important;
+  line-height: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+.visual-kb-list__header p {
+  margin: 4px 0 0 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.visual-kb-list__content {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  padding: 24px 4px 12px 2px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+}
+.visual-kb-grid {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+}
+.visual-kb-list__create {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+}
+.agent-list-content > .header,
+.org-list-content > .header {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 0 20px !important;
+  border-bottom: 1px solid rgb(229 231 235 / 80%) !important;
+  background: transparent !important;
+}
+.agent-list-content .header-title,
+.org-list-content .header-title { margin: 0 !important; padding: 0 !important; }
+.agent-list-content .header-title { gap: 0 !important; }
+.agent-list-content .title-row,
+.org-list-content .title-row {
+  min-height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.agent-list-content .title-row h2,
+.org-list-content .title-row h2 {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: 20px !important;
+  line-height: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+.agent-list-content .header-subtitle,
+.org-list-content .header-subtitle {
+  margin: 4px 0 0 !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.agent-list-main,
+.org-list-main {
+  min-height: 0 !important;
+  height: auto !important;
+  flex: 1 1 auto !important;
+  padding: 24px 4px 12px 2px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+}
+
+@media (min-width: 768px) {
+  .agent-list-content { padding: 32px !important; }
+  .visual-kb-list { padding: 32px !important; }
+  .visual-kb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 1024px) {
+  .visual-kb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+/* Header actions use the same compact control language as reference KB tools. */
+.agent-list-content .header-action-btn:not(.agent-create-header-btn),
+.org-list-content .header-action-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  padding: 7px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #4b5563 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.agent-list-content .header-action-btn:not(.agent-create-header-btn):hover:not(:disabled),
+.org-list-content .header-action-btn:hover:not(:disabled) {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+.agent-list-content .agent-create-btn,
+.org-list-content .org-create-btn {
+  min-height: 32px !important;
+  padding: 7px 14px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #111827 !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+.agent-list-content .agent-create-btn:hover:not(:disabled),
+.org-list-content .org-create-btn:hover:not(:disabled) { background: #000 !important; }
+.agent-list-content .agent-create-header-btn .t-icon,
+.agent-list-content .agent-create-header-btn .btn-icon-wrapper {
+  color: currentColor !important;
+}
+.agent-list-content .agent-create-header-btn .t-button__icon,
+.agent-list-content .agent-create-header-btn .t-icon,
+.agent-list-content .agent-create-header-btn .btn-icon-wrapper {
+  color: #fff !important;
+}
+.org-list-content .org-join-btn {
+  min-height: 32px !important;
+  padding: 7px 14px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Grid + cards — mirrors KnowledgeBase reference card family                 */
+/* -------------------------------------------------------------------------- */
+.agent-card-wrap,
+.org-card-wrap {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+}
+.agent-card-wrap { animation: none !important; }
+@media (min-width: 768px) {
+  .agent-card-wrap,
+  .org-card-wrap { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 1024px) {
+  .agent-card-wrap,
+  .org-card-wrap { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+.agent-card,
+.org-card,
+.agent-card-skeleton,
+.org-card-skeleton {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 154px !important;
+  height: auto !important;
+  padding: 18px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border: 1px solid rgb(229 231 235 / 90%) !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease !important;
+}
+.agent-card:hover,
+.org-card:hover {
+  border-color: #d1d5db !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%) !important;
+  transform: none !important;
+}
+/* Remove legacy decorative flourish; it carries no business information and
+ * has no analogue anywhere in the visual reference. */
+.agent-card > .card-decoration,
+.org-card > .card-decoration { display: none !important; }
+
+.agent-card .card-header,
+.org-card .card-header {
+  min-height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  background: transparent !important;
+}
+.agent-card .card-header-left,
+.org-card .card-header-left {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.agent-card .card-title,
+.org-card .card-title {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: #111827 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 700 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.agent-card .builtin-avatar,
+.org-card .org-avatar,
+.agent-card .agent-avatar-small {
+  flex: 0 0 24px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border: 1px solid #f3f4f6 !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  box-shadow: none !important;
+}
+.agent-card .card-content,
+.org-card .card-content {
+  min-height: 0 !important;
+  margin: 6px 0 0 !important;
+  padding: 0 !important;
+}
+.agent-card .card-description,
+.org-card .card-description {
+  margin: 0 !important;
+  overflow: hidden !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  line-height: 1.625 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+.agent-card .card-bottom,
+.org-card .card-bottom {
+  min-height: 20px !important;
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #f3f4f6 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: transparent !important;
+}
+.agent-card .feature-badges,
+.org-card .feature-badges { display: flex !important; align-items: center !important; gap: 6px !important; }
+.agent-card .feature-badge,
+.org-card .feature-badge,
+.agent-card .builtin-badge,
+.org-card .relation-role-tag,
+.org-card .pending-requests-badge {
+  min-height: 22px !important;
+  padding: 2px 7px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: #f3f4f6 !important;
+  color: #4b5563 !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+.agent-card .feature-badge svg,
+.org-card .feature-badge svg,
+.agent-card .feature-badge .t-icon,
+.org-card .feature-badge .t-icon { width: 12px !important; height: 12px !important; font-size: 12px !important; }
+.agent-card .agent-favorite-star,
+.agent-card .more-wrap,
+.org-card .more-wrap {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 4px !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  opacity: 0 !important;
+  box-shadow: none !important;
+}
+.agent-card:hover .agent-favorite-star,
+.agent-card:hover .more-wrap,
+.org-card:hover .more-wrap,
+.agent-card .agent-favorite-star.is-favorited,
+.agent-card .more-wrap.active-more,
+.org-card .more-wrap.active-more { opacity: 1 !important; }
+.agent-card .agent-favorite-star:hover,
+.agent-card .more-wrap:hover,
+.org-card .more-wrap:hover { background: #f3f4f6 !important; color: #374151 !important; }
+.agent-card .more-icon,
+.org-card .more-icon { width: 14px !important; height: 14px !important; opacity: .65 !important; }
+
+/* Knowledge-base cards are the visual contract for the consumer directory.
+ * Keep Agent-only business metadata, but align the shared card controls. */
+.agent-card .card-header-left { padding-right: 42px !important; }
+.agent-card .card-bottom { gap: 6px !important; flex-wrap: wrap !important; }
+:root[theme-mode="dark"] .agent-card .card-bottom {
+  border-top-color: var(--mvc-line, #31343a) !important;
+}
+.agent-card .agent-favorite-star {
+  position: absolute !important;
+  top: 14px !important;
+  right: 42px !important;
+  border-radius: 6px !important;
+}
+.agent-card .more-wrap { border-radius: 6px !important; }
+.agent-card .more-icon { width: 16px !important; height: 16px !important; }
+
+/* Group headings become the lightweight section labels used by reference KB. */
+.agent-section-header,
+.org-section-header {
+  grid-column: 1 / -1 !important;
+  min-height: 28px !important;
+  margin: 4px 0 0 !important;
+  padding: 4px 2px !important;
+  border: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+}
+.agent-section-header:hover,
+.org-section-header:hover { color: #374151 !important; }
+.agent-section-count,
+.org-section-count {
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  font-size: 9px !important;
+}
+
+/* Empty states use reference KnowledgeBase empties, not illustrated legacy art. */
+.agent-list-main .empty-state,
+.org-list-main .empty-state {
+  min-height: 300px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  color: #9ca3af !important;
+  text-align: center !important;
+}
+.agent-list-main .empty-state .empty-img,
+.org-list-main .empty-state .empty-img { display: none !important; }
+.agent-list-main .empty-state .empty-icon,
+.org-list-main .empty-state .empty-icon { color: #d1d5db !important; }
+.agent-list-main .empty-txt,
+.org-list-main .empty-txt { color: #374151 !important; font-size: 13px !important; line-height: 20px !important; font-weight: 700 !important; }
+.agent-list-main .empty-desc,
+.org-list-main .empty-desc { max-width: 360px !important; color: #9ca3af !important; font-size: 11px !important; line-height: 17px !important; }
+.agent-list-main .empty-state-actions,
+.org-list-main .empty-state-actions { margin-top: 8px !important; display: flex !important; gap: 8px !important; }
+
+/* -------------------------------------------------------------------------- */
+/* ListSpaceSidebar — same low-contrast navigation grammar as visual Sidebar  */
+/* -------------------------------------------------------------------------- */
+.list-space-sidebar {
+  height: 100% !important;
+  flex: 0 0 auto !important;
+  border-right: 1px solid rgb(229 231 235 / 80%) !important;
+  background: #fbfbfb !important;
+  color: #4b5563 !important;
+  box-shadow: none !important;
+}
+.list-space-sidebar .icon-strip,
+.list-space-sidebar .expanded-panel {
+  box-sizing: border-box !important;
+  background: transparent !important;
+}
+.list-space-sidebar .icon-strip { padding: 12px 6px !important; }
+.list-space-sidebar .expanded-panel { padding: 12px 8px !important; }
+.list-space-sidebar .icon-item-labeled,
+.list-space-sidebar .sidebar-item {
+  min-height: 34px !important;
+  margin: 0 0 3px !important;
+  padding: 7px 9px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+  font-weight: 500 !important;
+}
+.list-space-sidebar .icon-item-labeled:hover,
+.list-space-sidebar .sidebar-item:hover { background: rgb(229 231 235 / 50%) !important; color: #111827 !important; }
+.list-space-sidebar .icon-item-labeled.active,
+.list-space-sidebar .sidebar-item.active { background: rgb(229 231 235 / 90%) !important; color: #111827 !important; font-weight: 700 !important; }
+.list-space-sidebar .item-icon,
+.list-space-sidebar .icon-item-labeled .t-icon { color: inherit !important; font-size: 14px !important; }
+.list-space-sidebar .item-count {
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  font-size: 9px !important;
+}
+.list-space-sidebar .sidebar-section { margin: 10px 0 4px !important; padding: 0 9px !important; }
+.list-space-sidebar .section-title { color: #9ca3af !important; font-size: 9px !important; line-height: 14px !important; font-weight: 700 !important; }
+.list-space-sidebar .sidebar-divider,
+.list-space-sidebar .icon-strip-divider { background: #e5e7eb !important; opacity: .8 !important; }
+.list-space-sidebar .resize-handle { width: 6px !important; right: -3px !important; background: transparent !important; }
+.list-space-sidebar .resize-handle-line { opacity: 0 !important; }
+.list-space-sidebar .resize-handle:hover .resize-handle-line,
+.list-space-sidebar.dragging .resize-handle-line { opacity: 1 !important; background: #d1d5db !important; }
+
+/* -------------------------------------------------------------------------- */
+/* TenantSelector — reference Sidebar card/popover language                   */
+/* -------------------------------------------------------------------------- */
+.visual-sidebar .tenant-selector { width: 100% !important; position: relative !important; }
+.visual-sidebar .tenant-trigger {
+  width: 100% !important;
+  min-height: 40px !important;
+  padding: 7px 10px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.visual-sidebar .tenant-trigger:hover { border-color: #d1d5db !important; background: #f9fafb !important; }
+.visual-sidebar .tenant-label { color: #9ca3af !important; font-size: 9px !important; line-height: 13px !important; }
+.visual-sidebar .tenant-name-row { margin-top: 1px !important; display: flex !important; align-items: center !important; gap: 5px !important; }
+.visual-sidebar .tenant-name { min-width: 0 !important; overflow: hidden !important; color: #111827 !important; font-size: 11px !important; line-height: 16px !important; font-weight: 700 !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.visual-sidebar .tenant-switch-icon { margin-left: auto !important; color: #9ca3af !important; font-size: 13px !important; }
+.tenant-dropdown {
+  width: min(320px, calc(100vw - 32px)) !important;
+  padding: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 14px 34px rgb(15 23 42 / 14%) !important;
+}
+.tenant-dropdown .dropdown-header { padding: 4px !important; border-bottom: 0 !important; }
+.tenant-dropdown .dropdown-title { color: #111827 !important; font-size: 11px !important; line-height: 16px !important; font-weight: 700 !important; }
+.tenant-dropdown .search-box {
+  min-height: 32px !important;
+  margin-top: 7px !important;
+  padding: 0 8px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 9px !important;
+  background: #f9fafb !important;
+}
+.tenant-dropdown .search-input { border: 0 !important; outline: 0 !important; background: transparent !important; color: #374151 !important; font-size: 11px !important; }
+.tenant-dropdown .tenant-list { max-height: 300px !important; padding: 4px 0 !important; scrollbar-width: thin !important; }
+.tenant-dropdown .tenant-item {
+  min-height: 42px !important;
+  padding: 6px 8px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #374151 !important;
+}
+.tenant-dropdown .tenant-item:hover,
+.tenant-dropdown .tenant-item.selected { background: #f3f4f6 !important; color: #111827 !important; }
+.tenant-dropdown .tenant-item-avatar { width: 26px !important; height: 26px !important; border-radius: 8px !important; background: #e5e7eb !important; color: #374151 !important; font-size: 10px !important; font-weight: 700 !important; }
+.tenant-dropdown .tenant-item-avatar.active { background: #111827 !important; color: #fff !important; }
+.tenant-dropdown .tenant-item-name { color: inherit !important; font-size: 11px !important; line-height: 16px !important; font-weight: 600 !important; }
+.tenant-dropdown .tenant-item-id { color: #9ca3af !important; font-size: 9px !important; line-height: 13px !important; }
+.tenant-dropdown .tenant-create-action { min-height: 32px !important; padding: 7px 8px !important; border-top: 1px solid #f3f4f6 !important; color: #4b5563 !important; font-size: 11px !important; }
+.tenant-dropdown .tenant-create-action:hover { background: #f9fafb !important; color: #111827 !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Native drawers/dialogs opened by Agent/Organization directories           */
+/* -------------------------------------------------------------------------- */
+.shared-detail-drawer-overlay {
+  background: rgb(0 0 0 / 40%) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.shared-detail-drawer {
+  width: min(430px, 100vw) !important;
+  border-left: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: -16px 0 40px rgb(15 23 42 / 12%) !important;
+}
+.shared-detail-drawer-header,
+.shared-detail-drawer-footer { border-color: #f3f4f6 !important; background: #fff !important; }
+.shared-detail-drawer-title { color: #111827 !important; font-size: 14px !important; font-weight: 700 !important; }
+.shared-detail-row { border-color: #f3f4f6 !important; border-radius: 10px !important; background: #f9fafb !important; }
+.shared-detail-label { color: #9ca3af !important; font-size: 10px !important; }
+.shared-detail-value { color: #374151 !important; font-size: 12px !important; }
+.shared-detail-drawer-footer .t-button--theme-primary { border-color: #111827 !important; background: #111827 !important; color: #fff !important; }
+
+/* Organization delete dialog remains on its original native contract. */
+.del-org-dialog .t-dialog {
+  width: min(440px, calc(100vw - 32px)) !important;
+  border-radius: 16px !important;
+}
+.del-org-dialog .circle-wrap { padding: 12px !important; }
+.del-org-dialog .circle-img { display: none !important; }
+.del-org-dialog .circle-title { color: #111827 !important; font-size: 14px !important; line-height: 20px !important; font-weight: 700 !important; }
+.del-org-dialog .del-circle-txt { color: #6b7280 !important; font-size: 11px !important; line-height: 17px !important; }
+.del-org-dialog .circle-btn { margin-top: 16px !important; display: flex !important; justify-content: flex-end !important; gap: 8px !important; }
+.del-org-dialog .circle-btn-txt { min-height: 30px !important; padding: 6px 12px !important; border: 1px solid #e5e7eb !important; border-radius: 10px !important; background: #fff !important; color: #374151 !important; font-size: 11px !important; }
+.del-org-dialog .circle-btn-txt.confirm { border-color: #dc2626 !important; background: #dc2626 !important; color: #fff !important; }
+
+/* Shared Agent/KnowledgeBase confirmation surface.  TDesign applies
+ * `dialog-class-name` to the dialog root itself (not to a descendant), so
+ * target that root directly while leaving organization/share surfaces alone. */
+body .t-dialog.visual-confirm-dialog,
+body .t-dialog.visual-kb-delete-dialog {
+  box-sizing: border-box !important;
+  width: min(440px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 32px) !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+}
+body .t-dialog.visual-confirm-dialog .t-dialog__body,
+body .t-dialog.visual-kb-delete-dialog .t-dialog__body { padding: 20px !important; }
+body .t-dialog.visual-confirm-dialog .circle-wrap,
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete { padding: 0 !important; }
+body .t-dialog.visual-confirm-dialog .dialog-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 0 8px !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-icon {
+  flex: 0 0 20px !important;
+  color: #dc2626 !important;
+  font-size: 20px !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-title,
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete strong {
+  color: #111827 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 700 !important;
+}
+body .t-dialog.visual-confirm-dialog .del-circle-txt,
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete p {
+  display: block !important;
+  margin: 0 !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-btn,
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer {
+  margin-top: 16px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-btn-txt,
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button {
+  min-height: 32px !important;
+  padding: 7px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  cursor: pointer !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-btn-txt.confirm,
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button.is-danger {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #fff !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-btn-txt:hover:not(:disabled),
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button:hover:not(:disabled) {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-btn-txt.confirm:hover:not(:disabled),
+body .t-dialog.visual-kb-delete-dialog .visual-kb-delete footer button.is-danger:hover:not(:disabled) {
+  border-color: #b91c1c !important;
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+body .t-dialog.visual-confirm-dialog .circle-img { display: none !important; }
+
+/* Organization invitation modal follows reference BatchManageModal family. */
+.invite-preview-overlay { background: rgb(0 0 0 / 45%) !important; backdrop-filter: blur(4px) !important; }
+.invite-preview-modal {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+.invite-preview-header { border-bottom-color: #f3f4f6 !important; }
+.invite-preview-title { color: #111827 !important; font-size: 15px !important; font-weight: 700 !important; }
+.invite-preview-close,
+.invite-preview-back { border-radius: 8px !important; color: #9ca3af !important; }
+.invite-preview-close:hover,
+.invite-preview-back:hover { background: #f3f4f6 !important; color: #374151 !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Dark native preference compatibility                                       */
+/* -------------------------------------------------------------------------- */
+:root[theme-mode="dark"] .agent-list-container,
+:root[theme-mode="dark"] .agent-list-content { background: var(--mvc-page, #151619) !important; color: var(--mvc-text, #f2f2f2) !important; }
+:root[theme-mode="dark"] .org-list-container,
+:root[theme-mode="dark"] .org-list-content { background: var(--mvc-page, #151619) !important; color: var(--mvc-text, #f2f2f2) !important; }
+:root[theme-mode="dark"] .agent-card,
+:root[theme-mode="dark"] .agent-card-skeleton,
+:root[theme-mode="dark"] .agent-card.agent-mode-normal,
+:root[theme-mode="dark"] .agent-card.agent-mode-agent {
+  border-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-surface, #1d1f23) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] .org-card,
+:root[theme-mode="dark"] .org-card-skeleton,
+:root[theme-mode="dark"] .list-space-sidebar,
+:root[theme-mode="dark"] .visual-sidebar .tenant-trigger,
+:root[theme-mode="dark"] .tenant-dropdown,
+:root[theme-mode="dark"] .shared-detail-drawer,
+:root[theme-mode="dark"] .invite-preview-modal {
+  border-color: var(--mvc-line, #31343a) !important;
+  background: var(--mvc-surface, #1d1f23) !important;
+  color: var(--mvc-text, #f2f2f2) !important;
+}
+:root[theme-mode="dark"] .org-list-content .title-row h2,
+:root[theme-mode="dark"] .org-card .card-title,
+:root[theme-mode="dark"] .visual-sidebar .tenant-name,
+:root[theme-mode="dark"] .tenant-dropdown .dropdown-title,
+:root[theme-mode="dark"] .shared-detail-drawer-title,
+:root[theme-mode="dark"] .invite-preview-title { color: var(--mvc-text-strong, #fff) !important; }
+:root[theme-mode="dark"] .agent-list-content .title-row h2,
+:root[theme-mode="dark"] .agent-card .card-title { color: #f4f4f5 !important; }
+:root[theme-mode="dark"] .agent-list-content .agent-create-header-btn .t-button__icon,
+:root[theme-mode="dark"] .agent-list-content .agent-create-header-btn .t-icon,
+:root[theme-mode="dark"] .agent-list-content .agent-create-header-btn .btn-icon-wrapper {
+  color: #18181b !important;
+}
+:root[theme-mode="dark"] .org-card:hover,
+:root[theme-mode="dark"] .list-space-sidebar .icon-item-labeled:hover,
+:root[theme-mode="dark"] .list-space-sidebar .sidebar-item:hover,
+:root[theme-mode="dark"] .list-space-sidebar .icon-item-labeled.active,
+:root[theme-mode="dark"] .list-space-sidebar .sidebar-item.active,
+:root[theme-mode="dark"] .tenant-dropdown .tenant-item:hover,
+:root[theme-mode="dark"] .tenant-dropdown .tenant-item.selected,
+:root[theme-mode="dark"] .shared-detail-row {
+  background: var(--mvc-hover, #25272c) !important;
+  border-color: var(--mvc-line, #31343a) !important;
+  color: var(--mvc-text-strong, #fff) !important;
+}
+:root[theme-mode="dark"] .org-card:hover {
+  border-color: var(--mvc-line-strong, #484c54) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}
+:root[theme-mode="dark"] .agent-card:hover {
+  border-color: var(--mvc-line-strong, #484c54) !important;
+  background: var(--mvc-hover, #25272c) !important;
+  box-shadow: var(--mvc-shadow) !important;
+}

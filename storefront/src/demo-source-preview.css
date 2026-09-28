@@ -1,0 +1,64 @@
+/* Story-only interaction states. No site layout, theme, graph or shell overrides. */
+.demo-source-preview {
+  position: absolute;
+  z-index: 24;
+  right: 14px;
+  bottom: 88px;
+  left: 14px;
+  min-width: 0;
+  max-width: 380px;
+  max-height: 55%;
+  box-sizing: border-box;
+  margin-left: auto;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  border: 1px solid var(--demo-line, #e5e7eb);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--demo-surface, #fff);
+  color: var(--demo-copy, #374151);
+  box-shadow: 0 8px 28px rgb(17 24 39 / 12%);
+  text-align: left;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.demo-source-preview header { display: flex; align-items: center; gap: 6px; }
+.demo-source-preview header strong { flex: 1; min-width: 0; font-size: inherit; }
+.demo-source-preview header button {
+  display: grid; place-items: center; flex: 0 0 28px; height: 28px;
+  border: 0; padding: 0; border-radius: 5px; background: transparent; color: inherit; cursor: pointer;
+}
+.demo-source-preview__locator { margin: 3px 0 8px; color: var(--demo-muted, #6b7280); }
+.demo-source-preview small { font-size: 10px; color: var(--demo-muted, #6b7280); }
+.demo-source-preview p { margin: 5px 0 9px; border-left: 2px solid var(--demo-accent, #2563eb); padding-left: 9px; font-size: inherit; line-height: inherit; }
+.demo-source-preview a { color: var(--demo-accent, #2563eb); text-decoration: underline; text-underline-offset: 2px; }
+.demo-source-preview__reviewed { display: block; margin-top: 5px; }
+.demo-source-preview button:focus-visible,
+.demo-source-preview a:focus-visible,
+.demo-citation-button:focus-visible,
+.kb-preview-wiki-source-trigger:focus-visible { outline: 2px solid var(--demo-accent, #2563eb); outline-offset: 3px; }
+button.demo-citation-button { cursor: pointer; font-family: inherit; }
+.demo-citation-button:hover { text-decoration: underline; text-underline-offset: 2px; }
+.demo-scope-note { display: block; margin-top: 7px; color: var(--demo-muted, #6b7280); font-size: 10px; line-height: 1.4; }
+.real-chat-answer .visual-assistant-markdown { white-space: pre-line; }
+.real-chat-citations { display: flex; flex-wrap: wrap; gap: 4px; }
+.kb-preview-wiki-source-trigger { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.kb-preview-wiki-source-trigger.is-hovered { text-decoration: underline; text-underline-offset: 3px; }
+.kb-preview-reader-body button.demo-citation-button { border: 0; padding: 0 2px; background: transparent; color: var(--kb-accent); font: inherit; }
+.kb-preview-wiki-content { position: relative; }
+.kb-preview-wiki-camera { position: relative; width: 100%; height: 100%; min-width: 0; }
+.kb-preview-wiki-camera > .demo-source-preview,
+.kb-preview-wiki-content > .demo-source-preview {
+  right: 12px; bottom: 12px; left: 12px;
+  max-width: min(340px, calc(100% - 24px)); max-height: 65%;
+  background: var(--kb-surface); color: var(--kb-copy); border-color: var(--kb-line);
+}
+.kb-preview-reader-sources { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; }
+@media (max-width: 600px) {
+  .demo-source-preview { right: 8px; left: 8px; padding: 10px; max-height: 66%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-source-preview, .kb-preview-wiki-source-trigger { transition: none !important; }
+}

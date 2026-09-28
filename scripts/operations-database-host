@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Run by systemd as root before every start; never reads or writes a credential.
+set -euo pipefail
+[ "$EUID" -eq 0 ]
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+host="$(docker inspect --format '{{with index .NetworkSettings.Networks "weknora-v072-production-internal"}}{{.IPAddress}}{{end}}' weknora-v072-production-postgres)"
+python3 -c 'import ipaddress,sys; a=ipaddress.ip_address(sys.argv[1]); assert a.version==4 and a.is_private' "$host"
+install -d -o root -g root -m 755 /run/musuw-operations
+temporary="$(mktemp /run/musuw-operations/.database-host.XXXXXX)"
+trap 'rm -f -- "$temporary"' EXIT
+printf '%s\n' "$host" > "$temporary"
+chown musuw-operations:musuw-operations "$temporary"
+chmod 600 "$temporary"
+mv -f "$temporary" /run/musuw-operations/database-host

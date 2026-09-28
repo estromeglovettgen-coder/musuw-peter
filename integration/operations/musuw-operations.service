@@ -1,0 +1,33 @@
+[Unit]
+Description=Musuw private operations console
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=musuw-operations
+Group=musuw-operations
+WorkingDirectory=/opt/musuw-operations/current
+EnvironmentFile=/opt/musuw-operations/runtime/production.env
+Environment=MUSUW_ADMIN_MODE=server
+Environment=MUSUW_ADMIN_RUNTIME_FILE=/opt/musuw-operations/runtime/production.env
+Environment=MUSUW_ADMIN_SECRET_DIR=/opt/musuw-operations/runtime/secrets
+RuntimeDirectory=musuw-operations
+RuntimeDirectoryMode=0755
+ExecStartPre=+/usr/local/libexec/musuw-operations-database-host
+ExecStart=/opt/musuw-operations/current/bin/node /opt/musuw-operations/current/scripts/musuw-admin-server.mjs production
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

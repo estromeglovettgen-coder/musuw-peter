@@ -1,0 +1,15 @@
+.comparison-layout { max-width: 940px; }
+.comparison-layout h2 { margin: 40px 0 16px; font-size: clamp(23px, 3vw, 30px); line-height: 1.35; }
+.comparison-table-scroll { overflow-x: auto; margin: 30px 0 12px; border: 1px solid var(--line); border-radius: 12px; }
+.comparison-table-scroll:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.comparison-table-scroll table { width: 100%; min-width: 640px; border-collapse: collapse; table-layout: fixed; font-size: 15px; line-height: 1.65; }
+.comparison-table-scroll caption { text-align: left; padding: 18px 20px; font-weight: 600; }
+.comparison-table-scroll th, .comparison-table-scroll td { padding: 18px 20px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.comparison-table-scroll thead th:first-child { width: 24%; }
+.comparison-table-scroll th { font-weight: 600; }
+.comparison-layout .comparison-scroll-hint { display: none; font-size: 13px; color: var(--ink-soft); }
+.comparison-sources { padding-left: 22px; font-size: 14px; line-height: 2; margin-bottom: 24px; }
+@media (max-width: 680px) {
+  .comparison-layout .comparison-scroll-hint { display: block; }
+  .comparison-table-scroll th, .comparison-table-scroll td { padding: 14px; }
+}

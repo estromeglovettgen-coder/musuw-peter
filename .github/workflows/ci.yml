@@ -1,0 +1,485 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.nvmrc'
+      - 'auth/**'
+      - 'shared/**'
+      - 'storefront/**'
+      - 'weknora/**'
+      - 'e2e/**'
+      - 'playwright.session-batch.config.ts'
+      - 'playwright.knowledge-upload.config.ts'
+      - 'playwright.billing.config.ts'
+      - 'playwright.marketplace.config.ts'
+      - 'playwright.operations*.config.ts'
+      - 'playwright.startup-feedback.config.ts'
+      - 'scripts/**'
+      - 'scripts/weknora-staging/**'
+      - 'scripts/weknora-staging-deploy.sh'
+      - 'integration/weknora-production/**'
+      - 'integration/weknora-staging/**'
+      - 'integration/operations/**'
+      - 'third_party/weknora/**'
+      - 'openspec/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'SOURCE_MANIFEST*'
+      - '*PROVENANCE*'
+      - 'docs/**'
+      - 'docs/DEPLOYMENT.md'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - '.nvmrc'
+      - 'auth/**'
+      - 'shared/**'
+      - 'storefront/**'
+      - 'weknora/**'
+      - 'e2e/**'
+      - 'playwright.session-batch.config.ts'
+      - 'playwright.knowledge-upload.config.ts'
+      - 'playwright.billing.config.ts'
+      - 'playwright.marketplace.config.ts'
+      - 'playwright.operations*.config.ts'
+      - 'playwright.startup-feedback.config.ts'
+      - 'scripts/**'
+      - 'scripts/weknora-staging/**'
+      - 'scripts/weknora-staging-deploy.sh'
+      - 'integration/weknora-production/**'
+      - 'integration/weknora-staging/**'
+      - 'integration/operations/**'
+      - 'third_party/weknora/**'
+      - 'openspec/**'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'SOURCE_MANIFEST*'
+      - '*PROVENANCE*'
+      - 'docs/**'
+      - 'docs/DEPLOYMENT.md'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workflow-contract:
+    name: Workflow contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate workflow syntax and policy
+        run: ruby scripts/ci/validate-workflows.rb
+
+  frontend:
+    name: Frontend tests, types and build
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: weknora/frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --prefix weknora/frontend --ignore-scripts
+      - name: Run frontend tests
+        run: npm --prefix weknora/frontend test
+      - name: Run frontend type-check
+        run: npm --prefix weknora/frontend run type-check
+      - name: Audit locale keys
+        run: npm --prefix weknora/frontend run check-i18n
+      - name: Build frontend
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npm --prefix weknora/frontend run build
+
+  session-batch-browser:
+    name: Frontend browser regressions
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            weknora/frontend/package-lock.json
+      - name: Install existing browser test dependencies
+        run: npm ci --ignore-scripts
+      - name: Install frontend dependencies
+        run: npm ci --prefix weknora/frontend --ignore-scripts
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Exercise session selection, confirmation, deletion and retry
+        run: npm run app:e2e:batch
+      - name: Exercise folder upload progress, failures and refresh protection
+        run: npx playwright test --config=playwright.knowledge-upload.config.ts
+      - name: Exercise plan menu and existing purchase entry contracts
+        run: npx playwright test --config=playwright.billing.config.ts
+      - name: Exercise marketplace purchase, delivery, creator and review flows
+        run: npx playwright test --config=playwright.marketplace.config.ts
+      - name: Exercise operations reconnect and visibility recovery
+        run: npm run admin:e2e:recovery
+      - name: Exercise startup feedback and recovery without external services
+        run: npx playwright test --config=playwright.startup-feedback.config.ts --project=chromium
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-browser-failures
+          path: |
+            test-results/session-batch
+            test-results/knowledge-upload
+            test-results/billing
+            test-results/creator-marketplace
+            test-results/operations-recovery
+            test-results/startup-feedback
+          retention-days: 7
+
+  auth:
+    name: Auth shell tests, types and build
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Public-only placeholders make the build contract executable without
+      # putting a Supabase project credential in CI logs or repository files.
+      VITE_AUTH_PUBLIC_ORIGIN: https://app.musuw.com
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-public-placeholder
+      VITE_WEKNORA_OAUTH_CLIENT_ID: ci-native-client
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: auth/package-lock.json
+      - name: Install existing browser test dependencies
+        run: npm ci --ignore-scripts
+      - name: Install auth dependencies
+        run: npm ci --prefix auth --ignore-scripts
+      - name: Install login regression browsers
+        run: npx playwright install --with-deps chromium webkit firefox
+      - name: Run auth tests
+        run: npm --prefix auth test
+      - name: Verify login background stays stable while typing
+        run: npx playwright test --config=auth/playwright.config.ts
+      - name: Preserve login browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-browser-failures
+          path: test-results/auth-browser
+          retention-days: 7
+      - name: Run auth type-check
+        run: npm --prefix auth run typecheck
+      - name: Build auth shell
+        run: npm --prefix auth run build
+
+  storefront:
+    name: Storefront tests and build
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+      - name: Install storefront dependencies
+        run: npm ci --prefix storefront --ignore-scripts
+      - name: Run storefront tests (includes build)
+        run: npm --prefix storefront test
+      - name: Validate Wrangler bundle without uploading
+        working-directory: storefront
+        run: npx wrangler deploy --dry-run --config wrangler.jsonc
+
+  go:
+    name: Active WeKnora Go tests and build
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: weknora
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: weknora/go.mod
+          cache: true
+          cache-dependency-path: weknora/go.sum
+      - name: Vet Go packages
+        run: go vet ./...
+      - name: Run Go tests
+        run: go test ./...
+      - name: Build the native server
+        run: go build ./cmd/server
+      - name: Build, audit, and exercise the AnyDoc parser engine
+        run: |
+          rustc --version
+          ./scripts/build-anydoc-lib.sh
+          cargo install cargo-audit --version 0.22.2 --locked
+          (cd third_party/anydoc-go && cargo audit)
+          go vet -tags anydoc ./internal/infrastructure/docparser/...
+          go test -tags anydoc -count=1 ./internal/infrastructure/docparser/...
+          go build -tags anydoc ./cmd/server
+
+  go-modules:
+    name: WeKnora ${{ matrix.name }} tests, vet and build
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CLI
+            directory: weknora/cli
+            go_sum: weknora/cli/go.sum
+          - name: Go SDK
+            directory: weknora/client
+            go_sum: weknora/client/go.sum
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.directory }}/go.mod
+          cache: true
+          cache-dependency-path: ${{ matrix.go_sum }}
+      - name: Test
+        working-directory: ${{ matrix.directory }}
+        run: go test ./...
+      - name: Vet
+        working-directory: ${{ matrix.directory }}
+        run: go vet ./...
+      - name: Build
+        working-directory: ${{ matrix.directory }}
+        run: go build ./...
+
+  go-lint:
+    name: golangci-lint (${{ matrix.name }})
+    needs: workflow-contract
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: root
+            directory: weknora
+            go_sum: weknora/go.sum
+          - name: cli
+            directory: weknora/cli
+            go_sum: weknora/cli/go.sum
+          - name: client
+            directory: weknora/client
+            go_sum: weknora/client/go.sum
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.directory }}/go.mod
+          cache: true
+          cache-dependency-path: ${{ matrix.go_sum }}
+      - name: Lint only new findings
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          working-directory: ${{ matrix.directory }}
+          only-new-issues: true
+
+  dsh-plugin:
+    name: DeepSeek Harness plugin contract and E2E
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: weknora/packages/dsh-weknora/package-lock.json
+      - name: Set up pnpm for the harness profile
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10"
+      - name: Set up Go for the server-side contract
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: weknora/go.mod
+          cache: true
+          cache-dependency-path: weknora/go.sum
+      - name: Install plugin dependencies
+        run: npm ci --prefix weknora/packages/dsh-weknora --ignore-scripts
+      - name: Type-check, build and test the plugin
+        run: |
+          npm --prefix weknora/packages/dsh-weknora run typecheck
+          npm --prefix weknora/packages/dsh-weknora test
+      - name: Test the WeKnora side of the plugin contract
+        working-directory: weknora
+        run: go test ./packages/dsh-weknora/contract/...
+      - name: Cache the pinned harness install
+        uses: actions/cache@v4
+        with:
+          path: .cache/dsh-e2e-install
+          key: dsh-e2e-${{ runner.os }}-0.1.0-rc.8
+      - name: Run the plugin inside the pinned harness
+        working-directory: weknora/packages/dsh-weknora
+        env:
+          DSH_PACKAGE_SPEC: "@deepseek-ai/dsh@0.1.0-rc.8"
+          DSH_INSTALL_DIR: ${{ github.workspace }}/.cache/dsh-e2e-install
+          DSH_E2E_LOG: ${{ runner.temp }}/dsh-weknora-e2e.log
+        run: node test/e2e/run-in-dsh.mjs
+      - name: Upload the harness transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-weknora-e2e-transcript
+          path: ${{ runner.temp }}/dsh-weknora-e2e.log
+          if-no-files-found: ignore
+
+  docreader:
+    name: Active DocReader tests
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: weknora/docreader/uv.lock
+      - name: Install the locked DocReader environment
+        run: uv sync --frozen --project weknora/docreader --no-install-project
+      - name: Run the active DocReader suite
+        run: uv run --project weknora/docreader python scripts/ci/run-docreader-tests.py
+
+  repository-contracts:
+    name: Release, provenance and secret contracts
+    needs: workflow-contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the exact revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install repository tooling
+        run: npm ci --ignore-scripts
+      - name: Validate tracked publish boundary
+        run: |
+          node --test scripts/ci/tracked-source-scan.test.mjs
+          node scripts/ci/tracked-source-scan.mjs
+      - name: Validate source manifest
+        run: node scripts/ci/source-manifest.mjs
+      - name: Validate the fixed-main upgrade contract
+        run: npm run upgrade:contract
+      - name: Validate the complete Musuw and fixed-main resolution ledger
+        run: |
+          npm run upgrade:ledger
+          git diff --exit-code -- \
+            third_party/weknora/upgrades/81142df/resolution-ledger.tsv \
+            third_party/weknora/upgrades/81142df/resolution-summary.json
+      - name: Scan checked-in source for credentials
+        run: bash scripts/ci/secret-scan.sh
+      - name: Validate metadata-only external credential registry
+        run: bash scripts/ci/external-credentials-registry.test.sh
+      - name: Validate the browser-direct R2 CORS policy
+        run: bash scripts/r2-cors/contract.test.sh
+      - name: Test local and server operations gateway contracts
+        run: npm run admin:test
+      - name: Test private operations artifact and rollback contracts
+        run: |
+          npm run admin:deploy:test
+          python3 scripts/operations-local-client.test.py
+      - name: Run release workflow simulation
+        run: bash scripts/weknora-workflow-simulation.test.sh
+      - name: Run production static and direct deployment contracts
+        run: |
+          bash scripts/weknora-production/verify-static.sh
+          bash scripts/weknora/paddle-ip-allowlist.test.sh
+          bash scripts/weknora-production/deploy-ci-seams-contract.test.sh
+          bash scripts/weknora-production/musuw-deploy-gate-simulation.test.sh
+          # verify-static.sh renders both base and edge scripts/weknora-production/compose.sh config.
+      - name: Run isolated staging runtime and gate contracts
+        run: |
+          bash scripts/weknora-staging/contract.test.sh
+          bash scripts/weknora-staging/verify-static.sh
+          bash scripts/weknora-staging/capacity-preflight.test.sh
+          bash scripts/weknora-staging/gate-simulation.test.sh

@@ -1,0 +1,135 @@
+name: Deploy private operations console
+
+on:
+  workflow_dispatch:
+    inputs:
+      immutable_ref:
+        description: Full main commit SHA with successful canonical CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+
+concurrency:
+  group: operations-production-release
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      revision: ${{ steps.authorize.outputs.revision }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.immutable_ref }}
+          fetch-depth: 0
+      - name: Authorize exact main revision and retained owner review
+        id: authorize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_SHA: ${{ inputs.immutable_ref }}
+          EVENT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = estromeglovettgen-coder/musuw
+          test "$EVENT_REF" = refs/heads/main
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$REQUESTED_SHA" origin/main
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$REQUESTED_SHA&event=push&status=success&per_page=100" \
+            --jq '.workflow_runs[] | select(.head_branch == "main") | .head_sha' | grep -Fx "$REQUESTED_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/environments/operations-production" \
+            --jq '[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]? | select(.reviewer.login == "estromeglovettgen-coder")] | length' \
+            | grep -Eq '^[1-9][0-9]*$'
+          printf 'revision=%s\n' "$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
+  build:
+    needs: authorize
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      checksum: ${{ steps.bundle.outputs.checksum }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.revision }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            weknora/frontend/package-lock.json
+      - name: Install pinned operations runtime and frontend dependencies
+        run: |
+          npm ci --omit=dev --ignore-scripts
+          npm ci --prefix weknora/frontend --ignore-scripts
+      - name: Build existing frontend entries
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          VITE_FRONTEND_COMMIT: ${{ needs.authorize.outputs.revision }}
+        run: npm --prefix weknora/frontend run build
+      - name: Create verified Linux operations artifact
+        id: bundle
+        env:
+          REVISION: ${{ needs.authorize.outputs.revision }}
+        run: |
+          set -euo pipefail
+          bash scripts/operations-build-artifact.sh "$REVISION" "$RUNNER_TEMP/operations.tgz"
+          checksum="$(sha256sum "$RUNNER_TEMP/operations.tgz" | cut -d ' ' -f 1)"
+          printf 'checksum=%s\n' "$checksum" >> "$GITHUB_OUTPUT"
+          printf '%s  operations.tgz\n' "$checksum" > "$RUNNER_TEMP/operations.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: operations-${{ needs.authorize.outputs.revision }}
+          path: |
+            ${{ runner.temp }}/operations.tgz
+            ${{ runner.temp }}/operations.sha256
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+  deploy:
+    needs: [authorize, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: operations-production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: operations-${{ needs.authorize.outputs.revision }}
+          path: ${{ runner.temp }}/operations-release
+      - name: Deploy through operations-only SSH gate
+        env:
+          REVISION: ${{ needs.authorize.outputs.revision }}
+          CHECKSUM: ${{ needs.build.outputs.checksum }}
+          DEPLOY_KEY: ${{ secrets.MUSUW_OPERATIONS_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.MUSUW_OPERATIONS_SSH_KNOWN_HOSTS }}
+          REMOTE: ${{ secrets.MUSUW_OPERATIONS_SSH_REMOTE }}
+          PORT: ${{ secrets.MUSUW_OPERATIONS_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          [[ "$REMOTE" =~ ^musuw-operations-deploy@[A-Za-z0-9.-]+$ ]]
+          [[ "$REVISION" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CHECKSUM" =~ ^[0-9a-f]{64}$ ]]
+          [[ "${PORT:-22}" =~ ^[0-9]+$ ]]
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          temporary="$(mktemp -d)"
+          trap 'rm -rf -- "$temporary"' EXIT
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$temporary/key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$temporary/known_hosts"
+          unset DEPLOY_KEY KNOWN_HOSTS
+          archive="$RUNNER_TEMP/operations-release/operations.tgz"
+          test "$(sha256sum "$archive" | cut -d ' ' -f 1)" = "$CHECKSUM"
+          ssh -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+            -o UserKnownHostsFile="$temporary/known_hosts" -i "$temporary/key" -p "${PORT:-22}" \
+            "$REMOTE" "musuw-operations deploy $REVISION $CHECKSUM" < "$archive"
+          printf 'Operations release: `%s`; artifact SHA-256: `%s`. App runtime unchanged.\n' "$REVISION" "$CHECKSUM" >> "$GITHUB_STEP_SUMMARY"

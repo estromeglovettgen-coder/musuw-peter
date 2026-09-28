@@ -1,0 +1,28 @@
+{
+  "name": "musuw-storefront",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "lint": "vite build",
+    "preview:worker": "node scripts/preview-worker.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 src/components/heroMotion.test.js tests/*.test.js",
+    "build": "vite build && node scripts/prerender-articles.mjs",
+    "preview": "vite preview --host 0.0.0.0 --port 3000"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "d3-force": "3.0.0",
+    "motion": "^12.42.2",
+    "pixi.js": "7.2.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "0.183.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "vite": "^8.1.5",
+    "wrangler": "^4.118.0"
+  }
+}

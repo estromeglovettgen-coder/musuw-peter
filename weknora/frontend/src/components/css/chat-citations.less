@@ -1,0 +1,40 @@
+.chat-citation-pills() {
+  :deep(.citation) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    vertical-align: baseline;
+    box-sizing: border-box;
+    margin: 0 2px;
+    padding: 2px 6px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 10px;
+    line-height: 14px;
+    font-weight: 600;
+    transform: none;
+    cursor: pointer;
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  }
+
+  :deep(.citation:hover) { border-color: #d1d5db; background: #e5e7eb; color: #111827; }
+  :deep(.citation-icon) { display: none; }
+  :deep(.citation-text),:deep(.citation-domain) { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: inherit; }
+  :deep(.citation-kb),:deep(.citation-web) { position: relative; text-decoration: none; }
+  :deep(.citation-kb:hover),:deep(.citation-web:hover) { color: #111827; }
+  :deep(.citation-web:focus-visible),:deep(.citation-kb:focus-visible) { outline: 2px solid #9ca3af; outline-offset: 2px; }
+  :deep(.citation-tip) { display: none; }
+
+  :deep(a.wiki-content-link) {
+    color: #374151;
+    border-bottom: 1px dashed #9ca3af;
+    text-decoration: none;
+    font-weight: 500;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  :deep(a.wiki-content-link:hover) { color: #111827; border-bottom-color: #374151; border-bottom-style: solid; text-decoration: none !important; }
+  :deep(a.wiki-content-link:focus-visible) { outline: 2px solid #9ca3af; outline-offset: 2px; border-radius: 4px; }
+}

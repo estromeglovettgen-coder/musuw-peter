@@ -1,0 +1,29 @@
+# Minimal outbound-only Cloudflare Tunnel connector for the native production
+# frontend. It is intentionally a separate Compose project so operators can
+# keep Tokyo dark until the single-writer cutover gate is complete.
+services:
+  tunnel:
+    image: cloudflare/cloudflared:2026.7.3@sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf
+    user: "65532:65532"
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --protocol
+      - http2
+      - run
+      - --token-file
+      - /run/secrets/tunnel_token
+    secrets:
+      - tunnel_token
+    networks:
+      - edge
+    restart: unless-stopped
+
+networks:
+  edge:
+    external: true
+    name: musnow-production_edge
+
+secrets:
+  tunnel_token:
+    file: /opt/weknora/tunnel/tunnel_token

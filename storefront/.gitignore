@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-react/
+.wrangler/
+.dev.vars*
+.DS_Store
+*.log

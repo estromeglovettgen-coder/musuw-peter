@@ -1,0 +1,915 @@
+name: Deploy production application
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      immutable_ref:
+        description: Full commit SHA to release; must be on origin/main and have successful CI
+        required: true
+        type: string
+      release_mode:
+        description: Release path; staging-only records a digest pair and promote reuses an accepted pair
+        required: true
+        type: choice
+        default: staging-only
+        options:
+          - staging-only
+          - promote
+      staging_run_id:
+        description: Prior successful staging-only run ID required for promote
+        required: false
+        type: string
+      staging_e2e_result:
+        description: Completed acceptance for this release; UI acceptance additionally requires a verified production baseline
+        required: true
+        type: choice
+        default: not-confirmed
+        options:
+          - not-confirmed
+          - full-sandbox-e2e-green
+          - ui-regression-green
+          - reviewed-model-release
+          - reviewed-integration-release
+      ui_base_sha:
+        description: Current production release SHA, verified by the production reviewer; required for scoped UI or reviewed release acceptance
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+
+concurrency:
+  group: production-release
+  # Never cancel an in-flight release; the fixed server seam either completes
+  # or exits non-zero before another release may start.
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    name: Authorize the CI-green revision
+    if: >-
+      github.repository == 'estromeglovettgen-coder/musuw' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.name == 'CI' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.repository.full_name == 'estromeglovettgen-coder/musuw'
+        )
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      release_sha: ${{ steps.resolve.outputs.release_sha }}
+      ci_workflow_run: ${{ steps.resolve.outputs.ci_workflow_run }}
+    steps:
+      - name: Check out the exact requested revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.immutable_ref }}
+          fetch-depth: 0
+          # The read-only checkout token is needed for the origin/main ancestry
+          # proof; this lightweight job receives no write permission.
+          persist-credentials: true
+      - name: Resolve and authorize the immutable release revision
+        id: resolve
+        env:
+          REQUESTED_REF: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.immutable_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
+          EVENT_WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          EVENT_WORKFLOW_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          EVENT_WORKFLOW_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          EVENT_WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_WORKFLOW_REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+          EVENT_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          REQUESTED_RELEASE_MODE: ${{ inputs.release_mode }}
+          REQUESTED_STAGING_E2E_RESULT: ${{ inputs.staging_e2e_result }}
+          REQUESTED_STAGING_RUN_ID: ${{ inputs.staging_run_id }}
+          UI_BASE_SHA: ${{ inputs.ui_base_sha }}
+          EVENT_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          requested="${REQUESTED_REF:?immutable release ref is required}"
+          if [ "$EVENT_NAME" = workflow_run ]; then
+            test "$EVENT_REPOSITORY" = estromeglovettgen-coder/musuw
+            test "$EVENT_WORKFLOW_REPOSITORY" = estromeglovettgen-coder/musuw
+            test "$EVENT_WORKFLOW_NAME" = CI
+            test "$EVENT_WORKFLOW_CONCLUSION" = success
+            test "$EVENT_WORKFLOW_HEAD_BRANCH" = main
+            test "$requested" = "$EVENT_WORKFLOW_HEAD_SHA"
+            [[ "$EVENT_WORKFLOW_RUN_ID" =~ ^[0-9]+$ ]]
+            ci_workflow_run="$EVENT_WORKFLOW_RUN_ID"
+          elif [ "$EVENT_NAME" = workflow_dispatch ]; then
+            case "$REQUESTED_RELEASE_MODE:$REQUESTED_STAGING_E2E_RESULT" in
+              staging-only:not-confirmed|promote:full-sandbox-e2e-green|promote:ui-regression-green|promote:reviewed-model-release|promote:reviewed-integration-release) ;;
+              *) printf '%s\n' 'release_mode must be staging-only or promote, and promotion requires an explicit completed acceptance result' >&2; exit 1 ;;
+            esac
+            if [ "$REQUESTED_RELEASE_MODE" = promote ]; then
+              test "$EVENT_REF" = refs/heads/main
+            else
+              case "$EVENT_REF" in refs/heads/*) ;; *) printf '%s\n' 'staging-only dispatch must originate from a repository branch' >&2; exit 1 ;; esac
+              [[ "$EVENT_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+              test "$requested" = "$EVENT_SHA"
+            fi
+          else
+            printf '%s\n' 'production release accepts only successful canonical CI or workflow_dispatch on main' >&2
+            exit 1
+          fi
+          [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]] || {
+            printf '%s\n' 'immutable_ref must be a full 40-character Git SHA' >&2
+            exit 1
+          }
+          selected_sha="$(git rev-parse "$requested^{commit}")"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$selected_sha"
+          if [ "$EVENT_NAME" = workflow_run ] || [ "$REQUESTED_RELEASE_MODE" = promote ]; then
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+            git merge-base --is-ancestor "$actual" refs/remotes/origin/main
+          else
+            test "$actual" = "$EVENT_SHA"
+          fi
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            runs="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$actual&per_page=100")"
+            ci_workflow_run="$(jq -er --arg sha "$actual" '
+              [.workflow_runs[]? | select(.name == "CI" and .head_sha == $sha and .conclusion == "success")]
+              | sort_by(.created_at) | last | .id
+            ' <<<"$runs")"
+            [[ "$ci_workflow_run" =~ ^[0-9]+$ ]]
+            if [ "$REQUESTED_RELEASE_MODE" = promote ]; then
+              production_environment="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H 'Accept: application/vnd.github+json' \
+                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/environments/server-production")"
+              jq -e '[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length > 0' \
+                <<<"$production_environment" >/dev/null || {
+                  printf '%s\n' 'server-production must retain a required reviewer before promotion' >&2
+                  exit 1
+                }
+            fi
+          fi
+          if [ "$REQUESTED_STAGING_E2E_RESULT" = ui-regression-green ] ||
+             [ "$REQUESTED_STAGING_E2E_RESULT" = reviewed-model-release ] ||
+             [ "$REQUESTED_STAGING_E2E_RESULT" = reviewed-integration-release ]; then
+            # Resolve the actual app SHA from the latest successful production
+            # release artifact. A dispatch revision may contain newer policy.
+            [[ "$UI_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            production_deployment_id="$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=server-production&per_page=1" --jq '.[0].id')"
+            [[ "$production_deployment_id" =~ ^[0-9]+$ ]]
+            production_status="$(gh api "repos/$GITHUB_REPOSITORY/deployments/$production_deployment_id/statuses" --jq '.[0]')"
+            test "$(jq -r .state <<<"$production_status")" = success
+            production_log_url="$(jq -r .log_url <<<"$production_status")"
+            [[ "$production_log_url" =~ ^https://github\.com/estromeglovettgen-coder/musuw/actions/runs/([0-9]+)/job/[0-9]+$ ]]
+            production_run_id="${BASH_REMATCH[1]}"
+            baseline_dir="$RUNNER_TEMP/musuw-ui-production-baseline"
+            mkdir -p "$baseline_dir"
+            gh run download "$production_run_id" --repo "$GITHUB_REPOSITORY" \
+              --name "production-release-$UI_BASE_SHA" --dir "$baseline_dir"
+            jq -e --arg sha "$UI_BASE_SHA" \
+              '.commit_sha == $sha and .release_outcome == "success" and .health_result == "healthy" and .target == "server:app.musuw.com"' \
+              "$baseline_dir/musuw-production-release-manifest.json" >/dev/null
+            # Load the scope policy from the trusted dispatch revision, not the
+            # older application revision whose accepted images are promoted.
+            if [ "$REQUESTED_STAGING_E2E_RESULT" = ui-regression-green ]; then
+              git show "$EVENT_SHA:scripts/ci/verify-ui-release-scope.py" > "$RUNNER_TEMP/verify-ui-release-scope.py"
+              python3 "$RUNNER_TEMP/verify-ui-release-scope.py" "$UI_BASE_SHA" "$actual"
+              printf 'UI regression accepted: production baseline %s -> release %s\n' "$UI_BASE_SHA" "$actual" >> "$GITHUB_STEP_SUMMARY"
+            elif [ "$REQUESTED_STAGING_E2E_RESULT" = reviewed-model-release ]; then
+              git show "$EVENT_SHA:scripts/ci/verify-reviewed-model-release.py" > "$RUNNER_TEMP/verify-reviewed-model-release.py"
+              python3 "$RUNNER_TEMP/verify-reviewed-model-release.py" "$actual" "$UI_BASE_SHA" "$REQUESTED_STAGING_RUN_ID"
+              printf 'Owner-requested reviewed model release: %s -> %s; full Sandbox E2E NOT claimed.\n' "$UI_BASE_SHA" "$actual" >> "$GITHUB_STEP_SUMMARY"
+            else
+              git show "$EVENT_SHA:scripts/ci/verify-reviewed-integration-release.py" > "$RUNNER_TEMP/verify-reviewed-integration-release.py"
+              python3 "$RUNNER_TEMP/verify-reviewed-integration-release.py" "$actual" "$UI_BASE_SHA" "$REQUESTED_STAGING_RUN_ID"
+              printf 'Owner-requested reviewed integration release: %s -> %s; targeted IM/embed acceptance passed; full Sandbox E2E NOT claimed.\n' "$UI_BASE_SHA" "$actual" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          {
+            printf 'release_sha=%s\n' "$actual"
+            printf 'ci_workflow_run=%s\n' "$ci_workflow_run"
+          } >> "$GITHUB_OUTPUT"
+  build:
+    name: Build or restore immutable release images on native AMD64
+    needs: authorize
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      app_digest: ${{ steps.images.outputs.app_digest }}
+      app_ref: ${{ steps.images.outputs.app_ref }}
+      frontend_digest: ${{ steps.images.outputs.frontend_digest }}
+      frontend_ref: ${{ steps.images.outputs.frontend_ref }}
+    steps:
+      - name: Assert native AMD64 build execution
+        env:
+          RUNNER_ARCH: ${{ runner.arch }}
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = X64
+          test "$(uname -m)" = x86_64
+          daemon_arch="$(docker info --format '{{.Architecture}}')"
+          case "$daemon_arch" in
+            x86_64|amd64) ;;
+            *) printf '%s\n' "production Docker daemon is not native AMD64: $daemon_arch" >&2; exit 1 ;;
+          esac
+      - name: Check out the exact authorized revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.authorize.outputs.release_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Assert the detached checkout matches the authorized SHA
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+      - name: Set up Node for production browser build
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            auth/package-lock.json
+            weknora/frontend/package-lock.json
+      - name: Install auth shell dependencies for build-static
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        run: npm ci --prefix auth --ignore-scripts
+      - name: Set up temporary public build inputs
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        id: prepare_build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_WEKNORA_OAUTH_CLIENT_ID: ${{ vars.VITE_WEKNORA_OAUTH_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          runtime_dir="$RUNNER_TEMP/musuw-production-build-runtime"
+          install -d -m 700 "$runtime_dir"
+          printf 'runtime_dir=%s\n' "$runtime_dir" >> "$GITHUB_OUTPUT"
+          umask 077
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY"
+          test -n "$VITE_WEKNORA_OAUTH_CLIENT_ID"
+          case "$VITE_SUPABASE_URL$VITE_SUPABASE_PUBLISHABLE_KEY$VITE_WEKNORA_OAUTH_CLIENT_ID" in
+            *$'\n'*|*$'\r'*) printf '%s\n' 'public build variables must be single-line values' >&2; exit 1 ;;
+          esac
+          printf '%s\n' \
+            'VITE_AUTH_PUBLIC_ORIGIN=https://app.musuw.com' \
+            "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" \
+            "VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY" \
+            "VITE_WEKNORA_OAUTH_CLIENT_ID=$VITE_WEKNORA_OAUTH_CLIENT_ID" \
+            > "$runtime_dir/auth-public.env"
+          test -s "$runtime_dir/auth-public.env"
+      - name: Build production browser bundles on native x64
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=3072
+          RUNTIME_DIR: ${{ steps.prepare_build.outputs.runtime_dir }}
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          WEKNORA_PRODUCTION_RUNTIME_DIR="$RUNTIME_DIR" \
+          WEKNORA_PRODUCTION_REVISION="$RELEASE_SHA" \
+            bash scripts/weknora-production/build-static.sh
+      - name: Set up official native AMD64 Buildx builder
+        id: buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker-container
+          buildkitd-config: .github/buildkitd.production.toml
+          cleanup: true
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          logout: true
+      - name: Restore and validate the verified staging release record
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_mode == 'promote' }}
+        uses: actions/download-artifact@v7
+        with:
+          name: musuw-staging-release-${{ needs.authorize.outputs.release_sha }}
+          run-id: ${{ inputs.staging_run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/staging-release-record
+      - name: Check the prior staging release record and immutable refs
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_mode == 'promote' }}
+        id: restore_release
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          STAGING_RUN_ID: ${{ inputs.staging_run_id }}
+          RECORD_PATH: ${{ runner.temp }}/staging-release-record/staging-release.json
+        run: |
+          set -euo pipefail
+          [[ "$STAGING_RUN_ID" =~ ^[0-9]+$ ]] || {
+            printf '%s\n' 'promote requires a numeric staging_run_id' >&2
+            exit 1
+          }
+          test -s "$RECORD_PATH"
+          jq -e --arg sha "$RELEASE_SHA" --arg run "$STAGING_RUN_ID" --arg repo "$GITHUB_REPOSITORY" '
+            .schema_version == "musuw.staging.release.v1" and
+            .repository == $repo and
+            .workflow == "Deploy production application" and
+            .release_mode == "staging-only" and
+            .staging_deployment == "success" and
+            .commit_sha == $sha and
+            (.staging_run_id | tostring) == $run and
+            (.workflow_run | tostring) == $run and
+            (.app_image | type == "string") and
+            (.frontend_image | type == "string") and
+            (.app_digest | type == "string") and
+            (.frontend_digest | type == "string") and
+            (.app_image | test("^ghcr\\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$")) and
+            (.frontend_image | test("^ghcr\\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$")) and
+            (.app_digest == (.app_image | split("@")[1])) and
+            (.frontend_digest == (.frontend_image | split("@")[1]))
+          ' "$RECORD_PATH" >/dev/null
+          app_ref="$(jq -er '.app_image' "$RECORD_PATH")"
+          frontend_ref="$(jq -er '.frontend_image' "$RECORD_PATH")"
+          [[ "$app_ref" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]
+          [[ "$frontend_ref" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]
+          docker buildx imagetools inspect "$app_ref" >/dev/null
+          docker buildx imagetools inspect "$frontend_ref" >/dev/null
+          {
+            printf 'app_ref=%s\n' "$app_ref"
+            printf 'frontend_ref=%s\n' "$frontend_ref"
+            printf 'record_path=%s\n' "$RECORD_PATH"
+          } >> "$GITHUB_OUTPUT"
+      - name: Build and push immutable application image
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        id: app_image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./weknora
+          file: ./integration/weknora-production/Dockerfile.app.runtime
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/estromeglovettgen-coder/musuw-app:${{ needs.authorize.outputs.release_sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.authorize.outputs.release_sha }}
+          build-args: |
+            VERSION_ARG=main-81142df
+            WITH_ANYDOC=1
+            IMAGE_REVISION_ARG=${{ needs.authorize.outputs.release_sha }}
+            BUILD_TIME_ARG=production-github-hosted-amd64
+            GO_VERSION_ARG=go1.26
+          provenance: mode=min
+          cache-from: type=gha,scope=musuw-app-amd64
+          cache-to: type=gha,mode=max,scope=musuw-app-amd64,ignore-error=true
+      - name: Build and push immutable frontend image
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        id: frontend_image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./integration/weknora-production/Dockerfile.frontend
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/estromeglovettgen-coder/musuw-frontend:${{ needs.authorize.outputs.release_sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.authorize.outputs.release_sha }}
+          build-args: |
+            VERSION_ARG=main-81142df
+            REVISION_ARG=${{ needs.authorize.outputs.release_sha }}
+          provenance: mode=min
+          cache-from: type=gha,scope=musuw-frontend-amd64
+          cache-to: type=gha,mode=max,scope=musuw-frontend-amd64,ignore-error=true
+      - name: Validate immutable image digests
+        id: images
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          APP_DIGEST: ${{ steps.app_image.outputs.digest }}
+          FRONTEND_DIGEST: ${{ steps.frontend_image.outputs.digest }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          RESTORED_APP_REF: ${{ steps.restore_release.outputs.app_ref }}
+          RESTORED_FRONTEND_REF: ${{ steps.restore_release.outputs.frontend_ref }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          app_repository=ghcr.io/estromeglovettgen-coder/musuw-app
+          frontend_repository=ghcr.io/estromeglovettgen-coder/musuw-frontend
+          if [ "$RELEASE_MODE" = promote ]; then
+            [[ "$RESTORED_APP_REF" =~ ^$app_repository@sha256:[0-9a-f]{64}$ ]]
+            [[ "$RESTORED_FRONTEND_REF" =~ ^$frontend_repository@sha256:[0-9a-f]{64}$ ]]
+            {
+              printf 'app_digest=%s\n' "${RESTORED_APP_REF##*@}"
+              printf 'app_ref=%s\n' "$RESTORED_APP_REF"
+              printf 'frontend_digest=%s\n' "${RESTORED_FRONTEND_REF##*@}"
+              printf 'frontend_ref=%s\n' "$RESTORED_FRONTEND_REF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          app_tag="$app_repository:$RELEASE_SHA"
+          frontend_tag="$frontend_repository:$RELEASE_SHA"
+          validate_registry_digest() {
+            local digest="$1"
+            local expected_tag="$2"
+            local repository="$3"
+            local tag_digest
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+            docker buildx imagetools inspect "$repository@$digest" >/dev/null || return 1
+            tag_digest="$(docker buildx imagetools inspect "$expected_tag" \
+              --format '{{json .Manifest}}' | node -e '
+                const fs = require("node:fs");
+                const manifest = JSON.parse(fs.readFileSync(0, "utf8"));
+                if (!manifest || Array.isArray(manifest) || typeof manifest !== "object" ||
+                    typeof manifest.digest !== "string" || !/^sha256:[0-9a-f]{64}$/.test(manifest.digest)) {
+                  throw new Error("Registry tag has no valid manifest digest");
+                }
+                process.stdout.write(manifest.digest);
+              ')" || return 1
+            test "$tag_digest" = "$digest" || return 1
+          }
+          wait_for_registry_digest() {
+            local digest="$1"
+            local expected_tag="$2"
+            local repository="$3"
+            local attempt
+            for attempt in {1..12}; do
+              if validate_registry_digest "$digest" "$expected_tag" "$repository"; then
+                return 0
+              fi
+              if [ "$attempt" -eq 12 ]; then
+                printf '%s\n' "registry did not expose the expected immutable digest after $attempt attempts" >&2
+                return 1
+              fi
+              sleep 5
+            done
+          }
+          wait_for_registry_digest "$APP_DIGEST" "$app_tag" "$app_repository"
+          wait_for_registry_digest "$FRONTEND_DIGEST" "$frontend_tag" "$frontend_repository"
+          {
+            printf 'app_digest=%s\n' "$APP_DIGEST"
+            printf 'app_ref=%s@%s\n' "$app_repository" "$APP_DIGEST"
+            printf 'frontend_digest=%s\n' "$FRONTEND_DIGEST"
+            printf 'frontend_ref=%s@%s\n' "$frontend_repository" "$FRONTEND_DIGEST"
+          } >> "$GITHUB_OUTPUT"
+      - name: Remove temporary public build inputs
+        if: always()
+        env:
+          RUNTIME_DIR: ${{ steps.prepare_build.outputs.runtime_dir }}
+        run: |
+          set -euo pipefail
+          if [ -n "${RUNTIME_DIR:-}" ]; then
+            rm -f -- "$RUNTIME_DIR/auth-public.env"
+            rmdir -- "$RUNTIME_DIR" 2>/dev/null || true
+          fi
+
+  deploy-staging:
+    name: Deploy and verify the isolated staging release
+    needs: [authorize, build]
+    if: >-
+      needs.authorize.result == 'success' &&
+      needs.build.result == 'success'
+    environment: staging
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out the exact authorized revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.authorize.outputs.release_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Assert the detached checkout matches the approved SHA
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+      - name: Set up temporary, pinned staging deployment inputs
+        id: staging_prepare
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.MUSUW_STAGING_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.MUSUW_STAGING_SSH_KNOWN_HOSTS }}
+          STAGING_SSH_REMOTE: ${{ secrets.MUSUW_STAGING_SSH_REMOTE }}
+          STAGING_PUBLIC_ENV: ${{ secrets.MUSUW_STAGING_PUBLIC_ENV }}
+          STAGING_AUTH_PUBLIC_ENV: ${{ secrets.MUSUW_STAGING_AUTH_PUBLIC_ENV }}
+        run: |
+          set -euo pipefail
+          runtime_dir="$RUNNER_TEMP/musuw-staging-runtime"
+          key_path="$RUNNER_TEMP/musuw-staging-ssh-key"
+          known_hosts_path="$RUNNER_TEMP/musuw-staging-known-hosts"
+          install -d -m 700 "$runtime_dir"
+          {
+            printf 'runtime_dir=%s\n' "$runtime_dir"
+            printf 'key_path=%s\n' "$key_path"
+            printf 'known_hosts_path=%s\n' "$known_hosts_path"
+          } >> "$GITHUB_OUTPUT"
+          umask 077
+          test -n "$DEPLOY_SSH_KEY"
+          test -n "$DEPLOY_KNOWN_HOSTS"
+          test -n "$STAGING_SSH_REMOTE"
+          test -n "$STAGING_PUBLIC_ENV"
+          test -n "$STAGING_AUTH_PUBLIC_ENV"
+          case "$STAGING_SSH_REMOTE" in
+            musuw-staging-deploy@*) ;;
+            *) printf '%s\n' 'staging SSH remote must use the restricted musuw-staging-deploy account' >&2; exit 1 ;;
+          esac
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$key_path"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts_path"
+          printf '%s\n' "$STAGING_PUBLIC_ENV" > "$runtime_dir/staging.public.env"
+          printf '%s\n' "$STAGING_AUTH_PUBLIC_ENV" > "$runtime_dir/auth-public.env"
+          test -s "$key_path"
+          test -s "$known_hosts_path"
+          test -s "$runtime_dir/staging.public.env"
+          test -s "$runtime_dir/auth-public.env"
+          grep -Fqx 'APP_EXTERNAL_URL=https://staging.musuw.com' "$runtime_dir/staging.public.env"
+          grep -Fqx 'FRONTEND_BASE_URL=https://staging.musuw.com' "$runtime_dir/staging.public.env"
+          grep -Fqx 'MUSUW_AUTH_PUBLIC_ORIGIN=https://staging.musuw.com' "$runtime_dir/auth-public.env"
+      - name: Pin approved GHCR image refs in the staging input
+        env:
+          RUNTIME_DIR: ${{ steps.staging_prepare.outputs.runtime_dir }}
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          APP_IMAGE: ${{ needs.build.outputs.app_ref }}
+          FRONTEND_IMAGE: ${{ needs.build.outputs.frontend_ref }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$APP_IMAGE" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]
+          [[ "$FRONTEND_IMAGE" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]
+          tmp="$RUNTIME_DIR/staging.public.env.$$"
+          awk '!/^(WEKNORA_STAGING_REVISION|WEKNORA_STAGING_APP_IMAGE|WEKNORA_STAGING_FRONTEND_IMAGE)=/' \
+            "$RUNTIME_DIR/staging.public.env" > "$tmp"
+          printf '%s\n' \
+            "WEKNORA_STAGING_REVISION=$RELEASE_SHA" \
+            "WEKNORA_STAGING_APP_IMAGE=$APP_IMAGE" \
+            "WEKNORA_STAGING_FRONTEND_IMAGE=$FRONTEND_IMAGE" >> "$tmp"
+          chmod 600 "$tmp"
+          mv -f "$tmp" "$RUNTIME_DIR/staging.public.env"
+      - name: Assert the direct staging SHA-only release seam
+        run: |
+          set -euo pipefail
+          test -x scripts/weknora-staging-deploy.sh
+          test -x scripts/weknora-staging/verify-deployed.sh
+          grep -Fq 'Usage: scripts/weknora-staging-deploy.sh <full-sha>' scripts/weknora-staging-deploy.sh
+      - name: Execute the staging SHA-only release seam
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote' }}
+        id: deploy_release
+        env:
+          WEKNORA_STAGING_RUNTIME_DIR: ${{ steps.staging_prepare.outputs.runtime_dir }}
+          WEKNORA_STAGING_PUBLIC_ENV: ${{ steps.staging_prepare.outputs.runtime_dir }}/staging.public.env
+          WEKNORA_STAGING_AUTH_PUBLIC_ENV: ${{ steps.staging_prepare.outputs.runtime_dir }}/auth-public.env
+          WEKNORA_STAGING_KNOWN_HOSTS_FILE: ${{ steps.staging_prepare.outputs.known_hosts_path }}
+          WEKNORA_STAGING_SSH_KEY: ${{ steps.staging_prepare.outputs.key_path }}
+          WEKNORA_STAGING_REMOTE: ${{ secrets.MUSUW_STAGING_SSH_REMOTE }}
+          WEKNORA_STAGING_SSH_PORT: ${{ secrets.MUSUW_STAGING_SSH_PORT }}
+          WEKNORA_STAGING_REVISION: ${{ needs.authorize.outputs.release_sha }}
+          WEKNORA_STAGING_GHCR_USERNAME: ${{ github.actor }}
+          WEKNORA_STAGING_GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash scripts/weknora-staging-deploy.sh "$WEKNORA_STAGING_REVISION"
+      - name: Verify the deployed staging digest pair
+        id: verify_staging
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          APP_IMAGE: ${{ needs.build.outputs.app_ref }}
+          FRONTEND_IMAGE: ${{ needs.build.outputs.frontend_ref }}
+          WEKNORA_STAGING_RUNTIME_DIR: ${{ steps.staging_prepare.outputs.runtime_dir }}
+          WEKNORA_STAGING_PUBLIC_ENV: ${{ steps.staging_prepare.outputs.runtime_dir }}/staging.public.env
+          WEKNORA_STAGING_AUTH_PUBLIC_ENV: ${{ steps.staging_prepare.outputs.runtime_dir }}/auth-public.env
+          WEKNORA_STAGING_KNOWN_HOSTS_FILE: ${{ steps.staging_prepare.outputs.known_hosts_path }}
+          WEKNORA_STAGING_SSH_KEY: ${{ steps.staging_prepare.outputs.key_path }}
+          WEKNORA_STAGING_REMOTE: ${{ secrets.MUSUW_STAGING_SSH_REMOTE }}
+          WEKNORA_STAGING_SSH_PORT: ${{ secrets.MUSUW_STAGING_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$APP_IMAGE" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]
+          [[ "$FRONTEND_IMAGE" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]
+          case "$WEKNORA_STAGING_REMOTE" in
+            musuw-staging-deploy@*) ;;
+            *) printf '%s\n' 'staging SSH remote must use the restricted musuw-staging-deploy account' >&2; exit 1 ;;
+          esac
+          ssh_args=(
+            -F /dev/null
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$WEKNORA_STAGING_KNOWN_HOSTS_FILE"
+            -o IdentitiesOnly=yes
+            -o ConnectTimeout=15
+            -o ConnectionAttempts=1
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=4
+            -i "$WEKNORA_STAGING_SSH_KEY"
+          )
+          if [ -n "$WEKNORA_STAGING_SSH_PORT" ]; then
+            case "$WEKNORA_STAGING_SSH_PORT" in
+              ''|*[!0-9]*) printf '%s\n' 'staging SSH port is invalid' >&2; exit 1 ;;
+            esac
+            ssh_args+=( -p "$WEKNORA_STAGING_SSH_PORT" )
+          fi
+          ssh "${ssh_args[@]}" "$WEKNORA_STAGING_REMOTE" \
+            "musuw-staging-gate verify $RELEASE_SHA $APP_IMAGE $FRONTEND_IMAGE"
+      - name: Write the verified staging release record
+        id: staging_record
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          APP_IMAGE: ${{ needs.build.outputs.app_ref }}
+          FRONTEND_IMAGE: ${{ needs.build.outputs.frontend_ref }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          PRIOR_STAGING_RUN_ID: ${{ inputs.staging_run_id }}
+          CI_WORKFLOW_RUN: ${{ needs.authorize.outputs.ci_workflow_run }}
+          WORKFLOW_RUN: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          record_dir="$RUNNER_TEMP/musuw-staging-release"
+          install -d -m 700 "$record_dir"
+          mode="$RELEASE_MODE"
+          if [ -z "$mode" ]; then mode=staging-only; fi
+          case "$mode" in
+            staging-only|promote) ;;
+            *) printf '%s\n' 'unknown release mode' >&2; exit 1 ;;
+          esac
+          staging_run_id="$WORKFLOW_RUN"
+          if [ "$mode" = promote ]; then staging_run_id="$PRIOR_STAGING_RUN_ID"; fi
+          [[ "$staging_run_id" =~ ^[0-9]+$ ]]
+          app_digest="${APP_IMAGE##*@}"
+          frontend_digest="${FRONTEND_IMAGE##*@}"
+          jq -n \
+            --arg schema_version 'musuw.staging.release.v1' \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow 'Deploy production application' \
+            --arg release_mode "$mode" \
+            --arg commit_sha "$RELEASE_SHA" \
+            --arg app_image "$APP_IMAGE" \
+            --arg frontend_image "$FRONTEND_IMAGE" \
+            --arg app_digest "$app_digest" \
+            --arg frontend_digest "$frontend_digest" \
+            --arg staging_deployment success \
+            --arg staging_run_id "$staging_run_id" \
+            --arg ci_workflow_run "$CI_WORKFLOW_RUN" \
+            --arg workflow_run "$WORKFLOW_RUN" \
+            '{schema_version:$schema_version,repository:$repository,workflow:$workflow,release_mode:$release_mode,commit_sha:$commit_sha,app_image:$app_image,frontend_image:$frontend_image,app_digest:$app_digest,frontend_digest:$frontend_digest,staging_deployment:$staging_deployment,staging_run_id:$staging_run_id,ci_workflow_run:$ci_workflow_run,workflow_run:$workflow_run}' \
+            > "$record_dir/staging-release.json"
+          test -s "$record_dir/staging-release.json"
+      - name: Upload accepted staging release record
+        if: ${{ (github.event_name != 'workflow_dispatch' || inputs.release_mode != 'promote') && success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: musuw-staging-release-${{ needs.authorize.outputs.release_sha }}
+          path: ${{ runner.temp }}/musuw-staging-release/staging-release.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove temporary staging deployment inputs
+        if: always()
+        env:
+          RUNTIME_DIR: ${{ steps.staging_prepare.outputs.runtime_dir }}
+          KEY_PATH: ${{ steps.staging_prepare.outputs.key_path }}
+          KNOWN_HOSTS_PATH: ${{ steps.staging_prepare.outputs.known_hosts_path }}
+        run: |
+          set -euo pipefail
+          if [ -n "${KEY_PATH:-}" ]; then rm -f -- "$KEY_PATH"; fi
+          if [ -n "${KNOWN_HOSTS_PATH:-}" ]; then rm -f -- "$KNOWN_HOSTS_PATH"; fi
+          if [ -n "${RUNTIME_DIR:-}" ]; then
+            rm -f -- "$RUNTIME_DIR/staging.public.env" "$RUNTIME_DIR/auth-public.env"
+            rmdir -- "$RUNTIME_DIR" 2>/dev/null || true
+          fi
+
+  deploy:
+    name: Deploy approved immutable images through the restricted seam
+    needs: [authorize, build, deploy-staging]
+    if: >-
+      needs.authorize.result == 'success' &&
+      needs.build.result == 'success' &&
+      needs.deploy-staging.result == 'success' &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.release_mode == 'promote' &&
+      (inputs.staging_e2e_result == 'full-sandbox-e2e-green' || inputs.staging_e2e_result == 'ui-regression-green' || inputs.staging_e2e_result == 'reviewed-model-release' || inputs.staging_e2e_result == 'reviewed-integration-release')
+    environment: server-production
+    permissions:
+      contents: read
+      packages: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the exact requested revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.authorize.outputs.release_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Assert the detached checkout matches the approved SHA
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$RELEASE_SHA"
+      - name: Set up temporary, pinned deployment inputs
+        id: prepare
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.MUSUW_PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.MUSUW_PRODUCTION_SSH_KNOWN_HOSTS }}
+          PRODUCTION_SSH_REMOTE: ${{ secrets.MUSUW_PRODUCTION_SSH_REMOTE }}
+          PRODUCTION_PUBLIC_ENV: ${{ secrets.MUSUW_PRODUCTION_PUBLIC_ENV }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_WEKNORA_OAUTH_CLIENT_ID: ${{ vars.VITE_WEKNORA_OAUTH_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          runtime_dir="$RUNNER_TEMP/musuw-production-runtime"
+          key_path="$RUNNER_TEMP/musuw-production-ssh-key"
+          known_hosts_path="$RUNNER_TEMP/musuw-production-known-hosts"
+          install -d -m 700 "$runtime_dir"
+          {
+            printf 'runtime_dir=%s\n' "$runtime_dir"
+            printf 'key_path=%s\n' "$key_path"
+            printf 'known_hosts_path=%s\n' "$known_hosts_path"
+          } >> "$GITHUB_OUTPUT"
+          umask 077
+          test -n "$DEPLOY_SSH_KEY"
+          test -n "$DEPLOY_KNOWN_HOSTS"
+          test -n "$PRODUCTION_SSH_REMOTE"
+          test -n "$PRODUCTION_PUBLIC_ENV"
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY"
+          test -n "$VITE_WEKNORA_OAUTH_CLIENT_ID"
+          case "$VITE_SUPABASE_URL$VITE_SUPABASE_PUBLISHABLE_KEY$VITE_WEKNORA_OAUTH_CLIENT_ID" in
+            *$'\n'*|*$'\r'*) printf '%s\n' 'public auth variables must be single-line values' >&2; exit 1 ;;
+          esac
+          case "$PRODUCTION_SSH_REMOTE" in
+            musuw-deploy@*) ;;
+            *) printf '%s\n' 'production SSH remote must use the restricted musuw-deploy account' >&2; exit 1 ;;
+          esac
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$key_path"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts_path"
+          printf '%s\n' "$PRODUCTION_PUBLIC_ENV" > "$runtime_dir/production.public.env"
+          printf '%s\n' \
+            'VITE_AUTH_PUBLIC_ORIGIN=https://app.musuw.com' \
+            "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" \
+            "VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY" \
+            "VITE_WEKNORA_OAUTH_CLIENT_ID=$VITE_WEKNORA_OAUTH_CLIENT_ID" \
+            > "$runtime_dir/auth-public.env"
+          test -s "$key_path"
+          test -s "$known_hosts_path"
+          test -s "$runtime_dir/production.public.env"
+          test -s "$runtime_dir/auth-public.env"
+      - name: Pin approved GHCR image refs in the server input
+        env:
+          RUNTIME_DIR: ${{ steps.prepare.outputs.runtime_dir }}
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          APP_IMAGE: ${{ needs.build.outputs.app_ref }}
+          FRONTEND_IMAGE: ${{ needs.build.outputs.frontend_ref }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$APP_IMAGE" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]
+          [[ "$FRONTEND_IMAGE" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]
+          tmp="$RUNTIME_DIR/production.public.env.$$"
+          awk '!/^(WEKNORA_PRODUCTION_REVISION|WEKNORA_PRODUCTION_APP_IMAGE|WEKNORA_PRODUCTION_FRONTEND_IMAGE)=/' \
+            "$RUNTIME_DIR/production.public.env" > "$tmp"
+          printf '%s\n' \
+            "WEKNORA_PRODUCTION_REVISION=$RELEASE_SHA" \
+            "WEKNORA_PRODUCTION_APP_IMAGE=$APP_IMAGE" \
+            "WEKNORA_PRODUCTION_FRONTEND_IMAGE=$FRONTEND_IMAGE" >> "$tmp"
+          chmod 600 "$tmp"
+          mv -f "$tmp" "$RUNTIME_DIR/production.public.env"
+      - name: Assert the direct SHA-only release seam
+        run: |
+          set -euo pipefail
+          grep -Fq 'release-ci.sh' scripts/weknora-deploy.sh
+          grep -Fq 'remote_gate prepare' scripts/weknora-deploy.sh
+          grep -Fq 'remote_gate deploy' scripts/weknora-deploy.sh
+          grep -Fq 'Usage: scripts/weknora-deploy.sh <full-sha>' scripts/weknora-deploy.sh
+          test -x scripts/weknora-production/server/musuw-deploy-ssh-gate
+          test -x scripts/weknora-production/server/musuw-deploy-gate
+      - name: Execute the direct SHA-only WeKnora release seam
+        id: deploy_release
+        env:
+          WEKNORA_DEPLOY_RUNTIME_DIR: ${{ steps.prepare.outputs.runtime_dir }}
+          WEKNORA_DEPLOY_KNOWN_HOSTS_FILE: ${{ steps.prepare.outputs.known_hosts_path }}
+          WEKNORA_DEPLOY_SSH_KEY: ${{ steps.prepare.outputs.key_path }}
+          WEKNORA_DEPLOY_REMOTE: ${{ secrets.MUSUW_PRODUCTION_SSH_REMOTE }}
+          WEKNORA_DEPLOY_SSH_PORT: ${{ secrets.MUSUW_PRODUCTION_SSH_PORT }}
+          WEKNORA_DEPLOY_REVISION: ${{ needs.authorize.outputs.release_sha }}
+          WEKNORA_DEPLOY_GHCR_USERNAME: ${{ github.actor }}
+          WEKNORA_DEPLOY_GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash scripts/weknora-deploy.sh "$WEKNORA_DEPLOY_REVISION" 2>&1 | tee "$RUNNER_TEMP/musuw-production-release.log"
+      - name: Write production release manifest and checksum
+        if: always()
+        env:
+          RELEASE_SHA: ${{ needs.authorize.outputs.release_sha }}
+          WORKFLOW_RUN: ${{ github.run_id }}
+          CI_WORKFLOW_RUN: ${{ needs.authorize.outputs.ci_workflow_run }}
+          RELEASE_OUTCOME: ${{ steps.deploy_release.outcome }}
+          APP_IMAGE: ${{ needs.build.outputs.app_ref }}
+          FRONTEND_IMAGE: ${{ needs.build.outputs.frontend_ref }}
+          RELEASE_ACCEPTANCE: ${{ inputs.staging_e2e_result }}
+          UI_BASE_SHA: ${{ inputs.ui_base_sha }}
+        run: |
+          set -euo pipefail
+          repository_provenance='third_party/weknora/active-upstream-source.json'
+          repository_provenance_sha256=''
+          if [ -f "$repository_provenance" ]; then
+            repository_provenance_sha256="$(sha256sum "$repository_provenance" | awk '{print $1}')"
+          fi
+          expected_release_id="musuw-$RELEASE_SHA"
+          server_release_id=''
+          if [ -f "$RUNNER_TEMP/musuw-production-release.log" ]; then
+            server_release_id="$(grep -Eo 'simple release green: [^ ]+' "$RUNNER_TEMP/musuw-production-release.log" | tail -n 1 | sed -E 's/.*green: ([^ ]+).*/\1/' || true)"
+          fi
+          server_source_bundle_sha256=''
+          if [ -f "$RUNNER_TEMP/musuw-production-release.log" ]; then
+            server_source_bundle_sha256="$(grep -Eo 'source_bundle_sha256=[0-9a-fA-F]{64}' "$RUNNER_TEMP/musuw-production-release.log" | tail -n 1 | cut -d= -f2 || true)"
+          fi
+          deployed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          health_result=failed
+          app_image="$APP_IMAGE"
+          frontend_image="$FRONTEND_IMAGE"
+          if ! [[ "$app_image" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]; then
+            app_image=''
+          fi
+          if ! [[ "$frontend_image" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]; then
+            frontend_image=''
+          fi
+          if [ "$RELEASE_OUTCOME" = success ]; then
+            test "$server_release_id" = "$expected_release_id"
+            [[ "$CI_WORKFLOW_RUN" =~ ^[0-9]+$ ]]
+            [[ "$server_source_bundle_sha256" =~ ^[0-9a-fA-F]{64}$ ]]
+            test -n "$app_image"
+            test -n "$frontend_image"
+            health_result=healthy
+          fi
+          jq -n \
+            --arg schema_version 'musuw.release.v1' \
+            --arg commit_sha "$RELEASE_SHA" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow_run "$WORKFLOW_RUN" \
+            --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg ci_workflow_run "$CI_WORKFLOW_RUN" \
+            --arg target 'server:app.musuw.com' \
+            --arg deployed_at "$deployed_at" \
+            --arg health_result "$health_result" \
+            --arg release_outcome "$RELEASE_OUTCOME" \
+            --arg source_manifest 'deploy/source-manifest.sha256' \
+            --arg source_manifest_sha256 "$server_source_bundle_sha256" \
+            --arg repository_provenance "$repository_provenance" \
+            --arg repository_provenance_sha256 "$repository_provenance_sha256" \
+            --arg app_image "$app_image" \
+            --arg frontend_image "$frontend_image" \
+            --arg server_release_id "$server_release_id" \
+            --arg server_source_bundle_sha256 "$server_source_bundle_sha256" \
+            '{schema_version:$schema_version,commit_sha:$commit_sha,repository:$repository,workflow:"Deploy production application",workflow_run:$workflow_run,workflow_attempt:$workflow_attempt,ci_workflow_run:$ci_workflow_run,target:$target,deployed_at:$deployed_at,health_result:$health_result,release_outcome:$release_outcome,source_manifest:$source_manifest,source_manifest_sha256:(if $source_manifest_sha256 == "" then null else $source_manifest_sha256 end),repository_provenance:$repository_provenance,repository_provenance_sha256:$repository_provenance_sha256,app_image:(if $app_image == "" then null else $app_image end),frontend_image:(if $frontend_image == "" then null else $frontend_image end),server_release_id:(if $server_release_id == "" then null else $server_release_id end),server_source_bundle_sha256:(if $server_source_bundle_sha256 == "" then null else $server_source_bundle_sha256 end)}' \
+            | jq --arg acceptance_class "$RELEASE_ACCEPTANCE" --arg ui_base_sha "$UI_BASE_SHA" \
+                '. + {acceptance_class:$acceptance_class,ui_base_sha:(if $ui_base_sha == "" then null else $ui_base_sha end)}' \
+            > "$RUNNER_TEMP/musuw-production-release-manifest.json"
+          sha256sum "$RUNNER_TEMP/musuw-production-release-manifest.json" > "$RUNNER_TEMP/musuw-production-release-manifest.json.sha256"
+      - name: Upload production release evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-release-${{ needs.authorize.outputs.release_sha }}
+          path: |
+            ${{ runner.temp }}/musuw-production-release.log
+            ${{ runner.temp }}/musuw-production-release-manifest.json
+            ${{ runner.temp }}/musuw-production-release-manifest.json.sha256
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove temporary deployment inputs
+        if: always()
+        env:
+          RUNTIME_DIR: ${{ steps.prepare.outputs.runtime_dir }}
+          KEY_PATH: ${{ steps.prepare.outputs.key_path }}
+          KNOWN_HOSTS_PATH: ${{ steps.prepare.outputs.known_hosts_path }}
+        run: |
+          set -euo pipefail
+          if [ -n "${KEY_PATH:-}" ]; then rm -f -- "$KEY_PATH"; fi
+          if [ -n "${KNOWN_HOSTS_PATH:-}" ]; then rm -f -- "$KNOWN_HOSTS_PATH"; fi
+          if [ -n "${RUNTIME_DIR:-}" ]; then
+            rm -f -- "$RUNTIME_DIR/production.public.env" "$RUNTIME_DIR/auth-public.env"
+            rmdir -- "$RUNTIME_DIR" 2>/dev/null || true
+          fi

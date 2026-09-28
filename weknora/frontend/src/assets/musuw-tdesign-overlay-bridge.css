@@ -1,0 +1,451 @@
+/*
+ * Teleported TDesign overlay bridge.
+ *
+ * This is a visual-only seam.  The Lite scene-model selector is the chrome
+ * reference: 36px controls, 12px control/option radius, 16px panels, a 6px
+ * panel inset and the neutral ink/hover/selected tokens below.  Components
+ * keep their own value, width, placement, Teleport, scroll and rich-content
+ * behavior.  Homepage chat, tenant, organization-share and sandbox surfaces
+ * are deliberately not custom-skinned here (their own contracts remain the
+ * source of truth).
+ */
+
+body .t-dialog {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+body .t-dialog__header {
+  color: #111827 !important;
+  font-family: var(--app-font-family) !important;
+  font-weight: 700 !important;
+}
+body .t-dialog__body {
+  color: #4b5563 !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+  line-height: 1.625 !important;
+}
+body .t-dialog .t-button { border-radius: 10px !important; box-shadow: none !important; }
+body .t-dialog .t-button--theme-primary,
+body .t-dialog .t-button--variant-base.t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+body .t-dialog .t-button--theme-primary:hover { border-color: #000 !important; background: #000 !important; }
+
+/*
+ * Native select popups share one painted surface.  These exclusions are
+ * behavior-specific overlays owned by organization sharing and sandbox
+ * editors; they retain their existing rich option chrome and scroll limits.
+ * The selectors are class-based because TDesign teleports the popup to body.
+ */
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) {
+  /* TDesign renders a popup root and a nested `.t-popup__content`. Keep the
+   * root as a positioning shell so only the content paints the scene-model
+   * panel; painting both layers creates the nested/overlapping frame seen in
+   * the settings dropdown. */
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  font-family: var(--app-font-family) !important;
+}
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup):not(.market-filter-popup) > .t-popup__content {
+  width: 288px !important;
+  max-width: min(288px, calc(100vw - 32px)) !important;
+}
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) > .t-popup__content {
+  box-sizing: border-box !important;
+  max-height: 256px !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%) !important;
+  font-family: var(--app-font-family) !important;
+}
+/* The nested list is a layout node only. Keeping its own fill/border and
+ * scroll disabled leaves one painted 288x256 scene-model panel. */
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) > .t-popup__content .t-select__list {
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option:hover:not(.t-is-selected) {
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option.t-is-selected {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option__content {
+  min-width: 0 !important;
+  font: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+/* Avoid a second check when the option already renders a rich check/checkbox. */
+body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option.t-is-selected:not(:has(.t-checkbox, .visual-model-selector__option-check, .org-option-content, .share-org-option, .backend-choice))::after {
+  content: '';
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%3E%3Cpath%20d%3D%22M20%206%209%2017l-5-5%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206%209%2017l-5-5%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+}
+@media (min-width: 640px) {
+  body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option,
+  body .t-select__dropdown:not(.org-select-dropdown-popup):not(.share-org-select-popup):not(.sandbox-backend-popup):not(.sandbox-config-select-popup):not(.tenant-members-role-select-popup) .t-select-option__content {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+}
+
+/*
+ * `.t-select-input` is a TDesign layout wrapper.  Only its nested `.t-input`
+ * paints the trigger, which prevents wrapper + input double insets.  Trigger
+ * scope is limited to ordinary Lite settings/editor surfaces so sandbox and
+ * organization-share controls retain their native contracts.
+ */
+body .agent-editor-content .t-select-input,
+body .memory-settings .t-select-input,
+body .kb-settings-content .t-select-input,
+body .setting-drawer:not(.sandbox-config-drawer) .t-select-input,
+body .visual-settings-content .t-select-input,
+body .settings-overlay > .settings-modal .t-select-input {
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body .agent-editor-content .t-select-input .t-input,
+body .memory-settings .t-select-input .t-input,
+body .kb-settings-content .t-select-input .t-input,
+body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input,
+body .visual-settings-content .t-select-input .t-input,
+body .settings-overlay > .settings-modal .t-select-input .t-input {
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .agent-editor-content .t-select-input .t-input__inner,
+body .memory-settings .t-select-input .t-input__inner,
+body .kb-settings-content .t-select-input .t-input__inner,
+body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input__inner,
+body .visual-settings-content .t-select-input .t-input__inner,
+body .settings-overlay > .settings-modal .t-select-input .t-input__inner {
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .agent-editor-content .t-select-input .t-input:hover:not(.t-is-disabled),
+body .agent-editor-content .t-select-input .t-input.t-is-focused,
+body .memory-settings .t-select-input .t-input:hover:not(.t-is-disabled),
+body .memory-settings .t-select-input .t-input.t-is-focused,
+body .kb-settings-content .t-select-input .t-input:hover:not(.t-is-disabled),
+body .kb-settings-content .t-select-input .t-input.t-is-focused,
+body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input:hover:not(.t-is-disabled),
+body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input.t-is-focused,
+body .visual-settings-content .t-select-input .t-input:hover:not(.t-is-disabled),
+body .visual-settings-content .t-select-input .t-input.t-is-focused,
+body .settings-overlay > .settings-modal .t-select-input .t-input:hover:not(.t-is-disabled),
+body .settings-overlay > .settings-modal .t-select-input .t-input.t-is-focused {
+  border-color: #d1d5db !important;
+  background: #fff !important;
+}
+body .agent-editor-content .t-select-input .t-input.t-is-focused,
+body .memory-settings .t-select-input .t-input.t-is-focused,
+body .kb-settings-content .t-select-input .t-input.t-is-focused,
+body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input.t-is-focused,
+body .visual-settings-content .t-select-input .t-input.t-is-focused,
+body .settings-overlay > .settings-modal .t-select-input .t-input.t-is-focused {
+  box-shadow: 0 0 0 2px rgb(17 24 39 / 8%) !important;
+}
+@media (min-width: 640px) {
+  body .agent-editor-content .t-select-input .t-input,
+  body .agent-editor-content .t-select-input .t-input__inner,
+  body .memory-settings .t-select-input .t-input,
+  body .memory-settings .t-select-input .t-input__inner,
+  body .kb-settings-content .t-select-input .t-input,
+  body .kb-settings-content .t-select-input .t-input__inner,
+  body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input,
+  body .setting-drawer:not(.sandbox-config-drawer) .t-select-input .t-input__inner,
+  body .visual-settings-content .t-select-input .t-input,
+  body .visual-settings-content .t-select-input .t-input__inner,
+  body .settings-overlay > .settings-modal .t-select-input .t-input,
+  body .settings-overlay > .settings-modal .t-select-input .t-input__inner {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+}
+
+/*
+ * Ordinary non-chat selects can opt into the same trigger chrome as the
+ * scene-model CustomSelect. The TDesign component still owns its value,
+ * filtering, multiple-selection and keyboard behavior; this rule only
+ * replaces the outer paint. Homepage Input-field is a separate chat branch
+ * and never receives this class.
+ */
+body .visual-scene-select.visual-scene-select .t-select-input {
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body .visual-scene-select.visual-scene-select .t-select-input .t-input {
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .visual-scene-select.visual-scene-select .t-select-input .t-input__inner {
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .visual-scene-select.visual-scene-select .t-select-input .t-input:hover:not(.t-is-disabled),
+body .visual-scene-select.visual-scene-select .t-select-input.t-is-focused .t-input {
+  border-color: #d1d5db !important;
+  background: #fff !important;
+}
+body .visual-scene-select.visual-scene-select .t-select-input.t-is-focused .t-input {
+  box-shadow: 0 0 0 2px rgb(17 24 39 / 8%) !important;
+}
+@media (min-width: 640px) {
+  body .visual-scene-select.visual-scene-select .t-select-input .t-input,
+  body .visual-scene-select.visual-scene-select .t-select-input .t-input__inner {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+}
+
+/* Ordinary Lite custom selectors.  These selectors own chrome only; their
+ * components retain position, Teleport, scroll and rich content constraints. */
+body .t-popup__content:has(> .template-popup),
+body .t-popup__content:has(> .kb-activity-filter-menu),
+body .tag-filter-popup .t-popup__content,
+body .visual-tag-filter-popup .t-popup__content {
+  padding: 0 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%) !important;
+  font-family: var(--app-font-family) !important;
+}
+
+body .language-switch > button {
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .language-switch > button:hover,
+body .language-switch > button:focus-visible {
+  outline: none !important;
+  border-color: #d1d5db !important;
+  background: #fff !important;
+  color: #111827 !important;
+}
+body .language-switch > button:focus-visible { box-shadow: 0 0 0 2px rgb(17 24 39 / 8%) !important; }
+body .language-dropdown {
+  box-sizing: border-box !important;
+  padding: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%) !important;
+  font-family: var(--app-font-family) !important;
+}
+body .language-option {
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .language-option:hover,
+body .language-option:focus-visible { outline: none !important; background: #f9fafb !important; color: #111827 !important; }
+body .language-option.active { background: #f3f4f6 !important; color: #111827 !important; font-weight: 600 !important; }
+body .language-option .check-icon { color: #111827 !important; }
+
+body .kb-activity-filter-option,
+body .tag-filter-chip,
+body .visual-tag-filter__chip {
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .kb-activity-filter-option:hover,
+body .kb-activity-filter-option:focus-visible,
+body .tag-filter-chip:hover,
+body .tag-filter-chip:focus-visible,
+body .visual-tag-filter__chip:hover,
+body .visual-tag-filter__chip:focus-visible {
+  outline: none !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+body .kb-activity-filter-option.active,
+body .tag-filter-chip.active,
+body .visual-tag-filter__chip.is-active {
+  border-color: #e5e7eb !important;
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+body .kb-activity-filter-option:focus-visible,
+body .tag-filter-chip:focus-visible,
+body .visual-tag-filter__chip:focus-visible { box-shadow: 0 0 0 2px rgb(17 24 39 / 8%) !important; }
+body .kb-activity-filter-option-check { color: #6b7280 !important; }
+body .kb-activity-filter-option.active .kb-activity-filter-option-check { color: #111827 !important; }
+
+body .kb-activity-filter-trigger,
+body .doc-tag-filter-trigger {
+  box-sizing: border-box !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .kb-activity-filter-trigger:hover,
+body .kb-activity-filter-trigger:focus-visible,
+body .kb-activity-filter-trigger.active,
+body .doc-tag-filter-trigger:hover,
+body .doc-tag-filter-trigger:focus-visible,
+body .doc-tag-filter-trigger.open {
+  outline: none !important;
+  border-color: #d1d5db !important;
+  background: #fff !important;
+  color: #111827 !important;
+}
+body .kb-activity-filter-trigger:focus-visible,
+body .doc-tag-filter-trigger:focus-visible { box-shadow: 0 0 0 2px rgb(17 24 39 / 8%) !important; }
+
+/* t-dropdown is intentionally not global: most users of it are action menus.
+ * IntegrationsAgentFilter opts into this class for its actual value selector. */
+body .integrations-agent-filter-popup .t-dropdown__menu {
+  padding: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%) !important;
+  font-family: var(--app-font-family) !important;
+}
+body .integrations-agent-filter-popup .t-dropdown__item {
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+body .integrations-agent-filter-popup .t-dropdown__item:hover,
+body .integrations-agent-filter-popup .t-dropdown__item.t-is-active {
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+body .integrations-agent-filter-popup .t-dropdown__item.t-is-active { font-weight: 600 !important; background: #f3f4f6 !important; }
+
+body .template-item {
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  margin-bottom: 2px !important;
+  color: #374151 !important;
+}
+body .template-item:hover { background: #f9fafb !important; color: #111827 !important; }
+
+@media (min-width: 640px) {
+  body .language-switch > button,
+  body .language-option,
+  body .kb-activity-filter-option,
+  body .tag-filter-chip,
+  body .visual-tag-filter__chip,
+  body .kb-activity-filter-trigger,
+  body .doc-tag-filter-trigger,
+  body .integrations-agent-filter-popup .t-dropdown__item {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+}
+
+/* Reference controls are neutral/black rather than brand-blue. */
+.settings-modal .t-radio-button.t-is-checked,
+:where([class^="visual-"], [class*=" visual-"]) .t-radio-button.t-is-checked {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+.settings-modal .t-checkbox__input.t-is-checked,
+:where([class^="visual-"], [class*=" visual-"]) .t-checkbox__input.t-is-checked {
+  border-color: #111827 !important;
+  background: #111827 !important;
+}
+.settings-modal .t-radio__input.t-is-checked,
+:where([class^="visual-"], [class*=" visual-"]) .t-radio__input.t-is-checked {
+  border-color: #111827 !important;
+  color: #111827 !important;
+}

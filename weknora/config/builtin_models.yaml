@@ -1,0 +1,749 @@
+# Platform-managed models are visible according to the tenant's plan. Catalog
+# rows carry no inference credential; the OpenRouter transport supplies the
+# tenant's encrypted, provider-managed child key at request time.
+builtin_models:
+# Legacy internal IDs (including -free suffixes) are retained for saved selections.
+# Display names and provider slugs describe the current, verified endpoint.
+# Verified 2026-09-18 against the official provider docs and OpenRouter catalog.
+# Keep embedding identity and dimension stable: existing knowledge bases use them.
+  - id: builtin-deepseek-v4-pro
+    tenant_id: 10000
+    name: deepseek/deepseek-v4-pro-0813
+    display_name: DeepSeek V4 Pro
+    type: KnowledgeQA
+    source: remote
+    description: DeepSeek V4 Pro through OpenRouter · high-quality conversation model
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: false
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, high, low]
+        default_effort: low
+
+  - id: builtin-deepseek-v4-flash
+    tenant_id: 10000
+    name: deepseek/deepseek-v4.1-flash
+    display_name: DeepSeek V4.1 Flash
+    type: KnowledgeQA
+    source: remote
+    description: DeepSeek V4.1 Flash through OpenRouter · lower-cost conversation model
+    is_default: true
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, high, low]
+        default_effort: low
+
+  - id: builtin-openrouter-qwen-max
+    tenant_id: 10000
+    name: qwen/qwen3.8-max-0902
+    display_name: Qwen 3.8 Max (0902)
+    type: KnowledgeQA
+    source: remote
+    description: Qwen 3.8 Max (0902) through OpenRouter · flagship multimodal conversation
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [xhigh, high, medium, low, minimal]
+        default_effort: minimal
+
+  - id: builtin-openrouter-gpt-luna
+    tenant_id: 10000
+    name: openai/gpt-5.6-luna
+    display_name: GPT-5.6 Luna
+    type: KnowledgeQA
+    source: remote
+    description: GPT-5.6 Luna through OpenRouter · efficient general reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, xhigh, high, medium, low, none]
+        default_effort: low
+
+  - id: builtin-openrouter-gpt-terra
+    tenant_id: 10000
+    name: openai/gpt-5.6-terra
+    display_name: GPT-5.6 Terra
+    type: KnowledgeQA
+    source: remote
+    description: GPT-5.6 Terra through OpenRouter · balanced general reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, xhigh, high, medium, low, none]
+        default_effort: low
+
+  - id: builtin-openrouter-gpt-sol
+    tenant_id: 10000
+    name: openai/gpt-5.6-sol
+    display_name: GPT-5.6 Sol
+    type: KnowledgeQA
+    source: remote
+    description: GPT-5.6 Sol through OpenRouter · highest-capability general reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, xhigh, high, medium, low, none]
+        default_effort: low
+
+  - id: builtin-openrouter-gemini-flash
+    tenant_id: 10000
+    name: google/gemini-3.8-flash
+    display_name: Gemini 3.8 Flash
+    type: KnowledgeQA
+    source: remote
+    description: Gemini 3.8 Flash through OpenRouter · fast multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-gemini-pro
+    tenant_id: 10000
+    name: google/gemini-3.1-pro-preview
+    display_name: Gemini 3.1 Pro (Preview)
+    type: KnowledgeQA
+    source: remote
+    description: Gemini 3.1 Pro Preview through OpenRouter · high-quality multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-claude-haiku
+    tenant_id: 10000
+    name: anthropic/claude-haiku-4.5
+    display_name: Claude Haiku 4.5
+    type: KnowledgeQA
+    source: remote
+    description: Claude Haiku 4.5 through OpenRouter · fast multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: false
+        mandatory: false
+        supported_efforts: []
+        default_effort: none
+
+  - id: builtin-openrouter-claude-sonnet
+    tenant_id: 10000
+    name: anthropic/claude-sonnet-5
+    display_name: Claude Sonnet 5
+    type: KnowledgeQA
+    source: remote
+    description: Claude Sonnet 5 through OpenRouter · advanced multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, xhigh, high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-claude-opus
+    tenant_id: 10000
+    name: anthropic/claude-opus-5
+    display_name: Claude Opus 5
+    type: KnowledgeQA
+    source: remote
+    description: Claude Opus 5 through OpenRouter · highest-capability multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, xhigh, high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-nemotron-lightning-free
+    tenant_id: 10000
+    name: nvidia/nemotron-3-ultra-550b-a55b
+    display_name: Nemotron 3 Ultra
+    type: KnowledgeQA
+    source: remote
+    description: Nemotron 3 Ultra through OpenRouter · tool-capable long-context reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: false
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [high, medium]
+        default_effort: medium
+
+  - id: builtin-openrouter-glm-5-2-free
+    tenant_id: 10000
+    name: z-ai/glm-5.3
+    display_name: GLM 5.3
+    type: KnowledgeQA
+    source: remote
+    description: GLM 5.3 through OpenRouter · multilingual tool-capable reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: false
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [max, high, low]
+        default_effort: low
+
+  - id: builtin-openrouter-minimax-m3-free
+    tenant_id: 10000
+    name: minimax/minimax-m3
+    display_name: MiniMax M3
+    type: KnowledgeQA
+    source: remote
+    description: MiniMax M3 through OpenRouter · multimodal tool-capable reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-ling-flash
+    tenant_id: 10000
+    name: inclusionai/ling-3.0-flash
+    display_name: Ling 3.0 Flash
+    type: KnowledgeQA
+    source: remote
+    description: Ling 3.0 Flash through OpenRouter · very-low-cost tool-capable reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: false
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-qwen-3-7-flash
+    tenant_id: 10000
+    name: qwen/qwen3.8-flash
+    display_name: Qwen 3.8 Flash
+    type: KnowledgeQA
+    source: remote
+    description: Qwen 3.8 Flash through OpenRouter · low-cost multimodal tool-capable reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-gpt-5-nano
+    tenant_id: 10000
+    name: openai/gpt-5.4-nano
+    display_name: GPT-5.4 Nano
+    type: KnowledgeQA
+    source: remote
+    description: GPT-5.4 Nano through OpenRouter · low-cost multimodal structured reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [xhigh, high, medium, low, none]
+        default_effort: low
+
+  - id: builtin-openrouter-gpt-astra
+    tenant_id: 10000
+    name: openai/gpt-6-astra
+    display_name: GPT-6 Astra
+    type: KnowledgeQA
+    source: remote
+    description: GPT-6 Astra through OpenRouter · frontier general reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [max, xhigh, high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-grok
+    tenant_id: 10000
+    name: x-ai/grok-4.6
+    display_name: Grok 4.6
+    type: KnowledgeQA
+    source: remote
+    description: Grok 4.6 through OpenRouter · multimodal reasoning and knowledge work
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [xhigh, high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-kimi
+    tenant_id: 10000
+    name: moonshotai/kimi-k3
+    display_name: Kimi K3
+    type: KnowledgeQA
+    source: remote
+    description: Kimi K3 through OpenRouter · long-context multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, high, low]
+        default_effort: low
+
+  - id: builtin-openrouter-kimi-code
+    tenant_id: 10000
+    name: moonshotai/kimi-k2.7-code
+    display_name: Kimi K2.7 Code
+    type: KnowledgeQA
+    source: remote
+    description: Kimi K2.7 Code through OpenRouter · long-context coding and tools
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-glm-flash
+    tenant_id: 10000
+    name: z-ai/glm-5.3-flash
+    display_name: GLM 5.3 Flash
+    type: KnowledgeQA
+    source: remote
+    description: GLM 5.3 Flash through OpenRouter · fast multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [max, high, low]
+        default_effort: low
+
+  - id: builtin-openrouter-claude-fable
+    tenant_id: 10000
+    name: anthropic/claude-fable-5.1
+    display_name: Claude Fable 5.1
+    type: KnowledgeQA
+    source: remote
+    description: Claude Fable 5.1 through OpenRouter · frontier multimodal reasoning
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [max, xhigh, high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-mimo-pro
+    tenant_id: 10000
+    name: xiaomi/mimo-v2.5-pro
+    display_name: MiMo V2.5 Pro
+    type: KnowledgeQA
+    source: remote
+    description: MiMo V2.5 Pro through OpenRouter · long-context reasoning and coding
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: false
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [high, medium, low]
+        default_effort: low
+
+  - id: builtin-openrouter-embedding
+    tenant_id: 10000
+    name: qwen/qwen3-embedding-8b
+    display_name: Qwen3 Embedding 8B
+    type: Embedding
+    source: remote
+    description: Qwen3 Embedding 8B · multilingual document and query vectors
+    is_default: true
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      embedding_parameters:
+        dimension: 4096
+        truncate_prompt_tokens: 8192
+        supports_dimension_override: false
+
+  - id: builtin-openrouter-rerank
+    tenant_id: 10000
+    name: cohere/rerank-4-fast
+    display_name: Cohere Rerank 4 Fast
+    type: Rerank
+    source: remote
+    description: Cohere Rerank 4 Fast · multilingual result reranking
+    is_default: true
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+
+  - id: builtin-openrouter-rerank-nemotron-free
+    tenant_id: 10000
+    name: nvidia/llama-nemotron-rerank-vl-1b-v2:free
+    display_name: Nemotron Rerank VL 1B V2 (Free)
+    type: Rerank
+    source: remote
+    description: NVIDIA multimodal reranker through OpenRouter · free text and visual-document reranking
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+
+  - id: builtin-openrouter-rerank-qwen3
+    tenant_id: 10000
+    name: qwen/qwen3-reranker-8b
+    display_name: Qwen3 Reranker 8B
+    type: Rerank
+    source: remote
+    description: Qwen3 Reranker 8B through OpenRouter · multilingual relevance reranking
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+
+  - id: builtin-openrouter-vlm
+    tenant_id: 10000
+    name: google/gemini-3.8-flash
+    type: VLLM
+    source: remote
+    display_name: Gemini 3.8 Flash
+    description: Gemini 3.8 Flash · image OCR and native video understanding
+    is_default: true
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      interface_type: openai
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [high, medium, low]
+        default_effort: low
+      extra_config:
+        video_input_mode: base64
+        video_provider: google-vertex
+
+  - id: builtin-openrouter-vlm-mimo-v2-5
+    tenant_id: 10000
+    name: xiaomi/mimo-v2.5
+    type: VLLM
+    source: remote
+    display_name: MiMo V2.5 Video
+    description: MiMo V2.5 · video and audio understanding through OpenRouter
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      interface_type: openai
+      supports_vision: true
+      extra_config:
+        video_input_mode: url
+
+  - id: builtin-openrouter-vlm-youtube
+    tenant_id: 10000
+    name: google/gemini-3.5-flash-lite
+    type: VLLM
+    source: remote
+    display_name: Gemini 3.5 Flash-Lite (YouTube)
+    description: Gemini 3.5 Flash-Lite · direct public YouTube understanding through Google AI Studio
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      interface_type: openai
+      supports_vision: true
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [high, medium, low, minimal]
+        default_effort: minimal
+      extra_config:
+        video_input_mode: url
+        video_provider: google-ai-studio
+
+  - id: builtin-openrouter-vlm-qwen-3-7-flash
+    tenant_id: 10000
+    name: qwen/qwen3.8-flash
+    type: VLLM
+    source: remote
+    display_name: Qwen 3.8 Flash Vision
+    description: Qwen 3.8 Flash · low-cost image and video understanding through OpenRouter
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      interface_type: openai
+      supports_vision: true
+      extra_config:
+        video_input_mode: url
+        video_provider: alibaba
+
+  - id: builtin-openrouter-vlm-gemma-4-free
+    tenant_id: 10000
+    name: google/gemma-4-26b-a4b-it
+    type: VLLM
+    source: remote
+    display_name: Gemma 4 26B Vision
+    description: Gemma 4 26B Vision through OpenRouter · image and video understanding
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      interface_type: openai
+      supports_vision: true
+
+  - id: builtin-openrouter-vlm-gpt-astra
+    tenant_id: 10000
+    name: openai/gpt-6-astra
+    display_name: GPT-6 Astra Vision
+    type: VLLM
+    source: remote
+    description: GPT-6 Astra through OpenRouter · image understanding
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      interface_type: openai
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [max, xhigh, high, medium, low]
+        default_effort: medium
+
+  - id: builtin-openrouter-vlm-grok
+    tenant_id: 10000
+    name: x-ai/grok-4.6
+    display_name: Grok 4.6 Vision
+    type: VLLM
+    source: remote
+    description: Grok 4.6 through OpenRouter · image understanding
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      interface_type: openai
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [xhigh, high, medium, low]
+        default_effort: high
+
+  - id: builtin-openrouter-vlm-kimi
+    tenant_id: 10000
+    name: moonshotai/kimi-k3
+    display_name: Kimi K3 Vision
+    type: VLLM
+    source: remote
+    description: Kimi K3 through OpenRouter · image understanding
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      interface_type: openai
+      reasoning:
+        supported: true
+        mandatory: false
+        supported_efforts: [max, high, low]
+        default_effort: max
+
+  - id: builtin-openrouter-vlm-gemini-flash
+    tenant_id: 10000
+    name: google/gemini-3.8-flash
+    display_name: Gemini 3.8 Flash Vision
+    type: VLLM
+    source: remote
+    description: Gemini 3.8 Flash through OpenRouter · image understanding
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      supports_vision: true
+      interface_type: openai
+      reasoning:
+        supported: true
+        mandatory: true
+        supported_efforts: [high, medium, low]
+        default_effort: medium
+
+  - id: builtin-openrouter-asr
+    tenant_id: 10000
+    name: openai/whisper-large-v3
+    display_name: Whisper Large V3
+    type: ASR
+    source: remote
+    description: Whisper Large V3 · multilingual speech transcription
+    is_default: true
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+
+  - id: builtin-openrouter-asr-whisper-turbo
+    tenant_id: 10000
+    name: openai/whisper-large-v3-turbo
+    type: ASR
+    source: remote
+    display_name: Whisper Large V3 Turbo
+    description: Whisper Large V3 Turbo · low-cost multilingual speech transcription through OpenRouter
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+
+  - id: builtin-openrouter-asr-qwen-0-6b
+    tenant_id: 10000
+    name: qwen/qwen3-asr-0.6b
+    type: ASR
+    source: remote
+    display_name: Qwen3 ASR 0.6B
+    description: Qwen3 ASR 0.6B · very-low-cost multilingual transcription through OpenRouter
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+
+  - id: builtin-openrouter-asr-gpt-4o-mini
+    tenant_id: 10000
+    name: openai/gpt-4o-mini-transcribe
+    type: ASR
+    source: remote
+    display_name: GPT-4o Mini Transcribe
+    description: GPT-4o Mini Transcribe · cost-efficient high-quality transcription through OpenRouter
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      extra_config:
+        response_format: json

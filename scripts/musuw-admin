@@ -1,0 +1,603 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+runtime_dir="$repo_root/.runtime/musuw-admin"
+process_state_dir="$runtime_dir/processes"
+test_port=4186
+production_port=4187
+tunnel_target_file="$runtime_dir/production-tunnel-target"
+tunnel_port_file="$runtime_dir/production-tunnel-port"
+server_script="$repo_root/scripts/musuw-admin-server.mjs"
+listen_host=127.0.0.1
+legacy_container=musuw-appsmith
+production_tunnel_default_port=15433
+production_remote_db_default_port=5432
+production_container_default=weknora-v072-production-postgres
+production_ssh_target_default=musuw-tokyo
+admin_uid=$(id -u)
+repo_instance_id=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+ssh_control_socket="/tmp/musuw-admin-${repo_instance_id}-${admin_uid}.sock"
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/musuw-admin start|test|production|stop|status|logs
+
+  start       Build and start both isolated consoles (TEST 4186, PRODUCTION 4187).
+  test        Build and start only the source-controlled TEST console on 4186.
+  production  Build and start only the isolated read-only PRODUCTION console on 4187.
+  prepare-production-tunnel
+              Prepare the existing pinned Tokyo SSH tunnel without restarting the console.
+  stop        Stop both operation consoles and the production tunnel.
+  status      Show both process states, health, ports, and tunnel ownership.
+  logs        Show the last 100 lines from each target log.
+EOF
+}
+
+die() {
+  printf 'musuw-admin: %s\n' "$*" >&2
+  exit 1
+}
+
+valid_port() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  [ "$1" -ge 1 ] 2>/dev/null && [ "$1" -le 65535 ] 2>/dev/null
+}
+
+safe_ssh_target() {
+  case "$1" in
+    ''|-*|*[!A-Za-z0-9._:@-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+safe_container_name() {
+  case "$1" in
+    ''|*[!A-Za-z0-9_.-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+resolve_production_ssh_target() {
+  resolved_ssh_target=${MUSUW_ADMIN_PRODUCTION_SSH_TARGET:-$production_ssh_target_default}
+  safe_ssh_target "$resolved_ssh_target" || die 'MUSUW_ADMIN_PRODUCTION_SSH_TARGET is unsafe'
+  printf '%s' "$resolved_ssh_target"
+}
+
+resolve_production_container() {
+  resolved_container=${MUSUW_ADMIN_PRODUCTION_CONTAINER:-$production_container_default}
+  safe_container_name "$resolved_container" || die 'MUSUW_ADMIN_PRODUCTION_CONTAINER is unsafe'
+  printf '%s' "$resolved_container"
+}
+
+production_runtime_value() {
+  key=$1
+  runtime_file="$runtime_dir/production.env"
+  [ -r "$runtime_file" ] && [ ! -L "$runtime_file" ] || die 'production runtime is unavailable'
+  value=$(awk -v wanted_key="$key" '
+    /^[[:space:]]*($|#)/ { next }
+    /^[[:space:]]*(export[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=/ {
+      line=$0
+      sub(/^[[:space:]]*export[[:space:]]+/, "", line)
+      split(line, fields, "=")
+      if (fields[1] == wanted_key) {
+        value=substr(line, index(line, "=") + 1)
+        sub(/^[[:space:]]+/, "", value)
+        sub(/[[:space:]]+$/, "", value)
+        if (substr(value, 1, 1) == "\"" && substr(value, length(value), 1) == "\"") {
+          value=substr(value, 2, length(value) - 2)
+        }
+        print value
+        exit
+      }
+    }
+  ' "$runtime_file")
+  [ -n "$value" ] || die "production runtime is missing $key"
+  printf '%s' "$value"
+}
+
+production_database_url_port() {
+  url=$1
+  authority=${url#*://}
+  authority=${authority%%/*}
+  authority=${authority##*@}
+  case "$authority" in
+    \[*\]:*) port=${authority##*]:} ;;
+    *:*) port=${authority##*:} ;;
+    *) port='' ;;
+  esac
+  valid_port "$port" && printf '%s' "$port"
+}
+
+production_tunnel_port() {
+  configured_port=${MUSUW_ADMIN_PRODUCTION_TUNNEL_PORT:-}
+  if [ -n "$configured_port" ]; then
+    valid_port "$configured_port" || die 'MUSUW_ADMIN_PRODUCTION_TUNNEL_PORT is invalid'
+    printf '%s' "$configured_port"
+    return
+  fi
+  database_url=$(production_runtime_value MUSUW_ADMIN_DATABASE_URL)
+  database_url_port=$(production_database_url_port "$database_url" || true)
+  if [ -n "$database_url_port" ]; then
+    printf '%s' "$database_url_port"
+  else
+    printf '%s' "$production_tunnel_default_port"
+  fi
+}
+
+production_remote_db_port() {
+  configured_port=${MUSUW_ADMIN_PRODUCTION_DB_PORT:-$production_remote_db_default_port}
+  valid_port "$configured_port" || die 'MUSUW_ADMIN_PRODUCTION_DB_PORT is invalid'
+  printf '%s' "$configured_port"
+}
+
+target_port() {
+  case "$1" in
+    test) printf '%s' "$test_port" ;;
+    production) printf '%s' "$production_port" ;;
+    *) return 1 ;;
+  esac
+}
+
+target_state_dir() {
+  case "$1" in
+    test|production) printf '%s/%s' "$process_state_dir" "$1" ;;
+    *) return 1 ;;
+  esac
+}
+
+server_pid() {
+  target=$1
+  target_dir=$(target_state_dir "$target")
+  pid_file="$target_dir/server.pid"
+  candidates=''
+  if [ -r "$pid_file" ]; then
+    candidates=$(sed -n '1p' "$pid_file")
+  fi
+  if command -v lsof >/dev/null 2>&1; then
+    listen_port=$(target_port "$target")
+    candidates="$candidates $(lsof -nP -t -iTCP:"$listen_port" -sTCP:LISTEN 2>/dev/null || true)"
+  fi
+  for pid in $candidates; do
+    case "$pid" in
+      ''|*[!0-9]*) continue ;;
+    esac
+    command_line=$(ps -p "$pid" -o command= 2>/dev/null || true)
+    if printf '%s\n' "$command_line" | awk -v target="$target" '
+      {
+        for (i = 1; i < NF; i++) {
+          if ($i ~ /musuw-admin-server\.mjs$/ && $(i + 1) == target) found = 1
+        }
+      }
+      END { exit(found ? 0 : 1) }
+    '; then
+      printf '%s\n' "$pid"
+      return 0
+    fi
+  done
+  return 1
+}
+
+stop_server() {
+  target=$1
+  target_dir=$(target_state_dir "$target")
+  pid_file="$target_dir/server.pid"
+  target_file="$target_dir/target"
+  if pid=$(server_pid "$target"); then
+    kill "$pid" 2>/dev/null || true
+    attempt=0
+    while kill -0 "$pid" 2>/dev/null && [ "$attempt" -lt 40 ]; do
+      attempt=$((attempt + 1))
+      sleep 0.1
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+  fi
+  rm -f "$pid_file" "$target_file"
+}
+
+retire_appsmith() {
+  command -v docker >/dev/null 2>&1 || return 0
+  docker info >/dev/null 2>&1 || return 0
+  if docker inspect "$legacy_container" >/dev/null 2>&1; then
+    state=$(docker inspect "$legacy_container" --format '{{.State.Running}}' 2>/dev/null || true)
+    if [ "$state" = true ]; then
+      docker stop "$legacy_container" >/dev/null
+    fi
+    docker rm "$legacy_container" >/dev/null
+  fi
+}
+
+port_is_busy() {
+  listen_port=$1
+  command -v lsof >/dev/null 2>&1 || return 1
+  lsof -nP -iTCP:"$listen_port" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+tcp_port_is_busy() {
+  command -v lsof >/dev/null 2>&1 || return 1
+  lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command is unavailable: $1"
+}
+
+wait_for_tunnel_port() {
+  tunnel_port=$1
+  attempt=0
+  while [ "$attempt" -lt 150 ]; do
+    if nc -z -w 1 127.0.0.1 "$tunnel_port" >/dev/null 2>&1; then
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    sleep 0.1
+  done
+  return 1
+}
+
+require_pinned_ssh_target() {
+  ssh_target_arg=$1
+  ssh_config=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -G "$ssh_target_arg" 2>/dev/null) || \
+    die 'production SSH target is not a usable pinned alias'
+  resolved_user=$(printf '%s\n' "$ssh_config" | awk '$1 == "user" { print $2; exit }')
+  resolved_host=$(printf '%s\n' "$ssh_config" | awk '$1 == "hostname" { print $2; exit }')
+  strict_host_key=$(printf '%s\n' "$ssh_config" | awk '$1 == "stricthostkeychecking" { print $2; exit }')
+  known_hosts_file=$(printf '%s\n' "$ssh_config" | awk '$1 == "userknownhostsfile" { print $2; exit }')
+  [ -n "$resolved_user" ] && [ -n "$resolved_host" ] && [ -n "$known_hosts_file" ] || \
+    die 'production SSH target is missing pinned host configuration'
+  [ "$resolved_user" != root ] || die 'production SSH target must use the restricted operator account'
+  case "$strict_host_key" in
+    yes|true) : ;;
+    *) die 'production SSH target must require strict host-key checking' ;;
+  esac
+}
+
+discover_production_container_ip() {
+  ssh_target_arg=$1
+  container_arg=$2
+  container_ip=$(ssh \
+    -o BatchMode=yes \
+    -o StrictHostKeyChecking=yes \
+    -o ConnectTimeout=10 \
+    "$ssh_target_arg" \
+    "sudo -n docker inspect --format '{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' $container_arg" \
+    2>/dev/null | awk 'NF { print; exit }')
+  [ -n "$container_ip" ] || die 'cannot inspect production PostgreSQL; verify the pinned SSH alias, sudo rule and known_hosts entry'
+  printf '%s\n' "$container_ip" | awk -F. '
+    NF == 4 {
+      for (i = 1; i <= 4; i++) {
+        if ($i !~ /^[0-9][0-9]*$/ || length($i) > 3 || $i > 255) exit 1
+      }
+      ok = 1
+    }
+    END { exit(ok ? 0 : 1) }
+  ' >/dev/null 2>&1 || die 'production PostgreSQL container returned an invalid IPv4 address'
+  printf '%s' "$container_ip"
+}
+
+stop_tunnel() {
+  tunnel_target=''
+  if [ -r "$tunnel_target_file" ]; then
+    tunnel_target=$(tr -d '\r\n' < "$tunnel_target_file")
+  fi
+  if [ -S "$ssh_control_socket" ] && safe_ssh_target "$tunnel_target" && command -v ssh >/dev/null 2>&1; then
+    ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -S "$ssh_control_socket" -O exit "$tunnel_target" >/dev/null 2>&1 || true
+  fi
+  rm -f "$ssh_control_socket" "$tunnel_target_file" "$tunnel_port_file"
+}
+
+prepare_production_tunnel() {
+  validate_target production
+  require_command ssh
+  require_command lsof
+  require_command nc
+  mkdir -p "$runtime_dir"
+
+  tunnel_port=$(production_tunnel_port)
+  remote_db_port=$(production_remote_db_port)
+  ssh_target=$(resolve_production_ssh_target)
+  container=$(resolve_production_container)
+
+  if tcp_port_is_busy "$tunnel_port"; then
+    existing_port=''
+    if [ -r "$tunnel_port_file" ]; then
+      existing_port=$(tr -d '\r\n' < "$tunnel_port_file")
+    fi
+    if [ "$existing_port" = "$tunnel_port" ] && [ -S "$ssh_control_socket" ] && \
+      ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -S "$ssh_control_socket" -O check "$ssh_target" >/dev/null 2>&1; then
+      # A local listener is not enough to establish production identity.  Even
+      # a previously recorded socket must still resolve to the pinned
+      # alias and expose the expected production PostgreSQL container before
+      # it is reused as our tunnel.
+      require_pinned_ssh_target "$ssh_target"
+      discover_production_container_ip "$ssh_target" "$container" >/dev/null
+      return 0
+    fi
+    die "production tunnel port ${tunnel_port} is already in use"
+  fi
+
+  rm -f "$ssh_control_socket"
+  require_pinned_ssh_target "$ssh_target"
+  container_ip=$(discover_production_container_ip "$ssh_target" "$container")
+  ssh \
+    -o BatchMode=yes \
+    -o StrictHostKeyChecking=yes \
+    -o ConnectTimeout=10 \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=3 \
+    -o ExitOnForwardFailure=yes \
+    -M -S "$ssh_control_socket" -f -N \
+    -L "127.0.0.1:${tunnel_port}:${container_ip}:${remote_db_port}" \
+    "$ssh_target" >/dev/null 2>&1 || {
+      rm -f "$ssh_control_socket"
+      die 'production SSH tunnel could not be started; verify the pinned SSH alias and known_hosts entry'
+    }
+  printf '%s\n' "$ssh_target" > "$tunnel_target_file"
+  printf '%s\n' "$tunnel_port" > "$tunnel_port_file"
+  if ! wait_for_tunnel_port "$tunnel_port"; then
+    stop_tunnel
+    die 'production SSH tunnel did not become ready'
+  fi
+}
+
+tunnel_status() {
+  tunnel_target=''
+  tunnel_port=''
+  if [ -r "$tunnel_target_file" ]; then
+    tunnel_target=$(tr -d '\r\n' < "$tunnel_target_file")
+  fi
+  if [ -r "$tunnel_port_file" ]; then
+    tunnel_port=$(tr -d '\r\n' < "$tunnel_port_file")
+  fi
+  if [ -S "$ssh_control_socket" ] && safe_ssh_target "$tunnel_target" && valid_port "$tunnel_port" && \
+    command -v ssh >/dev/null 2>&1 && ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -S "$ssh_control_socket" -O check "$tunnel_target" >/dev/null 2>&1; then
+    printf 'running'
+  else
+    printf 'stopped'
+  fi
+}
+
+health_is_target() {
+  health_payload=$1
+  health_target=$2
+  case "$health_target" in
+    test) expected_label=TEST ;;
+    production) expected_label=PRODUCTION ;;
+    *) return 1 ;;
+  esac
+  observed_status=$(printf '%s' "$health_payload" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  observed_environment=$(printf '%s' "$health_payload" | sed -n 's/.*"environment"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  [ "$observed_status" = ok ] && [ "$observed_environment" = "$expected_label" ]
+}
+
+wait_for_health() {
+  target=$1
+  listen_port=$(target_port "$target")
+  attempt=0
+  while [ "$attempt" -lt 100 ]; do
+    health_payload=$(curl --fail --silent --max-time 1 "http://$listen_host:$listen_port/healthz" 2>/dev/null || true)
+    if health_is_target "$health_payload" "$target"; then
+      return 0
+    fi
+    if ! server_pid "$target" >/dev/null 2>&1; then
+      return 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 0.1
+  done
+  return 1
+}
+
+run_with_runtime_env() {
+  runtime_target=$1
+  shift
+  runtime_port=$(target_port "$runtime_target")
+  replace_process=no
+  if [ "${1:-}" = '--replace-process' ]; then
+    replace_process=yes
+    shift
+  fi
+  # The selected runtime file and Keychain are the only authorities for
+  # database/provider credentials. Keep the launcher environment deliberately
+  # small so a shell export from the other target cannot cross a restart.
+  if [ "$runtime_target" = test ]; then
+    if [ "$replace_process" = yes ]; then
+      exec env -i \
+        "PATH=${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}" \
+        "HOME=${HOME:-/tmp}" \
+        "MUSUW_ADMIN_PORT=$runtime_port" \
+        "MUSUW_ADMIN_TEST_DB_HOST=${MUSUW_ADMIN_TEST_DB_HOST:-}" \
+        "MUSUW_ADMIN_TEST_DB_PORT=${MUSUW_ADMIN_TEST_DB_PORT:-}" \
+        "MUSUW_ADMIN_TEST_BACKEND_URL=${MUSUW_ADMIN_TEST_BACKEND_URL:-}" \
+        "MUSUW_R2_ACCOUNT_ID=${MUSUW_R2_ACCOUNT_ID:-}" \
+        "MUSUW_R2_TEST_BUCKET=${MUSUW_R2_TEST_BUCKET:-}" \
+        "MUSUW_R2_PREFIX=${MUSUW_R2_PREFIX:-}" \
+        "MUSUW_LANGFUSE_HOST=${MUSUW_LANGFUSE_HOST:-}" \
+        "$@"
+    fi
+    env -i \
+      "PATH=${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}" \
+      "HOME=${HOME:-/tmp}" \
+      "MUSUW_ADMIN_PORT=$runtime_port" \
+      "MUSUW_ADMIN_TEST_DB_HOST=${MUSUW_ADMIN_TEST_DB_HOST:-}" \
+      "MUSUW_ADMIN_TEST_DB_PORT=${MUSUW_ADMIN_TEST_DB_PORT:-}" \
+      "MUSUW_ADMIN_TEST_BACKEND_URL=${MUSUW_ADMIN_TEST_BACKEND_URL:-}" \
+      "MUSUW_R2_ACCOUNT_ID=${MUSUW_R2_ACCOUNT_ID:-}" \
+      "MUSUW_R2_TEST_BUCKET=${MUSUW_R2_TEST_BUCKET:-}" \
+      "MUSUW_R2_PREFIX=${MUSUW_R2_PREFIX:-}" \
+      "MUSUW_LANGFUSE_HOST=${MUSUW_LANGFUSE_HOST:-}" \
+      "$@"
+    return
+  fi
+  if [ "$replace_process" = yes ]; then
+    exec env -i \
+      "PATH=${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}" \
+      "HOME=${HOME:-/tmp}" \
+      "MUSUW_ADMIN_PORT=$runtime_port" \
+      "MUSUW_ADMIN_PRODUCTION_SSH_TARGET=${MUSUW_ADMIN_PRODUCTION_SSH_TARGET:-}" \
+      "MUSUW_ADMIN_PRODUCTION_TUNNEL_PORT=${MUSUW_ADMIN_PRODUCTION_TUNNEL_PORT:-}" \
+      "MUSUW_ADMIN_PRODUCTION_DB_PORT=${MUSUW_ADMIN_PRODUCTION_DB_PORT:-}" \
+      "MUSUW_ADMIN_PRODUCTION_CONTAINER=${MUSUW_ADMIN_PRODUCTION_CONTAINER:-}" \
+      "$@"
+  fi
+  env -i \
+    "PATH=${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}" \
+    "HOME=${HOME:-/tmp}" \
+    "MUSUW_ADMIN_PORT=$runtime_port" \
+    "MUSUW_ADMIN_PRODUCTION_SSH_TARGET=${MUSUW_ADMIN_PRODUCTION_SSH_TARGET:-}" \
+    "MUSUW_ADMIN_PRODUCTION_TUNNEL_PORT=${MUSUW_ADMIN_PRODUCTION_TUNNEL_PORT:-}" \
+    "MUSUW_ADMIN_PRODUCTION_DB_PORT=${MUSUW_ADMIN_PRODUCTION_DB_PORT:-}" \
+    "MUSUW_ADMIN_PRODUCTION_CONTAINER=${MUSUW_ADMIN_PRODUCTION_CONTAINER:-}" \
+    "$@"
+}
+
+launch_console_process() {
+  launch_target=$1
+  append_log=${2:-no}
+  launch_port=$(target_port "$launch_target")
+  launch_dir=$(target_state_dir "$launch_target")
+  launch_log="$launch_dir/server.log"
+  launch_pid_file="$launch_dir/server.pid"
+  launch_target_file="$launch_dir/target"
+  mkdir -p "$launch_dir"
+  if [ "$append_log" != yes ]; then
+    : > "$launch_log"
+  fi
+  run_with_runtime_env "$launch_target" --replace-process nohup node "$server_script" "$launch_target" >>"$launch_log" 2>&1 &
+  launch_pid=$!
+  printf '%s\n' "$launch_pid" > "$launch_pid_file"
+  printf '%s\n' "$launch_target" > "$launch_target_file"
+}
+
+validate_target() {
+  target=$1
+  case "$target" in
+    test)
+      [ -r "$repo_root/.runtime/weknora/local.source.env" ] || die 'TEST runtime is missing .runtime/weknora/local.source.env'
+      [ -r "$repo_root/.runtime/weknora/paddle-sandbox.env" ] || die 'TEST Paddle runtime is missing .runtime/weknora/paddle-sandbox.env'
+      ;;
+    production)
+      [ "${MUSUW_ADMIN_PRODUCTION_UNLOCK:-}" = 'I_UNDERSTAND_THIS_IS_LIVE' ] || die 'production is locked; set MUSUW_ADMIN_PRODUCTION_UNLOCK=I_UNDERSTAND_THIS_IS_LIVE for this invocation'
+      [ -r "$runtime_dir/production.env" ] || die 'production is not configured; create .runtime/musuw-admin/production.env first'
+      ;;
+    *) die "unknown environment: $target" ;;
+  esac
+}
+
+start_console() {
+  target=$1
+  build_assets=${2:-yes}
+  validate_target "$target"
+  command -v node >/dev/null 2>&1 || die 'Node.js is required'
+  command -v npm >/dev/null 2>&1 || die 'npm is required'
+  command -v curl >/dev/null 2>&1 || die 'curl is required'
+  listen_port=$(target_port "$target")
+  target_dir=$(target_state_dir "$target")
+  target_log="$target_dir/server.log"
+  case "$target" in
+    test) target_label=TEST ;;
+    production) target_label=PRODUCTION ;;
+  esac
+
+  # Starting one target is idempotent and never stops or mutates the other.
+  if server_pid "$target" >/dev/null 2>&1 && wait_for_health "$target"; then
+    printf 'Musuw operations (%s): already healthy at http://%s:%s\n' "$target" "$listen_host" "$listen_port"
+    return 0
+  fi
+  stop_server "$target"
+
+  mkdir -p "$runtime_dir" "$target_dir"
+  if [ "$build_assets" = yes ]; then
+    run_with_runtime_env "$target" npm --prefix "$repo_root/weknora/frontend" run build-with-types
+  fi
+
+  # Production tunnel preparation is target-local.  A failed handshake,
+  # host-key check, container lookup, or port forward leaves TEST untouched.
+  if [ "$target" = production ]; then
+    prepare_production_tunnel
+  fi
+
+  port_is_busy "$listen_port" && die "port $listen_port is already in use"
+  launch_console_process "$target"
+  if ! wait_for_health "$target"; then
+    tail -n 20 "$target_log" >&2 2>/dev/null || true
+    stop_server "$target"
+    if [ "$target" = production ]; then
+      stop_tunnel
+    fi
+    die "$target_label operations server did not become healthy within 10 seconds"
+  fi
+  printf 'Musuw operations (%s): http://%s:%s\n' "$target" "$listen_host" "$listen_port"
+}
+
+start_all() {
+  validate_target test
+  MUSUW_ADMIN_PRODUCTION_UNLOCK=I_UNDERSTAND_THIS_IS_LIVE validate_target production
+  command -v node >/dev/null 2>&1 || die 'Node.js is required'
+  command -v npm >/dev/null 2>&1 || die 'npm is required'
+  command -v curl >/dev/null 2>&1 || die 'curl is required'
+  mkdir -p "$runtime_dir" "$process_state_dir"
+  # Build the shared static bundle once; each server still receives a clean
+  # target-specific environment and owns its own process/pool/session state.
+  run_with_runtime_env test npm --prefix "$repo_root/weknora/frontend" run build-with-types
+  retire_appsmith
+  start_console test no
+  MUSUW_ADMIN_PRODUCTION_UNLOCK=I_UNDERSTAND_THIS_IS_LIVE start_console production no
+}
+
+show_status() {
+  for target in test production; do
+    listen_port=$(target_port "$target")
+    if pid=$(server_pid "$target"); then
+      health=$(curl --silent --max-time 1 "http://$listen_host:$listen_port/healthz" 2>/dev/null || true)
+      if ! health_is_target "$health" "$target"; then
+        health='{"status":"unexpected-target"}'
+      fi
+      printf 'Musuw operations: target=%s pid=%s url=http://%s:%s health=%s\n' "$target" "$pid" "$listen_host" "$listen_port" "$health"
+    else
+      printf 'Musuw operations: target=%s stopped url=http://%s:%s\n' "$target" "$listen_host" "$listen_port"
+    fi
+  done
+  printf 'SSH tunnel: %s\n' "$(tunnel_status)"
+}
+
+show_logs() {
+  for target in test production; do
+    target_log="$(target_state_dir "$target")/server.log"
+    if [ -r "$target_log" ]; then
+      printf '%s\n' "--- $target ---"
+      tail -n 100 "$target_log"
+    fi
+  done
+}
+
+command=${1:-}
+case "$command" in
+  start) start_all ;;
+  test|production)
+    if [ "$command" = production ]; then
+      MUSUW_ADMIN_PRODUCTION_UNLOCK=I_UNDERSTAND_THIS_IS_LIVE start_console "$command"
+    else
+      start_console "$command"
+    fi
+    ;;
+  prepare-production-tunnel) prepare_production_tunnel ;;
+  stop)
+    mkdir -p "$runtime_dir"
+    case "${2:-all}" in
+      test) stop_server test ;;
+      production) stop_server production; stop_tunnel ;;
+      all) stop_server test; stop_server production; stop_tunnel ;;
+      *) die 'stop target must be test, production, or all' ;;
+    esac
+    printf 'Musuw operations: stopped (retired Appsmith data volume preserved)\n'
+    ;;
+  status) show_status ;;
+  logs) show_logs ;;
+  -h|--help|help|'') usage ;;
+  *) usage >&2; exit 2 ;;
+esac

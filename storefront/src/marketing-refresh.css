@@ -1,0 +1,816 @@
+/* Marketing refresh: clean, minimalist, high-contrast design with refined typography and subtle borders. */
+
+.platform-section {
+  height: auto;
+  padding: clamp(80px, 8vw, 120px) 0;
+  background: #fafbfc;
+  border-top: 1px solid #f1f3f7;
+}
+.platform-section .section-intro {
+  max-width: 800px;
+  margin-inline: auto;
+}
+
+.platform-grid {
+  display: grid;
+  height: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: clamp(36px, 4vw, 52px);
+}
+
+.platform-card,
+.platform-card:nth-child(2),
+.platform-card:nth-child(3),
+.platform-card:nth-child(6) {
+  display: flex;
+  min-height: 170px;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.045);
+  text-align: left;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.platform-card:hover {
+  border-color: #cbd5e1;
+  background: #fbfbfb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.045);
+  transform: none;
+}
+
+.platform-card > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  margin: 0 0 16px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #0f172a;
+}
+
+.platform-card > span svg {
+  width: 17px;
+  height: 17px;
+}
+
+.platform-card h3 {
+  margin: 0;
+  padding-top: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 20px;
+  color: #0f172a;
+}
+
+.platform-card p {
+  max-width: 320px;
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.625;
+}
+
+.billing-toggle {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  overflow: visible;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.billing-toggle button {
+  position: relative;
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+  overflow: visible;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.billing-toggle button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.billing-toggle button .billing-period-label {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+
+.billing-discount-badge,
+.billing-toggle button span.billing-discount-badge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: 999px;
+  padding: 0 6px;
+  background: #e7f6ec;
+  border: 1px solid rgba(22, 101, 52, 0.15);
+  color: #166534;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(22, 101, 52, 0.08);
+  transform: translateY(-15%);
+}
+
+.plan-heading {
+  min-height: 74px;
+}
+
+.plan-description {
+  min-height: 1.45em;
+  overflow: visible;
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-overflow: clip;
+  white-space: nowrap;
+  color: #64748b;
+}
+
+.comparison-section {
+  height: auto;
+  overflow: visible;
+  padding: clamp(80px, 8vw, 120px) 0;
+  background: #fafbfc;
+  border-top: 1px solid #f1f3f7;
+}
+
+.comparison-refresh {
+  width: min(100%, 1080px);
+  margin-inline: auto;
+}
+
+.comparison-intro {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.comparison-eyebrow {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.comparison-intro h2 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: #0f172a;
+  text-wrap: balance;
+}
+
+.comparison-intro p {
+  max-width: 680px;
+  margin-top: 14px;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1.6;
+  text-wrap: balance;
+}
+
+.comparison-panel {
+  margin-top: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 10px 30px -4px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.comparison-plan-header,
+.comparison-feature-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.35fr) repeat(4, minmax(110px, 0.75fr));
+  align-items: center;
+  gap: 0;
+}
+
+.comparison-plan-header {
+  padding: 18px 28px;
+  background: #f8fafc;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.comparison-plan-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #334155;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: all 150ms ease;
+}
+
+.comparison-plan-chip[data-featured="true"] {
+  background: #0f172a;
+  border: none;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 18px;
+  min-height: 32px;
+  box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.2);
+}
+
+.comparison-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.comparison-feature-row {
+  min-height: 58px;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 0;
+  padding: 10px 28px;
+  background: #ffffff;
+  transition: background-color 150ms ease;
+}
+
+.comparison-feature-row:last-child {
+  border-bottom: none;
+}
+
+.comparison-feature-row:hover {
+  background: #f8fafc;
+}
+
+.comparison-feature-name {
+  min-width: 0;
+  padding: 0;
+  color: #0f172a;
+  font-size: 14.5px;
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.comparison-feature-cell {
+  display: flex;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 6px;
+  background: transparent;
+  color: #334155;
+  text-align: center;
+}
+
+.comparison-feature-cell[data-featured="true"] {
+  background: rgba(15, 23, 42, 0.018);
+}
+
+.comparison-value {
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+
+.comparison-included {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #2563eb;
+}
+
+.comparison-not-included {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #94a3b8;
+  opacity: 0.6;
+}
+
+.comparison-mobile-plan {
+  display: none;
+}
+
+@media (max-width: 1080px) {
+  .platform-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comparison-plan-header,
+  .comparison-feature-row {
+    grid-template-columns: minmax(180px, 1.2fr) repeat(4, minmax(96px, 0.8fr));
+    padding-inline: 16px;
+  }
+
+  .comparison-feature-name {
+    padding-inline: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .platform-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .platform-card,
+  .platform-card:nth-child(2),
+  .platform-card:nth-child(3),
+  .platform-card:nth-child(6) {
+    min-height: auto;
+    padding: 18px;
+  }
+
+  .platform-card h3 {
+    padding-top: 0;
+  }
+
+  .billing-toggle button {
+    padding-inline: 14px;
+  }
+
+  .billing-discount-badge,
+  .billing-toggle button span.billing-discount-badge {
+    padding-inline: 7px;
+    font-size: 10px;
+  }
+
+  .plan-heading {
+    min-height: auto;
+  }
+
+  .plan-description {
+    font-size: 13px;
+  }
+
+  .comparison-intro h2 {
+    font-size: clamp(32px, 8vw, 42px);
+  }
+
+  .comparison-panel {
+    margin-top: 32px;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow: visible;
+  }
+
+  .comparison-plan-header {
+    display: none;
+  }
+
+  .comparison-feature-list {
+    gap: 12px;
+  }
+
+  .comparison-feature-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+
+  .comparison-feature-row:hover {
+    background: #ffffff;
+  }
+
+  .comparison-feature-name {
+    grid-column: 1 / -1;
+    padding: 0 0 8px;
+    font-size: 15px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .comparison-feature-cell {
+    min-height: 54px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+  }
+
+  .comparison-feature-cell[data-featured="true"] {
+    background: #eff6ff;
+    border-color: #dbeafe;
+  }
+
+  .comparison-mobile-plan {
+    display: block;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 430px) {
+  .billing-toggle button {
+    gap: 6px;
+    padding-inline: 10px;
+  }
+
+  .comparison-feature-row {
+    padding: 12px;
+  }
+}
+
+/* Home-page dark palette. Structure and spacing stay unchanged. */
+html[data-theme="dark"] .platform-section,
+html[data-theme="dark"] .comparison-section {
+  border-color: var(--line);
+  background: #101014;
+}
+
+html[data-theme="dark"] :is(
+  .platform-card,
+  .feature-story,
+  .feature-visual,
+  .pricing-card,
+  .comparison-panel,
+  .comparison-feature-row,
+  .final-cta-card
+) {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 40px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="dark"] :is(
+  .platform-card > span,
+  .feature-icon,
+  .billing-toggle,
+  .comparison-plan-header,
+  .comparison-feature-cell
+) {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+
+html[data-theme="dark"] :is(
+  .platform-card h3,
+  .feature-copy h3,
+  .pricing-heading h2,
+  .pricing-card h3,
+  .plan-price,
+  .plan-includes,
+  .comparison-intro h2,
+  .comparison-feature-name,
+  .comparison-value,
+  .faq-intro h2,
+  .faq-item > button,
+  .final-cta h2
+) {
+  color: var(--ink);
+}
+
+html[data-theme="dark"] :is(
+  .platform-card p,
+  .feature-copy > p:not(.feature-label),
+  .pricing-heading p,
+  .plan-description,
+  .comparison-intro p,
+  .comparison-feature-cell,
+  .comparison-mobile-plan,
+  .faq-intro > p:last-child,
+  .faq-answer p,
+  .final-cta p
+) {
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] .billing-toggle button.active {
+  background: #292931;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="dark"] .plan-recommended {
+  background: #2b2b33;
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] .pricing-card li,
+html[data-theme="dark"] .pricing-card li svg {
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] .comparison-eyebrow {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] .comparison-plan-header,
+html[data-theme="dark"] .comparison-feature-row,
+html[data-theme="dark"] .comparison-feature-name {
+  border-color: var(--line);
+}
+
+html[data-theme="dark"] .comparison-feature-row:hover {
+  background: #1b1b21;
+}
+
+html[data-theme="dark"] .comparison-plan-chip,
+html[data-theme="dark"] .comparison-value-text {
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] .comparison-plan-chip[data-featured="true"] {
+  background: var(--ink);
+  color: var(--page);
+}
+
+html[data-theme="dark"] .button-secondary,
+html[data-theme="dark"] .pricing-button.button-secondary {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+@media (max-width: 767px) {
+  html[data-theme="dark"] .comparison-feature-row:hover {
+    background: var(--surface);
+  }
+
+  html[data-theme="dark"] .comparison-feature-cell[data-featured="true"] {
+    border-color: rgba(129, 140, 248, 0.3);
+    background: rgba(99, 102, 241, 0.13);
+  }
+}
+
+/* One theme contract for the complete homepage: white/black, then black/white. */
+html,
+body,
+#root,
+main,
+.relative {
+  background: var(--page);
+  color: var(--ink);
+}
+
+html[data-theme] :is(
+  .features-section,
+  .platform-section,
+  .pricing-section,
+  .comparison-section,
+  .faq-section,
+  .final-cta,
+  .site-footer
+) {
+  background: var(--page);
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .dashboard-scene {
+  background: rgba(21, 21, 25, 0.78);
+  mix-blend-mode: normal;
+}
+
+html[data-theme="dark"] .dashboard-scene::after {
+  border-color: var(--ink);
+}
+
+html[data-theme="dark"] .dashboard-frame::after {
+  border-color: var(--line);
+}
+
+/* The embedded product preview owns its light/dark palette. Keep the
+   authoritative preview DOM in its native theme instead of applying a
+   page-level inverse filter that would double-invert its dark tokens. */
+html[data-theme="dark"] .hero-product-demo {
+  filter: none;
+}
+
+html[data-theme="dark"] :is(
+  .feature-visual img,
+  .final-cta-bg,
+  .final-cta-dashboard-frame img
+) {
+  filter: grayscale(1) invert(1);
+}
+
+/* Header controls keep the same outlined construction in both themes. */
+.site-header :is(
+  .theme-toggle,
+  .lang-select,
+  .nav-actions > .button
+) {
+  border-color: var(--ink);
+  background: var(--page);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.site-header :is(
+  .theme-toggle,
+  .lang-select,
+  .nav-actions > .button
+):hover {
+  border-color: var(--ink);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .button-primary {
+  border-color: var(--ink);
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .button-primary:hover {
+  border-color: var(--ink);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .feature-bullets {
+  border-color: var(--line);
+}
+
+html[data-theme="dark"] .feature-bullets li {
+  border-color: var(--line-strong);
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] :is(
+  .faq-list,
+  .faq-item
+) {
+  border-color: var(--line-strong);
+}
+
+html[data-theme="dark"] .final-cta-dashboard-frame {
+  border-color: var(--ink);
+}
+
+/* Decorative section pills were removed from the active homepage. Reclaim
+   their space without changing the information hierarchy or real controls. */
+.section-intro h2,
+.faq-intro h2,
+.feature-copy h3 {
+  margin-top: 0;
+}
+
+.section-intro .section-body {
+  margin-top: 14px;
+}
+
+.feature-stack {
+  margin-top: clamp(36px, 4vw, 56px);
+}
+
+.platform-grid {
+  margin-top: clamp(36px, 4vw, 52px);
+}
+
+.faq-list {
+  margin-top: clamp(42px, 5vw, 56px);
+}
+
+html[data-theme="dark"] :is(
+  .section-body,
+  .footer-group a
+) {
+  color: var(--ink-soft);
+}
+
+html[data-theme="dark"] .footer-bottom {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 767px) {
+  .feature-stack,
+  .platform-grid,
+  .faq-list {
+    margin-top: 36px;
+  }
+}
+
+/* Functional marks stay monochrome in both themes. The animated hero keeps
+   its own visual palette; checks, FAQ controls, and platform glyphs do not. */
+.feature-bullets svg,
+.platform-card > span,
+.pricing-card li svg,
+.comparison-included,
+.faq-item > button svg,
+.faq-item.open > button,
+.faq-item.open > button svg {
+  color: var(--ink);
+}
+
+.comparison-not-included {
+  color: var(--ink-faint);
+}
+
+/* Give the screenshot-led stories more room without changing their type
+   scale. Copy remains readable while the product capture becomes dominant. */
+@media (min-width: 1081px) {
+  .features-section > .container {
+    width: min(calc(100% - 48px), 1460px);
+  }
+
+  .feature-stack {
+    width: min(100%, 1400px);
+    max-width: 1400px;
+    gap: clamp(36px, 4vw, 64px);
+  }
+
+  .feature-story {
+    max-width: 1400px;
+    min-height: clamp(560px, 42vw, 660px);
+    grid-template-columns: minmax(360px, 0.72fr) minmax(0, 1.28fr);
+    gap: clamp(36px, 3vw, 52px);
+    padding: clamp(44px, 4vw, 64px);
+  }
+
+  .feature-story-reverse {
+    grid-template-columns: minmax(0, 1.28fr) minmax(360px, 0.72fr);
+  }
+
+  .feature-visual {
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .comparison-feature-cell[data-featured="true"],
+  html[data-theme="dark"] .comparison-feature-cell[data-featured="true"] {
+    border-color: var(--line-strong);
+    background: var(--surface-soft);
+  }
+
+  .site-header .theme-toggle { width: 44px; height: 44px; }
+  .site-header .lang-select { min-height: 44px; font-size: 16px; }
+  .billing-toggle button { min-width: 80px; min-height: 44px; }
+  .footer-group { gap: 4px; }
+  .footer-group a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+}

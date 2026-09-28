@@ -1,0 +1,231 @@
+/*
+ * KB editor inner-surface bridge.
+ *
+ * Only active inside the visible .settings-modal shell. This does not target
+ * graph renderers, Trace renderers, datasource handlers, or any business state.
+ */
+
+.settings-modal .section-header {
+  background: #fff !important;
+  border-bottom-color: #f3f4f6 !important;
+}
+.settings-modal .section-header h2,
+.settings-modal .share-panel-title {
+  margin: 0 0 4px !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+.settings-modal .section-header .section-description,
+.settings-modal .share-panel-desc {
+  margin-top: 4px !important;
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+
+.settings-modal .setting-row {
+  padding: 16px 0 !important;
+  border-bottom-color: #f3f4f6 !important;
+}
+.settings-modal .setting-info label {
+  margin-bottom: 3px !important;
+  color: #111827 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 700 !important;
+}
+.settings-modal .setting-info .desc {
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.settings-modal .setting-info .warn {
+  color: #b45309 !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+}
+.settings-modal .strategy-info-panel {
+  padding: 10px 12px !important;
+  border-left: 3px solid #9ca3af !important;
+  border-radius: 0 8px 8px 0 !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.settings-modal .strategy-info-panel strong { color: #374151 !important; }
+.settings-modal .value-display {
+  color: #4b5563 !important;
+  font-family: var(--app-font-family-mono) !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+  font-weight: 500 !important;
+}
+.settings-modal .advanced-toggle {
+  padding: 12px 0 8px !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+  font-weight: 600 !important;
+}
+.settings-modal .advanced-toggle:hover { color: #111827 !important; }
+.settings-modal .advanced-toggle:focus-visible {
+  outline: 2px solid #d1d5db !important;
+  outline-offset: 2px !important;
+  border-radius: 6px !important;
+}
+
+/* TDesign slider paint: retain numeric model and events, replace brand blue. */
+.settings-modal .t-slider__rail { background: #e5e7eb !important; }
+.settings-modal .t-slider__track { background: #4b5563 !important; }
+.settings-modal .t-slider__button {
+  border-color: #4b5563 !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%) !important;
+}
+.settings-modal .t-slider__button:hover,
+.settings-modal .t-slider__button:focus { border-color: #111827 !important; }
+.settings-modal .t-slider__mark-text { color: #9ca3af !important; font-size: 9px !important; }
+.settings-modal .t-input-number .t-input { border-radius: 10px !important; }
+
+/* Datasource cards are Musuw-only behavior; make their visual grammar match the
+ * reference KB cards rather than the previous brand-color interaction. */
+.settings-modal .ds-grid { gap: 12px !important; }
+.settings-modal .ds-card {
+  min-height: 112px !important;
+  padding: 14px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease !important;
+}
+.settings-modal .ds-card--clickable:hover,
+.settings-modal .ds-card--clickable:focus-visible {
+  border-color: #d1d5db !important;
+  outline: none !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 8%), 0 2px 4px -2px rgb(0 0 0 / 5%) !important;
+}
+.settings-modal .ds-card__badge {
+  border-radius: 10px !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+.settings-modal .ds-card__title {
+  color: #111827 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 700 !important;
+}
+.settings-modal .ds-card__subtitle,
+.settings-modal .ds-card__detail {
+  color: #9ca3af !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+}
+.settings-modal .ds-card__action-btn {
+  border-radius: 8px !important;
+  color: #9ca3af !important;
+}
+.settings-modal .ds-card__action-btn:hover { background: #f3f4f6 !important; color: #374151 !important; }
+.settings-modal .ds-card--add {
+  border: 1px dashed #d1d5db !important;
+  background: rgb(249 250 251 / 55%) !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+}
+.settings-modal .ds-card--add:hover { border-color: #9ca3af !important; background: #fff !important; color: #374151 !important; }
+.settings-modal .ds-card--add__icon {
+  border-radius: 10px !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+
+/* Share table: reference-family compact data surface. */
+.settings-modal .share-to-space-panel { gap: 16px !important; }
+.settings-modal .share-hint-trigger-btn {
+  border-radius: 6px !important;
+  color: #9ca3af !important;
+}
+.settings-modal .share-hint-trigger-btn:hover { background: #f3f4f6 !important; color: #374151 !important; }
+.settings-modal .share-hint-trigger-btn:focus-visible {
+  outline: 2px solid #d1d5db !important;
+  outline-offset: 1px !important;
+}
+.settings-modal .share-panel-list-title {
+  color: #374151 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+  font-weight: 700 !important;
+}
+.settings-modal .share-panel-count-badge {
+  min-width: 20px !important;
+  height: 18px !important;
+  padding: 0 6px !important;
+  border-radius: 999px !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  font-size: 9px !important;
+}
+.settings-modal .share-panel-table-shell {
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+}
+.settings-modal .share-panel-table-shell .t-table {
+  color: #4b5563 !important;
+  font-size: 11px !important;
+}
+.settings-modal .share-panel-table-shell .t-table th {
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+.settings-modal .share-panel-table-shell .t-table td,
+.settings-modal .share-panel-table-shell .t-table th { border-color: #f3f4f6 !important; }
+.settings-modal .share-space-name { color: #374151 !important; font-size: 11px !important; font-weight: 600 !important; }
+.settings-modal .share-space-meta { color: #9ca3af !important; font-size: 9px !important; }
+.settings-modal .share-panel-add-btn {
+  border-color: #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+}
+.settings-modal .share-panel-add-btn:hover { border-color: #d1d5db !important; background: #f9fafb !important; }
+
+/* Common native setting cards/panels. Avoid graph/trace-specific class names. */
+.settings-modal :where(.config-card, .setting-card, .settings-card, .info-card, .model-card, .storage-card, .parser-card) {
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%) !important;
+}
+.settings-modal :where(.hint, .tip, .description, .setting-description) { color: #9ca3af !important; }
+
+/* Popup bodies emitted from KB editor helpers. */
+body .share-hint-popup-overlay .t-popup__content,
+body .share-add-popup-overlay .t-popup__content {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 14px 34px rgb(15 23 42 / 14%) !important;
+}
+body .share-hint-popover,
+body .share-add-popup-inner { font-family: var(--app-font-family) !important; }
+body .share-hint-title,
+body .member-invite-popup-title { color: #111827 !important; font-size: 12px !important; font-weight: 700 !important; }
+body .share-hint-desc,
+body .member-form-hint { color: #9ca3af !important; font-size: 10px !important; line-height: 16px !important; }
+body .invite-popup-footer .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-modal .ds-card { transition: none !important; }
+}

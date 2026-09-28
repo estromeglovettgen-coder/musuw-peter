@@ -1,0 +1,26 @@
+.citation-guide-layout { max-width: 800px; padding-top: 140px; padding-bottom: 88px; }
+.citation-guide-languages { color: var(--ink-soft); font-size: 14px; margin-bottom: 24px; }
+.citation-guide-languages [aria-current="page"] { color: var(--ink); font-weight: 600; }
+.citation-guide-layout h1 { font-size: clamp(32px, 4vw, 48px); line-height: 1.2; letter-spacing: -.025em; margin: 0 0 28px; }
+.citation-guide-layout h2 { margin: 40px 0 16px; font-size: clamp(23px, 3vw, 30px); line-height: 1.35; }
+.citation-guide-layout p, .citation-guide-checks { font-size: 17px; line-height: 1.8; }
+.citation-guide-layout p { margin: 0 0 22px; }
+.citation-guide-layout a { text-decoration: underline; text-underline-offset: 4px; }
+.citation-guide-checks { padding-left: 24px; margin: 28px 0; }
+.citation-guide-checks li { padding-left: 5px; margin-bottom: 22px; }
+.citation-guide-verdicts { padding-left: 24px; font-size: 17px; line-height: 1.8; }
+.citation-guide-verdicts li { margin-bottom: 16px; }
+.citation-guide-links { padding-left: 22px; font-size: 15px; line-height: 1.9; margin-bottom: 24px; }
+.citation-guide-layout figure { margin: 32px 0; }
+.citation-guide-layout figure img, .citation-guide-layout figure video { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; }
+.citation-guide-layout figure video { aspect-ratio: 16 / 9; object-fit: contain; background: #111; }
+.citation-guide-layout figcaption, .citation-guide-layout .citation-guide-disclosure { font-size: 13px; line-height: 1.6; color: var(--ink-soft); }
+.citation-guide-layout figcaption { margin-top: 12px; }
+.citation-guide-cta { font-weight: 600; }
+.citation-guide-sources { padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; }
+.citation-guide-sources summary { cursor: pointer; font-weight: 600; }
+.citation-guide-sources ul { padding-left: 20px; line-height: 1.9; }
+@media (max-width: 640px) {
+  .citation-guide-layout { padding-top: 108px; padding-bottom: 56px; }
+  .citation-guide-layout p, .citation-guide-checks, .citation-guide-verdicts { font-size: 16px; }
+}

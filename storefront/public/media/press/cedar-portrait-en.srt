@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:03,000
+Plans change. Check the source.
+
+2
+00:00:03,000 --> 00:00:08,000
+Ask. Get a cited answer.
+
+3
+00:00:08,000 --> 00:00:14,000
+Open the supporting source.
+
+4
+00:00:14,000 --> 00:00:19,000
+Return to related knowledge.
+
+5
+00:00:19,000 --> 00:00:25,000
+Follow the connections.
+
+6
+00:00:25,000 --> 00:00:30,000
+Hi, I am Musuw. Explore plans at musuw.com

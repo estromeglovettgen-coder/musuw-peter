@@ -1,0 +1,71 @@
+# Candidate-only build: compile the fixed WeKnora main commit 81142df, then
+# reuse the already pinned official v0.7.1 runtime OS layer. This deliberately
+# avoids recreating the upstream final-stage apt/pip/uv install surface.
+FROM golang:1.26-bookworm AS builder
+
+WORKDIR /src
+
+ARG VERSION_ARG=main-81142df
+ARG COMMIT_ID_ARG=81142dfd17b2778087e95d3a317483a2fd909b91
+ARG BUILD_TIME_ARG=candidate-local
+ARG GO_VERSION_ARG=go1.26
+
+# Only compiler and SQLite headers are needed to produce the official binary.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential libsqlite3-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY go.mod go.sum ./
+COPY third_party/anydoc-go/go.mod third_party/anydoc-go/go.mod
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+COPY cmd/download ./cmd/download
+RUN go run cmd/download/duckdb/duckdb.go
+
+COPY . ./
+
+# Keep the same artifact set as the upstream Dockerfile.app, but inject the
+# known fixed-main identity rather than requiring a Git checkout in context.
+ARG WITH_ANYDOC=1
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    if [ "$WITH_ANYDOC" = "1" ]; then \
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --profile minimal --default-toolchain stable && \
+        ./scripts/build-anydoc-lib.sh; \
+    fi
+RUN --mount=type=cache,target=/go/pkg/mod \
+    VERSION="$VERSION_ARG" \
+    COMMIT_ID="$COMMIT_ID_ARG" \
+    BUILD_TIME="$BUILD_TIME_ARG" \
+    GO_VERSION="$GO_VERSION_ARG" \
+    sh -ec 'if [ "$WITH_ANYDOC" = "1" ]; then make build-prod GO_BUILD_TAGS=anydoc; else make build-prod; fi' \
+    && cp -a /go/pkg/mod/github.com/yanyiwu /src/yanyiwu
+
+# Pin the known-local official arm64 v0.7.1 runtime image by digest.  The
+# application binary and every versioned runtime artifact below are replaced
+# from the fixed main source; no v0.7.1 business binary remains executable.
+FROM wechatopenai/weknora-app@sha256:d88bef9912f6abb8bc7c22144ee7f314016055b8075bda4ea8fbb28af41c3bcf
+
+WORKDIR /app
+
+LABEL org.opencontainers.image.version="main-81142df" \
+      org.opencontainers.image.revision="81142dfd17b2778087e95d3a317483a2fd909b91"
+
+COPY --from=builder /src/yanyiwu/ /go/pkg/mod/github.com/yanyiwu/
+COPY --from=builder /src/config/ ./config/
+COPY --from=builder /src/scripts/ ./scripts/
+COPY --from=builder /src/migrations/ ./migrations/
+COPY --from=builder /src/dataset/samples/ ./dataset/samples/
+COPY --from=builder /src/skills/preloaded/ ./skills/preloaded/
+COPY --from=builder /src/skills/preloaded/ ./skills/_builtin/
+COPY --from=builder /root/.duckdb /home/appuser/.duckdb
+COPY --from=builder /src/WeKnora ./WeKnora
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libheif-examples \
+    && rm -rf /var/lib/apt/lists/* \
+    && chmod +x ./WeKnora ./scripts/*.sh \
+    && chown -R appuser:appuser /home/appuser/.duckdb

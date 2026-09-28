@@ -1,0 +1,14 @@
+# Reuse the existing Cloudflare Tunnel network. The tunnel's staging hostname
+# must resolve to this unique alias; production keeps the `web` alias.
+services:
+  frontend:
+    networks:
+      WeKnora-network: {}
+      edge:
+        aliases:
+          - staging-web
+
+networks:
+  edge:
+    external: true
+    name: musnow-production_edge

@@ -1,0 +1,488 @@
+/*
+ * Reachable-surface visual closure.
+ *
+ * This layer covers production UI that is reachable from the active platform
+ * routes but has no one-to-one standalone component in the supplied reference.
+ * It changes presentation only. No Graph/Trace renderer internals are targeted.
+ */
+
+:root {
+  --mvs-folder-plus: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%2010v6%22%2F%3E%3Cpath%20d%3D%22M9%2013h6%22%2F%3E%3Cpath%20d%3D%22M20%2020a2%202%200%200%200%202-2V8a2%202%200%200%200-2-2h-7.9a2%202%200%200%201-1.69-.9L9.6%203.9A2%202%200%200%200%207.93%203H4a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202Z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Global OS file-drop affordance: borrow the reference upload drop-zone.      */
+/* -------------------------------------------------------------------------- */
+
+.upload-mask {
+  background: rgb(255 255 255 / 95%) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* KnowledgeBase create modal -> native zero-config create behavior.            */
+/* User-authored metadata stays compact while the server continues to own all   */
+/* model, storage and pipeline defaults.                                        */
+/* -------------------------------------------------------------------------- */
+
+.settings-overlay:has(.settings-modal--compact) {
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  background: rgb(0 0 0 / 40%) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.settings-modal--compact {
+  width: min(448px, 100%) !important;
+  max-width: 448px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 32px) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%) !important;
+}
+.settings-modal--compact .zero-config-create { min-height: 0 !important; }
+.settings-modal--compact .zero-config-create__body {
+  gap: 14px !important;
+  padding: 22px 24px 14px !important;
+}
+.settings-modal--compact .sidebar-title {
+  margin: 0 !important;
+  padding: 0 30px 12px 0 !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #111827 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 700 !important;
+}
+.settings-modal--compact .sidebar-title::before {
+  content: "";
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  background: #374151;
+  -webkit-mask: var(--mvs-folder-plus) center / contain no-repeat;
+  mask: var(--mvs-folder-plus) center / contain no-repeat;
+}
+.settings-modal--compact .form-item { margin: 0 !important; }
+.settings-modal--compact .form-label {
+  margin-bottom: 6px !important;
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: .05em !important;
+  text-transform: uppercase !important;
+}
+.settings-modal--compact .t-input {
+  min-height: 34px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #f9fafb !important;
+  color: #1f2937 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+.settings-modal--compact .t-input:hover { border-color: #d1d5db !important; }
+.settings-modal--compact .t-input.t-is-focused {
+  border-color: #9ca3af !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+.settings-modal--compact .settings-footer {
+  margin: 0 24px 20px !important;
+  padding: 10px 0 0 !important;
+  border-top: 1px solid #f3f4f6 !important;
+  background: #fff !important;
+}
+.settings-modal--compact .settings-footer-actions { gap: 8px !important; }
+.settings-modal--compact .settings-footer-actions .t-button {
+  min-height: 32px !important;
+  padding: 6px 12px !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 600 !important;
+}
+.settings-modal--compact .settings-footer-actions .t-button--theme-default {
+  border-color: #e5e7eb !important;
+  background: #fff !important;
+  color: #4b5563 !important;
+}
+.settings-modal--compact .settings-footer-actions .t-button--theme-default:hover { background: #f3f4f6 !important; }
+.settings-modal--compact .settings-footer-actions .t-button--theme-primary {
+  padding-inline: 16px !important;
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+.settings-modal--compact .settings-footer-actions .t-button--theme-primary:hover { background: #000 !important; }
+.settings-modal--compact .close-btn {
+  top: 19px !important;
+  right: 19px !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+}
+.settings-modal--compact .close-btn:hover { background: #f3f4f6 !important; color: #4b5563 !important; }
+.settings-modal--compact .close-btn svg { width: 16px !important; height: 16px !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Musuw-only knowledge-base editor: reuse the reference SettingsModal shell.  */
+/* -------------------------------------------------------------------------- */
+
+.settings-overlay:has(.settings-modal:not(.settings-modal--compact)) {
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  background: rgb(0 0 0 / 45%) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.settings-modal:not(.settings-modal--compact) {
+  width: min(896px, 100%) !important;
+  max-width: 896px !important;
+  height: 620px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border: 1px solid rgb(229 231 235 / 90%) !important;
+  border-radius: 24px !important;
+  background: #fff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+.settings-modal:not(.settings-modal--compact) .settings-sidebar {
+  flex: 0 0 192px !important;
+  width: 192px !important;
+  border-right: 1px solid #f3f4f6 !important;
+  background: #fafafa !important;
+}
+.settings-modal:not(.settings-modal--compact) .sidebar-header {
+  padding: 24px 24px 12px !important;
+  border-bottom: 0 !important;
+}
+.settings-modal:not(.settings-modal--compact) .sidebar-title {
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+.settings-modal:not(.settings-modal--compact) .settings-nav {
+  padding: 0 12px 24px !important;
+}
+.settings-modal:not(.settings-modal--compact) .nav-group-title {
+  padding: 10px 12px 4px !important;
+  color: #9ca3af !important;
+  font-size: 10px !important;
+  line-height: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: .04em !important;
+}
+.settings-modal:not(.settings-modal--compact) .nav-item {
+  min-height: 38px !important;
+  padding: 9px 12px !important;
+  margin-bottom: 2px !important;
+  border-radius: 12px !important;
+  color: #4b5563 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 500 !important;
+}
+.settings-modal:not(.settings-modal--compact) .nav-item:hover {
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+.settings-modal:not(.settings-modal--compact) .nav-item.active {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  font-weight: 700 !important;
+}
+.settings-modal:not(.settings-modal--compact) .nav-icon {
+  margin-right: 9px !important;
+  font-size: 16px !important;
+}
+.settings-modal:not(.settings-modal--compact) .nav-badge {
+  border-radius: 6px !important;
+  background: #e5e7eb !important;
+  color: #6b7280 !important;
+  font-size: 9px !important;
+}
+.settings-modal:not(.settings-modal--compact) .settings-content { background: #fff !important; }
+.settings-modal:not(.settings-modal--compact) .content-wrapper { padding: 24px !important; }
+.settings-modal:not(.settings-modal--compact) .section { margin-bottom: 24px !important; }
+.settings-modal:not(.settings-modal--compact) .section-header { margin-bottom: 20px !important; }
+.settings-modal:not(.settings-modal--compact) .section-title {
+  margin-bottom: 4px !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+.settings-modal:not(.settings-modal--compact) .section-desc,
+.settings-modal:not(.settings-modal--compact) .form-tip {
+  color: #9ca3af !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.settings-modal:not(.settings-modal--compact) .section-body { background: #fff !important; }
+.settings-modal:not(.settings-modal--compact) .form-item { margin-bottom: 20px !important; }
+.settings-modal:not(.settings-modal--compact) .form-label {
+  margin-bottom: 6px !important;
+  color: #111827 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 700 !important;
+}
+.settings-modal:not(.settings-modal--compact) .indexing-check-item {
+  padding: 12px 14px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+}
+.settings-modal:not(.settings-modal--compact) .indexing-check-item:hover,
+.settings-modal:not(.settings-modal--compact) .indexing-check-item.is-checked {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+}
+.settings-modal:not(.settings-modal--compact) .indexing-new-badge {
+  border-radius: 5px !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+.settings-modal:not(.settings-modal--compact) .kb-id-field,
+.settings-modal:not(.settings-modal--compact) .faq-guide {
+  border-color: #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+}
+.settings-modal:not(.settings-modal--compact) .settings-footer {
+  min-height: 58px !important;
+  padding: 12px 24px !important;
+  border-top-color: #f3f4f6 !important;
+  background: #fafafa !important;
+}
+.settings-modal:not(.settings-modal--compact) .close-btn {
+  top: 24px !important;
+  right: 24px !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+}
+.settings-modal:not(.settings-modal--compact) .close-btn:hover { background: #f3f4f6 !important; color: #374151 !important; }
+.settings-modal:not(.settings-modal--compact) .t-input,
+.settings-modal:not(.settings-modal--compact) .t-textarea__inner {
+  border-color: #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+}
+.settings-modal:not(.settings-modal--compact) .t-input:hover,
+.settings-modal:not(.settings-modal--compact) .t-textarea__inner:hover { border-color: #d1d5db !important; }
+.settings-modal:not(.settings-modal--compact) .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+.settings-modal:not(.settings-modal--compact) .t-button--theme-primary:hover { background: #000 !important; }
+
+/* -------------------------------------------------------------------------- */
+/* ShareKnowledgeBaseDialog: native business, reference Batch/Settings family. */
+/* -------------------------------------------------------------------------- */
+
+body .t-dialog:has(.share-form),
+body .t-dialog:has(.share-list) {
+  width: min(512px, calc(100vw - 32px)) !important;
+  max-width: 512px !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%) !important;
+}
+body .t-dialog:has(.share-form) .t-dialog__header,
+body .t-dialog:has(.share-list) .t-dialog__header {
+  padding: 16px 24px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  line-height: 24px !important;
+  font-weight: 700 !important;
+}
+body .t-dialog:has(.share-form) .t-dialog__body,
+body .t-dialog:has(.share-list) .t-dialog__body { padding: 16px 24px 24px !important; }
+body .t-dialog:has(.share-form) .t-form__label { color: #374151 !important; font-size: 12px !important; font-weight: 600 !important; }
+body .t-dialog:has(.share-form) .permission-tip {
+  padding: 10px 12px !important;
+  border: 1px solid #f3f4f6 !important;
+  border-radius: 10px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+}
+body .t-dialog:has(.share-form) .share-actions,
+body .t-dialog:has(.share-list) .share-actions {
+  gap: 8px !important;
+  border-top-color: #f3f4f6 !important;
+}
+body .t-dialog:has(.share-form) .t-button,
+body .t-dialog:has(.share-list) .t-button { border-radius: 10px !important; font-size: 11px !important; box-shadow: none !important; }
+body .t-dialog:has(.share-form) .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+body .t-dialog:has(.share-form) .t-button--theme-primary:hover { background: #000 !important; }
+body .t-dialog:has(.share-list) .share-item {
+  padding: 12px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+}
+body .t-dialog:has(.share-list) .share-item:hover { background: #f9fafb !important; }
+.org-select-dropdown-popup.t-select__dropdown {
+  padding: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 14px 34px rgb(15 23 42 / 14%) !important;
+}
+.org-select-dropdown-popup .t-select-option {
+  margin: 1px 0 !important;
+  padding: 7px 9px !important;
+  border-radius: 8px !important;
+}
+.org-select-dropdown-popup .t-select-option:hover,
+.org-select-dropdown-popup .t-select-option.t-is-selected { background: #f3f4f6 !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Document detail drawer. Trace's secondary drawer and timeline are excluded. */
+/* -------------------------------------------------------------------------- */
+
+body .doc-main-drawer.t-drawer > .t-drawer__content-wrapper {
+  border-left: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: -18px 0 50px rgb(15 23 42 / 12%) !important;
+}
+body .doc-main-drawer .t-drawer__header,
+body .doc-main-drawer.t-drawer .t-drawer__header {
+  min-height: 58px !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  background: rgb(249 250 251 / 60%) !important;
+}
+body .doc-main-drawer .t-drawer__body,
+body .doc-main-drawer.t-drawer .t-drawer__body {
+  padding: 20px 24px 24px !important;
+  background: #fff !important;
+}
+body .doc-main-drawer .doc-drawer-header-icon,
+body .doc-main-drawer.t-drawer .doc-drawer-header-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+body .doc-main-drawer .doc-drawer-header-title,
+body .doc-main-drawer.t-drawer .doc-drawer-header-title {
+  color: #030712 !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 800 !important;
+}
+body .doc-main-drawer .header-action-btn,
+body .doc-main-drawer.t-drawer .header-action-btn {
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  color: #6b7280 !important;
+}
+body .doc-main-drawer .header-action-btn:hover,
+body .doc-main-drawer.t-drawer .header-action-btn:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+body .doc-main-drawer .setting-drawer__section,
+body .doc-main-drawer.t-drawer .setting-drawer__section { border-bottom-color: #f3f4f6 !important; }
+body .doc-main-drawer .setting-drawer__section-title,
+body .doc-main-drawer.t-drawer .setting-drawer__section-title {
+  color: #374151 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+body .doc-main-drawer .setting-drawer__section-title::before,
+body .doc-main-drawer.t-drawer .setting-drawer__section-title::before { background: #9ca3af !important; }
+body .doc-main-drawer .icon-action-btn,
+body .doc-main-drawer.t-drawer .icon-action-btn { color: #9ca3af !important; border-radius: 6px !important; }
+body .doc-main-drawer .icon-action-btn:hover,
+body .doc-main-drawer .icon-action-btn.is-active,
+body .doc-main-drawer.t-drawer .icon-action-btn:hover,
+body .doc-main-drawer.t-drawer .icon-action-btn.is-active { background: #f3f4f6 !important; color: #374151 !important; }
+body .doc-main-drawer .t-button--theme-primary,
+body .doc-main-drawer.t-drawer .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Teleported native feedback. Preserve semantic icon/status behavior, but      */
+/* remove the legacy card geometry so transient UI fits the reference system.  */
+/* -------------------------------------------------------------------------- */
+
+body .t-message {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%) !important;
+  font-family: var(--app-font-family) !important;
+  font-size: 12px !important;
+}
+
+:root[theme-mode="dark"] body .t-message {
+  border-color: #3f3f46 !important;
+  background: #18181b !important;
+  color: #f4f4f5 !important;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 36%) !important;
+}
+
+/* Rebuilt surfaces use neutral/black controls rather than TDesign brand blue. */
+:where([class^="visual-"], [class*=" visual-"]) .t-switch.t-is-checked,
+.settings-modal .t-switch.t-is-checked { background: #111827 !important; }
+
+@media (max-width: 560px) {
+  .settings-modal:not(.settings-modal--compact) {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+  .settings-modal:not(.settings-modal--compact) .settings-sidebar { flex-basis: 192px !important; width: 192px !important; }
+}
+@media (min-width: 1024px) {
+  .settings-modal:not(.settings-modal--compact) {
+    width: min(1024px, 100%) !important;
+    max-width: 1024px !important;
+  }
+}

@@ -1,0 +1,190 @@
+# The frontend is reachable through the trusted Cloudflare Tunnel only. Paddle
+# sends its source address in CF-Connecting-IP; the application still verifies
+# Paddle-Signature after this network gate. The mounted file is generated at
+# runtime from Paddle's official /ips endpoint for the selected environment.
+geo $http_cf_connecting_ip $paddle_webhook_source_allowed {
+    default 0;
+    include /etc/nginx/paddle-ips/allowlist.conf;
+}
+
+# Request timings exclude query strings, resource IDs, referrers and credentials.
+# Correlate the bounded origin request ID with the application's rotating log.
+map $uri $musuw_request_kind {
+    default page;
+    ~^/api/ api;
+    ~^/auth/ auth;
+    ~^/assets/ asset;
+    ~^/(files|r)/ resource;
+}
+map $upstream_http_x_request_id $musuw_origin_request_id {
+    default "";
+    "~^[A-Za-z0-9_-]{1,64}$" $upstream_http_x_request_id;
+}
+map $http_cf_ray $musuw_cf_ray {
+    default "";
+    "~^[A-Za-z0-9-]{1,64}$" $http_cf_ray;
+}
+map $http_cf_ipcountry $musuw_country {
+    default "";
+    "~^[A-Z]{2}$" $http_cf_ipcountry;
+}
+log_format musuw_timing escape=json
+    '{"event":"proxy_timing","time":"$time_iso8601","kind":"$musuw_request_kind",'
+    '"status":$status,"total_s":"$request_time","upstream_s":"$upstream_response_time",'
+    '"connect_s":"$upstream_connect_time","request_id":"$musuw_origin_request_id",'
+    '"cf_ray":"$musuw_cf_ray","country":"$musuw_country"}';
+
+server {
+    listen 8080;
+    server_name _;
+    access_log /dev/stdout musuw_timing;
+    client_max_body_size ${MAX_FILE_SIZE};
+
+    # Google/email OTP stays in a static same-origin shell. Native WeKnora API
+    # and resource routes below retain their upstream proxy behavior.
+    include /etc/nginx/weknora-auth-shell.conf;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+    gzip_proxied any;
+    gzip_types text/plain text/css text/javascript application/javascript application/json application/xml image/svg+xml font/ttf font/otf;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location = /health {
+        include /etc/nginx/musuw-noindex.conf;
+        proxy_pass ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/health;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location = /musuw-widget.js {
+        include /etc/nginx/musuw-noindex.conf;
+        root /usr/share/nginx/html;
+        add_header Cache-Control "public, max-age=3600" always;
+    }
+
+    # Backward-compatible path for already-installed third-party snippets.
+    location = /weknora-widget.js {
+        return 308 /musuw-widget.js;
+        include /etc/nginx/musuw-noindex.conf;
+    }
+
+    location = /embed.html {
+        include /etc/nginx/musuw-noindex.conf;
+        internal;
+        root /usr/share/nginx/html;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    location ^~ /embed/ {
+        include /etc/nginx/musuw-noindex.conf;
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /embed.html;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    # The operations console is served only by the loopback admin gateway.
+    location = /operations.html {
+        return 404;
+    }
+
+    location ^~ /assets/ {
+        include /etc/nginx/musuw-noindex.conf;
+        root /usr/share/nginx/html;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+    }
+
+    location / {
+        include /etc/nginx/musuw-noindex.conf;
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    location = /files {
+        include /etc/nginx/musuw-noindex.conf;
+        proxy_pass ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/files;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location ^~ /r/ {
+        include /etc/nginx/musuw-noindex.conf;
+        proxy_pass ${APP_SCHEME}://${APP_HOST}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # Keep the webhook path public through the Tunnel while rejecting direct
+    # or non-Paddle requests. Other API paths and /health remain unaffected.
+    location = /api/v1/billing/paddle/webhook {
+        include /etc/nginx/musuw-noindex.conf;
+        if ($paddle_webhook_source_allowed = 0) { return 403; }
+        proxy_pass ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/api/v1/billing/paddle/webhook;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 30s;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    location = /api/v1/client-diagnostics {
+        access_log off;
+        # Nginx errors may quote an attacker-supplied URL/body size. The bounded
+        # application handler is the only diagnostic event log.
+        error_log /dev/null;
+        client_body_timeout 5s;
+        client_max_body_size 1k;
+        proxy_pass ${APP_SCHEME}://${APP_HOST}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 2s;
+    }
+
+    location /api/ {
+        include /etc/nginx/musuw-noindex.conf;
+        proxy_pass ${APP_SCHEME}://${APP_HOST}:${APP_PORT}/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 30s;
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        proxy_next_upstream_tries 3;
+        proxy_next_upstream_timeout 30s;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        chunked_transfer_encoding off;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        include /etc/nginx/musuw-noindex.conf;
+        root /usr/share/nginx/html;
+    }
+}

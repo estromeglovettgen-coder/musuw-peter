@@ -1,0 +1,307 @@
+/*
+ * Tenantless onboarding and image-preview closure.
+ * Both surfaces are native Musuw behavior with no direct TSX component in the
+ * supplied visual reference. Preserve their behavior and restyle them with the
+ * same monochrome, light-border, rounded-card visual system.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Workspace onboarding                                                        */
+/* -------------------------------------------------------------------------- */
+
+.workspace-onboarding {
+  min-height: 100vh !important;
+  padding: 32px 20px !important;
+  box-sizing: border-box !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font-family: var(--app-font-family) !important;
+}
+.workspace-card {
+  width: min(448px, 100%) !important;
+  padding: 32px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 24px !important;
+  background: #fff !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 7%), 0 8px 10px -6px rgb(0 0 0 / 5%) !important;
+  text-align: center !important;
+}
+.workspace-mark {
+  width: 48px !important;
+  height: 48px !important;
+  margin: 0 auto 20px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #111827 !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%) !important;
+}
+.workspace-mark > .t-icon { display: none !important; }
+.workspace-mark::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  background: currentColor;
+  -webkit-mask: var(--mvc-icon-zap) center / contain no-repeat;
+  mask: var(--mvc-icon-zap) center / contain no-repeat;
+}
+.workspace-card h1 {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: 20px !important;
+  line-height: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.025em !important;
+}
+.workspace-description {
+  max-width: 360px !important;
+  margin: 8px auto 24px !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  line-height: 19px !important;
+}
+.workspace-actions {
+  gap: 10px !important;
+}
+.workspace-actions .t-button {
+  min-height: 36px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+.workspace-actions .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+.workspace-actions .t-button--theme-primary:hover { border-color: #000 !important; background: #000 !important; }
+.workspace-actions .t-button--theme-default {
+  border-color: #e5e7eb !important;
+  background: #fff !important;
+  color: #4b5563 !important;
+}
+.workspace-actions .t-button--theme-default:hover { border-color: #d1d5db !important; background: #f9fafb !important; color: #111827 !important; }
+.policy-loading,
+.invite-only-notice,
+.policy-error {
+  min-height: 48px !important;
+  margin-bottom: 16px !important;
+  padding: 10px 12px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #f9fafb !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.policy-loading { border-style: dashed !important; }
+.policy-error {
+  border-color: #fecaca !important;
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+.invite-only-notice { color: #4b5563 !important; }
+.workspace-help {
+  margin: 20px 0 6px !important;
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.logout-link {
+  min-height: 28px !important;
+  padding: 5px 8px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.logout-link:hover { background: #f3f4f6 !important; color: #374151 !important; }
+
+/* CreateTenantDialog keeps its form/API contract, but visually belongs to the
+ * same compact modal family as the reference KB create surface. */
+body .t-dialog:has(.create-tenant-dialog-header) {
+  width: min(448px, calc(100vw - 32px)) !important;
+  max-width: 448px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%) !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-dialog__header {
+  padding: 18px 24px 12px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-dialog__body { padding: 16px 24px 8px !important; }
+body .t-dialog:has(.create-tenant-dialog-header) .t-dialog__footer { padding: 12px 24px 20px !important; border-top: 0 !important; }
+body .create-tenant-dialog-header { gap: 8px !important; color: #111827 !important; }
+body .create-tenant-dialog-header-icon {
+  width: 16px !important;
+  height: 16px !important;
+  color: #374151 !important;
+}
+body .create-tenant-dialog-header-icon > * { display: none !important; }
+body .create-tenant-dialog-header-icon {
+  background: currentColor !important;
+  -webkit-mask: var(--mvs-folder-plus) center / contain no-repeat !important;
+  mask: var(--mvs-folder-plus) center / contain no-repeat !important;
+}
+body .create-tenant-dialog-header-title { font-size: 14px !important; line-height: 20px !important; font-weight: 700 !important; }
+body .create-tenant-tip {
+  margin: 0 0 16px !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-form__label {
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: .04em !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-input,
+body .t-dialog:has(.create-tenant-dialog-header) .t-textarea__inner {
+  border-color: #e5e7eb !important;
+  border-radius: 12px !important;
+  background: #f9fafb !important;
+  color: #1f2937 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-input:hover,
+body .t-dialog:has(.create-tenant-dialog-header) .t-textarea__inner:hover { border-color: #d1d5db !important; }
+body .t-dialog:has(.create-tenant-dialog-header) .t-input.t-is-focused,
+body .t-dialog:has(.create-tenant-dialog-header) .t-textarea__inner:focus {
+  border-color: #9ca3af !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-button {
+  min-height: 32px !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-button--theme-primary {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+}
+body .t-dialog:has(.create-tenant-dialog-header) .t-button--theme-primary:hover { background: #000 !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Native image viewer                                                         */
+/* -------------------------------------------------------------------------- */
+
+/* picture-preview.vue is intentionally behavior-thin: TDesign owns zoom,
+ * rotation, ESC and overlay close. Make the teleported viewer look like a
+ * reference-family media lightbox without replacing those controls. */
+body .t-image-viewer__dialog.t-dialog__ctx { z-index: 3600 !important; }
+body .t-image-viewer__dialog .t-dialog__wrap {
+  background: rgb(17 24 39 / 72%) !important;
+  backdrop-filter: blur(6px) !important;
+}
+body .t-image-viewer__dialog .t-dialog {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body .t-image-viewer__dialog .t-dialog__header {
+  position: absolute !important;
+  inset: 0 0 auto !important;
+  z-index: 3 !important;
+  min-height: 56px !important;
+  padding: 14px 16px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+body .t-image-viewer__dialog .t-dialog__header-content { display: none !important; }
+body .t-image-viewer__dialog .t-dialog__close {
+  width: 32px !important;
+  height: 32px !important;
+  margin-left: auto !important;
+  border: 1px solid rgb(255 255 255 / 16%) !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgb(255 255 255 / 12%) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px) !important;
+}
+body .t-image-viewer__dialog .t-dialog__close:hover { background: rgb(255 255 255 / 20%) !important; }
+body .t-image-viewer__dialog .t-dialog__body {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 56px 24px 80px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+}
+body .t-image-viewer__dialog .t-image-viewer-mini__content,
+body .t-image-viewer__dialog .t-image-viewer__modal-pic,
+body .t-image-viewer__dialog .t-image-viewer__modal-box { max-width: 100% !important; max-height: 100% !important; }
+body .t-image-viewer__dialog .t-image-viewer__modal-image {
+  max-width: min(1100px, calc(100vw - 48px)) !important;
+  max-height: calc(100vh - 136px) !important;
+  border-radius: 12px !important;
+  object-fit: contain !important;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 24%) !important;
+}
+body .t-image-viewer__dialog .t-dialog__footer {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 20px !important;
+  z-index: 3 !important;
+  width: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  transform: translateX(-50%) !important;
+}
+body .t-image-viewer__dialog .t-image-viewer__utils {
+  padding: 6px !important;
+  border: 1px solid rgb(229 231 235 / 90%) !important;
+  border-radius: 14px !important;
+  background: rgb(255 255 255 / 94%) !important;
+  color: #4b5563 !important;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 18%) !important;
+  backdrop-filter: blur(10px) !important;
+}
+body .t-image-viewer__dialog .t-image-viewer__utils-content { gap: 2px !important; }
+body .t-image-viewer__dialog .t-image-viewer__modal-icon {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6b7280 !important;
+}
+body .t-image-viewer__dialog .t-image-viewer__modal-icon:hover { background: #f3f4f6 !important; color: #111827 !important; }
+
+@media (max-width: 560px) {
+  .workspace-onboarding { padding: 0 !important; }
+  .workspace-card {
+    width: 100% !important;
+    min-height: 100vh !important;
+    padding: 28px 20px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}

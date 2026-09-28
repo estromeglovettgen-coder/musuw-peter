@@ -1,0 +1,17 @@
+# Only static production inputs may enter the UI build context. In particular,
+# this never copies legacy business sources, runtime directories, or secrets.
+**
+!weknora
+!weknora/frontend
+!weknora/frontend/dist
+!weknora/frontend/dist/**
+!weknora/frontend/docker-entrypoint.sh
+!auth
+!auth/dist
+!auth/dist/**
+!integration
+!integration/weknora-production
+!integration/weknora-production/Dockerfile.frontend
+!integration/weknora-production/Dockerfile.frontend.dockerignore
+!integration/weknora-production/nginx.conf.template
+!integration/weknora-production/auth-shell.nginx.conf

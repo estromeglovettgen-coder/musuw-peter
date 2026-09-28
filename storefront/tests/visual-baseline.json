@@ -1,0 +1,37 @@
+{
+  "capturedAt": "2026-08-01T07:30:00Z",
+  "viewport": { "width": 1291, "height": 782 },
+  "reference": {
+    "heroAndTrustStrip": { "top": 0, "height": 1586.6640625 },
+    "features": { "top": 1586.6640625, "height": 3448.3984375 },
+    "workflow": { "top": 5035.0625, "height": 1364.796875 },
+    "benefits": { "top": 6399.859375, "height": 1030.3984375 },
+    "pricing": { "top": 7430.2578125, "height": 1072.6875 },
+    "comparison": { "top": 8502.9453125, "height": 1142.0703125 },
+    "testimonials": { "top": 9645.015625, "height": 1526.3984375 },
+    "blog": { "top": 11171.4140625, "height": 741.0390625 },
+    "faq": { "top": 11912.453125, "height": 844.8984375 },
+    "cta": { "top": 12757.3515625, "height": 670 },
+    "footer": { "top": 13427.3515625, "height": 343.8984375 }
+  },
+  "reactRecreationBeforeChange": {
+    "hero": { "top": 0, "height": 1444 },
+    "trustStrip": { "top": 1444, "height": 143 },
+    "features": { "top": 1587, "height": 3448 },
+    "workflow": { "top": 5035, "height": 1197.796875 },
+    "benefits": { "top": 6232.796875, "height": 1030 },
+    "pricing": { "top": 7262.796875, "height": 1073 },
+    "comparison": { "top": 8335.796875, "height": 1142 },
+    "testimonials": { "top": 9477.796875, "height": 1210.3984375 },
+    "blog": { "top": 10688.1953125, "height": 741 },
+    "faq": { "top": 11429.1953125, "height": 845 },
+    "cta": { "top": 12274.1953125, "height": 620 },
+    "footer": { "top": 12894.1953125, "height": 344 }
+  },
+  "knownFailures": {
+    "workflowHeightDelta": -167,
+    "testimonialsHeightDelta": -316,
+    "ctaHeightDelta": -50,
+    "footerStartDelta": -533.15625
+  }
+}

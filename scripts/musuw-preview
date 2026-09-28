@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Explicit production-like Docker build/preview. Daily development uses
+# `scripts/musuw-dev up` instead.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "$repo_root/scripts/musuw-dev" preview "$@"

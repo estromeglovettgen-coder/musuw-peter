@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# ForcedCommand entry point for the dedicated staging deploy key. It accepts
+# only the fixed gate verbs and a receiver-mode rsync upload into one SHA spool.
+set -euo pipefail
+
+reject() { printf '%s\n' 'staging deployment SSH command rejected' >&2; exit 2; }
+original_command="${SSH_ORIGINAL_COMMAND:-}"
+[ -n "$original_command" ] || reject
+case "$original_command" in
+    *$'\n'*|*$'\r'*|*';'*|*'|'*|*'&'*|*'$('*|*')'*|*'{'*|*'}'*|*'<'*|*'>'*|*'`'*|*'\\'*|*'"'*|*"'"*) reject ;;
+esac
+read -r -a command_words <<< "$original_command"
+[ "${#command_words[@]}" -gt 0 ] || reject
+
+safe_revision() { [[ "$1" =~ ^[0-9a-fA-F]{40}$ ]]; }
+safe_app_ref() { [[ "$1" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-app@sha256:[0-9a-f]{64}$ ]]; }
+safe_frontend_ref() { [[ "$1" =~ ^ghcr\.io/estromeglovettgen-coder/musuw-frontend@sha256:[0-9a-f]{64}$ ]]; }
+safe_release_id() { case "$1" in musuw-*) safe_revision "${1#musuw-}" ;; *) return 1 ;; esac; }
+test_mode=false
+if [ "${MUSUW_STAGING_DEPLOY_GATE_TEST_MODE:-0}" = 1 ] && [ "${EUID:-1}" -ne 0 ]; then test_mode=true; fi
+if [ "$test_mode" = true ]; then
+    wrapper="${MUSUW_STAGING_DEPLOY_GATE_WRAPPER:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/musuw-staging-deploy-gate}"
+    rsync_bin="${MUSUW_STAGING_DEPLOY_GATE_RSYNC_BIN:-$(command -v rsync || true)}"
+else
+    wrapper='/usr/local/sbin/musuw-staging-deploy-gate'
+    rsync_bin='/usr/bin/rsync'
+fi
+
+invoke_wrapper() {
+    [ -x "$wrapper" ] || reject
+    if [ "$test_mode" = true ]; then exec "$wrapper" "$@"; fi
+    [ -x /usr/bin/sudo ] || reject
+    exec /usr/bin/sudo -n -- "$wrapper" "$@"
+}
+
+if [ "${command_words[0]}" = 'musuw-staging-gate' ]; then
+    case "${command_words[1]:-}" in
+        prepare|deploy)
+            [ "${#command_words[@]}" -eq 3 ] || reject
+            safe_revision "${command_words[2]}" || reject
+            invoke_wrapper "${command_words[1]}" "${command_words[2]}"
+            ;;
+        verify)
+            [ "${#command_words[@]}" -eq 5 ] || reject
+            safe_revision "${command_words[2]}" || reject
+            safe_app_ref "${command_words[3]}" || reject
+            safe_frontend_ref "${command_words[4]}" || reject
+            invoke_wrapper verify "${command_words[2]}" "${command_words[3]}" "${command_words[4]}"
+            ;;
+        *) reject ;;
+    esac
+fi
+
+[ "${command_words[0]}" = rsync ] || reject
+[ "${command_words[1]:-}" = --server ] || reject
+[ "${#command_words[@]}" -ge 5 ] || reject
+[ "${command_words[${#command_words[@]}-2]}" = . ] || reject
+last_index=$((${#command_words[@]} - 1))
+destination="${command_words[$last_index]}"
+spool_root='/var/lib/musuw-staging-deploy/incoming'
+case "$destination" in "$spool_root"/*) ;; *) reject ;; esac
+relative_destination="${destination#"$spool_root"/}"
+relative_destination="${relative_destination%/}"
+IFS=/ read -r release_id component remainder <<< "$relative_destination"
+safe_release_id "$release_id" || reject
+destination_scope="$component"
+[ -z "$remainder" ] || destination_scope="$component/$remainder"
+case "$destination_scope" in
+    source|source/weknora|source/integration|source/integration/weknora-production|\
+    source/integration/weknora-staging|source/scripts|source/scripts/weknora-staging|source/deploy) ;;
+    *) reject ;;
+esac
+
+for ((index = 2; index < last_index - 1; index += 1)); do
+    token="${command_words[$index]}"
+    case "$token" in
+        --sender|--delete|--delete-*|--remove-*|--rsync-path=*|-e|-f|-R|-K|-L|-b) reject ;;
+        --partial|--dirs|--timeout=120) ;;
+        -[vloguDtpre.iLsfxCIu.]* )
+            short_flags="${token#-}"
+            if [[ "$token" =~ ^-[lprtD]+$ ]]; then :
+            elif [[ "$token" =~ ^-[vloguDtpre.iLsfxCIu.]+$ ]]; then
+                for required_flag in l D t p r e; do
+                    case "$short_flags" in *"$required_flag"*) ;; *) reject ;; esac
+                done
+            else reject
+            fi
+            ;;
+        --*) reject ;;
+        *) reject ;;
+    esac
+done
+[ -x "$rsync_bin" ] || reject
+exec "$rsync_bin" "${command_words[@]:1}"

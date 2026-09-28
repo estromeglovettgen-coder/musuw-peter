@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "sourceDirectory": "weknora",
+  "upstream": {
+    "remote": "https://github.com/Tencent/WeKnora.git",
+    "tag": "v0.7.2",
+    "commit": "3d5d8bfcdfeeea266b292b71cea616847af28d0f",
+    "tree": "7251449b3d71ef5d7d157874c2c705c58a210202"
+  },
+  "officialTrackedPathCount": 2798,
+  "localAdaptation": "Musuw retains the complete upstream source and makes product-specific changes for branding, its Supabase Google/email-OTP entry, server-side model configuration, and a simplified consumer UI. It also repairs the batch upload feedback inherited from v0.7.2 and still present in upstream main at 7e53c3167164d68cfb6c2e897ddd3e755b4b5a45: persistent per-file progress, refresh after each accepted file, visible failure reasons and a pending-upload page reload warning. It also closes inherited document-loading feedback gaps: immediate detail loading, visible errors and retry, continuous preview preparation feedback with source-keyed renderer instances that isolate late responses, initial chunk loading, and visible list/history request failures. It keeps child folders visible independently of sidebar expansion, clarifies direct versus recursive counts, keeps document controls on one row without visible toolbar loading jitter, exposes selected-document parsing cancellation through the existing per-document API, and adds graph playback restoration to the original positions and camera. Document directories also expand to show direct documents, expose confirmed recursive deletion from the sidebar and folder entries through the existing asynchronous batch deletion API, and retain the complete previous folder view until the next navigation succeeds. The repository diff is the current local-delta inventory. The 2026-09-18 provider catalog refresh retains saved model IDs and Qwen embedding identity/dimensions, updates verified same-tier endpoints and UI labels, explicitly marks Gemini Pro preview, preserves native video transport, and normalizes retired reasoning efforts at the existing OpenRouter request boundary.",
+  "generatedArtifactExclusions": [
+    "desktop",
+    "server",
+    "frontend/dist/**",
+    "frontend/node_modules/**"
+  ]
+}

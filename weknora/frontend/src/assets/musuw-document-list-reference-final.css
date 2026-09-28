@@ -1,0 +1,142 @@
+/*
+ * Direct @视觉文件/DocumentListView.tsx geometry closure.
+ * Presentation only: selection, trace, reparse, folder, move, tag and delete
+ * behavior remains owned by the existing Vue components/controllers.
+ */
+
+/* KnowledgeBase.tsx detail shell: p-5 on small screens, md:p-7 from 768px. */
+.visual-knowledge-page {
+  padding: 20px !important;
+}
+@media (min-width: 768px) {
+  .visual-knowledge-page { padding: 28px !important; }
+}
+
+/* DocumentListView.tsx view buttons: p-1.5 around a 14px glyph => 26px. */
+.visual-knowledge-view-toggle button {
+  width: 26px !important;
+  height: 26px !important;
+  padding: 6px !important;
+}
+
+/* Reference grid: grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4. */
+.visual-document-grid,
+.visual-knowledge-skeleton-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 16px !important;
+}
+@media (min-width: 640px) {
+  .visual-document-grid,
+  .visual-knowledge-skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 768px) {
+  .visual-document-grid,
+  .visual-knowledge-skeleton-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 1024px) {
+  .visual-document-grid,
+  .visual-knowledge-skeleton-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+}
+
+/* Reference table shell: rounded-2xl, border gray-200/90, overflow-hidden. */
+.visual-document-list {
+  overflow: hidden !important;
+  border-color: rgb(229 231 235 / 90%) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.visual-document-list__header,
+.visual-document-list__row {
+  grid-template-columns:
+    40px
+    minmax(220px, 1fr)
+    128px
+    96px
+    96px
+    96px
+    128px
+    64px !important;
+  padding-inline: 16px !important;
+}
+.visual-document-list__header {
+  min-height: 38px !important;
+  border-radius: 15px 15px 0 0 !important;
+  background: rgb(249 250 251 / 70%) !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 14px !important;
+  font-weight: 700 !important;
+}
+.visual-document-list__header.is-stuck { border-radius: 0 !important; }
+.visual-document-list__body { border-radius: 0 0 15px 15px !important; }
+.visual-document-list__row {
+  min-height: 56px !important;
+  border-bottom-color: #f3f4f6 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.visual-document-list__row:hover,
+.visual-document-list__row.is-menu-open { background: rgb(249 250 251 / 80%) !important; }
+.visual-document-list__row.is-selected { background: rgb(243 244 246 / 60%) !important; }
+.visual-document-list__cell { padding-inline: 16px !important; }
+.visual-document-list__cell:first-child { padding-left: 0 !important; }
+.visual-document-list__cell:last-child { padding-right: 0 !important; }
+.visual-document-list__cell.is-check { padding-inline: 0 !important; }
+.visual-document-list__cell.is-name { gap: 12px !important; }
+.visual-document-list__cell.is-source { gap: 4px !important; }
+.visual-document-list__file-icon {
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #f3f4f6 !important;
+}
+.visual-document-list__file-icon :is(.t-icon, svg) {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+}
+.visual-document-list__file-copy strong {
+  color: #111827 !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  font-weight: 700 !important;
+}
+.visual-document-list__file-copy small {
+  margin-top: 2px !important;
+  color: #9ca3af !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+}
+.visual-document-list__tag,
+.visual-document-list__tag-overflow,
+.visual-document-list__add-tag {
+  min-height: 20px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+  line-height: 14px !important;
+}
+.visual-document-list__source-icon {
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 12px !important;
+  color: #9ca3af !important;
+}
+.visual-document-list__source-label,
+.visual-document-list__mono {
+  font-size: 11px !important;
+  line-height: 16px !important;
+  color: #6b7280 !important;
+}
+.visual-document-list__more {
+  width: 22px !important;
+  height: 22px !important;
+  padding: 4px !important;
+  border-radius: 8px !important;
+}
+.visual-document-list__more .t-icon {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 14px !important;
+}

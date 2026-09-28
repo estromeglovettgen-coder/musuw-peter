@@ -1,0 +1,273 @@
+/* Exact Lucide 0.546.0 glyph convergence for reference-defined controls.
+ * Presentation only: native buttons, events and business components remain in place. */
+
+:root {
+  --mvp-pen-line: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M13%2021h8%22%2F%3E%3Cpath%20d%3D%22M21.174%206.812a1%201%200%200%200-3.986-3.987L3.842%2016.174a2%202%200%200%200-.5.83l-1.321%204.352a.5.5%200%200%200%20.623.622l4.353-1.32a2%202%200%200%200%20.83-.497z%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-eye: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M2.062%2012.348a1%201%200%200%201%200-.696%2010.75%2010.75%200%200%201%2019.876%200%201%201%200%200%201%200%20.696%2010.75%2010.75%200%200%201-19.876%200%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-list: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%205h.01%22%2F%3E%3Cpath%20d%3D%22M3%2012h.01%22%2F%3E%3Cpath%20d%3D%22M3%2019h.01%22%2F%3E%3Cpath%20d%3D%22M8%205h13%22%2F%3E%3Cpath%20d%3D%22M8%2012h13%22%2F%3E%3Cpath%20d%3D%22M8%2019h13%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-list-ordered: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M11%205h10%22%2F%3E%3Cpath%20d%3D%22M11%2012h10%22%2F%3E%3Cpath%20d%3D%22M11%2019h10%22%2F%3E%3Cpath%20d%3D%22M4%204h1v5%22%2F%3E%3Cpath%20d%3D%22M4%209h2%22%2F%3E%3Cpath%20d%3D%22M6.5%2020H3.4c0-1%202.6-1.925%202.6-3.5a1.5%201.5%200%200%200-2.6-1.02%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-check-square: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%2F%3E%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-quote: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M16%203a2%202%200%200%200-2%202v6a2%202%200%200%200%202%202%201%201%200%200%201%201%201v1a2%202%200%200%201-2%202%201%201%200%200%200-1%201v2a1%201%200%200%200%201%201%206%206%200%200%200%206-6V5a2%202%200%200%200-2-2z%22%2F%3E%3Cpath%20d%3D%22M5%203a2%202%200%200%200-2%202v6a2%202%200%200%200%202%202%201%201%200%200%201%201%201v1a2%202%200%200%201-2%202%201%201%200%200%200-1%201v2a1%201%200%200%200%201%201%206%206%200%200%200%206-6V5a2%202%200%200%200-2-2z%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-code: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m16%2018%206-6-6-6%22%2F%3E%3Cpath%20d%3D%22m8%206-6%206%206%206%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-link: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71%22%2F%3E%3Cpath%20d%3D%22M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20width%3D%2218%22%20height%3D%2218%22%20x%3D%223%22%20y%3D%223%22%20rx%3D%222%22%20ry%3D%222%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%229%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22m21%2015-3.086-3.086a2%202%200%200%200-2.828%200L6%2021%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-table: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203v18%22%2F%3E%3Crect%20width%3D%2218%22%20height%3D%2218%22%20x%3D%223%22%20y%3D%223%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M3%209h18%22%2F%3E%3Cpath%20d%3D%22M3%2015h18%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-paperclip: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m16%206-8.414%208.586a2%202%200%200%200%202.829%202.829l8.414-8.586a4%204%200%201%200-5.657-5.657l-8.379%208.551a6%206%200%201%200%208.485%208.485l8.379-8.551%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-settings: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9.671%204.136a2.34%202.34%200%200%201%204.659%200%202.34%202.34%200%200%200%203.319%201.915%202.34%202.34%200%200%201%202.33%204.033%202.34%202.34%200%200%200%200%203.831%202.34%202.34%200%200%201-2.33%204.033%202.34%202.34%200%200%200-3.319%201.915%202.34%202.34%200%200%201-4.659%200%202.34%202.34%200%200%200-3.32-1.915%202.34%202.34%200%200%201-2.33-4.033%202.34%202.34%200%200%200%200-3.831A2.34%202.34%200%200%201%206.35%206.051a2.34%202.34%200%200%200%203.319-1.915%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-logout: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m16%2017%205-5-5-5%22%2F%3E%3Cpath%20d%3D%22M21%2012H9%22%2F%3E%3Cpath%20d%3D%22M9%2021H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h4%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-gauge: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%2014%204-4%22%2F%3E%3Cpath%20d%3D%22M3.34%2019a10%2010%200%201%201%2017.32%200%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-sparkles: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M11.017%202.814a1%201%200%200%201%201.966%200l1.051%205.558a2%202%200%200%200%201.594%201.594l5.558%201.051a1%201%200%200%201%200%201.966l-5.558%201.051a2%202%200%200%200-1.594%201.594l-1.051%205.558a1%201%200%200%201-1.966%200l-1.051-5.558a2%202%200%200%200-1.594-1.594l-5.558-1.051a1%201%200%200%201%200-1.966l5.558-1.051a2%202%200%200%200%201.594-1.594z%22%2F%3E%3Cpath%20d%3D%22M20%202v4%22%2F%3E%3Cpath%20d%3D%22M22%204h-4%22%2F%3E%3Ccircle%20cx%3D%224%22%20cy%3D%2220%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-crown: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m2%204%203%2016h14l3-16-6%207-4-7-4%207-6-7z%22%2F%3E%3Cpath%20d%3D%22M4%2020h16%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-x: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M18%206%206%2018%22%2F%3E%3Cpath%20d%3D%22m6%206%2012%2012%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-chevron-down: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-chevron-right: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m9%2018%206-6-6-6%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-check: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206%209%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-check-chat: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206%209%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
+  --mvp-lock: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20width%3D%2218%22%20height%3D%2211%22%20x%3D%223%22%20y%3D%2211%22%20rx%3D%222%22%20ry%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%2011V7a5%205%200%200%201%2010%200v4%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Shared monochrome-mask primitive. */
+.visual-manual-editor__heading-icon::before,
+.visual-manual-editor__close::before,
+.visual-manual-editor__view-toggle::before,
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool::before,
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:not(:last-child)::before,
+.visual-chat-composer__tool:has(.t-icon-image)::before,
+.visual-chat-composer__tool:has(.t-icon-attach)::before,
+.visual-user-menu__item:has(.t-icon-setting)::before,
+.visual-user-menu__item:has(.t-icon-logout)::before {
+  content: "";
+  display: block;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  background: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+/* OnlineKnowledgeEditorDrawer.tsx: exact reference header/toggle glyphs. */
+.visual-manual-editor__heading-icon > .t-icon,
+.visual-manual-editor__close > .t-icon,
+.visual-manual-editor__view-toggle > .t-icon { display: none !important; }
+.visual-manual-editor__heading-icon::before {
+  width: 20px; height: 20px;
+  -webkit-mask-image: var(--mvp-pen-line); mask-image: var(--mvp-pen-line);
+}
+.visual-manual-editor__close::before {
+  width: 18px; height: 18px;
+  -webkit-mask-image: var(--mvc-icon-x); mask-image: var(--mvc-icon-x);
+}
+.visual-manual-editor__view-toggle:has(.t-icon-edit-1)::before {
+  width: 12px; height: 12px;
+  -webkit-mask-image: var(--mvp-pen-line); mask-image: var(--mvp-pen-line);
+}
+.visual-manual-editor__view-toggle:has(.t-icon-browse)::before {
+  width: 12px; height: 12px;
+  -webkit-mask-image: var(--mvp-eye); mask-image: var(--mvp-eye);
+}
+
+/* The reference deliberately uses literal typographic marks for the first two
+ * formatting groups instead of icons. Keep the existing business actions and
+ * replace only their visible glyph. */
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool,
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(2) .visual-manual-editor__tool {
+  font-size: 0 !important;
+  color: #1f2937 !important;
+}
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool > .t-icon,
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(2) .visual-manual-editor__tool > .t-icon { display: none !important; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool::before,
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(2) .visual-manual-editor__tool::before {
+  display: block;
+  font-size: 12px;
+  line-height: 1;
+  color: currentColor;
+}
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool:nth-child(1)::before { content: "B"; font-weight: 700; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool:nth-child(2)::before { content: "I"; font-family: serif; font-style: italic; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool:nth-child(3)::before { content: "S"; text-decoration: line-through; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(1) .visual-manual-editor__tool:nth-child(4)::before { content: "</>"; font-family: var(--app-font-family-mono); font-size: 11px; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(2) .visual-manual-editor__tool:nth-child(1)::before { content: "1"; font-weight: 700; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(2) .visual-manual-editor__tool:nth-child(2)::before { content: "2"; font-weight: 700; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(2) .visual-manual-editor__tool:nth-child(3)::before { content: "3"; font-weight: 700; }
+
+/* List / ListOrdered / CheckSquare / Quote. */
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool > .t-icon { display: none !important; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool::before { width: 14px; height: 14px; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool:nth-child(1)::before { -webkit-mask-image: var(--mvp-list); mask-image: var(--mvp-list); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool:nth-child(2)::before { -webkit-mask-image: var(--mvp-list-ordered); mask-image: var(--mvp-list-ordered); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool:nth-child(3)::before { -webkit-mask-image: var(--mvp-check-square); mask-image: var(--mvp-check-square); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(3) .visual-manual-editor__tool:nth-child(4)::before { -webkit-mask-image: var(--mvp-quote); mask-image: var(--mvp-quote); }
+
+/* Code / Link / Image / Table are reference-defined. The fifth native Musuw
+ * horizontal-rule action has no visual-reference behavior counterpart, so its
+ * behavior and icon remain intact but inherit the same sizing/chrome. */
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:not(:last-child) > .t-icon { display: none !important; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:not(:last-child)::before { width: 14px; height: 14px; }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:nth-child(1)::before { -webkit-mask-image: var(--mvp-code); mask-image: var(--mvp-code); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:nth-child(2)::before { -webkit-mask-image: var(--mvp-link); mask-image: var(--mvp-link); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:nth-child(3)::before { -webkit-mask-image: var(--mvp-image); mask-image: var(--mvp-image); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:nth-child(4)::before { -webkit-mask-image: var(--mvp-table); mask-image: var(--mvp-table); }
+.visual-manual-editor__format-tools .visual-manual-editor__tool-group:nth-of-type(4) .visual-manual-editor__tool:last-child > .t-icon { font-size: 14px !important; }
+
+/* QAPanel.tsx exact Image/Paperclip glyphs; AtSign is already literal @ and the
+ * Send glyph is mapped in musuw-visual-contract-final.css. */
+.visual-chat-composer__tool:has(.t-icon-image) > .t-icon,
+.visual-chat-composer__tool:has(.t-icon-attach) > .t-icon { display: none !important; }
+.visual-chat-composer__tool:has(.t-icon-image)::before,
+.visual-chat-composer__tool:has(.t-icon-attach)::before { width: 18px; height: 18px; }
+.visual-chat-composer__tool:has(.t-icon-image)::before { -webkit-mask-image: var(--mvp-image); mask-image: var(--mvp-image); }
+.visual-chat-composer__tool:has(.t-icon-attach)::before { -webkit-mask-image: var(--mvp-paperclip); mask-image: var(--mvp-paperclip); }
+
+/* Sidebar.tsx bottom-menu reference glyphs. Behavior remains UserMenu-native. */
+.visual-user-menu__item:has(.t-icon-setting) > .t-icon,
+.visual-user-menu__item:has(.t-icon-logout) > .t-icon { display: none !important; }
+.visual-user-menu__item:has(.t-icon-setting)::before,
+.visual-user-menu__item:has(.t-icon-logout)::before { width: 16px; height: 16px; }
+.visual-user-menu__item:has(.t-icon-setting)::before { -webkit-mask-image: var(--mvp-settings); mask-image: var(--mvp-settings); }
+.visual-user-menu__item:has(.t-icon-logout)::before { -webkit-mask-image: var(--mvp-logout); mask-image: var(--mvp-logout); }
+
+.visual-user-menu__item:has(.t-icon-chart-line) > .t-icon,
+.visual-user-menu__item:has(.t-icon-arrow-up) > .t-icon,
+.visual-user-menu__item:has(.t-icon-crown) > .t-icon,
+.visual-user-menu__billing-item > .t-icon,
+.visual-settings-close > .t-icon,
+.visual-model-selector__consumer-control > .t-icon,
+.visual-model-selector__consumer-check > .t-icon,
+.visual-model-selector__consumer-lock > .t-icon,
+.visual-general-settings__select-control > .t-icon,
+.visual-general-settings__select-option > .t-icon { display: none !important; }
+
+.visual-user-menu__item:has(.t-icon-chart-line)::before,
+.visual-user-menu__item:has(.t-icon-arrow-up)::before,
+.visual-user-menu__item:has(.t-icon-crown)::before,
+.visual-user-menu__billing-item::before,
+.visual-settings-close::before,
+.visual-model-selector__consumer-control::after,
+.visual-model-selector__consumer-check::before,
+.visual-model-selector__consumer-lock::before,
+.visual-general-settings__select-control::after,
+.visual-general-settings__select-option:has(.visual-general-settings__select-check)::after,
+.visual-model-selector__chat-row::after,
+.visual-model-selector__chat-check::before,
+.visual-model-selector__chat-lock::before {
+  content: "";
+  display: block;
+  flex: 0 0 auto;
+  background: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.visual-user-menu__item:has(.t-icon-chart-line)::before {
+  width: 16px;
+  height: 16px;
+  -webkit-mask-image: var(--mvp-gauge);
+  mask-image: var(--mvp-gauge);
+}
+.visual-user-menu__item:has(.t-icon-arrow-up)::before {
+  width: 16px;
+  height: 16px;
+  -webkit-mask-image: var(--mvp-sparkles);
+  mask-image: var(--mvp-sparkles);
+}
+.visual-user-menu__item:has(.t-icon-crown)::before {
+  width: 16px;
+  height: 16px;
+  -webkit-mask-image: var(--mvp-crown);
+  mask-image: var(--mvp-crown);
+}
+/* Keep the billing affordance visible even while TDesign is resolving the
+ * dynamic icon name. The button state is the stable semantic marker; the
+ * existing reference masks supply the same glyphs as the other menu rows. */
+.visual-user-menu__billing-item.is-free::before {
+  width: 16px;
+  height: 16px;
+  -webkit-mask-image: var(--mvp-sparkles);
+  mask-image: var(--mvp-sparkles);
+}
+.visual-user-menu__billing-item:not(.is-free)::before {
+  width: 16px;
+  height: 16px;
+  -webkit-mask-image: var(--mvp-crown);
+  mask-image: var(--mvp-crown);
+}
+.visual-settings-close::before {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: var(--mvp-x);
+  mask-image: var(--mvp-x);
+}
+.visual-model-selector__consumer-control::after {
+  width: 14px;
+  height: 14px;
+  transition: transform 150ms ease, color 150ms ease;
+  -webkit-mask-image: var(--mvp-chevron-down);
+  mask-image: var(--mvp-chevron-down);
+}
+.visual-model-selector__consumer-control[aria-expanded="true"]::after { transform: rotate(180deg); }
+.visual-model-selector__consumer-check::before {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: var(--mvp-check);
+  mask-image: var(--mvp-check);
+}
+.visual-model-selector__consumer-lock::before {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: var(--mvp-lock);
+  mask-image: var(--mvp-lock);
+}
+.visual-general-settings__select-control::after {
+  width: 14px;
+  height: 14px;
+  transition: transform 150ms ease, color 150ms ease;
+  -webkit-mask-image: var(--mvp-chevron-down);
+  mask-image: var(--mvp-chevron-down);
+}
+.visual-general-settings__select-control[aria-expanded="true"]::after { transform: rotate(180deg); }
+.visual-general-settings__select-option:has(.visual-general-settings__select-check)::after {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: var(--mvp-check);
+  mask-image: var(--mvp-check);
+}
+
+/* QAPanel.tsx: ChevronRight / Check / Lock use Lucide's exact 14px paths. */
+.visual-model-selector__chat-row-trailing > .t-icon,
+.visual-model-selector__chat-check > .t-icon,
+.visual-model-selector__chat-lock > .t-icon { display: none !important; }
+.visual-model-selector__chat-row-trailing::after,
+.visual-model-selector__chat-check::before,
+.visual-model-selector__chat-lock::before {
+  width: 14px;
+  height: 14px;
+}
+.visual-model-selector__chat-row-trailing::after {
+  color: #9ca3af;
+  -webkit-mask-image: var(--mvp-chevron-right);
+  mask-image: var(--mvp-chevron-right);
+}
+.visual-model-selector__chat-check::before {
+  -webkit-mask-image: var(--mvp-check-chat);
+  mask-image: var(--mvp-check-chat);
+}
+.visual-model-selector__chat-lock::before {
+  -webkit-mask-image: var(--mvp-lock);
+  mask-image: var(--mvp-lock);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-manual-editor__tool,
+  .visual-chat-composer__tool,
+  .visual-user-menu__item { transition: none !important; }
+}

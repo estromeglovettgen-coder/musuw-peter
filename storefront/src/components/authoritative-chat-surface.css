@@ -1,0 +1,1876 @@
+/*
+ * One responsive contract for the two public chat captures.  The surface is
+ * sized by its container rather than by a transform, so text retains a
+ * readable minimum at the hero's compact width and scales continuously in the
+ * feature capture and at browser zoom levels.
+ */
+.authoritative-chat-surface {
+  container-type: size;
+  color-scheme: light;
+  grid-template-columns: 56px minmax(0, 1fr) !important;
+  min-height: 0;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+
+  /* Keep the shared chat controls on the same token contract as the
+     product shell.  The public demos are rendered inside the marketing page,
+     where light/dark mode is set on the document rather than on this subtree;
+     resolving through the shell (and the real-chat vars for Demo 1) keeps
+     every shared control legible without a second themed component. */
+  --authoritative-ink: var(--real-chat-ink, var(--demo-ink, #111827));
+  --authoritative-copy: var(--real-chat-copy, var(--demo-copy, #374151));
+  --authoritative-muted: var(--real-chat-muted, #4b5563);
+  --authoritative-faint: var(--real-chat-faint, var(--demo-faint, #9ca3af));
+  --authoritative-line: var(--real-chat-line, var(--demo-line, #e5e7eb));
+  --authoritative-line-soft: var(--real-chat-line-soft, var(--demo-line-soft, #f0f1f3));
+  --authoritative-surface: var(--real-chat-surface, var(--demo-surface, #ffffff));
+  --authoritative-surface-soft: var(--real-chat-surface-soft, var(--demo-surface-soft, #f4f5f7));
+  --authoritative-model: var(--real-chat-model, var(--demo-surface-soft, #eaebef));
+  --authoritative-accent: var(--real-chat-accent, var(--demo-accent, #2563eb));
+  --authoritative-action: #111827;
+  --authoritative-action-ink: #ffffff;
+}
+
+/* The upstream app can expose either attribute while its theme preference is
+   being restored.  Keep the surface self-contained during that hand-off so a
+   dark page never flashes light controls (or leaves dark text on them). */
+:root[theme-mode="dark"] .authoritative-chat-surface,
+html[data-theme="dark"] .authoritative-chat-surface,
+.authoritative-chat-surface[data-theme="dark"] {
+  color-scheme: dark;
+  --authoritative-ink: var(--real-chat-ink, #f5f5f7);
+  --authoritative-copy: var(--real-chat-copy, #d4d4d8);
+  --authoritative-muted: var(--real-chat-muted, #a1a1aa);
+  --authoritative-faint: var(--real-chat-faint, #a1a1aa);
+  --authoritative-line: var(--real-chat-line, #2a2a32);
+  --authoritative-line-soft: var(--real-chat-line-soft, #222228);
+  --authoritative-surface: var(--real-chat-surface, #151519);
+  --authoritative-surface-soft: var(--real-chat-surface-soft, #1d1d22);
+  --authoritative-model: var(--real-chat-model, #3f3f46);
+  --authoritative-accent: var(--real-chat-accent, #7c9cff);
+  --authoritative-action: #30333a;
+  --authoritative-action-ink: #f4f4f5;
+}
+
+.authoritative-chat-surface .musuw-shell-sidebar {
+  width: 56px;
+  min-width: 56px;
+  align-items: stretch;
+  padding: 14px 8px;
+}
+
+.authoritative-chat-surface .musuw-shell-collapsed {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Keep the production menu.vue DOM as the source of truth for the collapsed
+   rail.  The musuw-* aliases above preserve the storefront contract while
+   these selectors provide the same button reset that the native sidebar gets
+   from its scoped stylesheet. */
+.authoritative-chat-surface .visual-sidebar__collapsed-main {
+  width: 100%;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-logo,
+.authoritative-chat-surface .visual-sidebar__collapsed-control,
+.authoritative-chat-surface .visual-sidebar__collapsed-nav {
+  border: 0;
+  appearance: none;
+  cursor: default;
+  font: inherit;
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-logo {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  padding: 0;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-logo:disabled,
+.authoritative-chat-surface .visual-sidebar__collapsed-control:disabled,
+.authoritative-chat-surface .visual-sidebar__collapsed-nav:disabled {
+  opacity: 1;
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-user,
+.authoritative-chat-surface .musuw-shell-collapsed-user {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.authoritative-chat-surface .musuw-shell-collapsed-nav {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-nav {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 12px;
+  padding: 9px;
+  background: transparent;
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .musuw-shell-collapsed-nav.is-active {
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-ink);
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-nav.is-active {
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-ink);
+}
+
+.authoritative-chat-surface .visual-sidebar__collapsed-nav.is-new {
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-ink);
+}
+
+.authoritative-chat-surface .visual-sidebar__drag-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  z-index: 20;
+  width: 6px;
+  height: 100%;
+  cursor: default;
+}
+
+.authoritative-chat-surface .musuw-shell-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.authoritative-chat-surface .musuw-shell-logo img {
+  width: 32px;
+  height: 32px;
+}
+
+.authoritative-chat-surface .musuw-shell-collapse {
+  width: 28px;
+  height: 28px;
+  margin: 0;
+}
+
+.authoritative-chat-surface .musuw-shell-divider {
+  width: 32px;
+  margin: 4px 0;
+}
+
+.authoritative-chat-surface .musuw-shell-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+}
+
+.authoritative-chat-surface .musuw-shell-workspace {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.authoritative-chat-surface .musuw-shell-title {
+  display: none;
+}
+
+.authoritative-chat-surface .musuw-shell-title strong {
+  font-size: inherit;
+}
+
+.authoritative-chat-body {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-copy);
+}
+
+/* Native creatChat.vue surface used before the first message is sent.  Keep
+   the production stack dimensions and ordering; Hero only omits its
+   suggestion list so the complete walkthrough stays a single frame. */
+.authoritative-chat-surface .visual-new-chat-view {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-copy);
+  box-sizing: border-box;
+}
+
+.authoritative-chat-surface .visual-new-chat-view::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.authoritative-chat-surface .visual-new-chat-stack {
+  width: min(768px, calc(100% - 64px));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 64px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 24px;
+}
+
+.authoritative-chat-surface .visual-new-chat-title {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  color: var(--authoritative-ink);
+  font-family: inherit;
+  font-size: 32px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.authoritative-chat-surface .visual-new-chat-composer {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  z-index: 2;
+}
+
+.authoritative-chat-surface .visual-new-chat-composer .visual-chat-composer,
+.authoritative-chat-surface .visual-new-chat-composer .visual-chat-composer__surface {
+  position: static;
+  inset: auto;
+  transform: none;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  z-index: auto;
+}
+
+@media (max-width: 720px) {
+  .authoritative-chat-surface .visual-new-chat-stack {
+    width: min(calc(100% - 32px), 768px);
+    padding: 40px 0;
+    gap: 20px;
+  }
+
+  .authoritative-chat-surface .visual-new-chat-title {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .authoritative-chat-surface .visual-new-chat-stack {
+    width: calc(100% - 24px);
+    padding: 28px 0;
+  }
+
+  .authoritative-chat-surface .visual-new-chat-title {
+    font-size: 24px;
+  }
+}
+
+.authoritative-chat-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 58px 16px 24px;
+  /* The native chat viewport scrolls without exposing a second rail at the
+     far edge of the product frame.  Programmatic answer-to-end scrolling is
+     retained for the capture, while the surface stays visually clean. */
+  scrollbar-width: none;
+}
+
+.authoritative-chat-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.authoritative-chat-messages {
+  width: min(768px, 100%);
+  min-width: 0;
+  margin: 0 auto;
+  padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.authoritative-chat-welcome {
+  display: grid;
+  width: 100%;
+  min-height: max(220px, 52cqh);
+  flex: 1 1 auto;
+  place-items: center;
+  color: var(--authoritative-ink);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.authoritative-chat-composer-slot {
+  width: min(768px, calc(100% - 32px));
+  min-width: 0;
+  flex: 0 0 auto;
+  margin: 0 auto;
+  padding: 8px 0 18px;
+  box-sizing: border-box;
+  background: var(--authoritative-surface);
+}
+
+.authoritative-chat-composer {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  color: var(--authoritative-copy);
+}
+
+.authoritative-chat-composer__surface {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--authoritative-line) 60%, transparent);
+  border-radius: 20px;
+  padding: 16px;
+  background: var(--authoritative-surface-soft);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  transition: all 150ms ease;
+}
+
+.authoritative-chat-composer__surface:hover,
+.authoritative-chat-composer__surface:focus-within {
+  border-color: color-mix(in srgb, var(--authoritative-line) 88%, var(--authoritative-copy));
+}
+
+.authoritative-chat-composer__surface:focus-within {
+  background: var(--authoritative-surface);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+}
+
+.authoritative-chat-composer__textarea {
+  width: 100%;
+  min-height: 44px !important;
+  max-height: 180px !important;
+  box-sizing: border-box;
+  overflow-y: auto;
+  resize: none;
+  field-sizing: content;
+  border: 0 !important;
+  outline: 0;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--authoritative-copy);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.625;
+}
+
+.authoritative-chat-composer__textarea::placeholder {
+  color: var(--authoritative-muted);
+  opacity: 1;
+}
+
+.authoritative-chat-composer__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 4px;
+  user-select: none;
+}
+
+.authoritative-chat-composer__tools,
+.authoritative-chat-composer__actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.authoritative-chat-composer__tools {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+
+.authoritative-chat-composer__actions {
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.authoritative-chat-composer__tool {
+  position: relative;
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  border: 0;
+  padding: 2px;
+  border-radius: 4px;
+  appearance: none;
+  background: transparent;
+  color: var(--authoritative-muted);
+  cursor: default;
+  font: inherit;
+}
+
+.authoritative-chat-composer__tool:disabled {
+  opacity: 1;
+}
+
+.authoritative-chat-composer__tool svg {
+  width: 18px;
+  height: 18px;
+}
+
+.authoritative-chat-composer__model {
+  display: inline-flex;
+  width: fit-content;
+  max-width: min(360px, 48vw);
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  appearance: none;
+  background: var(--authoritative-model);
+  color: var(--authoritative-muted);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  cursor: default;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.authoritative-chat-composer__model:disabled {
+  opacity: 1;
+}
+
+.authoritative-chat-composer__model > .visual-chat-composer__combined-picker-copy {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.authoritative-chat-composer__model .visual-chat-composer__combined-picker-agent {
+  overflow: hidden;
+  min-width: 0;
+  max-width: 120px;
+  color: var(--authoritative-ink);
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.authoritative-chat-composer__model .visual-chat-composer__combined-picker-dot {
+  color: var(--authoritative-faint);
+}
+
+.authoritative-chat-composer__model .visual-chat-composer__combined-picker-model,
+.authoritative-chat-composer__model .visual-chat-composer__combined-picker-effort {
+  min-width: 0;
+  overflow: hidden;
+  /* Model/effort labels are primary readable content inside the tinted pill;
+     the muted token is too low-contrast on the dark #3f3f46 model surface. */
+  color: var(--authoritative-copy);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authoritative-chat-composer__model .visual-chat-composer__combined-picker-effort {
+  flex: 0 0 auto;
+}
+
+.authoritative-chat-composer__model > svg:last-child {
+  flex: 0 0 14px;
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-composer__model small {
+  /* The model pill is a tinted surface, not the shell background. Use the
+     readable copy token here so the compact “effort” label keeps 4.5:1
+     contrast in both themes. */
+  color: var(--authoritative-copy);
+  font-size: inherit;
+}
+
+.authoritative-chat-composer__send {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  border: 0;
+  padding: 8px;
+  appearance: none;
+  background: var(--authoritative-line);
+  color: var(--authoritative-faint);
+  cursor: default;
+  font: inherit;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+
+.authoritative-chat-composer__send:disabled {
+  opacity: 1;
+}
+
+.authoritative-chat-composer__send.is-stop,
+.authoritative-chat-composer__send:not(.is-disabled) {
+  background: var(--authoritative-action);
+  color: var(--authoritative-action-ink);
+}
+
+.authoritative-chat-composer__stop-square {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.authoritative-chat-composer__submit {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .authoritative-chat-scroll {
+    padding-right: 32px;
+    padding-left: 32px;
+  }
+}
+
+@media (min-width: 640px) {
+  .authoritative-chat-composer__tools {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .authoritative-chat-composer__surface {
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 620px) {
+  .authoritative-chat-composer__toolbar {
+    align-items: flex-end;
+  }
+
+  .authoritative-chat-composer__model {
+    max-width: min(280px, 60vw);
+  }
+}
+
+@media (max-width: 430px) {
+  .authoritative-chat-composer__toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .authoritative-chat-composer__tools {
+    flex: 1 1 100%;
+  }
+
+  .authoritative-chat-composer__actions {
+    margin-left: auto;
+  }
+
+  .authoritative-chat-composer__model {
+    max-width: calc(100vw - 102px);
+  }
+
+  .authoritative-chat-composer__model .visual-chat-composer__combined-picker-agent {
+    max-width: 72px;
+  }
+}
+
+/* The existing pipeline fixture keeps its semantic classes, but its layout is
+   owned by the shared surface instead of an independently positioned shell. */
+.authoritative-chat-surface .real-chat-demo__messages {
+  position: static;
+  inset: auto;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: visible;
+  padding: 0;
+}
+
+.authoritative-chat-surface .real-chat-input {
+  position: static;
+  inset: auto;
+  width: 100%;
+  margin: 0;
+}
+
+.authoritative-chat-surface.real-chat-demo .visual-user-message__bubble,
+.authoritative-chat-surface.real-chat-demo .real-chat-answer {
+  font-size: 14.5px;
+  line-height: 1.625;
+}
+
+.authoritative-chat-surface.real-chat-demo .visual-rag-step__body strong {
+  font-size: 12.5px;
+}
+
+.authoritative-chat-surface.real-chat-demo .visual-rag-step__summary,
+.authoritative-chat-surface.real-chat-demo .real-chat-citation {
+  font-size: 11px;
+}
+
+/* The final CTA uses the same chat document at a smaller, non-interactive
+   capture size. Keep its genuine message and composer geometry readable
+   without introducing a second miniature chat implementation. */
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-scroll {
+  padding: 26px 14px 4px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-messages {
+  gap: 14px;
+  padding-bottom: 0;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer-slot {
+  width: calc(100% - 24px);
+  padding: 5px 0 10px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__surface {
+  border-radius: 14px;
+  padding: 9px 10px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__textarea {
+  min-height: 20px !important;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__toolbar {
+  gap: 8px;
+  margin-top: 3px;
+  padding-top: 0;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__tools,
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__actions {
+  gap: 8px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__tool {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__tool svg {
+  width: 14px;
+  height: 14px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__model {
+  max-width: min(250px, 52cqw);
+  padding: 4px 8px;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .authoritative-chat-composer__send {
+  width: 26px;
+  height: 26px;
+  padding: 6px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .visual-user-message__bubble,
+.authoritative-chat-surface.capability-demo-answer .visual-assistant-message,
+.authoritative-chat-surface.capability-demo-answer .visual-assistant-answer {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.authoritative-chat-surface.capability-demo-answer .visual-user-message__bubble {
+  max-width: 90%;
+  padding: 8px 12px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .visual-assistant-answer__content {
+  padding-right: 0;
+}
+
+.authoritative-chat-surface.capability-demo-answer .real-chat-answer-section h4 {
+  margin: 9px 0 3px;
+  font-size: 12px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .real-chat-answer-section:first-child h4 {
+  margin-top: 0;
+}
+
+.authoritative-chat-surface.capability-demo-answer .real-chat-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.authoritative-chat-surface.capability-demo-answer .real-chat-citation {
+  margin: 0;
+  font-size: 9px;
+}
+
+/* Native index.vue/usermsg.vue/botmsg.vue message seam. */
+.authoritative-chat-surface .visual-chat-message-row {
+  min-width: 0;
+  contain: layout style;
+  display: flex;
+  width: 100%;
+}
+
+.authoritative-chat-surface .visual-chat-message-row.is-user {
+  justify-content: flex-end;
+}
+
+.authoritative-chat-surface .visual-chat-message-row.is-assistant {
+  justify-content: flex-start;
+}
+
+.authoritative-chat-surface .visual-user-message {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  color: var(--authoritative-copy);
+}
+
+.authoritative-chat-surface .visual-user-message__bubble,
+.authoritative-chat-surface .hero-demo-question {
+  position: static;
+  inset: auto;
+  width: max-content;
+  max-width: 85%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  padding: 10px 18px;
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-ink);
+  font-size: 14.5px;
+  line-height: 1.625;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Hero's long-form answer is still a single product-frame capture. Keep the
+   shared chat viewport untouched for Demo 1; only the Hero conversation uses
+   the tighter native message rhythm needed to show its complete answer and
+   composer together at desktop widths. */
+.authoritative-chat-surface.hero-product-demo .authoritative-chat-scroll {
+  padding-top: 32px;
+  padding-bottom: 4px;
+}
+
+.authoritative-chat-surface.hero-product-demo .authoritative-chat-messages {
+  gap: 16px;
+  padding-bottom: 4px;
+}
+
+.authoritative-chat-surface.hero-product-demo .hero-demo-question {
+  max-width: 100%;
+}
+
+.authoritative-chat-surface .hero-demo-thread {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  min-width: 0;
+  margin-right: auto;
+  overflow: visible;
+  color: var(--authoritative-ink);
+  font-size: 14.5px;
+  text-align: left;
+}
+
+.authoritative-chat-surface .hero-demo-retrieval {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .hero-demo-retrieval-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--authoritative-faint);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: authoritative-chat-spin .8s linear infinite;
+}
+
+.authoritative-chat-surface .hero-demo-answer {
+  min-width: 0;
+  margin-top: 0;
+  color: var(--authoritative-copy);
+  font-size: 12.75px;
+  line-height: 1.48;
+}
+
+.authoritative-chat-surface .hero-demo-answer .visual-assistant-answer__content {
+  min-width: 0;
+  padding: 0 8px 0 0;
+}
+
+.authoritative-chat-surface .hero-demo-answer strong {
+  color: var(--authoritative-ink);
+}
+
+.authoritative-chat-surface .hero-demo-citation {
+  border-color: var(--authoritative-line);
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .hero-demo-caret {
+  background: var(--authoritative-ink);
+}
+
+.authoritative-chat-surface .hero-demo-answer p {
+  margin: 0 0 6px;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section {
+  min-width: 0;
+  margin: 0 0 6px;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section h4 {
+  margin: 0 0 4px;
+  color: var(--authoritative-ink);
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section p,
+.authoritative-chat-surface .hero-demo-answer-section ul {
+  margin: 0;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section p {
+  white-space: pre-line;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section ul {
+  display: grid;
+  gap: 3px;
+  padding-left: 1.25em;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section li {
+  padding-left: .12em;
+}
+
+.authoritative-chat-surface .hero-demo-answer-section li::marker {
+  color: var(--authoritative-accent);
+}
+
+.authoritative-chat-surface .hero-demo-table-wrap {
+  width: fit-content;
+  max-width: 100%;
+  margin: 6px 0;
+  overflow-x: auto;
+  border: 1px solid var(--authoritative-line);
+  border-radius: 12px;
+  background: var(--authoritative-surface);
+}
+
+.authoritative-chat-surface .hero-demo-answer-table {
+  width: max-content;
+  min-width: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--authoritative-copy);
+  font-size: 10.75px;
+  line-height: 1.4;
+}
+
+.authoritative-chat-surface .hero-demo-answer-table th,
+.authoritative-chat-surface .hero-demo-answer-table td {
+  border: 0;
+  border-right: 1px solid var(--authoritative-line);
+  border-bottom: 1px solid var(--authoritative-line);
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.authoritative-chat-surface .hero-demo-answer-table th:last-child,
+.authoritative-chat-surface .hero-demo-answer-table td:last-child {
+  border-right: 0;
+}
+
+.authoritative-chat-surface .hero-demo-answer-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.authoritative-chat-surface .hero-demo-answer-table th {
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-copy);
+  font-weight: 700;
+}
+
+.authoritative-chat-surface .hero-demo-answer-table tbody tr:nth-child(2n) {
+  background: color-mix(in srgb, var(--authoritative-surface-soft) 60%, transparent);
+}
+
+.authoritative-chat-surface .hero-demo-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(5px, .7cqw, 9px);
+  margin-top: clamp(8px, 1.2cqh, 15px);
+}
+
+.authoritative-chat-surface .hero-demo-citation {
+  margin: 0;
+}
+
+/* botmsg.vue renders source markers inside the markdown stream. Keep the
+   native citation-kb seam (small inline source text), rather than a detached
+   citation row beneath the answer. */
+.authoritative-chat-surface .hero-inline-citation {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: baseline;
+  box-sizing: border-box;
+  margin: 0 2px;
+  padding: 2px 6px;
+  border: 1px solid var(--authoritative-line);
+  border-radius: 6px;
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .hero-inline-citation .citation-icon,
+.authoritative-chat-surface .hero-inline-citation .citation-tip {
+  display: none;
+}
+
+.authoritative-chat-surface .hero-inline-citation .citation-text {
+  max-width: 180px;
+  overflow: hidden;
+  line-height: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .hero-inline-citation:hover {
+  border-color: var(--authoritative-line-strong, var(--authoritative-line));
+  background: var(--authoritative-surface);
+  color: var(--authoritative-copy);
+}
+
+.authoritative-chat-surface .hero-demo-answer-actions {
+  opacity: 1;
+}
+
+.authoritative-chat-surface .hero-demo-save {
+  display: inline-flex;
+  min-height: clamp(28px, 3.4cqh, 42px);
+  align-items: center;
+  justify-content: center;
+  margin-top: clamp(11px, 1.5cqh, 19px);
+  border: 1px solid color-mix(in srgb, var(--authoritative-accent) 48%, var(--authoritative-line));
+  border-radius: 999px;
+  padding: 0 clamp(13px, 1.5cqw, 21px);
+  background: color-mix(in srgb, var(--authoritative-accent) 9%, var(--authoritative-surface));
+  color: var(--authoritative-accent);
+  font-size: clamp(11px, 1cqw, 14px);
+  font-weight: 640;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .hero-demo-save.is-saving {
+  border-color: var(--authoritative-accent);
+  background: color-mix(in srgb, var(--authoritative-accent) 15%, var(--authoritative-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--authoritative-accent) 13%, transparent);
+}
+
+.authoritative-chat-surface .hero-demo-save.is-saved {
+  border-color: color-mix(in srgb, #24a864 70%, var(--authoritative-line));
+  background: color-mix(in srgb, #24a864 12%, var(--authoritative-surface));
+  color: #15803d;
+}
+
+/* Native manual-knowledge-editor.vue capture.  The complete Hero phase
+   reveals this right drawer after the guided save gesture; its DOM and class
+   order intentionally mirror SettingDrawer rather than introducing a second
+   card/dialog treatment. */
+.authoritative-chat-surface .hero-demo-drawer-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  background: rgb(0 0 0 / 42%);
+  animation: authoritative-chat-drawer-mask-in .2s linear both;
+}
+
+@keyframes authoritative-chat-drawer-mask-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 12;
+  display: flex;
+  width: min(62%, 760px);
+  min-width: min(420px, 62%);
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--authoritative-line);
+  background: var(--authoritative-surface);
+  color: var(--authoritative-copy);
+  box-shadow: -12px 0 30px rgb(15 23 42 / 10%);
+  text-align: left;
+  /* TDesign's native right drawer uses the same 280ms cubic-bezier slide. */
+  animation: authoritative-chat-drawer-slide-in .28s cubic-bezier(.38, 0, .24, 1) both;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer > .t-drawer__close-btn {
+  position: absolute;
+  top: 14px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  appearance: none;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-ink);
+  cursor: pointer;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer > .t-drawer__close-btn:hover {
+  background: var(--authoritative-surface-soft);
+}
+
+@keyframes authoritative-chat-drawer-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__header-block {
+  display: flex;
+  width: 100%;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 16px 48px 16px 24px;
+  border-bottom: 1px solid var(--authoritative-line);
+}
+
+.authoritative-chat-surface .hero-demo-save-success {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--authoritative-copy);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.authoritative-chat-surface .hero-demo-save-success .auth-result-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, #22a66a 14%, var(--authoritative-surface));
+  color: #15803d;
+}
+
+.authoritative-chat-surface .hero-demo-save-success p {
+  margin: 0;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.authoritative-chat-surface .hero-demo-save-toast {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  z-index: 14;
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-ink);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 10%), inset 0 0 0 1px var(--authoritative-line);
+  font-size: 14px;
+  line-height: 22px;
+  transform: translateX(-50%);
+  animation: authoritative-chat-message-in .2s cubic-bezier(.38, 0, .24, 1) both;
+}
+
+.authoritative-chat-surface .hero-demo-save-toast > svg {
+  flex: 0 0 auto;
+  margin-right: 8px;
+  color: #15803d;
+}
+
+@keyframes authoritative-chat-message-in {
+  from { opacity: 0; margin-top: -14px; }
+  to { opacity: 1; margin-top: 0; }
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__header-icon {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--authoritative-accent) 12%, var(--authoritative-surface));
+  color: var(--authoritative-accent);
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__header-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__title {
+  overflow: hidden;
+  color: var(--authoritative-ink);
+  font-size: clamp(14px, 1.2cqw, 17px);
+  font-weight: 650;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__subtitle {
+  color: var(--authoritative-muted);
+  font-size: clamp(10px, .9cqw, 12px);
+  line-height: 1.45;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer > .setting-drawer__body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 24px;
+  scrollbar-width: none;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer > .setting-drawer__body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .manual-editor {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 0;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid var(--authoritative-line);
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__section + .setting-drawer__section {
+  padding-top: 16px;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__section-title {
+  display: flex;
+  margin: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--authoritative-ink);
+  font-size: clamp(11px, 1cqw, 13px);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__section-title::before {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--authoritative-accent);
+  content: "";
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .form-label {
+  color: var(--authoritative-copy);
+  font-size: clamp(10px, .9cqw, 13px);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-input {
+  min-height: 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--authoritative-line);
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-copy);
+  font-size: clamp(10px, .9cqw, 13px);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .editor-section {
+  min-height: 0;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .editor-area {
+  display: flex;
+  min-height: 230px;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--authoritative-line);
+  border-radius: 8px;
+  background: var(--authoritative-surface);
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .editor-toolbar {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--authoritative-line);
+  background: var(--authoritative-surface-soft);
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .editor-toolbar__format,
+.authoritative-chat-surface .hero-demo-save-drawer .editor-toolbar__view {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-editor-mode {
+  color: var(--authoritative-ink);
+  font-size: clamp(10px, .9cqw, 12px);
+  font-weight: 600;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-editor-state,
+.authoritative-chat-surface .hero-demo-drawer-preview {
+  color: var(--authoritative-muted);
+  font-size: clamp(9px, .8cqw, 11px);
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .editor-pane {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-content {
+  padding: 14px 16px 18px;
+  color: var(--authoritative-copy);
+  font-size: clamp(10px, .9cqw, 13px);
+  line-height: 1.6;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-content strong {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--authoritative-ink);
+  font-weight: 650;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-content p {
+  margin: 0 0 12px;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-source-label {
+  margin-top: 12px;
+  color: var(--authoritative-ink);
+  font-size: .95em;
+  font-weight: 600;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-sources span {
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--authoritative-line);
+  border-radius: 6px;
+  padding: 3px 7px;
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-muted);
+  font-size: .88em;
+  overflow-wrap: anywhere;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer > .setting-drawer__footer {
+  display: flex;
+  min-height: 62px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-sizing: border-box;
+  padding: 16px 24px;
+  border-top: 1px solid var(--authoritative-line);
+  box-shadow: 0 -1px 0 var(--authoritative-line);
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__footer-left,
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__footer-right,
+.authoritative-chat-surface .hero-demo-save-drawer .manual-editor-footer-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__footer-right,
+.authoritative-chat-surface .hero-demo-save-drawer .manual-editor-footer-actions {
+  justify-content: flex-end;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-status {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, #e6a23c 48%, var(--authoritative-line));
+  border-radius: 5px;
+  padding: 0 8px;
+  background: color-mix(in srgb, #e6a23c 12%, var(--authoritative-surface));
+  color: #b7791f;
+  font-size: clamp(9px, .8cqw, 11px);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-button {
+  min-width: 88px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--authoritative-line);
+  border-radius: 7px;
+  padding: 0 10px;
+  appearance: none;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-copy);
+  cursor: default;
+  font: inherit;
+  font-size: clamp(9px, .82cqw, 12px);
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .hero-demo-drawer-button.is-cancel {
+  border-color: transparent;
+  background: var(--authoritative-surface-soft);
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .hero-demo-drawer-button.is-primary {
+  border-color: var(--authoritative-accent);
+  background: var(--authoritative-accent);
+  color: #fff;
+}
+
+@media (max-width: 620px) {
+  .authoritative-chat-surface .hero-demo-save-drawer {
+    width: min(84%, 760px);
+    min-width: min(280px, 84%);
+  }
+
+  .authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__header-block,
+  .authoritative-chat-surface .hero-demo-save-drawer > .setting-drawer__body,
+  .authoritative-chat-surface .hero-demo-save-drawer > .setting-drawer__footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .authoritative-chat-surface .hero-demo-save-drawer > .setting-drawer__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .authoritative-chat-surface .hero-demo-save-drawer .setting-drawer__footer-right,
+  .authoritative-chat-surface .hero-demo-save-drawer .manual-editor-footer-actions {
+    width: 100%;
+  }
+
+  .authoritative-chat-surface .hero-demo-save-drawer .hero-demo-drawer-button {
+    flex: 1 1 0;
+  }
+}
+
+.authoritative-chat-surface .hero-demo-auto-pointer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 16;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--authoritative-ink);
+  filter: drop-shadow(0 1px 0 var(--authoritative-surface)) drop-shadow(0 1px 3px rgb(0 0 0 / 28%));
+  pointer-events: none;
+  transform-origin: 2px 2px;
+}
+
+.authoritative-chat-surface .hero-demo-auto-pointer > i {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid color-mix(in srgb, var(--authoritative-accent) 70%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.authoritative-chat-surface .hero-demo-auto-pointer.is-clicking > i {
+  animation: hero-demo-pointer-click 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hero-demo-pointer-click {
+  0% { opacity: .82; scale: .3; }
+  100% { opacity: 0; scale: 1.8; }
+}
+
+.authoritative-chat-surface .visual-rag-pipeline {
+  width: 100%;
+  margin: 0 0 12px;
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .visual-rag-pipeline__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.authoritative-chat-surface .visual-rag-pipeline__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: 8px;
+  padding: 4px 6px;
+  appearance: none;
+  background: transparent;
+  color: var(--authoritative-muted);
+  cursor: default;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authoritative-chat-surface .visual-rag-pipeline__summary:disabled {
+  opacity: 1;
+}
+
+.authoritative-chat-surface .visual-rag-pipeline__reference-summary {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--authoritative-faint);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authoritative-chat-surface .visual-rag-pipeline__reference-summary::before {
+  width: 3px;
+  height: 3px;
+  flex: 0 0 3px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.authoritative-chat-surface .visual-rag-pipeline__summary > svg:last-child {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: var(--authoritative-faint);
+  transform: rotate(-90deg);
+}
+
+.authoritative-chat-surface .visual-rag-timeline {
+  position: relative;
+  margin: 10px 0 8px;
+  padding: 4px 0 0 4px;
+}
+
+.authoritative-chat-surface .visual-rag-step {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 16px;
+  align-items: flex-start;
+  gap: 14px;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0 0 14px;
+  appearance: none;
+  background: transparent;
+  color: var(--authoritative-muted);
+  cursor: default;
+  font: inherit;
+  text-align: left;
+}
+
+.authoritative-chat-surface .visual-rag-step:disabled {
+  opacity: 1;
+}
+
+.authoritative-chat-surface .visual-rag-step:last-child {
+  padding-bottom: 4px;
+}
+
+.authoritative-chat-surface .visual-rag-step:not(:last-child) .visual-rag-step__rail::after {
+  position: absolute;
+  top: 18px;
+  bottom: -14px;
+  left: 50%;
+  width: 1px;
+  background: var(--authoritative-line);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.authoritative-chat-surface .visual-rag-step__rail {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--authoritative-surface);
+  color: var(--authoritative-faint);
+}
+
+.authoritative-chat-surface .visual-rag-step__rail > svg {
+  width: 14px;
+  height: 14px;
+  color: var(--authoritative-accent);
+}
+
+.authoritative-chat-surface .visual-rag-step__spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--authoritative-faint);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: authoritative-chat-spin .8s linear infinite;
+}
+
+.authoritative-chat-surface .visual-rag-step__body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: .5px;
+}
+
+.authoritative-chat-surface .visual-rag-step__body strong {
+  color: var(--authoritative-copy);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.625;
+}
+
+.authoritative-chat-surface .visual-rag-step.is-running .visual-rag-step__body strong {
+  color: var(--authoritative-muted);
+  font-weight: 400;
+}
+
+.authoritative-chat-surface .visual-rag-step.is-done .visual-rag-step__body strong {
+  color: var(--authoritative-ink);
+}
+
+.authoritative-chat-surface .visual-rag-step__summary {
+  color: var(--authoritative-muted);
+  font-size: 11px;
+  line-height: 1.375;
+  letter-spacing: -.01em;
+}
+
+.authoritative-chat-surface .hero-demo-answer-actions {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  color: #9ca3af;
+  opacity: 1;
+  user-select: none;
+}
+
+.authoritative-chat-surface .hero-demo-answer-actions .visual-assistant-toolbar__button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px;
+  appearance: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.authoritative-chat-surface .hero-demo-answer-actions .visual-assistant-toolbar__button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.authoritative-chat-surface .hero-demo-answer-actions .visual-assistant-toolbar__button.is-muted {
+  color: #9ca3af;
+}
+
+.authoritative-chat-surface .hero-demo-answer-actions .visual-assistant-toolbar__button > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.authoritative-chat-surface .hero-demo-info-action {
+  width: clamp(22px, 2.6cqw, 34px);
+  height: clamp(22px, 2.6cqw, 34px);
+  border-radius: clamp(6px, .7cqw, 10px);
+  border-color: var(--authoritative-line);
+  color: var(--authoritative-muted);
+}
+
+.authoritative-chat-surface .hero-demo-composer {
+  position: static;
+  inset: auto;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 620px) {
+  .authoritative-chat-surface {
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+  }
+
+  .authoritative-chat-surface .musuw-shell-collapsed {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .authoritative-chat-surface .musuw-shell-collapsed .musuw-shell-divider {
+    margin: 4px 0;
+  }
+
+  .authoritative-chat-surface .musuw-shell-collapsed-nav {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 11px;
+    color: var(--authoritative-muted);
+  }
+
+  .authoritative-chat-surface .musuw-shell-collapsed-nav.is-active {
+    background: var(--authoritative-surface-soft);
+    color: var(--authoritative-ink);
+  }
+
+  .authoritative-chat-surface .musuw-shell-collapsed .musuw-shell-avatar {
+    margin-top: auto;
+  }
+
+  .authoritative-chat-surface .musuw-shell-title {
+    width: min(220px, 58%);
+    max-width: 58%;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .authoritative-chat-surface *,
+  .authoritative-chat-surface *::before,
+  .authoritative-chat-surface *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes authoritative-chat-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The marketing shell is 1,200px wide on a large desktop, but the hero must
+   become a normal container before the viewport reaches that width.  The
+   legacy 1,024px breakpoint left the fixed scene hanging outside the page,
+   which hid the 56px product rail. */
+@media (max-width: 1279px) {
+  .hero-stage .dashboard-entry {
+    left: 0;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1200 / 807;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  /* Preserve the production rail's fixed 32/28/36px affordances in the
+     narrow hero capture.  The original 1200:807 aspect ratio made the
+     56px rail taller than the compressed 240px scene, clipping its avatar
+     and forcing the composer into the same cramped band. */
+  .hero-stage .dashboard-entry {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: var(--product-viewport-aspect, 16 / 10);
+  }
+}

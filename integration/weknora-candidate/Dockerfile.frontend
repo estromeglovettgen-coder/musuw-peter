@@ -1,0 +1,18 @@
+# Mechanical derivative of weknora/frontend/Dockerfile.  It keeps the
+# upstream nginx entrypoint and static WeKnora bundle, adding only the isolated
+# pre-built auth shell at /auth.
+FROM nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
+
+COPY weknora/frontend/dist /usr/share/nginx/html
+COPY auth/dist /usr/share/nginx/html/auth
+COPY integration/weknora-candidate/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY integration/weknora-candidate/auth-shell.nginx.conf /etc/nginx/weknora-auth-shell.conf
+COPY weknora/frontend/docker-entrypoint.sh /docker-entrypoint.sh
+
+RUN chmod +x /docker-entrypoint.sh
+
+ENV MAX_FILE_SIZE_MB=50
+
+EXPOSE 80
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,0 +1,3 @@
+# Preserve reviewed product PDFs byte-for-byte across Git checkouts.
+storefront/public/media/press/musuw-product-brief-en.pdf binary
+storefront/public/media/press/musuw-product-brief-zh.pdf binary

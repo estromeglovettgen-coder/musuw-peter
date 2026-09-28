@@ -1,0 +1,129 @@
+/*
+ * ModelEditorDialog inner visual closure.
+ * The SettingDrawer, model APIs, validation, download and credential behavior
+ * stay native. Only non-semantic brand chrome is replaced by reference gray/ink.
+ */
+
+.setting-drawer .form-label {
+  color: #374151 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+  font-weight: 600 !important;
+}
+.setting-drawer .form-desc { color: #9ca3af !important; font-size: 10px !important; line-height: 16px !important; }
+
+.setting-drawer .model-type-options { gap: 6px !important; }
+.setting-drawer .model-type-option {
+  min-height: 30px !important;
+  padding: 5px 10px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+  line-height: 17px !important;
+}
+.setting-drawer .model-type-option:hover:not(.is-active) {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+.setting-drawer .model-type-option.is-active {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+.setting-drawer .model-type-option:focus-visible {
+  outline: 2px solid #d1d5db !important;
+  outline-offset: 2px !important;
+}
+.setting-drawer .model-type-option__icon { font-size: 13px !important; }
+
+.setting-drawer .source-options {
+  gap: 2px !important;
+  padding: 3px !important;
+  border-color: #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #f3f4f6 !important;
+}
+.setting-drawer .source-option {
+  height: 28px !important;
+  padding: 5px 10px !important;
+  border-radius: 7px !important;
+  color: #6b7280 !important;
+  font-size: 11px !important;
+}
+.setting-drawer .source-option:hover:not(.is-disabled):not(.is-active) {
+  background: rgb(255 255 255 / 65%) !important;
+  color: #111827 !important;
+}
+.setting-drawer .source-option.is-active {
+  border-color: #e5e7eb !important;
+  background: #fff !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%) !important;
+}
+.setting-drawer .source-option__icon { font-size: 13px !important; }
+
+.setting-drawer .t-input,
+.setting-drawer .t-textarea__inner,
+.setting-drawer .t-input-number {
+  border-color: #e5e7eb !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+}
+.setting-drawer .t-input:hover,
+.setting-drawer .t-textarea__inner:hover { border-color: #d1d5db !important; }
+.setting-drawer .t-input.t-is-focused,
+.setting-drawer .t-textarea__inner:focus {
+  border-color: #9ca3af !important;
+  box-shadow: 0 0 0 2px rgb(17 24 39 / 5%) !important;
+}
+
+.setting-drawer .api-test-section {
+  padding: 10px 12px !important;
+  border: 1px dashed #d1d5db !important;
+  border-radius: 10px !important;
+  background: #f9fafb !important;
+}
+.setting-drawer .api-test-section .t-button,
+.setting-drawer .refresh-btn { border-radius: 8px !important; font-size: 11px !important; }
+
+/* Non-semantic "available/downloaded" icons previously reused brand blue. Use
+ * neutral ink; actual success/error text blocks remain semantic green/red. */
+.setting-drawer .status-icon.available,
+.setting-drawer .model-option .downloaded-icon,
+.setting-drawer .model-option .download-icon { color: #4b5563 !important; }
+.setting-drawer .footer-test-message.success { color: #047857 !important; }
+.setting-drawer .footer-test-message.error { color: #dc2626 !important; }
+
+.setting-drawer .weknoracloud-hint {
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+}
+.setting-drawer .weknoracloud-hint--ok {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+}
+.setting-drawer .weknoracloud-hint--warn {
+  border: 1px solid #fde68a !important;
+  border-left-width: 3px !important;
+  border-left-color: #f59e0b !important;
+  background: #fffbeb !important;
+}
+
+.setting-drawer .model-option { gap: 7px !important; padding: 4px 0 !important; }
+.setting-drawer .model-option .model-name { color: #374151 !important; font-size: 11px !important; }
+.setting-drawer .model-option .model-size { color: #9ca3af !important; font-size: 9px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .setting-drawer .model-type-option,
+  .setting-drawer .source-option { transition: none !important; }
+}
