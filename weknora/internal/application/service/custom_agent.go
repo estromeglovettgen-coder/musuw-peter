@@ -33,9 +33,8 @@ const (
 	suggestionMaxLimit = 30
 )
 
-// The public product exposes two platform-owned answer modes. Tenant-local
-// rows from older releases are deliberately ignored so every workspace gets
-// the same reviewed prompts, tools, retrieval defaults, and model bindings.
+// These two answer-mode IDs also accept per-request model selection. Only the
+// Lite product owns their persisted defaults; Standard allows tenant overrides.
 func isPlatformManagedBuiltinAgentID(id string) bool {
 	return id == types.BuiltinQuickAnswerID || id == types.BuiltinSmartReasoningID
 }
@@ -180,11 +179,10 @@ func (s *customAgentService) CreateAgent(ctx context.Context, agent *types.Custo
 	if agent.Config.AgentMode == "" {
 		agent.Config.AgentMode = types.AgentModeQuickAnswer
 	}
-	// Keep every newly-created agent immediately runnable even when a direct
-	// API caller omits the model fields that the browser normally supplies.
-	// The product default is the plan-safe Flash model; an explicitly selected
-	// chat model remains authoritative for query understanding as well.
-	if strings.TrimSpace(agent.Config.ModelID) == "" {
+	// Lite owns a platform model catalog. Standard workspaces configure their
+	// own models; an omitted binding must remain visibly unconfigured instead
+	// of silently referring to a consumer model that may not exist there.
+	if isLiteProductEdition() && strings.TrimSpace(agent.Config.ModelID) == "" {
 		agent.Config.ModelID = types.CheapestChatModelID
 	}
 	if strings.TrimSpace(agent.Config.QueryUnderstandModelID) == "" {
@@ -234,7 +232,7 @@ func (s *customAgentService) GetAgentByID(ctx context.Context, id string) (*type
 
 	// Check if it's a built-in agent using the registry
 	if types.IsBuiltinAgentID(id) {
-		if isPlatformManagedBuiltinAgentID(id) {
+		if isLiteProductEdition() && isPlatformManagedBuiltinAgentID(id) {
 			if builtinAgent := types.GetBuiltinAgentWithContext(ctx, id, tenantID); builtinAgent != nil {
 				return redactLiteAgent(builtinAgent), nil
 			}
@@ -313,7 +311,7 @@ func (s *customAgentService) ListAgents(ctx context.Context) ([]*types.CustomAge
 			continue
 		}
 		agent.EnsureDefaults()
-		if types.IsBuiltinAgentID(agent.ID) && !isPlatformManagedBuiltinAgentID(agent.ID) {
+		if types.IsBuiltinAgentID(agent.ID) && !(isLiteProductEdition() && isPlatformManagedBuiltinAgentID(agent.ID)) {
 			builtinInDB[agent.ID] = true
 		}
 	}
@@ -377,7 +375,7 @@ func (s *customAgentService) UpdateAgent(ctx context.Context, agent *types.Custo
 
 	// Handle built-in agents specially using registry
 	if types.IsBuiltinAgentID(agent.ID) {
-		if isPlatformManagedBuiltinAgentID(agent.ID) {
+		if isLiteProductEdition() && isPlatformManagedBuiltinAgentID(agent.ID) {
 			return nil, ErrCannotModifyBuiltin
 		}
 		return s.updateBuiltinAgent(ctx, agent, tenantID)

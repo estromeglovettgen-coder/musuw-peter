@@ -13,6 +13,7 @@ const { outputText } = ts.transpileModule(read('./menu.ts'), {
 const menuExports = {};
 const draftAuth = require('vue').reactive({ isLiteMode: true, currentUserId: 'draft-owner', effectiveTenantId: 'workspace-a' });
 runInThisContext(`(function(exports, require) {${outputText}\n})`)(menuExports, (name) => {
+  if (name === '@/config/workspaceSurface') return { isPeterWorkspace: false };
   if (name === '@/i18n') return { global: { t: (key) => key, locale: { value: 'zh-CN' } } };
   if (name === '@/stores/auth') return { useAuthStore: () => draftAuth };
   if (name === '@/stores/deploymentCapabilities') return { useDeploymentCapabilitiesStore: () => ({ isSupported: () => true }) };

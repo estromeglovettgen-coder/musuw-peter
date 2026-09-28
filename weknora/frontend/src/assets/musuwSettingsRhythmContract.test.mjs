@@ -12,7 +12,8 @@ test('shared settings bridge keeps the authority modal and row rhythm', () => {
   assert.match(reference, /@media \(min-width: 1024px\)[\s\S]*?width: min\(1024px, 100%\) !important;/)
   const sharedRows = reference.match(/\.visual-settings-content \.setting-row,[\s\S]*?\n\}/)?.[0] || ''
   assert.match(sharedRows, /padding: 14px 0 !important;/)
-  assert.match(sharedRows, /display: flex !important;/)
+  // Vue's inline v-show must remain authoritative over row layout.
+  assert.match(sharedRows, /display: flex;/)
   assert.doesNotMatch(sharedRows, /display: grid !important;/)
   const sharedLabels = reference.match(/\.visual-settings-content \.setting-info label,[\s\S]*?\.settings-overlay > \.settings-modal \.form-label \{[\s\S]*?\n\}/)?.[0] || ''
   assert.match(sharedLabels, /font-size: 14px !important;\s*\n\s*line-height: 20px !important;\s*\n\s*font-weight: 600 !important;/)

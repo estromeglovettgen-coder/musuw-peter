@@ -20,6 +20,7 @@ func (r *createAgentCaptureRepo) CreateAgent(_ context.Context, agent *types.Cus
 }
 
 func TestCreateAgentDefaultsMissingChatModelsToFlash(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	ctx := context.WithValue(context.Background(), types.TenantIDContextKey, uint64(1))
 	repo := &createAgentCaptureRepo{}
 	svc := &customAgentService{repo: repo}
@@ -32,6 +33,17 @@ func TestCreateAgentDefaultsMissingChatModelsToFlash(t *testing.T) {
 	require.Equal(t, types.CheapestChatModelID, repo.created.Config.QueryUnderstandModelID)
 	require.Equal(t, types.CheapestChatModelID, created.Config.ModelID)
 	require.Equal(t, types.CheapestChatModelID, created.Config.QueryUnderstandModelID)
+}
+
+func TestPeterStandardAgentDoesNotBindConsumerModel(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "standard")
+	ctx := context.WithValue(context.Background(), types.TenantIDContextKey, uint64(1))
+	repo := &createAgentCaptureRepo{}
+	svc := &customAgentService{repo: repo}
+	created, err := svc.CreateAgent(ctx, &types.CustomAgent{Name: "Private agent"})
+	require.NoError(t, err)
+	require.Empty(t, created.Config.ModelID)
+	require.Empty(t, created.Config.QueryUnderstandModelID)
 }
 
 func TestCreateAgentPreservesExplicitChatModels(t *testing.T) {

@@ -211,6 +211,7 @@ jobs:
             printf 'ci_workflow_run=%s\n' "$ci_workflow_run"
           } >> "$GITHUB_OUTPUT"
   build:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Build or restore immutable release images on native AMD64
     needs: authorize
     permissions:

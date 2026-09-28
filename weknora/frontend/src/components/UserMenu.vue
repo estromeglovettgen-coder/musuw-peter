@@ -19,6 +19,7 @@ import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom'
 import { openNewUserGuide } from '@/config/contextualGuides'
 import { SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE } from '@/config/settingsAccess'
 import { handoffToExternalAuth } from '@/utils/nativeAuthHandoff'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useCurrentEntitlementStore } from '@/stores/entitlement'
 
 const { t } = useI18n()
@@ -316,11 +317,11 @@ onUnmounted(() => {
         >
           <span class="visual-user-menu__avatar is-small"><img v-if="userAvatar && !authStore.isLiteMode" :src="userAvatar" alt="" /><span v-else>{{ userInitial }}</span></span>
           <span class="visual-user-menu__account-copy"><strong>{{ userName }}</strong></span>
-          <button v-if="!authStore.isLiteMode" type="button" class="visual-user-menu__guide" :title="$t('newUserGuide.reopen')" :aria-label="$t('newUserGuide.reopen')" @click.stop="reopenGuide"><t-icon name="help-circle" /></button>
+          <button v-if="!isPeterWorkspace && !authStore.isLiteMode" type="button" class="visual-user-menu__guide" :title="$t('newUserGuide.reopen')" :aria-label="$t('newUserGuide.reopen')" @click.stop="reopenGuide"><t-icon name="help-circle" /></button>
         </div>
 
         <div
-          v-if="!authStore.isLiteMode"
+          v-if="!isPeterWorkspace && !authStore.isLiteMode"
           ref="tenantMenuItemRef"
           class="visual-user-menu__tenant"
           :class="{ 'is-open': tenantSubmenuOpen, 'is-clickable': showTenantSwitcher }"
@@ -333,22 +334,22 @@ onUnmounted(() => {
         </div>
 
         <div class="visual-user-menu__divider visual-user-menu__divider--dashed" />
-        <button type="button" class="visual-user-menu__item visual-user-menu__usage-item" @click="handleQuickNav('usage')">
+        <button v-if="!isPeterWorkspace" type="button" class="visual-user-menu__item visual-user-menu__usage-item" @click="handleQuickNav('usage')">
           <t-icon name="chart-line" />
           <span>{{ $t('entitlement.usageMenu') }}</span>
           <small v-if="entitlementLoading && !entitlement">{{ $t('common.loading') }}</small>
           <small v-else-if="usageRemainingPercent !== null">{{ usageRemainingPercent }}% {{ $t('entitlement.remaining') }}</small>
           <small v-else-if="entitlement?.openrouter_credits_status === 'pending'">{{ $t('entitlement.billingPendingShort') }}</small>
         </button>
-        <button type="button" class="visual-user-menu__item visual-user-menu__billing-item" :class="{ 'is-free': billingIsFree }" @click="openPlans">
+        <button v-if="!isPeterWorkspace" type="button" class="visual-user-menu__item visual-user-menu__billing-item" :class="{ 'is-free': billingIsFree }" @click="openPlans">
           <t-icon v-if="billingIsFree" name="arrow-up" /><t-icon v-else name="crown" /><span>{{ billingCanUpgrade ? $t('entitlement.upgradePlan') : $t('entitlement.viewPlans') }}</span>
         </button>
         <button type="button" class="visual-user-menu__item" @click="handleQuickNav('general')"><t-icon name="setting" /><span>{{ authStore.isLiteMode ? $t('general.settings') : $t('general.personalSettings') }}</span></button>
-        <button v-if="!authStore.isLiteMode" type="button" class="visual-user-menu__item" @click="handleQuickNav('tenant')"><t-icon name="user-circle" /><span>{{ $t('settings.workspaceSettings') }}</span></button>
-        <button v-if="!authStore.isLiteMode && canManageMembers" type="button" class="visual-user-menu__item" @click="handleQuickNav('members')"><t-icon name="usergroup" /><span>{{ $t('tenantMember.title') }}</span></button>
+        <button v-if="!isPeterWorkspace && !authStore.isLiteMode" type="button" class="visual-user-menu__item" @click="handleQuickNav('tenant')"><t-icon name="user-circle" /><span>{{ $t('settings.workspaceSettings') }}</span></button>
+        <button v-if="!isPeterWorkspace && !authStore.isLiteMode && canManageMembers" type="button" class="visual-user-menu__item" @click="handleQuickNav('members')"><t-icon name="usergroup" /><span>{{ $t('tenantMember.title') }}</span></button>
         <button v-if="!authStore.isLiteMode && canManageModels" type="button" class="visual-user-menu__item" @click="handleQuickNav('models')"><t-icon name="control-platform" /><span>{{ $t('settings.modelManagement') }}</span></button>
 
-        <template v-if="!authStore.isLiteMode">
+        <template v-if="!isPeterWorkspace && !authStore.isLiteMode">
           <div class="visual-user-menu__divider" />
           <button type="button" class="visual-user-menu__item" @click="handleSettings"><t-icon name="setting" /><span>{{ $t('general.allSettings') }}</span></button>
           <button v-if="authStore.isSystemAdmin" type="button" class="visual-user-menu__item" @click="handleSystemAdmin"><t-icon name="server" /><span>{{ $t('settings.system') }}</span></button>
@@ -358,7 +359,7 @@ onUnmounted(() => {
           <button type="button" class="visual-user-menu__item" @click="openGithub"><t-icon name="logo-github" /><span>{{ $t('common.github') }}</span><t-icon name="jump" class="visual-user-menu__external" /></button>
         </template>
 
-        <div v-if="!authStore.isLiteMode" class="visual-user-menu__divider" />
+        <div v-if="!isPeterWorkspace && !authStore.isLiteMode" class="visual-user-menu__divider" />
         <button type="button" class="visual-user-menu__item is-danger" @click="handleLogout"><t-icon name="logout" /><span>{{ $t('auth.logout') }}</span></button>
     </div>
 

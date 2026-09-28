@@ -1,0 +1,3 @@
+# Peter configures provider endpoints and credentials in the browser.
+# Never import the consumer product's managed provider catalog here.
+builtin_models: []

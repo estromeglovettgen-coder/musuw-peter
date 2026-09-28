@@ -72,7 +72,7 @@ test('Lite UserMenu cannot reopen management surfaces and keeps valid interactiv
   assert.ok(userMenu.includes("handleQuickNav('usage')"))
   assert.match(userMenu, /!authStore\.isLiteMode && canManageMembers/)
   assert.match(userMenu, /!authStore\.isLiteMode && canManageModels/)
-  assert.match(userMenu, /<template v-if="!authStore\.isLiteMode">[\s\S]*handleSettings[\s\S]*openDocs[\s\S]*openGithub/)
+  assert.match(userMenu, /<template v-if="!isPeterWorkspace && !authStore\.isLiteMode">[\s\S]*handleSettings[\s\S]*openDocs[\s\S]*openGithub/)
 
   // Standard recovery remains source-complete.
   for (const token of [

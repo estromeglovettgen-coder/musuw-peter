@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   browser:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Story contracts and browser acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 20

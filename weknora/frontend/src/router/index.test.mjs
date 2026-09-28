@@ -57,7 +57,7 @@ test('a cold authenticated /login load restores the native session before auth h
   assert.ok(hydrate < handoff, 'session hydration must happen before signed-out handoff')
   assert.match(
     guard,
-    /if \(!restored\)\s*\{\s*handoffToExternalAuth\('start'\)\s*next\(false\)/,
+    /if \(!restored\)\s*\{[\s\S]*?if \(usesNativeAuthentication\(\)\)[\s\S]*?next\(\)[\s\S]*?handoffToExternalAuth\('start'\)\s*next\(false\)/,
     'signed-out /login must enter the Musuw auth shell without a native-login bypass',
   )
   assert.match(

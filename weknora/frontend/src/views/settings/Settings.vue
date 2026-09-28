@@ -123,6 +123,8 @@ import {
   settingsQueryUnchanged,
 } from '@/config/settingsRoute'
 
+import { isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface'
+
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUIStore()
@@ -157,6 +159,7 @@ const normalizeSettingsSection = (section: string) => {
     section,
     route.query.tab as string | undefined,
   )
+  if (!isWorkspaceSettingsSectionVisible(normalized)) return 'general'
   if (!authStore.isLiteMode || isPublicIntegrationSection(normalized)) return normalized
   if (!canManageSettingsNavigation.value) return integrationSectionKey('im')
   if (
@@ -194,6 +197,7 @@ const isSectionSupported = (key: string): boolean => {
 }
 
 const canSeeSection = (key: string): boolean => {
+  if (!isWorkspaceSettingsSectionVisible(key)) return false
   if (!canAccessSettingsNavigationSection(
     key,
     canManageSettingsNavigation.value,

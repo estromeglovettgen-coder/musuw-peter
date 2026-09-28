@@ -134,6 +134,7 @@ jobs:
           retention-days: 7
 
   deploy:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Deploy storefront Worker
     needs: build
     environment: storefront-production

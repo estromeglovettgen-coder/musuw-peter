@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   authorize:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -49,6 +50,7 @@ jobs:
             | grep -Eq '^[1-9][0-9]*$'
           printf 'revision=%s\n' "$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
   build:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     needs: authorize
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -95,6 +97,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
   deploy:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     needs: [authorize, build]
     runs-on: ubuntu-24.04
     timeout-minutes: 15

@@ -1,24 +1,17 @@
 {
-  "name": "musuw",
+  "name": "musuw-peter",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Musuw consumer knowledge workspace built on WeKnora main at 81142df.",
+  "description": "Peter private agent workspace with browser-managed models and full native agent configuration.",
   "engines": {
     "node": "24.18.0",
     "npm": "11.16.0"
   },
   "packageManager": "npm@11.16.0",
   "scripts": {
-    "dev": "bash scripts/musuw-dev up",
-    "dev:down": "bash scripts/musuw-dev down",
-    "dev:status": "bash scripts/musuw-dev status",
-    "dev:check": "bash scripts/musuw-dev check",
-    "deps": "bash scripts/musuw-dev deps up",
-    "deps:down": "bash scripts/musuw-dev deps down",
-    "preview": "bash scripts/musuw-preview",
-    "release": "bash scripts/musuw-release",
-    "app:build": "npm --prefix weknora/frontend run build-with-types",
+    "dev": "node scripts/peter-dev.mjs",
+    "app:build": "VITE_WORKSPACE_PROFILE=peter VITE_AUTH_MODE=native npm --prefix weknora/frontend run build-with-types",
     "app:e2e:batch": "playwright test --config=playwright.session-batch.config.ts",
     "app:test": "npm --prefix weknora/frontend test",
     "admin:build": "npm --prefix weknora/frontend run build-with-types",
@@ -32,7 +25,10 @@
     "homepage:test": "npm --prefix storefront test",
     "upgrade:contract": "node --test scripts/weknora-upgrade-contract.test.mjs",
     "upgrade:ledger": "node scripts/ci/generate-weknora-resolution-ledger.mjs",
-    "build": "npm run app:build && npm run auth:build && npm run homepage:build"
+    "build": "npm run app:build",
+    "peter:dev": "node scripts/peter-dev.mjs",
+    "peter:test-provider": "node e2e/peter/model-fixture.mjs",
+    "peter:acceptance": "node e2e/peter/acceptance.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1116.0",

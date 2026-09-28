@@ -10,6 +10,11 @@ export const AUTHENTICATED_HOME_PATH = '/platform/knowledge-bases'
 type AuthHandoff = 'error' | 'start' | 'logout'
 type LocationAssigner = Pick<Location, 'assign'>
 
+/** Private deployments use the existing native account flow, without a hosted shell. */
+export function usesNativeAuthentication(mode = import.meta.env?.VITE_AUTH_MODE): boolean {
+  return mode === 'native'
+}
+
 export function hasOIDCErrorCallback(hash: string): boolean {
   const fragment = hash.startsWith('#') ? hash.slice(1) : hash
   return new URLSearchParams(fragment).has('oidc_error')
@@ -28,7 +33,12 @@ export function isDefinitiveNativeSessionFailure(status: unknown): boolean {
 export function handoffToExternalAuth(
   target: AuthHandoff,
   location: LocationAssigner = window.location,
+  native = usesNativeAuthentication(),
 ): void {
+  if (native) {
+    location.assign(target === 'error' ? '/login?error=authentication_failed' : '/login')
+    return
+  }
   location.assign(
     target === 'start'
       ? EXTERNAL_AUTH_START_PATH

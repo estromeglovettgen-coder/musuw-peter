@@ -212,7 +212,7 @@
   margin-bottom: 0 !important;
   box-sizing: border-box !important;
   border-bottom: 1px solid #f3f4f6 !important;
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 16px !important;

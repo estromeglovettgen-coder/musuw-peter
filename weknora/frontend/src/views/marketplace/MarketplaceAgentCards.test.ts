@@ -23,7 +23,7 @@ function entry(overrides: Partial<MarketplaceLibraryEntry> = {}): MarketplaceLib
   }
 }
 
-function harness(entries: MarketplaceLibraryEntry[]) {
+function harness(entries: MarketplaceLibraryEntry[], peter = false) {
   const routes: unknown[] = []
   const events: string[] = []
   const module = { exports: {} as any }
@@ -32,6 +32,7 @@ function harness(entries: MarketplaceLibraryEntry[]) {
     'vue-router': { useRouter: () => ({ push: (target: unknown) => routes.push(target) }) },
     '@/components/AgentAvatar.vue': 'AgentAvatar',
     './MarketplaceAccessStatus.vue': 'MarketplaceAccessStatus',
+    '@/config/workspaceSurface': { isPeterWorkspace: peter },
   }
   new Function('require', 'module', 'exports', javascript)((name: string) => {
     assert.ok(Object.hasOwn(modules, name), `Unexpected dependency: ${name}`)
@@ -112,4 +113,10 @@ test('loading and failure do not expose stale cards; retry emits the shared load
   app.props.entries = []
   assert.ok(app.nodes().some(node => node.props?.role === 'status'))
   assert.deepEqual(app.routes, [])
+})
+
+test('Peter hides the subscribed-agent market section even if old entries exist', () => {
+  const app = harness([entry()], true)
+  assert.equal(app.cards().length, 0)
+  assert.equal(app.nodes().some(node => node.type === 'section'), false)
 })

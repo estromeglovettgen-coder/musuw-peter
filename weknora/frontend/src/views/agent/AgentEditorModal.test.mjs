@@ -42,8 +42,7 @@ test('new agents use deterministic upstream defaults with a Lite scene fallback'
     source.indexOf('const agentMode = computed'),
   )
   assert.match(source, /import \{ DEFAULT_CHAT_MODEL_ID \} from '@\/utils\/managedChatModels'/)
-  assert.match(defaultBlock, /model\.id === DEFAULT_CHAT_MODEL_ID/)
-  assert.match(defaultBlock, /authStore\.isLiteMode \? DEFAULT_CHAT_MODEL_ID/)
+  assert.match(defaultBlock, /authStore\.isLiteMode\s*\? DEFAULT_CHAT_MODEL_ID/)
   assert.match(defaultBlock, /selectInitialModelId\(allModels\.value, 'KnowledgeQA'\)/)
   assert.match(defaultBlock, /selectInitialModelId\(allModels\.value, 'Rerank'\)/)
   assert.match(defaultBlock, /selectInitialModelId\(allModels\.value, 'VLLM'\)/)
@@ -85,14 +84,13 @@ test('new agents leave the description blank instead of copying a type preset', 
   )
 })
 
-test('new agents prefer the managed DeepSeek V4 Flash chat model', () => {
+test('only Lite agents prefer the managed DeepSeek V4 Flash chat model', () => {
   const defaultBlock = source.slice(
     source.indexOf('const applyDefaultModelsIfEmpty = () =>'),
     source.indexOf('const agentMode = computed'),
   )
   assert.match(source, /DEFAULT_CHAT_MODEL_ID/)
-  assert.match(defaultBlock, /model\.id === DEFAULT_CHAT_MODEL_ID/)
-  assert.match(defaultBlock, /authStore\.isLiteMode \? DEFAULT_CHAT_MODEL_ID/)
+  assert.match(defaultBlock, /authStore\.isLiteMode\s*\? DEFAULT_CHAT_MODEL_ID/)
 })
 
 test('Lite new agents receive a first available localized name in either mode', () => {
@@ -243,9 +241,9 @@ test('consumer agent editor keeps the compact Lite tabs while Standard exposes m
     source.indexOf('<!-- 提示词 -->'),
   )
   assert.ok(navBlock, 'expected the native agent navigation definition')
-  assert.doesNotMatch(navBlock, /key: 'model'/)
+  assert.match(navBlock, /key: 'model'/)
 
-  const standardStart = navBlock.indexOf("items.push({ key: 'conversation'")
+  const standardStart = navBlock.indexOf("items.splice(1, 0, { key: 'model'")
   assert.ok(standardStart >= 0, 'expected the Standard navigation branch')
   const liteBranch = navBlock.slice(navBlock.indexOf('if (authStore.isLiteMode)'), standardStart)
   assert.match(liteBranch, /if \(authStore\.isLiteMode\)/)
@@ -277,7 +275,7 @@ test('consumer agent editor keeps the compact Lite tabs while Standard exposes m
   assert.match(basicSection, /:all-models="authStore\.isLiteMode \? \[\] : allModels"/)
   assert.match(basicSection, /:show-add-model="!authStore\.isLiteMode"/)
   assert.match(basicSection, /:scene-options="authStore\.isLiteMode \? agentModelSceneOptions : \[\]"/)
-  assert.doesNotMatch(source, /data-guide="agent-create-agent-type"/)
+  assert.match(source, /v-if="!authStore\.isLiteMode && agentMode === 'smart-reasoning' && !isBuiltinAgent"[^>]*data-guide="agent-create-agent-type"/)
 })
 
 test('an unreadable tenant storage config cannot discard public agent defaults', () => {
@@ -297,13 +295,14 @@ test('Lite agent knowledge copy and RAG preset description stay document-only wh
   assert.match(source, /authStore\.isLiteMode[\s\S]*?p\.id === 'rag-qa'[\s\S]*?agentEditor\.agentType\.liteDescriptions\.ragQa/)
 })
 
-test('prompt configuration exposes only the system prompt while preserving hidden values', () => {
+test('Standard exposes advanced prompts while Lite keeps only the system prompt', () => {
   const promptNavBlock = source.match(
     /const promptNavItems = computed\(\(\) => \{([\s\S]*?)^\}\);/m,
   )?.[1]
   assert.ok(promptNavBlock, 'expected the native prompt navigation definition')
-  assert.doesNotMatch(promptNavBlock, /key: '(?:context|intent|rewrite-system|rewrite-user|fallback)'/)
-  assert.match(source, /v-if="false"\s+data-agent-hidden-prompts="advanced"/)
+  assert.match(promptNavBlock, /if \(authStore\.isLiteMode \|\| isAgentMode\.value\) return items/)
+  for (const key of ['context', 'intent', 'rewrite-system', 'rewrite-user', 'fallback']) assert.ok(promptNavBlock.includes(`key: '${key}'`))
+  assert.match(source, /v-if="!authStore\.isLiteMode"\s+data-agent-prompts="advanced"/)
   assert.match(source, /context_template: ''/)
 })
 
@@ -316,11 +315,11 @@ test('quick agents retain hidden context validation and model errors return to B
   assert.match(saveBlock, /modelRequired[\s\S]*?currentSection\.value = 'basic'/)
   assert.match(
     saveBlock,
-    /audio_upload_enabled && !formData\.value\.config\.asr_model_id[\s\S]*?asrModelRequired[\s\S]*?currentSection\.value = 'basic'/,
+    /audio_upload_enabled && !formData\.value\.config\.asr_model_id[\s\S]*?asrModelRequired[\s\S]*?currentSection\.value = authStore\.isLiteMode \? 'basic' : 'multimodal'/,
   )
 })
 
-test('knowledge scope keeps bounded selection controls but hides file type restrictions', () => {
+test('Standard knowledge scope exposes file type restrictions', () => {
   const knowledgeSection = source.slice(
     source.indexOf('<!-- 知识库配置 -->'),
     source.indexOf('<!-- 网络搜索设置 -->'),
@@ -328,7 +327,7 @@ test('knowledge scope keeps bounded selection controls but hides file type restr
   assert.match(knowledgeSection, /kbSelectionMode/)
   assert.match(knowledgeSection, /kbSelectionMode === 'selected'/)
   assert.match(knowledgeSection, /retrieve_kb_only_when_mentioned/)
-  assert.match(knowledgeSection, /v-if="false"\s+data-agent-hidden-field="supported-file-types"/)
+  assert.match(knowledgeSection, /v-if="!authStore\.isLiteMode"\s+data-agent-field="supported-file-types"/)
 })
 
 test('scope selectors use a bounded Musuw setting control instead of a clipped radio strip', () => {

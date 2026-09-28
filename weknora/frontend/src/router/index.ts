@@ -10,11 +10,13 @@ import {
   handoffToExternalAuth,
   hasOIDCErrorCallback,
   hasPendingOIDCCallback,
+  usesNativeAuthentication,
 } from '@/utils/nativeAuthHandoff'
 import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
 import type { DeploymentCapabilityKey } from '@/config/deploymentCapabilities'
 import { MessagePlugin } from 'tdesign-vue-next'
 import i18n from '@/i18n'
+import { workspaceRouteRedirect } from '@/config/workspaceSurface'
 import {
   buildSettingsRouteQuery,
   normalizeExposedIntegrationSettingsSection,
@@ -451,6 +453,11 @@ async function hydrateSessionFromToken(authStore: ReturnType<typeof useAuthStore
 
 // 路由守卫：检查认证状态和系统初始化状态
 router.beforeEach(async (to, from, next) => {
+  const workspaceRedirect = workspaceRouteRedirect(to.path, typeof to.query.section === 'string' ? to.query.section : undefined)
+  if (workspaceRedirect) {
+    next(workspaceRedirect)
+    return
+  }
   const authStore = useAuthStore()
 
   // A failed callback must leave before any route component can mount. In
@@ -469,13 +476,15 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Musnow owns human sign-in. Never mount WeKnora's password/OIDC form;
-  // a browser navigation lets the same-origin auth shell establish the native
-  // token exchange and then return here.
+  // Hosted Musuw delegates sign-in; private deployments use the native form.
   if (to.path === '/login' || to.path === '/register') {
     if (!authStore.isLoggedIn) {
       const restored = await hydrateSessionFromToken(authStore)
       if (!restored) {
+        if (usesNativeAuthentication()) {
+          next()
+          return
+        }
         handoffToExternalAuth('start')
         next(false)
         return

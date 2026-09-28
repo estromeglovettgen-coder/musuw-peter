@@ -14,5 +14,10 @@
     "server",
     "frontend/dist/**",
     "frontend/node_modules/**"
-  ]
+  ],
+  "peterAdaptation": {
+    "baseRepository": "https://github.com/estromeglovettgen-coder/musuw",
+    "baseCommit": "edae9fcbf95c196767688909ad09d7c21ea3ac67",
+    "scope": "Local native-auth Standard agent editor and browser model management; limited Peter navigation hides billing, marketplace and unrelated administration. Reuses native APIs and controls; repairs built-in configuration persistence and query-model preservation. SQLite migration 27 ports the native skill metadata schema from PostgreSQL migrations 100–104 for local editor loading. No deployment or imported production credentials."
+  }
 }

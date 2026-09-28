@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { MarketplaceLibraryEntry } from '@/api/creator-marketplace'
@@ -28,7 +29,7 @@ const open = (entry: MarketplaceLibraryEntry) => entry.can_chat
 </script>
 
 <template>
-  <section class="market-agent-cards" :aria-label="$t('creatorMarketplace.agentLibraryTitle')">
+  <section v-if="!isPeterWorkspace" class="market-agent-cards" :aria-label="$t('creatorMarketplace.agentLibraryTitle')">
     <h2>{{ $t('creatorMarketplace.agentLibraryTitle') }} <small>{{ agents.length }}</small></h2>
     <div v-if="failed" role="alert">
       <p>{{ $t('creatorMarketplace.agentLibraryLoadFailed') }}</p>

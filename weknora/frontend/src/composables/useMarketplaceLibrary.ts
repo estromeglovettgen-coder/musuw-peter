@@ -1,4 +1,5 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useAuthStore } from '@/stores/auth'
 import { listMarketplaceLibrary, type MarketplaceLibraryEntry } from '@/api/creator-marketplace'
 
@@ -16,8 +17,8 @@ export function useMarketplaceLibrary() {
     const key = scope.value
     entries.value = []
     failed.value = false
-    loading.value = auth.isLoggedIn
-    if (!auth.isLoggedIn) return
+    loading.value = !isPeterWorkspace && auth.isLoggedIn
+    if (isPeterWorkspace || !auth.isLoggedIn) return
     try {
       const rows = await listMarketplaceLibrary()
       if (run === sequence && key === scope.value) entries.value = rows

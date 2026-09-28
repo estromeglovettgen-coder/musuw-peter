@@ -7,6 +7,7 @@ import SessionBatchManageModal from './SessionBatchManageModal.vue'
 import UserMenu from './UserMenu.vue'
 import TenantSelector from './TenantSelector.vue'
 import { useOrganizationStore } from '@/stores/organization'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { bucketHasMore } from './sessionSidebarBuckets'
 
 const legacy = LegacySidebarBusiness as any
@@ -26,7 +27,7 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: SetupContext) {
     const state = legacySetup?.(props, context)
     const orgStore = useOrganizationStore()
-    if (state && typeof state === 'object' && typeof state.then !== 'function') return { ...state, orgStore, bucketHasMore }
+    if (state && typeof state === 'object' && typeof state.then !== 'function') return { ...state, orgStore, bucketHasMore, isPeterWorkspace }
     return state
   },
 })
@@ -41,9 +42,9 @@ export default defineComponent({
         <div class="visual-sidebar__collapsed-divider" />
         <button type="button" class="visual-sidebar__collapsed-nav is-new" :title="t('menu.newChat')" @click="handleMenuClick('creatChat')"><t-icon name="chat-add" /></button>
         <button type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': isMenuItemActive('knowledge-bases') }" :title="t('menu.knowledgeBase')" @click="handleMenuClick('knowledge-bases')"><t-icon name="folder" /></button>
-        <button type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" :title="t('creatorMarketplace.title')" @click="handleMenuClick('marketplace')"><t-icon name="shop" /></button>
+        <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" :title="t('creatorMarketplace.title')" @click="handleMenuClick('marketplace')"><t-icon name="shop" /></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'agentList' }" :title="t('menu.agents')" @click="handleMenuClick('agents')"><t-icon name="usergroup" /></button>
-        <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'organizationList' }" :title="t('menu.organizations')" @click="handleMenuClick('organizations')"><t-icon name="system-sum" /></button>
+        <button v-if="!isPeterWorkspace && visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'organizationList' }" :title="t('menu.organizations')" @click="handleMenuClick('organizations')"><t-icon name="system-sum" /></button>
       </div>
       <div class="visual-sidebar__drag-handle" @mousedown="onDragHandleMouseDown" />
       <div class="visual-sidebar__collapsed-user"><UserMenu /></div>
@@ -66,11 +67,11 @@ export default defineComponent({
           <span class="visual-sidebar__primary-copy"><t-icon name="folder" /><span>{{ t('menu.knowledgeBase') }}</span></span>
           <span v-if="chatResources.rawKnowledgeBases?.length" class="visual-sidebar__kb-count">{{ chatResources.rawKnowledgeBases.length }}</span>
         </button>
-        <button type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" data-guide="nav-marketplace" @click="handleMenuClick('marketplace')"><span class="visual-sidebar__primary-copy"><t-icon name="shop" /><span>{{ t('creatorMarketplace.title') }}</span></span></button>
+        <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" data-guide="nav-marketplace" @click="handleMenuClick('marketplace')"><span class="visual-sidebar__primary-copy"><t-icon name="shop" /><span>{{ t('creatorMarketplace.title') }}</span></span></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'agentList' }" data-guide="nav-agents" @click="handleMenuClick('agents')">
           <span class="visual-sidebar__primary-copy"><t-icon name="usergroup" /><span>{{ t('menu.agents') }}</span></span>
         </button>
-        <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'organizationList' }" data-guide="nav-organizations" @click="handleMenuClick('organizations')">
+        <button v-if="!isPeterWorkspace && visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'organizationList' }" data-guide="nav-organizations" @click="handleMenuClick('organizations')">
           <span class="visual-sidebar__primary-copy"><t-icon name="system-sum" /><span>{{ t('menu.organizations') }}</span></span>
           <span v-if="orgStore.totalPendingJoinRequestCount > 0" class="visual-sidebar__kb-count">{{ orgStore.totalPendingJoinRequestCount }}</span>
         </button>

@@ -77,6 +77,7 @@ concurrency:
 
 jobs:
   workflow-contract:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Workflow contracts
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -89,6 +90,7 @@ jobs:
         run: ruby scripts/ci/validate-workflows.rb
 
   frontend:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Frontend tests, types and build
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -118,6 +120,7 @@ jobs:
         run: npm --prefix weknora/frontend run build
 
   session-batch-browser:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Frontend browser regressions
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -168,6 +171,7 @@ jobs:
           retention-days: 7
 
   auth:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Auth shell tests, types and build
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -213,6 +217,7 @@ jobs:
         run: npm --prefix auth run build
 
   storefront:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Storefront tests and build
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -237,6 +242,7 @@ jobs:
         run: npx wrangler deploy --dry-run --config wrangler.jsonc
 
   go:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Active WeKnora Go tests and build
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -272,6 +278,7 @@ jobs:
           go build -tags anydoc ./cmd/server
 
   go-modules:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: WeKnora ${{ matrix.name }} tests, vet and build
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -310,7 +317,7 @@ jobs:
   go-lint:
     name: golangci-lint (${{ matrix.name }})
     needs: workflow-contract
-    if: github.event_name == 'pull_request'
+    if: github.repository == 'estromeglovettgen-coder/musuw' && github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
@@ -346,6 +353,7 @@ jobs:
           only-new-issues: true
 
   dsh-plugin:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: DeepSeek Harness plugin contract and E2E
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -401,6 +409,7 @@ jobs:
           if-no-files-found: ignore
 
   docreader:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Active DocReader tests
     needs: workflow-contract
     runs-on: ubuntu-24.04
@@ -425,6 +434,7 @@ jobs:
         run: uv run --project weknora/docreader python scripts/ci/run-docreader-tests.py
 
   repository-contracts:
+    if: github.repository == 'estromeglovettgen-coder/musuw'
     name: Release, provenance and secret contracts
     needs: workflow-contract
     runs-on: ubuntu-24.04

@@ -367,3 +367,17 @@ func TestResolveChatModelIDWikiFixerFallsBackToAvailableModel(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "system-chat", modelID)
 }
+
+func TestStandardBuiltinRetainsItsConfiguredQueryModel(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "standard")
+	svc := &sessionService{modelService: &stubModelService{modelsByID: map[string]*types.Model{
+		"selected-chat": {ID: "selected-chat", Type: types.ModelTypeKnowledgeQA},
+	}}}
+	req := &types.QARequest{Session: &types.Session{}, SummaryModelID: "selected-chat", CustomAgent: &types.CustomAgent{
+		ID: types.BuiltinQuickAnswerID, Config: types.CustomAgentConfig{ModelID: "original-chat", QueryUnderstandModelID: "dedicated-rewrite"},
+	}}
+	model, err := svc.resolveChatModelID(context.Background(), req, nil, nil)
+	require.NoError(t, err)
+	require.Equal(t, "selected-chat", model)
+	require.Equal(t, "dedicated-rewrite", req.CustomAgent.Config.QueryUnderstandModelID)
+}

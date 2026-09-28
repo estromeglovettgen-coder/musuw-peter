@@ -10,7 +10,19 @@ import {
   hasPendingOIDCCallback,
   handoffToExternalAuth,
   isDefinitiveNativeSessionFailure,
+  usesNativeAuthentication,
 } from './nativeAuthHandoff.ts'
+
+test('private deployment uses the native login for sign-in, logout and expired sessions', () => {
+  assert.equal(usesNativeAuthentication('native'), true)
+  assert.equal(usesNativeAuthentication('external'), false)
+  assert.equal(usesNativeAuthentication(''), false)
+  const navigations: string[] = []
+  for (const target of ['start', 'logout', 'error'] as const) {
+    handoffToExternalAuth(target, { assign: (path) => navigations.push(String(path)) }, true)
+  }
+  assert.deepEqual(navigations, ['/login', '/login', '/login?error=authentication_failed'])
+})
 
 test('a signed-out native route hands the browser to the Musnow auth entry', () => {
   const navigations: string[] = []

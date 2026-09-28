@@ -165,11 +165,13 @@ func (s *sessionService) resolveChatModelID(
 						"selected chat model %s is unavailable for agent %s", runtimeModelID, customAgent.ID,
 					)
 				}
-				// This agent object is request-scoped. Keep downstream query
-				// understanding and AgentQA on the same policy-approved model so a
-				// Free request never falls back to the paid YAML default.
+				// This agent object is request-scoped. Lite query understanding
+				// follows its policy-approved model; Standard retains a separately
+				// configured query model.
 				customAgent.Config.ModelID = runtimeModelID
-				customAgent.Config.QueryUnderstandModelID = runtimeModelID
+				if isLiteProductEdition() || strings.TrimSpace(customAgent.Config.QueryUnderstandModelID) == "" {
+					customAgent.Config.QueryUnderstandModelID = runtimeModelID
+				}
 				logger.Infof(ctx, "Using selected catalog model_id %s for agent %s", runtimeModelID, customAgent.ID)
 				return runtimeModelID, nil
 			}

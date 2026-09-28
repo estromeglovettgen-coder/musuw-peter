@@ -1,4 +1,5 @@
 import { reactive, ref, computed, watch } from 'vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { defineStore } from 'pinia'
 import i18n from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -78,6 +79,7 @@ export const useMenuStore = defineStore('menuStore', () => {
     const authStore = useAuthStore()
     const deploymentCapabilities = useDeploymentCapabilitiesStore()
     return menuArr.filter(item => {
+      if (isPeterWorkspace && ['marketplace', 'organizations'].includes(item.path)) return false
       if (authStore.isLiteMode && !liteVisiblePaths.has(item.path)) {
         return false
       }

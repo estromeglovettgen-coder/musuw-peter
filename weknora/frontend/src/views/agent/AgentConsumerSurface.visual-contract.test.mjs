@@ -101,8 +101,8 @@ test('Settings and Agent editor render the same shared visual shell while Agent 
     'role="tab"',
     '@keydown.enter.prevent',
     '@keydown.space.prevent',
-    'data-agent-hidden-field="agent-id"',
-    'data-agent-hidden-field="integrations"',
+    'data-agent-field="agent-id"',
+    'data-agent-field="integrations"',
     ':root[theme-mode="dark"] .agent-editor-modal',
     'background: #27272a !important',
   ]) assert.ok(editor.includes(token), `Agent editor contract lost ${token}`)
@@ -143,7 +143,7 @@ test('Agent mode keeps its compact toggle while scope choices use bounded settin
   assert.match(editor, /\.agent-segmented-control\s*\{[\s\S]*?display:\s*inline-flex;[\s\S]*?flex-wrap:\s*nowrap;[\s\S]*?padding:\s*4px;[\s\S]*?border-radius:\s*12px;/)
   assert.match(editor, /\.agent-segmented-control :deep\(\.t-radio-button\)\s*\{[\s\S]*?flex:\s*0 0 auto;[\s\S]*?padding:\s*6px 14px;[\s\S]*?border-radius:\s*8px;[\s\S]*?font-size:\s*12px;/)
   assert.match(editor, /\.agent-scope-select-control\s*\{[\s\S]*?flex:\s*0 1 280px;/)
-  assert.match(editor, /\.setting-row\s*\{[\s\S]*?display:\s*flex !important;[\s\S]*?gap:\s*16px !important;/)
+  assert.match(editor, /\.setting-row\s*\{[\s\S]*?display:\s*flex;[\s\S]*?gap:\s*16px !important;/)
   assert.match(editor, /label\s*\{[\s\S]*?font-size:\s*14px !important;[\s\S]*?line-height:\s*20px !important;[\s\S]*?font-weight:\s*600 !important;/)
   assert.match(editor, /\.setting-control\s*\{[\s\S]*?width:\s*100% !important;[\s\S]*?max-width:\s*280px !important;/)
   assert.match(editor, /&\.setting-row-vertical\s*\{[\s\S]*?flex-direction:\s*column;/)

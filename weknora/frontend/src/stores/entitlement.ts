@@ -5,6 +5,7 @@ import {
   type ConsumerEntitlement,
   type PaddleBillingConfig,
 } from '@/api/entitlement'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useAuthStore } from '@/stores/auth'
 
 // Reuse the menu's just-fetched provider snapshot while navigating into the
@@ -25,6 +26,7 @@ export const useCurrentEntitlementStore = defineStore('current-entitlement', () 
   const loadingScope = ref('')
 
   const scopeKey = computed(() => {
+    if (isPeterWorkspace) return ''
     const userID = String(authStore.currentUserId || '').trim()
     const tenantID = authStore.effectiveTenantId
     return userID && tenantID ? `${userID}:${tenantID}` : ''

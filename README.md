@@ -1,101 +1,38 @@
-# Musuw
+# Musuw Peter
 
-Musuw turns documents and notes into cited answers, connected Wiki pages, and a knowledge graph.
+Peter 的独立定制工作区。第一阶段在本地开放完整智能体编辑和浏览器模型配置，保留日常操作界面，隐藏计费、知识市场和系统运维等公共平台入口。
 
-[Open app](https://app.musuw.com/auth/start) · [View demo](https://musuw.com/#demo) · [Media kit](https://musuw.com/press)
+## 本地启动
 
-![Musuw answering a question with a source citation](storefront/public/images/musuw-query-citation.jpg)
+需要 Node.js 24、Go 1.26 和 C 编译工具链。首次安装前端依赖：
 
-Musuw is a consumer knowledge workspace built from the complete upstream
-[WeKnora main source at fixed commit `81142df`](https://github.com/Tencent/WeKnora/tree/81142dfd17b2778087e95d3a317483a2fd909b91)
-(the upstream `VERSION` remains `0.7.2`).
-Users enter through Musuw's Google or email-OTP sign-in, then use a single,
-preconfigured knowledge workspace. Model credentials and infrastructure remain
-server-side.
-
-Credential ownership is recorded once in the metadata-only
-[`docs/external-credentials-registry.yaml`](docs/external-credentials-registry.yaml);
-the operator-facing rules live in
-[`docs/SECRETS_AND_INTEGRATIONS.md`](docs/SECRETS_AND_INTEGRATIONS.md). The
-production billing contract is **Paddle Live** as one atomic unit. Sandbox is
-retained for development/test only; Live and Sandbox client, catalog, API and
-destination inputs must never be mixed. Live acceptance is proved without
-entering a payment method or creating a real charge.
-
-## Active source
-
-| Path | Responsibility |
-| --- | --- |
-| [`weknora/`](weknora/) | Application source, including the API, workspace UI, document processing, RAG, Wiki, graph, and built-in model support. |
-| [`auth/`](auth/) | Musuw's public Google/email-OTP entry and the handoff to WeKnora's native OIDC session. |
-| [`storefront/`](storefront/) | Source for the public homepage at `musuw.com`; its product actions enter the app at `app.musuw.com/auth/start`. |
-| [`integration/`](integration/) | Runtime composition for local host-mode work and the production release. |
-| [`scripts/`](scripts/) | The small local, preview, and release entry points. |
-| [`third_party/weknora/`](third_party/weknora/) | The fixed-main source provenance record and historical v0.7.2 baseline. |
-
-The vendored application is the authority. Keep changes small and local to the
-existing WeKnora modules; do not introduce a second product runtime, API, or
-authentication system.
-
-## Local use
-
-For everyday work, run the application on the host with hot reload:
-
-```bash
+```sh
+npm ci --prefix weknora/frontend
 npm run dev
-# http://localhost:4190
 ```
 
-This starts Docker only for PostgreSQL, Redis, DocReader, Neo4j, and SearXNG.
-The Go API, authentication shell, and workspace UI run directly from this
-checkout. `npm run dev:down` stops both host processes and those dependency
-containers while preserving their data volumes.
+打开 <http://127.0.0.1:4217/>。本地使用原生注册/登录；以 `peter@localhost.test` 注册后重启可成为本地管理员，也可启动前设置 `PETER_ADMIN_EMAIL`。此管理员引导只适用于本机验收环境。
 
-Use `npm run preview` only for a production-like full Docker rebuild. Successful
-`main` CI automatically starts the immutable build and staging-only delivery;
-production still requires the documented manual promotion. Reserve
-`npm run release -- <full-sha>` for an explicit exact-SHA rerun.
+数据库、上传文件、加密密钥及日志保存在 `.runtime/peter/`，重启不丢失。`Ctrl+C` 停止这套环境。服务只监听本机，前端端口 4217、后端端口 18187；不连接原 Musuw 生产数据库或账户系统。SQLite 用于本地验收，阿里云服务器和数据库部署留到后续阶段。
 
-## Production delivery
+## 本次开放范围
 
-GitHub is the only production code entry point. Pull requests run CI; after a
-successful CI run on `main`, GitHub Actions automatically deploys the public
-storefront and builds the immutable app/frontend pair for staging acceptance:
+- 智能体：普通问答/智能推理、类型预设、系统和高级提示词、模型及生成参数、知识库、检索、历史与记忆、联网、附件、问题推荐、工具、MCP、技能选择及原有分享/发布功能。按模式和已配置资源显示适用项。
+- 模型：在「设置 → 模型管理」配置服务商、模型名、服务地址、API Key、请求头等；支持对话、Embedding、ReRank、视觉和语音模型。使用原有服务端加密和权限控制。
+- 界面：继续保留知识库、对话和日常设置；隐藏计费、知识市场、组织管理、系统运维和底层引擎管理。智能体编辑范围与全局导航范围分开控制。
 
-- `storefront/` is built in GitHub and deployed to the Cloudflare Worker
-  `musuw-site`, serving `musuw.com`, `www.musuw.com`, and the separate labeled
-  static partner demonstration at `partners.musuw.com`.
-- The authenticated frontend and auth shell bundles, plus the Go application
-  and frontend runtime images, are built in GitHub. The two runtime images are
-  pushed to GHCR and deployed by immutable digest to `staging.musuw.com`; the
-  server only pulls them and runs the checked-in Compose wrapper with
-  `--no-build`.
-- Production is never promoted by the automatic `workflow_run`. Operators must
-  complete the full Paddle Sandbox E2E, then manually promote the same Git SHA
-  and recorded image digests through the protected `server-production`
-  Environment and its account-owner approval.
+沙箱、外部 MCP、语音、视觉、文档解析等需要对应服务或模型。开放配置入口不代表这些外部服务已经配置完成。本地验收详情见 [验收记录](docs/PETER_LOCAL_ACCEPTANCE.md)。
 
-`app.musuw.com` stays on the simple Cloudflare Tunnel → server Nginx path for
-the API, login, uploads, and streaming responses. It is not a second Worker
-proxy. `storefront-production` contains only Cloudflare credentials;
-`server-production` contains only the restricted deploy key, public build
-inputs, and pinned host keys. Runtime/database/model/tunnel secrets remain on
-the server.
+## 验证
 
-There is no release transaction, backup choreography, blue/green stack,
-secondary edge/readiness path, or server-side build. A failed release is a
-failed run; rerun or return to a known-good revision by manually dispatching
-the workflow with its full 40-character SHA. Local preview is for development
-and verification only and is not a production deployment path.
+```sh
+npm --prefix weknora/frontend test
+npm run build
+cd weknora && go test ./internal/application/service ./internal/handler ./internal/router ./internal/types ./internal/database
+```
 
-## Provenance and licenses
+本地受控模型用于验证已保存的配置是否真正进入模型请求，不代表真实 AI 回答。在另一终端运行 `npm run peter:test-provider`，再运行 `npm run peter:acceptance`。验收脚本读取未跟踪的 `.runtime/peter/preview-account.json`，并要求已建立浏览器验收模型及智能体，具体步骤见验收记录。
 
-- [WeKnora source provenance](third_party/weknora/active-upstream-source.json)
-- [v0.7.2 local-delta provenance](third_party/weknora/v0.7.2-provenance.json)
-- [WeKnora license and upstream notices](weknora/LICENSE)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
+## 来源
 
-Historical OpenSpec, verification, and handoff records document past decisions;
-they are not current runtime instructions. This README, the operator documents
-listed in [`docs/README.md`](docs/README.md), the checked-in release scripts,
-and the active source are the current authority.
+基于 Musuw `edae9fcbf95c196767688909ad09d7c21ea3ac67` 的完整受版本控制源码建立，原生应用来源与后续适配记录保留在 `third_party/weknora/`。保留原有许可证和第三方声明。原 Musuw 发布工作流在此仓库禁用；本阶段不部署服务器。

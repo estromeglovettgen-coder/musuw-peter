@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useRouter } from 'vue-router'
 import type { MarketplaceLibraryEntry } from '@/api/creator-marketplace'
 import KnowledgeBaseListReferenceCard from '@/views/knowledge/components/KnowledgeBaseListReferenceCard.vue'
@@ -12,7 +13,7 @@ const open = (entry: MarketplaceLibraryEntry) => router.push({ name: 'marketplac
 </script>
 
 <template>
-  <section v-if="entries.length || loading || failed || showEmpty" class="visual-kb-source-group market-library-cards" :aria-label="$t('creatorMarketplace.libraryTitle')">
+  <section v-if="!isPeterWorkspace && (entries.length || loading || failed || showEmpty)" class="visual-kb-source-group market-library-cards" :aria-label="$t('creatorMarketplace.libraryTitle')">
     <h2>{{ $t('creatorMarketplace.libraryTitle') }} <small v-if="!loading">{{ entries.length }}</small></h2>
     <div v-if="loading" role="status"><t-loading /></div>
     <div v-else-if="failed" role="alert">

@@ -71,7 +71,7 @@ test('guide storage namespace follows the active account at runtime', async () =
 test('Lite users do not get a replay control that the consumer surface cannot support', () => {
   assert.match(
     userMenu,
-    /v-if="!authStore\.isLiteMode"[^>]*class="visual-user-menu__guide"[^>]*@click\.stop="reopenGuide"/,
+    /v-if="!isPeterWorkspace && !authStore\.isLiteMode"[^>]*class="visual-user-menu__guide"[^>]*@click\.stop="reopenGuide"/,
   )
   assert.doesNotMatch(
     userMenu,

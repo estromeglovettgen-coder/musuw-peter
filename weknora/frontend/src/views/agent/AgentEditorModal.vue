@@ -48,7 +48,7 @@
 
                   <div class="settings-group settings-group--basic">
                     <!-- 智能体 ID（用于 API 集成） -->
-                    <div v-if="false" data-agent-hidden-field="agent-id" class="setting-row">
+                    <div v-if="!authStore.isLiteMode && editorAgent?.id" data-agent-field="agent-id" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.agentId') }}</label>
                         <p class="desc">{{ $t('agent.editor.agentIdDesc') }}</p>
@@ -67,7 +67,7 @@
                     </div>
 
                     <!-- 集成渠道状态（编辑模式，配置在集成中心） -->
-                    <div v-if="false" data-agent-hidden-field="integrations" class="setting-row">
+                    <div v-if="!authStore.isLiteMode && editorAgent?.id" data-agent-field="integrations" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('integrations.agentEditor.label') }}</label>
                         <p class="desc">{{ isPostCreateSession ? $t('agent.editor.postCreateHint.integrationDesc') : $t('integrations.agentEditor.desc') }}</p>
@@ -103,6 +103,16 @@
                             {{ $t('agent.type.agent') }}
                           </t-radio-button>
                         </t-radio-group>
+                      </div>
+                    </div>
+
+                    <div v-if="!authStore.isLiteMode && agentMode === 'smart-reasoning' && !isBuiltinAgent" class="setting-row" data-guide="agent-create-agent-type">
+                      <div class="setting-info">
+                        <label>{{ $t('agentEditor.agentType.label') }}</label>
+                        <p class="desc">{{ $t('agentEditor.agentType.desc') }}</p>
+                      </div>
+                      <div class="setting-control">
+                        <t-select :value="agentType" :options="agentTypeSelectOptions" @change="onAgentTypeChange" />
                       </div>
                     </div>
 
@@ -262,7 +272,7 @@
                     </div>
 
                     <!-- 高级提示词保留原生字段和值，但不向 C 端暴露编辑入口 -->
-                    <div v-if="false" data-agent-hidden-prompts="advanced">
+                    <div v-if="!authStore.isLiteMode" data-agent-prompts="advanced">
                     <!-- 上下文模板（仅普通模式） -->
                     <div v-if="!isAgentMode" v-show="activePromptAnchor === 'context'"
                       class="setting-row setting-row-vertical prompts-panel__pane">
@@ -568,7 +578,7 @@
                 </div>
 
                 <!-- 模型高级参数保留原生默认/旧值，但不向 C 端暴露 -->
-                <div v-if="false" data-agent-hidden-section="model" class="section">
+                <div v-if="!authStore.isLiteMode" v-show="currentSection === 'model'" data-agent-section="model" class="section">
                   <div class="section-header">
                     <h2>{{ $t('agent.editor.modelConfig') }}</h2>
                     <p class="section-description">{{ $t('agent.editor.modelConfigDesc') }}</p>
@@ -810,7 +820,7 @@
                             </span>
                           </t-option>
                         </t-select>
-                        <a href="javascript:void(0)" class="go-settings-link"
+                        <a v-if="isWorkspaceSettingsSectionVisible('storage')" href="javascript:void(0)" class="go-settings-link"
                           @click.prevent="uiStore.openSettings('storage')">
                           {{ $t('agentEditor.imageUpload.goStorageSettings') }}
                         </a>
@@ -1329,7 +1339,7 @@
                           </t-option>
                         </t-select>
                         <p v-if="selectedSandboxSummary" class="sandbox-selected-meta">{{ selectedSandboxSummary }}</p>
-                        <div class="sandbox-select-links">
+                        <div v-if="isWorkspaceSettingsSectionVisible('sandbox')" class="sandbox-select-links">
                           <a href="javascript:void(0)" class="go-settings-link"
                             @click.prevent="uiStore.openSettings('sandbox')">
                             {{ $t('agent.editor.goSandboxSettings') }}
@@ -1369,7 +1379,7 @@
                         <p v-else-if="hasSandboxSelected && skillCatalog.length === 0" class="desc empty-hint">
                           <span>{{ $t('agent.editor.noSkillsAvailable') }}</span>
                           <a
-                            v-if="canInstallSkills"
+                            v-if="canInstallSkills && isWorkspaceSettingsSectionVisible('skills')"
                             href="javascript:void(0)"
                             class="go-settings-link"
                             @click.prevent="openSkillSettings"
@@ -1503,7 +1513,7 @@
                     </div>
 
                     <!-- 支持的文件类型（限制用户可选择的文件类型） -->
-                    <div v-if="false" data-agent-hidden-field="supported-file-types" class="setting-row">
+                    <div v-if="!authStore.isLiteMode" data-agent-field="supported-file-types" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agentEditor.fileTypes.label') }}</label>
                         <p class="desc">{{ $t('agentEditor.fileTypes.desc') }}</p>
@@ -1806,6 +1816,7 @@ import {
 } from '@/api/agent';
 import { type ModelConfig } from '@/api/model';
 import { type AgentNotReadyReasonKey, agentRequiresRerankModel } from '@/utils/agent-readiness';
+import { isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface';
 import { installSkillCatalog, type SkillCatalogItem } from '@/api/skill';
 import { type WebSearchProviderEntity } from '@/api/web-search-provider';
 import {
@@ -1899,7 +1910,7 @@ const AGENT_EDITOR_SECTION_ALIASES: Record<string, string> = {
 };
 
 const EDITOR_VISIBLE_SECTIONS = new Set([
-  'basic', 'knowledge', 'prompts', 'mcp', 'conversation', 'retrieval',
+  'basic', 'model', 'knowledge', 'prompts', 'mcp', 'conversation', 'retrieval',
   'websearch', 'multimodal', 'skills', 'share', 'suggestions', 'tools',
 ]);
 
@@ -1926,7 +1937,10 @@ let highlightClearTimer: ReturnType<typeof setTimeout> | null = null;
 
 const VALID_HIGHLIGHT_FIELDS: AgentNotReadyReasonKey[] = ['summary_model', 'rerank_model', 'allowed_tools'];
 
-const sectionForHighlightField = (_field: AgentNotReadyReasonKey): string => 'basic';
+const sectionForHighlightField = (field: AgentNotReadyReasonKey): string => {
+  if (authStore.isLiteMode || field === 'summary_model') return 'basic';
+  return field === 'rerank_model' ? 'model' : 'tools';
+};
 
 const FIELD_FLASH_DURATION_MS = 2400;
 
@@ -2586,6 +2600,8 @@ const navItems = computed(() => {
     return items;
   }
 
+  items.splice(1, 0, { key: 'model', icon: 'cpu', label: t('agent.editor.modelConfig') });
+
   // 多轮对话（两种模式都需要：Agent 模式同样按 history_turns 截断历史）
   items.push({ key: 'conversation', icon: 'chat', label: t('agent.editor.conversationSettings') });
   if (hasKnowledgeBase.value) {
@@ -2747,16 +2763,11 @@ const removeStarterSuggestion = (index: number) => {
 
 const applyDefaultModelsIfEmpty = () => {
   if (props.mode !== 'create' || !formData.value) return
-  // V4 Flash is the product-wide creation default. Keep the catalog fallback
-  // for installations that do not expose the managed model, but never let a
-  // different `is_default` flag silently select V4 Pro for a new agent.
-  const flashModel = allModels.value.find((model) =>
-    model.id === DEFAULT_CHAT_MODEL_ID
-      && model.type === 'KnowledgeQA'
-      && (!model.status || model.status === 'active'),
-  )
-  const chatModelId = flashModel?.id
-    || (authStore.isLiteMode ? DEFAULT_CHAT_MODEL_ID : selectInitialModelId(allModels.value, 'KnowledgeQA'))
+  // Standard honors the workspace default. The consumer catalog preference
+  // belongs only to Lite, whose catalog may load after the editor opens.
+  const chatModelId = authStore.isLiteMode
+    ? DEFAULT_CHAT_MODEL_ID
+    : selectInitialModelId(allModels.value, 'KnowledgeQA')
   const rerankCatalogModelId = selectInitialModelId(allModels.value, 'Rerank')
   const vlmCatalogModelId = selectInitialModelId(allModels.value, 'VLLM')
   const asrCatalogModelId = selectInitialModelId(allModels.value, 'ASR')
@@ -2796,6 +2807,7 @@ const getDefaultSmartReasoningTools = () => Array.from(new Set([
 // into defaultFormData: that object is also the legacy edit fallback, and doing
 // so would silently turn missing historical fields on when an old agent is saved.
 const applyNewAgentCapabilityDefaults = () => {
+  if (!authStore.isLiteMode) return;
   const config = formData.value.config;
   config.image_upload_enabled = true;
   config.audio_upload_enabled = true;
@@ -2879,11 +2891,24 @@ const showRewritePrompts = computed(() =>
 
 const promptNavItems = computed(() => {
   type PromptNavItem = { key: string; label: string; customized?: boolean };
-  return [{
+  const items: PromptNavItem[] = [{
     key: 'system',
     label: t('agentEditor.promptNav.system'),
     customized: !!formData.value.config.system_prompt?.trim(),
   }];
+  if (authStore.isLiteMode || isAgentMode.value) return items;
+  items.push(
+    { key: 'context', label: t('agentEditor.promptNav.context'), customized: !!formData.value.config.context_template?.trim() },
+    { key: 'intent', label: t('agentEditor.promptNav.intent'), customized: hasAnyIntentCustomized.value },
+  );
+  if (showRewritePrompts.value) {
+    items.push(
+      { key: 'rewrite-system', label: t('agentEditor.promptNav.rewriteSystem') },
+      { key: 'rewrite-user', label: t('agentEditor.promptNav.rewriteUser') },
+    );
+  }
+  if (hasKnowledgeBase.value) items.push({ key: 'fallback', label: t('agentEditor.promptNav.fallback') });
+  return items;
 });
 
 const syncActivePromptAnchor = () => {
@@ -4678,6 +4703,7 @@ const handleSave = async () => {
     if (!isAgentMode.value && (!formData.value.config.context_template || !formData.value.config.context_template.trim())) {
       MessagePlugin.error(t('agent.editor.contextTemplateRequired'));
       currentSection.value = 'prompts';
+      if (!authStore.isLiteMode) activePromptAnchor.value = 'context';
       return;
     }
   }
@@ -4694,6 +4720,7 @@ const handleSave = async () => {
       if (!hasPlaceholder(rewritePrompt, 'query')) {
         MessagePlugin.error(t('agent.editor.queryMissingInRewrite'));
         currentSection.value = 'prompts';
+        if (!authStore.isLiteMode) activePromptAnchor.value = 'rewrite-user';
         return;
       }
     }
@@ -4706,6 +4733,7 @@ const handleSave = async () => {
     if (fallbackPrompt.trim() && !hasPlaceholder(fallbackPrompt, 'query')) {
       MessagePlugin.error(t('agent.editor.queryMissingInFallback'));
       currentSection.value = 'prompts';
+      if (!authStore.isLiteMode) activePromptAnchor.value = 'fallback';
       return;
     }
   }
@@ -4719,7 +4747,7 @@ const handleSave = async () => {
   // 校验 VLM 模型（当图片上传启用时必填）
   if (formData.value.config.image_upload_enabled && !formData.value.config.vlm_model_id) {
     MessagePlugin.error(t('agentEditor.imageUpload.vlmModelRequired'));
-    currentSection.value = 'basic';
+    currentSection.value = authStore.isLiteMode ? 'basic' : 'multimodal';
     return;
   }
 
@@ -4727,7 +4755,7 @@ const handleSave = async () => {
   // 用户首次上传音频时才收到后端拒绝。
   if (formData.value.config.audio_upload_enabled && !formData.value.config.asr_model_id) {
     MessagePlugin.error(t('uploadConfirm.asrModelRequired'));
-    currentSection.value = 'basic';
+    currentSection.value = authStore.isLiteMode ? 'basic' : 'multimodal';
     return;
   }
 
@@ -5168,7 +5196,7 @@ const handleSave = async () => {
 }
 
 .setting-row {
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   justify-content: space-between;
   gap: 16px !important;
