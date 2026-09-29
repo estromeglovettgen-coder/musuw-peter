@@ -6,6 +6,22 @@ const source = readFileSync(new URL('./AgentEditorModal.vue', import.meta.url), 
 const listSource = readFileSync(new URL('./AgentList.vue', import.meta.url), 'utf8')
 const editorResourceSource = readFileSync(new URL('../../stores/editorResources.ts', import.meta.url), 'utf8')
 
+test('new Peter Standard agents apply the hybrid RAG and Wiki preset without changing existing agents', () => {
+  const editBranch = source.slice(
+    source.indexOf("if (props.mode === 'edit' && props.agent)"),
+    source.indexOf('// 创建新智能体，使用系统默认值'),
+  )
+  const createBranch = source.slice(
+    source.indexOf('// 创建新智能体，使用系统默认值'),
+    source.indexOf('// Lite always starts a personal agent'),
+  )
+
+  assert.match(editBranch, /formData\.value = agentData;/)
+  assert.doesNotMatch(editBranch, /hybrid-rag-wiki/)
+  assert.match(createBranch, /if \(isPeterWorkspace && !authStore\.isLiteMode\) \{\s*newFormData\.config\.agent_type = 'hybrid-rag-wiki';\s*\}/)
+  assert.match(createBranch, /const defaultTypeId = newFormData\.config\.agent_type as AgentType;[\s\S]*applyAgentTypePreset\(preset\)/)
+})
+
 test('editing an agent closes the editor after a successful save', () => {
   assert.match(
     source,

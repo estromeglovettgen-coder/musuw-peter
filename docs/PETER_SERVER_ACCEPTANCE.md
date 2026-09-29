@@ -6,7 +6,7 @@
 
 ## 交付版本
 
-- 前端及匹配源码目录：`/opt/musuw-peter/releases/20260929-11`。
+- 前端及匹配源码目录：`/opt/musuw-peter/releases/20260929-12`。
 - 应用镜像：`musuw-peter:20260929-04`，镜像 ID `437efa2eea7a`。
 - 前端最终类型检查和生产构建通过；全量前端单测 1298 项通过，后续修正另有定向单测及服务器浏览器复验。
 - Go 服务、文件、接口、路由、类型、迁移、工具、重排和沙箱测试通过；沙箱修正的 `-race` 测试通过。
@@ -70,6 +70,14 @@
 - 远端 `/var/tmp/peter-sandbox-integration04.log` 为原生真实 Docker 场景记录；故障注入修正后的恢复用例通过记录在 `/var/tmp/peter-sandbox-recovery04.log`。
 
 交互原则参考 [Carbon 表单](https://carbondesignsystem.com/components/form/usage/)、[Carbon 空状态](https://carbondesignsystem.com/patterns/empty-states-pattern/)、[Fluent Tabs](https://fluent2.microsoft.design/components/web/react/core/tablist/usage) 和 [Fluent 无障碍](https://fluent2.microsoft.design/accessibility)，继续复用现有 TDesign。
+
+## 独立测试账号与模型复验（2026-09-29）
+
+Peter 主空间的 DeepSeek 对话、图像理解、本地 Embedding 和本地 ReRank 均通过模型调试接口；两个内置智能体原先引用已经不存在的预置模型，已改为当前可用模型。隔离测试空间也配置了同类四个模型，并将内置智能体和检索重排指向这些模型。
+
+用标明“验收测试”的虚构客户 Alex 创建资料，上传虚构聊天记录；解析完成后生成 Wiki 页面和 7 个图谱节点。浏览器里的智能推理从资料准确回答确认码、预算与方便的时间，未编造缺失的课程信息。
+
+新增自定义智能体时，旧默认的纯 RAG 预设无法从仅启用 Wiki 的客户库检索，DeepSeek 会输出原始工具调用标记。Peter Standard 的新建表单现使用已有的 Wiki + RAG 混合预设；旧智能体配置和非 Peter 表单不变。混合预设已通过实际浏览器问答和 33 项定向测试，前端类型检查与生产构建通过。
 
 ## 登录界面恢复（2026-09-29）
 

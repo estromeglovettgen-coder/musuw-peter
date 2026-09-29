@@ -2670,8 +2670,8 @@ const defaultFormData = {
     knowledge_bases: [] as string[],
     retrieve_kb_only_when_mentioned: false,
     archive_customer_sources: true,
-    // 智能推理下的类型预设：新建 agent 时默认给 RAG 问答（最常用场景）。
-    // 编辑既有 agent 时会被 agent 自己保存的 agent_type 覆盖。
+    // 保留上游默认类型，供非 Peter 工作区的新建表单及旧智能体缺省字段使用。
+    // Peter 工作区的新建类型在创建分支单独设置，避免改变旧智能体。
     agent_type: 'rag-qa' as AgentType,
     system_prompt_id: '' as string,
     // 附件上传设置
@@ -3437,6 +3437,10 @@ watch(() => props.visible, async (val) => {
     } else {
       // 创建新智能体，使用系统默认值
       const newFormData = JSON.parse(JSON.stringify(defaultFormData));
+      // Peter Standard 的客户库可能只有 Wiki；新建时使用同时支持 Wiki 与文档的预设。
+      if (isPeterWorkspace && !authStore.isLiteMode) {
+        newFormData.config.agent_type = 'hybrid-rag-wiki';
+      }
       // 应用系统默认检索参数
       newFormData.config.embedding_top_k = defaultEmbeddingTopK.value;
       newFormData.config.keyword_threshold = defaultKeywordThreshold.value;
