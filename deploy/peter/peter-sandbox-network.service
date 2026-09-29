@@ -1,0 +1,13 @@
+[Unit]
+Description=Isolate Peter sandbox network from host and private services
+Requires=docker.service
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/musuw-peter/deploy/sandbox-network.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

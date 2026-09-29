@@ -6,6 +6,7 @@ export const isPeterWorkspace = import.meta.env?.VITE_WORKSPACE_PROFILE === 'pet
 const PETER_SETTINGS = new Set([
   'general', 'userprofile', 'models', 'mymemory', 'memory', 'mcp',
   'integration-im', 'integration-embed',
+  'skills', 'sandbox', 'envvars',
 ])
 
 export function isWorkspaceSettingsSectionVisible(section: string, peter = isPeterWorkspace): boolean {

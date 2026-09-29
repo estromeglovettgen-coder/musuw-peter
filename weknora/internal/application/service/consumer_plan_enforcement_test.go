@@ -30,6 +30,7 @@ func contextWithComplimentaryPlan(tenantID uint64, plan types.ConsumerPlan, expi
 }
 
 func TestFreePlanRejectsSecondKnowledgeBase(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	repo := newFakeKBRepo()
 	repo.rows["existing"] = &types.KnowledgeBase{ID: "existing", TenantID: 1}
 	svc := &knowledgeBaseService{repo: repo}
@@ -42,6 +43,7 @@ func TestFreePlanRejectsSecondKnowledgeBase(t *testing.T) {
 }
 
 func TestFreePlanRejectsCopyThatWouldCreateSecondKnowledgeBase(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	repo := newFakeKBRepo()
 	repo.rows["source"] = &types.KnowledgeBase{
 		ID:       "source",
@@ -85,6 +87,7 @@ func TestPaidPlanCopyStillUsesNativeCreateTargetPath(t *testing.T) {
 }
 
 func TestFreePlanRejectsSettingsOnlyDuplicateThatWouldCreateSecondKnowledgeBase(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	repo := newFakeKBRepo()
 	repo.rows["source"] = &types.KnowledgeBase{
 		ID:       "source",
@@ -138,6 +141,7 @@ func (r *planKnowledgeRepo) CountKnowledgeByKnowledgeBaseID(context.Context, uin
 }
 
 func TestFreePlanRejectsEleventhDocumentAndVideo(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	svc := &knowledgeService{repo: &planKnowledgeRepo{count: 10}}
 	ctx := contextWithConsumerPlan(1, types.ConsumerPlanFree)
 

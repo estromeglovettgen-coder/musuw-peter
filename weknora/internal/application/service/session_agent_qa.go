@@ -22,6 +22,9 @@ func (s *sessionService) AgentQA(
 	req *types.QARequest,
 	eventBus *event.EventBus,
 ) error {
+	if req.Session != nil && req.Session.CustomerKnowledgeBaseID != "" {
+		ctx = types.WithCustomerKnowledgeBase(ctx, req.Session.CustomerKnowledgeBaseID)
+	}
 	if err := rejectLiteForeignAgent(ctx, req); err != nil {
 		return err
 	}

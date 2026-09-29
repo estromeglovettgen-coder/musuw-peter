@@ -164,12 +164,13 @@ func TestCreateKnowledgeBasePreservesStandardModelAuthority(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, kb)
 	require.Empty(t, resolver.calls)
-	// Standard still receives the existing platform zero-config bindings; the
-	// consumer scene resolver must not rewrite or reject its explicit request.
-	require.Equal(t, types.PlatformKnowledgeBaseChatModelID, kb.SummaryModelID)
-	require.Equal(t, types.PlatformKnowledgeBaseEmbeddingModelID, kb.EmbeddingModelID)
-	require.Equal(t, types.PlatformKnowledgeBaseVLMModelID, kb.VLMConfig.ModelID)
-	require.Equal(t, types.PlatformKnowledgeBaseASRModelID, kb.ASRConfig.ModelID)
+	// A private Standard workspace owns its provider choices. Creation must
+	// preserve them instead of rebinding them to the hosted consumer catalog.
+	require.Equal(t, "standard-summary", kb.SummaryModelID)
+	require.Equal(t, "standard-wiki", kb.WikiConfig.SynthesisModelID)
+	require.Empty(t, kb.EmbeddingModelID)
+	require.Equal(t, "standard-vlm", kb.VLMConfig.ModelID)
+	require.Equal(t, "standard-asr", kb.ASRConfig.ModelID)
 	require.Len(t, repo.rows, 1)
 }
 

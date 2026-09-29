@@ -83,6 +83,7 @@ export interface KnowledgeBaseStoreView {
 }
 
 export function createKnowledgeBase(data: {
+	 customer_profile?: import('../customer').CustomerProfile;
   name: string;
   description?: string;
   type?: 'document' | 'faq';
@@ -90,6 +91,7 @@ export function createKnowledgeBase(data: {
   embedding_model_id?: string;
   summary_model_id?: string;
   auto_tag_config?: { enabled: boolean; model_id?: string; max_tags?: number; skip_if_tagged?: boolean };
+  question_generation_config?: { enabled: boolean; question_count: number; custom_instructions?: string };
   // Opt-in binding to a specific tenant-owned VectorStore. Omit (or
   // send undefined / empty string) to fall back to the env-configured
   // store. Immutable after creation — UpdateKnowledgeBase intentionally
@@ -142,6 +144,7 @@ export function updateKnowledgeBase(id: string, data: {
   name: string;
   description?: string;
   config?: {
+	 customer_profile?: import('../customer').CustomerProfile;
     chunking_config?: any;
     image_processing_config?: any;
     faq_config?: any;

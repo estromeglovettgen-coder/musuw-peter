@@ -4,6 +4,7 @@ import { DialogPlugin, MessagePlugin } from "tdesign-vue-next";
 import DocContent from "@/components/doc-content.vue";
 import useKnowledgeBase from '@/hooks/useKnowledgeBase';
 import { useRoute, useRouter } from 'vue-router';
+import { isPeterWorkspace } from '@/config/workspaceSurface';
 import EmptyKnowledge from '@/components/empty-knowledge.vue';
 import KBSwitcherDropdown from '@/components/KBSwitcherDropdown.vue';
 import { getSessionsList, createSessions, generateSessionsTitle } from "@/api/chat/index";
@@ -107,8 +108,16 @@ const isFAQ = computed(() => (kbInfo.value?.type || '') === 'faq');
 const isWiki = computed(() => !!kbInfo.value?.indexing_strategy?.wiki_enabled);
 const validTabs = ['documents', 'wiki', 'graph'] as const
 type KbTab = typeof validTabs[number]
-const initTab = validTabs.includes(route.query.tab as any) ? (route.query.tab as KbTab) : 'documents'
-const activeKbTab = ref<KbTab>(initTab);
+// One URL state drives both the customer shell and its native content.
+const activeKbTab = computed<KbTab>({
+  get: () => validTabs.includes(route.query.tab as KbTab) ? route.query.tab as KbTab : 'documents',
+  set: tab => {
+    const query = { ...route.query }
+    if (tab === 'documents' && route.name !== 'customerProject') delete query.tab
+    else query.tab = tab
+    if (query.tab !== route.query.tab) void router.replace({ query })
+  },
+});
 
 // Wiki 状态用于面包屑上的索引中指示。父组件自行拉取，避免依赖 WikiBrowser 挂载状态
 // （用户切到"文档" tab 时 WikiBrowser 会卸载，这里仍需持续反映后台索引进度）。
@@ -126,10 +135,7 @@ const onWikiStatusChange = (payload: { pendingTasks: number; isActive: boolean; 
   wikiStatus.value = payload
 }
 const onViewWikiInGraph = async (slug: string) => {
-  // Write tab+slug first so the activeKbTab watcher's later replace
-  // (which spreads route.query) preserves slug instead of clobbering it.
   await router.replace({ query: { ...route.query, tab: 'graph', slug } })
-  activeKbTab.value = 'graph'
 }
 
 let wikiStatusTimer: ReturnType<typeof setInterval> | null = null
@@ -1130,7 +1136,7 @@ const loadKnowledgeBaseInfo = async (targetKbId: string, force = false) => {
 const loadKnowledgeList = async () => {
   try {
     await chatResources.ensureKnowledgeBases();
-    const myKbs = chatResources.rawKnowledgeBases.map((item: any) => ({
+    const myKbs = chatResources.rawKnowledgeBases.filter((item: any) => !isPeterWorkspace || !item.customer_profile).map((item: any) => ({
       id: String(item.id),
       name: item.name,
       type: item.type || 'document',
@@ -1138,7 +1144,7 @@ const loadKnowledgeList = async () => {
 
     // Also include shared knowledge bases from orgStore
     const sharedKbs = (orgStore.sharedKnowledgeBases || [])
-      .filter(s => s.knowledge_base != null)
+      .filter(s => s.knowledge_base != null && (!isPeterWorkspace || !(s.knowledge_base as any).customer_profile))
       .map(s => ({
         id: String(s.knowledge_base.id),
         name: s.knowledge_base.name,
@@ -1156,17 +1162,6 @@ const loadKnowledgeList = async () => {
 };
 
 // 监听路由参数变化，重新获取知识库内容
-// Sync activeKbTab to URL query so it survives page refresh
-watch(activeKbTab, (tab) => {
-  const query = { ...route.query }
-  if (tab === 'documents') {
-    delete query.tab
-  } else {
-    query.tab = tab
-  }
-  router.replace({ query })
-})
-
 watch(() => kbId.value, (newKbId, oldKbId) => {
   if (!newKbId) {
     kbInfo.value = null;

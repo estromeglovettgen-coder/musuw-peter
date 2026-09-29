@@ -403,6 +403,19 @@ func (c *DockerRemoteClient) Connect(
 			return nil, err
 		}
 	}
+	// Resolve holds the session lifecycle lock until Connect returns. Refresh
+	// activity before releasing it or starting cleanup, including attachment
+	// operations outside an AI turn. A running PID 1 alone does not mean the
+	// entrypoint has refreshed the old on-disk marker after a host restart.
+	refreshed, err := c.Exec(ctx, &dockerSandboxHandle{id: inspected.Container.ID}, RemoteExecRequest{
+		Command: "touch", Args: []string{dockerActivityMarker}, Timeout: dockerFilesystemOpTimeout,
+	})
+	if err != nil {
+		return nil, dockerError("Connect", err)
+	}
+	if refreshed.ExitCode != 0 {
+		return nil, dockerFileOpError("Connect", dockerActivityMarker, refreshed.Stderr)
+	}
 	c.sweepInBackground(ctx)
 
 	var labels map[string]string

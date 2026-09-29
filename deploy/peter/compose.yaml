@@ -1,0 +1,121 @@
+name: musuw-peter
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+services:
+  app:
+    image: ${PETER_APP_IMAGE:?set the verified release image}
+    restart: unless-stopped
+    env_file: /etc/musuw-peter/app.env
+    ports: ['127.0.0.1:18187:8080']
+    entrypoint: ['/bin/bash', '/peter-entrypoint.sh']
+    command: ['./WeKnora']
+    volumes:
+      - /var/lib/musuw-peter/files:/data/files
+      - /var/lib/musuw-peter/skills:/app/skills/preloaded
+      - /var/lib/musuw-peter/docreader:/tmp/docreader:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app-entrypoint.sh:/peter-entrypoint.sh:ro
+      - ./builtin_models.yaml:/app/config/builtin_models.yaml:ro
+    mem_limit: 850m
+    cpus: 2
+    pids_limit: 256
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    logging: *logging
+
+  postgres:
+    image: ${PETER_POSTGRES_IMAGE:-paradedb/paradedb:v0.22.2-pg17}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: peter
+      POSTGRES_USER: peter
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes: [/var/lib/musuw-peter/postgres:/var/lib/postgresql/data]
+    command: ['postgres', '-c', 'shared_buffers=96MB', '-c', 'work_mem=4MB', '-c', 'max_connections=60']
+    shm_size: 128m
+    mem_limit: 600m
+    cpus: 1.5
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U peter -d peter']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  redis:
+    image: ${PETER_REDIS_IMAGE:-redis:7.4-alpine}
+    restart: unless-stopped
+    volumes:
+      - /var/lib/musuw-peter/redis:/data
+      - /etc/musuw-peter/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: ['redis-server', '/usr/local/etc/redis/redis.conf']
+    mem_limit: 160m
+    cpus: 0.5
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping 2>&1 | grep -q "NOAUTH"']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging: *logging
+
+  embeddings:
+    image: ${PETER_EMBEDDINGS_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9}
+    restart: unless-stopped
+    volumes: [/var/lib/musuw-peter/models:/data:ro]
+    command: ['--model-id', '/data/bge-small-zh-v1.5', '--port', '80', '--max-concurrent-requests', '4', '--max-batch-tokens', '2048', '--max-client-batch-size', '8', '--auto-truncate']
+    environment:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      HF_HUB_OFFLINE: '1'
+    mem_limit: 650m
+    cpus: 1.5
+    logging: *logging
+
+  reranker:
+    image: ${PETER_EMBEDDINGS_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9}
+    restart: unless-stopped
+    volumes: [/var/lib/musuw-peter/models:/data:ro]
+    command: ['--model-id', '/data/mmarco-reranker', '--port', '80', '--max-concurrent-requests', '2', '--max-batch-tokens', '512', '--max-client-batch-size', '20', '--auto-truncate']
+    environment:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      HF_HUB_OFFLINE: '1'
+    mem_limit: 800m
+    cpus: 1.5
+    logging: *logging
+
+  docreader:
+    image: ${PETER_DOCREADER_IMAGE:?set the verified parser image}
+    restart: unless-stopped
+    environment:
+      GRPC_AUTH_TOKEN: ${DOCREADER_AUTH_TOKEN:?set a parser token}
+      DOCREADER_GRPC_MAX_WORKERS: '2'
+      DOCREADER_MARKITDOWN_MAX_WORKERS: '1'
+      DOCREADER_PDF_RENDER_MAX_WORKERS: '1'
+      DOCREADER_PDF_RENDER_PARALLELISM: '1'
+    volumes: [/var/lib/musuw-peter/docreader:/tmp/docreader]
+    mem_limit: 650m
+    cpus: 1.5
+    pids_limit: 192
+    logging: *logging
+
+secrets:
+  db_password:
+    file: /etc/musuw-peter/db-password
+
+networks:
+  default:
+    name: musuw-peter-services

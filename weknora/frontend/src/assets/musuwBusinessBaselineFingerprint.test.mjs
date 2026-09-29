@@ -1,3 +1,5 @@
+// Peter customer-workspace + server delivery: approved native model catalog,
+// customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -34,12 +36,12 @@ const MODEL_REASONING_DEFAULT_CHANGE = 'refresh-global-model-catalog'
 const CREATOR_MARKETPLACE_CHANGE = 'creator-marketplace-subscriptions'
 
 const LOCKED_BUSINESS_BLOBS = {
-  './business-baselines/ChatIndex.pre-view.vue': '49e439ef2fc54b2a5a5403ed6eae15d5a647a9af',
-  './business-baselines/Input-field.pre-view.vue': 'c384320815e08b7305ef7395fb94c11205c76388',
-  './business-baselines/KnowledgeBase.pre-view.vue': '77905990552ca5baa76310c0ea34c0c29df1d638',
-  './business-baselines/KnowledgeBaseList.pre-view.vue': 'c49c30b1e68b3e99b8965b447eadac4bfc268249',
+  './business-baselines/ChatIndex.pre-view.vue': '5cf5274325a8fc8ee502974dd7602967a62d01fa',
+  './business-baselines/Input-field.pre-view.vue': 'c7d978fcd14fa7cfee893dcfaeac7a4ee1912f03',
+  './business-baselines/KnowledgeBase.pre-view.vue': 'bed8327060469d2174ac0c2624eb8fa74a9bed1d',
+  './business-baselines/KnowledgeBaseList.pre-view.vue': '42d4ed67cb5f4c8fd145d67f119e4a95bf88c45e',
   './business-baselines/manual-knowledge-editor.pre-view.vue': '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e',
-  './business-baselines/menu.pre-view.vue': 'e185baf5fb56a34b9d8582b7d4339904dc3b5d20',
+  './business-baselines/menu.pre-view.vue': '6b223e3da153f5ed135ca2b2b7398e32f117cf91',
 }
 
 // These controllers remain byte-identical to Musuw's first source baseline.
@@ -138,7 +140,7 @@ test('upstream behavior restorations are explicit and locked, never inferred fro
 
 test('knowledge list controller retains upstream scope behavior rather than Musuw single-scope narrowing', () => {
   const source = read('./business-baselines/KnowledgeBaseList.pre-view.vue')
-  assert.ok(source.includes("const defaultScope: 'all' | 'mine' = authStore.hasRole('contributor') ? 'mine' : 'all'"))
+  assert.ok(source.includes("const defaultScope: 'all' | 'mine' = isPeterWorkspace ? 'all' : authStore.hasRole('contributor') ? 'mine' : 'all'"))
   assert.ok(source.includes("val === 'all' || val === 'mine' || val === 'favorites' || val === 'recents'"))
   assert.ok(source.includes('listOrganizationSharedKnowledgeBases(val)'))
   assert.ok(source.includes('orgStore.fetchSharedKnowledgeBases({ force })'))

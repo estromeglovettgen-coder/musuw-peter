@@ -41,7 +41,7 @@ export default defineComponent({
         <button type="button" class="visual-sidebar__collapsed-control" :title="t('menu.expandSidebar')" @click="toggleSidebar"><t-icon name="chevron-right" /></button>
         <div class="visual-sidebar__collapsed-divider" />
         <button type="button" class="visual-sidebar__collapsed-nav is-new" :title="t('menu.newChat')" @click="handleMenuClick('creatChat')"><t-icon name="chat-add" /></button>
-        <button type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': isMenuItemActive('knowledge-bases') }" :title="t('menu.knowledgeBase')" @click="handleMenuClick('knowledge-bases')"><t-icon name="folder" /></button>
+        <button type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': isMenuItemActive('knowledge-bases') }" :title="isPeterWorkspace ? '工作区' : t('menu.knowledgeBase')" @click="handleMenuClick('knowledge-bases')"><t-icon name="folder" /></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" :title="t('creatorMarketplace.title')" @click="handleMenuClick('marketplace')"><t-icon name="shop" /></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'agentList' }" :title="t('menu.agents')" @click="handleMenuClick('agents')"><t-icon name="usergroup" /></button>
         <button v-if="!isPeterWorkspace && visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'organizationList' }" :title="t('menu.organizations')" @click="handleMenuClick('organizations')"><t-icon name="system-sum" /></button>
@@ -64,8 +64,8 @@ export default defineComponent({
       <div class="visual-sidebar__primary-actions">
         <button type="button" class="visual-sidebar__primary is-new" data-guide="nav-creatChat" @click="handleMenuClick('creatChat')"><t-icon name="chat-add" /><span>{{ t('menu.newChat') }}</span></button>
         <button type="button" class="visual-sidebar__primary is-kb" :class="{ 'is-active': isMenuItemActive('knowledge-bases') }" data-guide="nav-knowledge-bases" @click="handleMenuClick('knowledge-bases')">
-          <span class="visual-sidebar__primary-copy"><t-icon name="folder" /><span>{{ t('menu.knowledgeBase') }}</span></span>
-          <span v-if="chatResources.rawKnowledgeBases?.length" class="visual-sidebar__kb-count">{{ chatResources.rawKnowledgeBases.length }}</span>
+          <span class="visual-sidebar__primary-copy"><t-icon name="folder" /><span>{{ isPeterWorkspace ? '工作区' : t('menu.knowledgeBase') }}</span></span>
+          <span v-if="!isPeterWorkspace && chatResources.rawKnowledgeBases?.length" class="visual-sidebar__kb-count">{{ chatResources.rawKnowledgeBases.length }}</span>
         </button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" data-guide="nav-marketplace" @click="handleMenuClick('marketplace')"><span class="visual-sidebar__primary-copy"><t-icon name="shop" /><span>{{ t('creatorMarketplace.title') }}</span></span></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'agentList' }" data-guide="nav-agents" @click="handleMenuClick('agents')">

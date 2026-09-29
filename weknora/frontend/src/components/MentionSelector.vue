@@ -208,6 +208,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { SKILL_ICON, type MentionItem, type MentionItemType } from '@/types/mention';
 
 type DetailState = { loading: boolean; error?: string; data?: any };
+type MentionGroupType = MentionItemType | 'customer';
+const itemGroup = (item: MentionItem): MentionGroupType => item.group === 'customer' ? 'customer' : item.type;
 
 const props = defineProps<{
   visible: boolean;
@@ -230,7 +232,7 @@ const menuRef = ref<HTMLElement | null>(null);
 const listRef = ref<HTMLElement | null>(null);
 const detailCache = ref<Record<string, DetailState>>({});
 const isScrolling = ref(false);
-const currentGroupType = ref<MentionItemType | null>(null);
+const currentGroupType = ref<MentionGroupType | null>(null);
 const groupActiveIndex = ref(0);
 let scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -245,11 +247,12 @@ const agentIdForDetail = computed(() => {
 });
 const agentSourceTenantIdForDetail = computed(() => settingsStore.selectedAgentSourceTenantId ?? undefined);
 
-const kbItems = computed(() => props.items.filter((item) => item.type === "kb"));
+const kbItems = computed(() => props.items.filter((item) => itemGroup(item) === "kb"));
 const fileItems = computed(() => props.items.filter((item) => item.type === "file"));
 
-const mentionGroupDefs = computed<Array<{ type: MentionItemType; label: string; icon: string }>>(() => [
+const mentionGroupDefs = computed<Array<{ type: MentionGroupType; label: string; icon: string }>>(() => [
   { type: "kb", label: t("common.knowledgeBase"), icon: "folder" },
+  { type: "customer", label: "客户", icon: "user" },
   { type: "tag", label: "标签", icon: "tag" },
   { type: "mcp", label: "MCP", icon: "tools" },
   { type: "skill", label: t("common.skill"), icon: SKILL_ICON },
@@ -259,16 +262,17 @@ const mentionGroupDefs = computed<Array<{ type: MentionItemType; label: string; 
 const mentionGroups = computed(() => {
   let offset = 0;
   return mentionGroupDefs.value.map((def) => {
-    const items = props.items.filter((item) => item.type === def.type);
+    const items = props.items.filter((item) => itemGroup(item) === def.type);
     const loadedCount = items.length;
-    const count = props.groupCounts?.[def.type] ?? loadedCount;
+    const count = def.type === 'customer' ? loadedCount : props.groupCounts?.[def.type] ?? loadedCount;
     const group = { ...def, items, offset, count, loadedCount };
     offset += items.length;
     return group;
   });
 });
 
-const formatGroupCount = (group: { type: MentionItemType; count: number; loadedCount: number }) => {
+const formatGroupCount = (group: { type: MentionGroupType; count: number; loadedCount: number }) => {
+  if (group.type === 'customer') return group.loadedCount;
   if (props.groupCounts?.[group.type] != null) return props.groupCounts[group.type]!;
   if (group.type === "file" && props.hasMore) return `${group.loadedCount}+`;
   return group.count;
@@ -282,7 +286,7 @@ const extraGroups = computed(() => mentionGroups.value.filter((group) => group.t
 const activeExtraGroups = computed(() => isFlatMode.value ? extraGroups.value : extraGroups.value.filter((group) => group.type === currentGroupType.value));
 const fileGroupOffset = computed(() => mentionGroups.value.find((group) => group.type === "file")?.offset || 0);
 
-const enterGroup = (type: MentionItemType) => {
+const enterGroup = (type: MentionGroupType) => {
   const group = mentionGroups.value.find((item) => item.type === type && item.count > 0);
   if (!group || !listRef.value) return;
   currentGroupType.value = type;

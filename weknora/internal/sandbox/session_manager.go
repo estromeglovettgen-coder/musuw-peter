@@ -136,6 +136,9 @@ func NewSessionBoundManager(deps SessionBoundManagerConfig) (*SessionBoundManage
 	if deps.Checker == nil {
 		return nil, errors.New("session bound manager requires a SessionExistenceChecker")
 	}
+	if docker, ok := deps.Client.(*DockerRemoteClient); ok && docker.sweeper != nil {
+		docker.sweeper.bindings = deps.Store
+	}
 
 	provider := deps.Client.Provider()
 	if !isRemoteProvider(provider) {
@@ -901,7 +904,9 @@ func (m *SessionBoundManager) BeginSessionTurn(ctx context.Context, sessionID st
 	if err != nil {
 		return err
 	}
-	return leaser.BeginTurn(ctx, key)
+	return m.bindings.WithLifecycleLock(ctx, key, func(lockCtx context.Context) error {
+		return leaser.BeginTurn(lockCtx, key)
+	})
 }
 
 // EndSessionTurn closes the chat-turn lease. It ignores request cancellation

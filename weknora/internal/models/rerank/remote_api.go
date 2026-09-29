@@ -29,6 +29,7 @@ type OpenAIReranker struct {
 	// the templated rerank prompt, which cuts the query off long documents and
 	// collapses every relevance score to near zero (issue #2143).
 	truncatePromptTokens int
+	teiFormat            bool
 }
 
 // SetCustomHeaders 设置用户自定义 HTTP 请求头（类似 OpenAI Python SDK 的 extra_headers）。
@@ -93,6 +94,7 @@ func NewOpenAIReranker(config *RerankerConfig) (*OpenAIReranker, error) {
 		baseURL:              baseURL,
 		client:               newRerankHTTPClient(0),
 		truncatePromptTokens: truncatePromptTokens,
+		teiFormat:            config.ExtraConfig["rerank_format"] == "tei",
 	}, nil
 }
 
@@ -101,11 +103,21 @@ func (r *OpenAIReranker) Rerank(ctx context.Context, query string, documents []s
 	// Build the request body. truncate_prompt_tokens is only included when
 	// explicitly configured: sending it unconditionally corrupts scores on
 	// providers that honor it (see OpenAIReranker.truncatePromptTokens).
-	requestBody := &RerankRequest{
+	var requestBody interface{} = &RerankRequest{
 		Model:                r.modelName,
 		Query:                query,
 		Documents:            documents,
 		TruncatePromptTokens: r.truncatePromptTokens,
+	}
+	// Self-hosted Hugging Face TEI uses texts and an array response, unlike
+	// OpenAI-compatible rerank services. Select it explicitly; never guess
+	// from a hostname or alter other providers' request contracts.
+	if r.teiFormat {
+		requestBody = struct {
+			Query    string   `json:"query"`
+			Texts    []string `json:"texts"`
+			Truncate bool     `json:"truncate"`
+		}{query, documents, true}
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -140,6 +152,13 @@ func (r *OpenAIReranker) Rerank(ctx context.Context, query string, documents []s
 		return nil, fmt.Errorf("Rerank API error: Http Status: %s", resp.Status)
 	}
 
+	if r.teiFormat {
+		var results []RankResult
+		if err := json.Unmarshal(body, &results); err != nil {
+			return nil, fmt.Errorf("unmarshal TEI rerank response: %w", err)
+		}
+		return results, nil
+	}
 	var response RerankResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)

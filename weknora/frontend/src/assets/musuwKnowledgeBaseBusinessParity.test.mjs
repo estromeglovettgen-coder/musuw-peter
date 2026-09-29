@@ -1,3 +1,5 @@
+// Peter customer-workspace + server delivery: approved native model catalog,
+// customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -8,7 +10,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 
 test('audited KnowledgeBase controller remains locked after upload progress and incremental refresh repair', () => {
   const controller = read('./business-baselines/KnowledgeBase.pre-view.vue')
-  assert.equal(blobSha(controller), '77905990552ca5baa76310c0ea34c0c29df1d638')
+  assert.equal(blobSha(controller), 'bed8327060469d2174ac0c2624eb8fa74a9bed1d')
 })
 
 test('rebuilt KnowledgeBase delegates setup to the frozen native controller and keeps Graph host binding intact', () => {

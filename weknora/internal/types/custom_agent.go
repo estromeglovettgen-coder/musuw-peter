@@ -172,6 +172,9 @@ type CustomAgentConfig struct {
 	// When true, knowledge base retrieval only happens if user explicitly mentions KB/files with @
 	// When false, knowledge base retrieval happens according to KBSelectionMode
 	RetrieveKBOnlyWhenMentioned bool `yaml:"retrieve_kb_only_when_mentioned" json:"retrieve_kb_only_when_mentioned"`
+	// Archive original chat attachments to the bound customer KB. Nil preserves
+	// the existing default; false keeps attachments only in the conversation.
+	ArchiveCustomerSources *bool `yaml:"archive_customer_sources,omitempty" json:"archive_customer_sources,omitempty"`
 
 	// Whether to retain retrieval history across turns
 	RetainRetrievalHistory bool `yaml:"retain_retrieval_history" json:"retain_retrieval_history"`

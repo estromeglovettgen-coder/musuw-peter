@@ -286,14 +286,19 @@ export default defineComponent({
 
       <div v-if="allSelectedItems.length > 0" class="visual-chat-composer__resources">
         <span v-for="item in allSelectedItems" :key="`${item.type}:${item.id}`" class="visual-chat-resource" :class="{ 'is-agent-configured': item.isAgentConfigured }" :data-resource-type="item.type">
+          <component :is="item.type === 'kb' ? 'router-link' : 'span'"
+            :to="item.type === 'kb' ? `/platform/${item.group === 'customer' ? 'customers' : 'knowledge-bases'}/${encodeURIComponent(item.id)}` : undefined"
+            class="visual-chat-resource__link" @click.stop>
           <span class="visual-chat-resource__icon-wrap" :class="{ 'has-org': item.org_name }">
             <span class="visual-chat-resource__icon">
-              <t-icon v-if="item.type === 'kb'" :name="item.kbType === 'faq' ? 'chat-bubble-help' : 'folder'" />
+              <t-icon v-if="item.group === 'customer'" name="user" />
+              <t-icon v-else-if="item.type === 'kb'" :name="item.kbType === 'faq' ? 'chat-bubble-help' : 'folder'" />
               <t-icon v-else :name="getMentionIcon(item)" />
             </span>
             <span v-if="item.org_name" class="visual-chat-resource__org" aria-hidden="true"><img :src="getOrganizationBadgeSrc(item.type)" alt="" /></span>
           </span>
           <span class="visual-chat-resource__name" :title="item.name">{{ item.name }}</span>
+          </component>
           <button v-if="!settingsStore.settings.marketplaceProductId" type="button" class="visual-chat-resource__remove" :aria-label="$t('common.remove')" @click.stop="removeSelectedItem(item)"><t-icon name="close" /></button>
         </span>
       </div>
@@ -460,6 +465,9 @@ export default defineComponent({
 .visual-chat-composer__resources { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgb(229 231 235 / 60%); display: flex; flex-wrap: wrap; gap: 8px; }
 .visual-chat-resource { max-width: 260px; min-height: 30px; padding: 4px 6px 4px 8px; box-sizing: border-box; border: 1px solid #e5e7eb; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #374151; font-size: 12px; line-height: 18px; box-shadow: 0 1px 2px rgb(0 0 0 / 5%); }
 .visual-chat-resource.is-agent-configured { border-style: dashed; }
+.visual-chat-resource__link { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: inherit; text-decoration: none; border-radius: 3px; }
+a.visual-chat-resource__link:hover { color: #111827; text-decoration: underline; text-underline-offset: 3px; }
+a.visual-chat-resource__link:focus-visible { outline: 2px solid var(--td-brand-color); outline-offset: 3px; }
 .visual-chat-resource__icon-wrap { position: relative; flex: 0 0 14px; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; }
 .visual-chat-resource__icon { display: inline-flex; color: #6b7280; }
 .visual-chat-resource__icon :deep(.t-icon) { font-size: 14px; }

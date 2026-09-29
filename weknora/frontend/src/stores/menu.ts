@@ -50,13 +50,15 @@ export const useMenuStore = defineStore('menuStore', () => {
   // Keep an unsent homepage draft when visiting the marketplace and returning.
   // This stays in memory and is discarded when the account or workspace changes.
   const newChatDraft = ref('')
+  // Shared by the homepage and customer conversation so opting out also
+  // applies to the very first @customer message after route navigation.
   const draftAuth = useAuthStore()
   watch(() => `${draftAuth.currentUserId || ''}:${draftAuth.effectiveTenantId || ''}`, () => { newChatDraft.value = '' }, { flush: 'sync' })
 
   const applyMenuTranslations = () => {
     menuArr.forEach(item => {
       if (item.titleKey) {
-        item.title = i18n.global.t(item.titleKey)
+        item.title = isPeterWorkspace && item.path === 'knowledge-bases' ? '工作区' : i18n.global.t(item.titleKey)
       }
     })
   }

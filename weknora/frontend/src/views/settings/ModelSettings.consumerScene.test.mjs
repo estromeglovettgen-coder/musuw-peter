@@ -51,3 +51,18 @@ test('rerank consumer selection uses the existing tenant retrieval-config seam',
   assert.match(source, /scene === 'rerank'/)
   assert.match(source, /rerank_model_id/)
 })
+
+
+test('Standard settings do not request membership scene catalogs', async () => {
+  const body = source.split('const loadConsumerSceneOptions = async () => {')[1].split('const onConsumerSceneModelChange')[0]
+  let calls = 0
+  const load = new Function('authStore', 'consumerSceneLoading', 'consumerScenes', 'chatResources', 'consumerSceneCandidate', 'settingsStore', `return async () => {${body}`)
+  const loading = { value: false }
+  const fixtures = [loading, ['rag', 'wiki'], { ensureConsumerSceneOptions() { calls++ } }, () => '', {}]
+  await load({ isLiteMode: false }, ...fixtures)()
+  assert.equal(calls, 0)
+  assert.equal(loading.value, false)
+  await load({ isLiteMode: true }, ...fixtures)()
+  assert.equal(calls, 2)
+  assert.equal(loading.value, false)
+})

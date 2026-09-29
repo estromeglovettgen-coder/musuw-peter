@@ -186,6 +186,16 @@
                       </div>
                     </div>
 
+                    <div v-if="isPeterWorkspace" class="setting-row" data-agent-field="archive_customer_sources">
+                      <div class="setting-info">
+                        <label>新附件归档到客户库</label>
+                        <p class="desc">客户会话中上传的附件自动保存到该客户的资料库。</p>
+                      </div>
+                      <div class="setting-control">
+                        <t-switch v-model="formData.config.archive_customer_sources" aria-label="新附件归档到客户库" />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
@@ -1816,7 +1826,7 @@ import {
 } from '@/api/agent';
 import { type ModelConfig } from '@/api/model';
 import { type AgentNotReadyReasonKey, agentRequiresRerankModel } from '@/utils/agent-readiness';
-import { isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface';
+import { isPeterWorkspace, isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface';
 import { installSkillCatalog, type SkillCatalogItem } from '@/api/skill';
 import { type WebSearchProviderEntity } from '@/api/web-search-provider';
 import {
@@ -2659,6 +2669,7 @@ const defaultFormData = {
     kb_selection_mode: 'all' as 'all' | 'selected' | 'none',
     knowledge_bases: [] as string[],
     retrieve_kb_only_when_mentioned: false,
+    archive_customer_sources: true,
     // 智能推理下的类型预设：新建 agent 时默认给 RAG 问答（最常用场景）。
     // 编辑既有 agent 时会被 agent 自己保存的 agent_type 覆盖。
     agent_type: 'rag-qa' as AgentType,
@@ -3399,6 +3410,7 @@ watch(() => props.visible, async (val) => {
       // 长期记忆：后端用 omitempty，跟随空间设置的智能体不带这个字段。
       // 不补成 true 的话开关会显示为"关"，用户随手一存就真的把记忆关了。
       if (agentData.config.memory_enabled == null) agentData.config.memory_enabled = true;
+      if (agentData.config.archive_customer_sources == null) agentData.config.archive_customer_sources = true;
 
       // 兼容旧数据：如果没有 agent_mode 字段，根据 allowed_tools 推断
       if (!agentData.config.agent_mode) {

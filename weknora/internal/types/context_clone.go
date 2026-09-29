@@ -42,7 +42,8 @@ var contextCloneAcrossDetach = map[ContextKey]bool{
 	TenantAPIKeyScopeContextKey: true,
 	// Paid chat runs on the same authenticated buyer after SSE detachment.
 	// Carry only its approved product resource scope, never a source identity.
-	MarketplaceScopeContextKey: true,
+	MarketplaceScopeContextKey:      true,
+	CustomerKnowledgeBaseContextKey: true,
 
 	// Session scope. SessionTenantID re-scopes session/message lookups, while
 	// SandboxTenantID keys the session→sandbox binding to the session owner

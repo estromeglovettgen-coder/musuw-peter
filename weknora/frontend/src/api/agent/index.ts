@@ -90,6 +90,7 @@ export interface CustomAgentConfig {
   // true: 只有用户通过 @ 明确提及知识库/文档时才检索
   // false: 根据 kb_selection_mode 自动检索知识库
   retrieve_kb_only_when_mentioned?: boolean;
+  archive_customer_sources?: boolean; // 客户会话的新附件归档到客户库，缺省开启
 
   // ===== 图片上传/多模态设置 =====
   image_upload_enabled?: boolean;    // Musuw 编辑器新建默认开启；旧数据按保存值

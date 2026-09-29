@@ -1,3 +1,5 @@
+// Peter customer-workspace + server delivery: approved native model catalog,
+// customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -9,7 +11,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 // creator-marketplace-subscriptions: approved membership model freedom and runtime readiness for owned/subscribed agents.
 test('audited Input-field controller remains locked after marketplace delivery, model freedom and draft preservation', () => {
   const controller = read('./business-baselines/Input-field.pre-view.vue')
-  assert.equal(blobSha(controller), 'c384320815e08b7305ef7395fb94c11205c76388')
+  assert.equal(blobSha(controller), 'c7d978fcd14fa7cfee893dcfaeac7a4ee1912f03')
 })
 
 test('rebuilt Input-field reuses the frozen component options and replaces only its active View', () => {

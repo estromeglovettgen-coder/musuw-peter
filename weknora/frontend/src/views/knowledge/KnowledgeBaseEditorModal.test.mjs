@@ -24,21 +24,15 @@ test('a successful configured create closes after using the native create contra
   assert.ok(createBranch, 'expected to find the create branch')
   assert.match(createBranch, /handleClose\(\)/)
   assert.doesNotMatch(createBranch, /savedKbId\.value|loadKBData\(createdKbId\)/)
-  assert.match(createBranch, /createPayload\.indexing_strategy =/)
-  assert.match(createBranch, /createPayload\.wiki_config =/)
+  assert.match(createBranch, /indexing_strategy:/)
+  assert.match(createBranch, /wiki_config:/)
 })
 
 test('FAQ create preserves the native type and FAQ configuration contract', () => {
-  const doSubmit = source.slice(
-    source.indexOf('const doSubmit = async () => {'),
-    source.indexOf('// 重置所有状态'),
-  )
-  assert.match(doSubmit, /type:\s*normalizeKnowledgeBaseType\(formData\.value\.type\)/)
-  assert.match(
-    doSubmit,
-    /if \(normalizeKnowledgeBaseType\(formData\.value\.type\) === 'faq'\) \{[\s\S]*?createPayload\.faq_config = \{[\s\S]*?index_mode:[\s\S]*?question_index_mode:/,
-  )
-  assert.match(doSubmit, /else \{[\s\S]*?createPayload\.indexing_strategy = \{[\s\S]*?createPayload\.wiki_config = \{/)
+  const build = source.slice(source.indexOf('const buildSubmitData ='), source.indexOf('const doSubmit ='))
+  assert.match(build, /type:\s*normalizeKnowledgeBaseType\(formData\.value\.type\)/)
+  assert.match(build, /if \(normalizeKnowledgeBaseType\(formData\.value\.type\) === 'faq'\) \{[\s\S]*?data\.faq_config = \{[\s\S]*?index_mode:[\s\S]*?question_index_mode:/)
+  assert.match(source, /const createPayload = authStore\.isLiteMode \?[\s\S]*?\} : buildSubmitData\(\)/)
 })
 
 test('document create requires a visible RAG or Wiki strategy before the zero-config return', () => {
@@ -55,7 +49,7 @@ test('document create requires a visible RAG or Wiki strategy before the zero-co
   assert.match(visibleStrategyGuard, /!s\.wikiEnabled/)
   assert.doesNotMatch(visibleStrategyGuard, /graphEnabled/)
   assert.ok(
-    validateForm.indexOf(visibleStrategyGuard) < validateForm.indexOf("if (editorMode.value === 'create') return true"),
+    validateForm.indexOf(visibleStrategyGuard) < validateForm.indexOf("if (authStore.isLiteMode) return true"),
     'visible strategy validation must run before create mode skips edit-only model validation',
   )
   assert.match(zh, /atLeastOne: '请至少选择 RAG 检索或 Wiki 知识库'/)
@@ -65,7 +59,7 @@ test('document create requires a visible RAG or Wiki strategy before the zero-co
 test('save button labels match the reference create and edit actions', () => {
   assert.match(
     source,
-    /const saveButtonLabel = computed\(\(\) =>\s*editorMode\.value === 'create'\s*\? t\('knowledgeEditor\.buttons\.confirmCreate'\)\s*: t\('knowledgeEditor\.buttons\.save'\)\s*\)/
+    /const saveButtonLabel = computed\(\(\) =>[\s\S]*?editorMode\.value === 'create'\s*\? t\('knowledgeEditor\.buttons\.confirmCreate'\)\s*: t\('knowledgeEditor\.buttons\.save'\)\s*\)/
   )
 })
 
@@ -86,9 +80,9 @@ test('create exposes native RAG, Wiki, Wiki instructions, and summary model whil
   const createOpenBranch = visibilityWatcher.match(
     /if \(props\.mode === 'create'\) \{([\s\S]*?)^\s{4}\}/m,
   )?.[1]
-  assert.ok(createOpenBranch, 'expected the zero-config create open branch')
+  assert.ok(createOpenBranch, 'expected the native create open branch')
   assert.match(createOpenBranch, /loadSummaryModelOptions/)
-  assert.doesNotMatch(createOpenBranch, /loadTenantDefaultStorageProvider/)
+  assert.match(createOpenBranch, /loadTenantDefaultStorageProvider/)
 
   assert.ok(source.includes('const consumerSceneModelsForCreate = () => {'))
   assert.match(source, /settingsStore\.getConsumerSceneModel\('rag'\)/)
@@ -149,7 +143,7 @@ test('create mode reuses native TDesign fields and API payload', () => {
     /<t-textarea[\s\S]*?v-model="formData\.description"[\s\S]*?:placeholder="\$t\('knowledgeEditor\.basic\.descriptionPlaceholder'\)"[\s\S]*?:maxlength="200"/,
   )
   assert.doesNotMatch(source, /visual-kb-create-textarea|<textarea/)
-  assert.match(source, /const sceneModels = consumerSceneModelsForCreate\(\)[\s\S]*const createPayload:[\s\S]*name: formData\.value\.name\.trim\(\),[\s\S]*description: formData\.value\.description\.trim\(\),[\s\S]*\.\.\.sceneModels,[\s\S]*createPayload\.indexing_strategy =[\s\S]*createPayload\.wiki_config =[\s\S]*createKnowledgeBase\(createPayload\)/)
+  assert.match(source, /const createPayload = authStore\.isLiteMode \? \{[\s\S]*?\.\.\.sceneModels,[\s\S]*?name: formData\.value\.name\.trim\(\),[\s\S]*?description: formData\.value\.description\.trim\(\),[\s\S]*?indexing_strategy:[\s\S]*?wiki_config:[\s\S]*?\} : buildSubmitData\(\)[\s\S]*?createKnowledgeBase\(createPayload\)/)
 })
 
 test('create dialog is a scrollable consumer settings modal with mobile-safe bounds', () => {

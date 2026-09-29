@@ -8,6 +8,7 @@ import (
 // Sessions are now knowledge-base-independent and serve as conversation containers.
 // All configuration (knowledge bases, model settings, etc.) comes from custom agent at query time.
 type CreateSessionRequest struct {
+	CustomerKnowledgeBaseID string `json:"customer_knowledge_base_id"`
 	// Title for the session (optional)
 	Title string `json:"title"`
 	// Description for the session (optional)

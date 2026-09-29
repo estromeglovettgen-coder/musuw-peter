@@ -5515,6 +5515,7 @@ export default {
         control_plane_unreachable: 'Пропущено: плоскость управления недоступна',
         sandbox_not_created: 'Пропущено: песочница не создана',
         sandbox_exec_failed: 'Пропущено: выполнение в песочнице не удалось',
+        network_disabled: 'Пропущено: доступ к сети отключён для этой песочницы',
       },
       noVolumeSupport: 'This backend does not support volume mounts; skills relying on a shared volume will be unavailable.',
       checks: {

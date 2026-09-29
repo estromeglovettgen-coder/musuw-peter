@@ -822,6 +822,7 @@ CREATE TABLE IF NOT EXISTS vector_stores (
     deleted_at DATETIME NULL
 );
 CREATE TABLE IF NOT EXISTS knowledge_bases (
+    customer_profile TEXT,
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,

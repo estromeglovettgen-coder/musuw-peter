@@ -51,6 +51,7 @@
         <button
           type="button"
           class="visual-session-row__more"
+          :aria-label="`${t('common.more')} · ${item.title}`"
           aria-haspopup="menu"
           :aria-expanded="menuOpen"
           @click.stop
@@ -293,6 +294,7 @@ const confirmDangerAction = (): void => {
   transition: all 150ms ease;
 }
 .visual-session-row:hover .visual-session-row__more,
+.visual-session-row:focus-within .visual-session-row__more,
 .visual-session-row__more[aria-expanded='true'],
 .visual-session-row.is-active .visual-session-row__more { opacity: 1; }
 .visual-session-row__more:hover { background: rgb(229 231 235 / 80%); color: #111827; }

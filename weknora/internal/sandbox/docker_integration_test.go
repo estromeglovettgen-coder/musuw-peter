@@ -425,6 +425,74 @@ with open(%q) as handle:
 	}
 }
 
+// Reproduce a long-idle session resuming at the same time another request
+// triggers cleanup. Input restoration happens before the user's first script.
+func TestDockerBackendIdleSessionRestoresAttachmentsIntegration(t *testing.T) {
+	cfg := dockerIntegrationConfig(t)
+	manager := newDockerIntegrationManager(t, cfg)
+	ctx, cancel := context.WithTimeout(
+		types.WithSandboxTenantID(context.Background(), dockerIntegrationTenantID), 3*time.Minute,
+	)
+	defer cancel()
+	sessionID := fmt.Sprintf("docker-idle-resume-%d", time.Now().UnixNano())
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(
+			types.WithSandboxTenantID(context.Background(), dockerIntegrationTenantID), time.Minute,
+		)
+		defer cleanupCancel()
+		_ = manager.DestroySession(cleanupCtx, sessionID)
+	})
+	first := runDockerScript(t, ctx, manager, sessionID, "print('seed')")
+	if !first.IsSuccess() {
+		t.Fatalf("seed failed: %#v", first)
+	}
+	docker := manager.client.(*DockerRemoteClient)
+	list, err := docker.List(ctx, RemoteListFilter{Metadata: map[string]string{remoteMetadataSessionID: sessionID}})
+	if err != nil || len(list) != 1 {
+		t.Fatalf("expected one session container: %v %#v", err, list)
+	}
+	handle, err := docker.Connect(ctx, list[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old, err := docker.Exec(ctx, handle, RemoteExecRequest{
+		Command: "touch", Args: []string{"-d", "2000-01-01", dockerActivityMarker}, Timeout: time.Minute,
+		// Only fault injection needs the marker owner's permission to set a
+		// historical timestamp. Normal activity refresh/execution is unprivileged.
+		User: "root",
+	})
+	if err != nil || old.ExitCode != 0 {
+		t.Fatalf("age activity marker: %v %#v", err, old)
+	}
+	if err := manager.BeginSessionTurn(ctx, sessionID); err != nil {
+		t.Fatal(err)
+	}
+	defer manager.EndSessionTurn(ctx, sessionID)
+	if removed, err := docker.sweeper.reclaim(ctx, list[0]); err != nil || removed {
+		t.Fatalf("cleanup removed a session resuming its inputs: removed=%v err=%v", removed, err)
+	}
+	if err := stopDockerContainerForTest(ctx, list[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	inputPath := path.Join(SessionInputRoot, "restored.csv")
+	if err := manager.SessionFileStore().WriteSessionInputFile(ctx, sessionID, inputPath, []byte("customer,followups\nAlex,12\n")); err != nil {
+		t.Fatalf("restore input after stop: %v", err)
+	}
+	if age := time.Since(dockerActivityMarkerMTime(t, ctx, list[0].ID)); age > time.Minute {
+		t.Fatalf("reconnect did not refresh activity before restoring attachments: age=%s", age)
+	}
+	if err := manager.EndSessionTurn(ctx, sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if removed, err := docker.sweeper.reclaim(ctx, list[0]); err != nil || removed {
+		t.Fatalf("cleanup removed a recently restored attachment: removed=%v err=%v", removed, err)
+	}
+	result := runDockerScript(t, ctx, manager, sessionID, fmt.Sprintf("print(open(%q).read())", inputPath))
+	if !result.IsSuccess() || !strings.Contains(result.Stdout, "Alex,12") {
+		t.Fatalf("restored attachment unavailable to next script: %#v", result)
+	}
+}
+
 // A session owns /workspace, so it can replace its own artifact directory with
 // a symlink pointing anywhere in the container. chown and chmod follow
 // symlinks, so if the pre-execution bootstrap ran as root it would hand the

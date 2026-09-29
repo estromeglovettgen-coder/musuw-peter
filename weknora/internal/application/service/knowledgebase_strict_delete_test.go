@@ -699,3 +699,78 @@ func TestStrictDeleteRetainsKBWhenDurableTaskCleanupFails(t *testing.T) {
 // removal of the embedding model seam while allowing the test's lightweight
 // model stub above to satisfy the interface.
 var _ embedding.Embedder = kbCleanupEmbedder{}
+
+func TestProcessKBDeleteOrdinaryResolvesCatalogBackedSourcePath(t *testing.T) {
+	const (
+		resourceRef = "resource://y16XEhoTvy07RNTh7QUIfw"
+		backendID   = "e4596357-c110-4ce9-8481-e1221cfde92d"
+		innerPath   = "s3://musuw-staging/weknora/10002/knowledge/document.md"
+	)
+	knowledge := strictDeleteKnowledge()
+	knowledge.FilePath = resourceRef
+	knowledgeRepo := &strictDeleteKnowledgeRepo{items: []*types.Knowledge{knowledge}}
+	defaultSvc := &strictDeleteFileService{err: errors.New("default storage must not receive a catalog reference")}
+	resolvedInner := &strictDeleteFileService{}
+	resolver := &strictDeleteStorageResolver{svc: resolvedInner}
+	catalog := &strictDeleteResourceCatalog{resource: &types.StoredResource{
+		Handle:           "y16XEhoTvy07RNTh7QUIfw",
+		TenantID:         1,
+		StorageBackendID: backendID,
+		Provider:         "s3",
+		PhysicalPath:     "storage://" + backendID + "/" + innerPath,
+	}}
+	svc := strictDeleteService(knowledgeRepo, &strictDeleteEngine{})
+	svc.fileSvc = defaultSvc
+	svc.tenantRepo = strictDeleteTenantRepo{tenant: &types.Tenant{ID: 1}}
+	svc.storageResolver = resolver
+	svc.resourceCatalog = catalog
+
+	require.NoError(t, svc.ProcessKBDelete(context.Background(), strictDeletePayload(t, false)))
+	assert.Equal(t, []string{resourceRef}, catalog.calls)
+	assert.Equal(t, 1, resolver.resolveCallCount)
+	assert.Equal(t, backendID, resolver.backendID)
+	assert.Equal(t, "s3", resolver.provider)
+	assert.Empty(t, defaultSvc.calls)
+	assert.Equal(t, []string{innerPath}, resolvedInner.calls)
+	assert.Equal(t, 1, knowledgeRepo.deleteCall)
+}
+
+func (c *strictDeleteResourceCatalog) Release(context.Context, string, string, string) (int64, error) {
+	return 0, nil
+}
+
+func TestProcessKBDeleteOrdinaryResolvesCatalogBackedExtractedImage(t *testing.T) {
+	const (
+		resourceRef = "resource://y16XEhoTvy07RNTh7QUIfw"
+		backendID   = "e4596357-c110-4ce9-8481-e1221cfde92d"
+		innerPath   = "s3://musuw-staging/weknora/10002/knowledge/document.md"
+	)
+	knowledge := strictDeleteKnowledge()
+	knowledge.FilePath = ""
+	knowledgeRepo := &strictDeleteKnowledgeRepo{items: []*types.Knowledge{knowledge}}
+	defaultSvc := &strictDeleteFileService{err: errors.New("default storage must not receive a catalog reference")}
+	resolvedInner := &strictDeleteFileService{}
+	resolver := &strictDeleteStorageResolver{svc: resolvedInner}
+	catalog := &strictDeleteResourceCatalog{resource: &types.StoredResource{
+		Handle:           "y16XEhoTvy07RNTh7QUIfw",
+		TenantID:         1,
+		StorageBackendID: backendID,
+		Provider:         "s3",
+		PhysicalPath:     "storage://" + backendID + "/" + innerPath,
+	}}
+	svc := strictDeleteService(knowledgeRepo, &strictDeleteEngine{})
+	svc.fileSvc = defaultSvc
+	svc.tenantRepo = strictDeleteTenantRepo{tenant: &types.Tenant{ID: 1}}
+	svc.storageResolver = resolver
+	svc.resourceCatalog = catalog
+	svc.chunkRepo = &strictDeleteChunkRepo{imageInfo: []interfaces.ChunkImageInfo{{KnowledgeID: knowledge.ID, ImageInfo: `[{"url":"` + resourceRef + `"}]`}}}
+
+	require.NoError(t, svc.ProcessKBDelete(context.Background(), strictDeletePayload(t, false)))
+	assert.Equal(t, []string{resourceRef}, catalog.calls)
+	assert.Equal(t, 1, resolver.resolveCallCount)
+	assert.Equal(t, backendID, resolver.backendID)
+	assert.Equal(t, "s3", resolver.provider)
+	assert.Empty(t, defaultSvc.calls)
+	assert.Equal(t, []string{innerPath}, resolvedInner.calls)
+	assert.Equal(t, 1, knowledgeRepo.deleteCall)
+}

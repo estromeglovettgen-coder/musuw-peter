@@ -70,7 +70,7 @@ test("graph view keeps the original layout chrome instead of inheriting document
   );
   assert.match(
     source,
-    /v-if="activeKbTab === 'documents' \|\| !isWiki" class="visual-knowledge-documents"/,
+    /v-if="activeKbTab === 'documents' \|\| \(!embedded && !isWiki\)" class="visual-knowledge-documents"/,
   );
 });
 

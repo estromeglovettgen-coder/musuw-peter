@@ -130,11 +130,19 @@ func (h *Handler) CreateSession(c *gin.Context) {
 
 	// Create session object with base properties
 	createdSession := &types.Session{
-		TenantID:    tenantID.(uint64),
-		Title:       request.Title,
-		Description: types.SanitizeClientSessionDescription(request.Description, ""),
+		CustomerKnowledgeBaseID: request.CustomerKnowledgeBaseID,
+		TenantID:                tenantID.(uint64),
+		Title:                   request.Title,
+		Description:             types.SanitizeClientSessionDescription(request.Description, ""),
 	}
 	// Attach the calling user as the session owner when available.
+	if request.CustomerKnowledgeBaseID != "" {
+		kb, err := h.knowledgebaseService.GetKnowledgeBaseByID(ctx, request.CustomerKnowledgeBaseID)
+		if err != nil || kb == nil || kb.CustomerProfile == nil || kb.TenantID != createdSession.TenantID {
+			c.Error(errors.NewNotFoundError("Customer not found"))
+			return
+		}
+	}
 	// API-key callers scope sessions per external user when configured;
 	// otherwise they fall back to the synthetic tenant user.
 	if ownerID := types.SessionOwnerIDFromContext(ctx); ownerID != "" {
@@ -223,6 +231,14 @@ func (h *Handler) GetSession(c *gin.Context) {
 // @Router       /sessions [get]
 func (h *Handler) GetSessionsByTenant(c *gin.Context) {
 	ctx := c.Request.Context()
+	if customerID := c.Query("customer_knowledge_base_id"); customerID != "" {
+		kb, err := h.knowledgebaseService.GetKnowledgeBaseByID(ctx, customerID)
+		if err != nil || kb == nil || kb.CustomerProfile == nil {
+			c.Error(errors.NewNotFoundError("Customer not found"))
+			return
+		}
+		ctx = types.WithCustomerKnowledgeBase(ctx, customerID)
+	}
 
 	// Parse pagination parameters from query
 	var pagination types.Pagination

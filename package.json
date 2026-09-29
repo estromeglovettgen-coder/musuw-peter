@@ -27,6 +27,7 @@
     "upgrade:ledger": "node scripts/ci/generate-weknora-resolution-ledger.mjs",
     "build": "npm run app:build",
     "peter:dev": "node scripts/peter-dev.mjs",
+    "peter:seed-customers": "node scripts/peter-seed-customers.mjs",
     "peter:test-provider": "node e2e/peter/model-fixture.mjs",
     "peter:acceptance": "node e2e/peter/acceptance.mjs"
   },

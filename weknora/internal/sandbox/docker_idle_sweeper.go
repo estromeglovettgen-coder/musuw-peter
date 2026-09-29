@@ -13,15 +13,15 @@
 // (folded into the exec wrapper, costing no extra round-trip), and the sweep
 // reads its mtime with a single HEAD /archive call per container.
 //
-// Deleting an idle container needs no coordination with the binding store: the
-// lifecycle already treats a sandbox the provider no longer has as replaceable
-// (see CanReplaceRemoteBinding), which is exactly how an E2B sandbox reaped by
-// its own TTL is handled.
+// Cleanup shares the binding store's lifecycle lock and turn lease so a stale
+// marker cannot make a resumed session disappear while it restores inputs.
+// Genuinely idle bindings remain replaceable through CanReplaceRemoteBinding.
 
 package sandbox
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 	"sync"
@@ -57,6 +57,9 @@ var dockerSweepThrottle = struct {
 type dockerIdleSweeper struct {
 	client *DockerRemoteClient
 	ttl    time.Duration
+	// Reuse the session lifecycle lock and existing chat-turn lease. The
+	// activity marker can still be old while a restored turn stages inputs.
+	bindings SessionSandboxBindingStore
 
 	// now is injected by tests.
 	now func() time.Time
@@ -121,22 +124,53 @@ func (s *dockerIdleSweeper) sweep(ctx context.Context) (int, error) {
 		if !s.isIdle(ctx, summary) {
 			continue
 		}
-		// Re-check immediately before deleting. Listing every container and
-		// stat'ing each one takes long enough on a busy daemon that a session
-		// can be resumed in between, and deleting it then destroys a sandbox
-		// the user is actively working in.
-		if !s.isIdle(ctx, summary) {
-			continue
-		}
-		if err := s.client.Delete(ctx, summary.ID); err != nil {
+		removed, err := s.reclaim(ctx, summary)
+		if err != nil {
 			// One undeletable container must not stop the sweep; the next
 			// pass will try again.
 			log.Printf("[sandbox] docker idle sweep: delete %s: %v", summary.ID, err)
 			continue
 		}
-		reclaimed++
+		if removed {
+			reclaimed++
+		}
 	}
 	return reclaimed, nil
+}
+
+// reclaim serializes removal with session reconnect/turn startup. A failing
+// lease lookup must retain the container; cleanup can retry on the next sweep.
+func (s *dockerIdleSweeper) reclaim(ctx context.Context, summary RemoteSandboxSummary) (bool, error) {
+	removed := false
+	reclaim := func(ctx context.Context) error {
+		if !s.isIdle(ctx, summary) {
+			return nil
+		}
+		if err := s.client.Delete(ctx, summary.ID); err != nil {
+			return err
+		}
+		removed = true
+		return nil
+	}
+	leaser, hasLease := s.bindings.(sessionTurnLeaseStore)
+	sessionID := summary.Metadata[remoteMetadataSessionID]
+	if !hasLease || sessionID == "" {
+		err := reclaim(ctx)
+		return removed, err
+	}
+	tenantID, err := strconv.ParseUint(summary.Metadata[remoteMetadataTenantID], 10, 64)
+	key := SessionSandboxKey{TenantID: tenantID, SessionID: sessionID}
+	if err != nil || key.Validate() != nil {
+		return false, fmt.Errorf("invalid session metadata for sandbox %s", summary.ID)
+	}
+	err = s.bindings.WithLifecycleLock(ctx, key, func(lockCtx context.Context) error {
+		active, _, err := leaser.TurnState(lockCtx, key)
+		if err != nil || active {
+			return err
+		}
+		return reclaim(lockCtx)
+	})
+	return removed, err
 }
 
 // isIdle decides whether one container has gone unused for longer than the

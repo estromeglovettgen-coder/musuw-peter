@@ -10,7 +10,7 @@ const zh = readFileSync(new URL('../../i18n/locales/zh-CN.ts', import.meta.url),
 test('Lite cannot submit a document library without visible RAG or Wiki indexing', () => {
   assert.match(
     editor,
-    /:disabled="saving \|\| \(authStore\.isLiteMode && !isFAQ && !formData\.indexingStrategy\.vectorEnabled && !formData\.indexingStrategy\.keywordEnabled && !formData\.indexingStrategy\.wikiEnabled\)"/,
+    /:disabled="saving[^"\n]*\(authStore\.isLiteMode && !isFAQ && !formData\.indexingStrategy\.vectorEnabled && !formData\.indexingStrategy\.keywordEnabled && !formData\.indexingStrategy\.wikiEnabled\)"/,
   )
   assert.match(
     editor,

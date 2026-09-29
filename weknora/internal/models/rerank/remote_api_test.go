@@ -7,6 +7,33 @@ import (
 	"testing"
 )
 
+func TestOpenAIRerankerTEIFormatOptIn(t *testing.T) {
+	withRerankSSRFWhitelist(t, "127.0.0.1")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if req.URL.Path != "/rerank" || body["texts"] == nil || body["documents"] != nil || body["truncate"] != true {
+			http.Error(w, "expected TEI texts and truncate", http.StatusUnprocessableEntity)
+			return
+		}
+		_, _ = w.Write([]byte(`[{"index":1,"score":0.99},{"index":0,"score":0.01}]`))
+	}))
+	defer server.Close()
+	ranker, err := NewOpenAIReranker(&RerankerConfig{BaseURL: server.URL, ModelName: "mmarco", ExtraConfig: map[string]string{"rerank_format": "tei"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := ranker.Rerank(t.Context(), "课程费用", []string{"天气", "680元"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 || results[0].Index != 1 || results[0].RelevanceScore != 0.99 {
+		t.Fatalf("unexpected ranking: %+v", results)
+	}
+}
+
 // newRerankScoreTestServer emulates an OpenAI-compatible /rerank endpoint the
 // way a vLLM-backed provider (e.g. SiliconFlow) behaves, and records the last
 // decoded request body.

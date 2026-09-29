@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMarketplaceChatStore } from '@/stores/marketplaceChat';
+import { isPeterWorkspace } from '@/config/workspaceSurface';
 import { ref, onMounted, onUnmounted, computed, watch, nextTick, h } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
@@ -84,8 +85,8 @@ const {
 const fallbackAvailableModels = computed(() =>
   rawAvailableModels.value.filter((model) =>
     (!model.status || model.status === "active")
-    && model.is_builtin === true
-    && model.parameters?.provider?.trim().toLowerCase() === "openrouter",
+    && (isPeterWorkspace || (model.is_builtin === true
+      && model.parameters?.provider?.trim().toLowerCase() === "openrouter")),
   ),
 );
 const hasBuiltinAllKnowledgeScope = computed(() => {
@@ -143,6 +144,9 @@ const sceneModelsFor = (scene: ConsumerScene): ModelConfig[] => {
   });
 };
 const sceneManagedByConsumerResolver = computed(() => {
+  // Peter owns the native model catalog; the public Musuw membership catalog
+  // is neither configured nor authoritative in this private workspace.
+  if (isPeterWorkspace) return false;
   // Consumer model access follows the buyer's plan, including owned and
   // purchased agents; source-agent defaults do not replace this catalog.
   if (authStore.isLiteMode || settingsStore.settings.marketplaceProductId) return true;
@@ -342,11 +346,14 @@ watch(
   ([newAgentId, newAgentKbs, newKbMode], [oldAgentId]) => {
     if (settingsStore._isApplyingSessionState) return;
     if (newAgentId !== oldAgentId && oldAgentId !== undefined) {
+      const customerIds = isPeterWorkspace && !settingsStore.selectedAgentSourceTenantId
+        ? chatResources.rawKnowledgeBases.filter(kb => kb.customer_profile && settingsStore.settings.selectedKnowledgeBases?.includes(kb.id)).map(kb => kb.id)
+        : [];
       if (newKbMode === "none") {
-        settingsStore.selectKnowledgeBases([]);
+        settingsStore.selectKnowledgeBases(customerIds);
       } else {
         settingsStore.selectKnowledgeBases(
-          newAgentKbs && newAgentKbs.length > 0 ? [...newAgentKbs] : [],
+          [...new Set([...(newAgentKbs || []), ...customerIds])],
         );
       }
       // 若 @ 面板已打开，刷新可@列表以立即反映新智能体的知识库范围
@@ -414,6 +421,7 @@ const isKnowledgeBaseDisabledByAgent = computed(() => {
 });
 const isMentionDisabled = computed(() => {
   if (settingsStore.settings.marketplaceProductId) return true;
+  if (canMentionCustomers.value) return false;
   if (settingsStore.isAgentStreamMode && isKnowledgeBaseDisabledByAgent.value) {
     return agentMCPSelectionMode.value === "none" && agentSkillsSelectionMode.value === "none";
   }
@@ -650,6 +658,9 @@ const props = defineProps({
 });
 
 const isAgentEnabled = computed(() => settingsStore.isAgentEnabled);
+// Customers are the conversation subject, independent of the agent's methodology KB selection.
+const canMentionCustomers = computed(() => isPeterWorkspace && !props.embeddedMode
+  && !settingsStore.selectedAgentSourceTenantId && !settingsStore.settings.marketplaceProductId);
 const isWebSearchEnabled = computed(() => settingsStore.isWebSearchEnabled);
 const selectedKbIds = computed(() => settingsStore.settings.selectedKnowledgeBases || []);
 const selectedFileIds = computed(() => settingsStore.settings.selectedFiles || []);
@@ -666,7 +677,9 @@ const selectedKbs = computed(() => {
   if (settingsStore.settings.marketplaceProductId) {
     return marketplaceChat.knowledgeBases.filter(kb => selectedKbIds.value.includes(kb.id));
   }
-  const own = knowledgeBases.value.filter((kb) => selectedKbIds.value.includes(kb.id));
+  const readyIds = new Set(knowledgeBases.value.map(kb => kb.id));
+  const own = chatResources.rawKnowledgeBases.filter(kb => selectedKbIds.value.includes(kb.id)
+    && ((isPeterWorkspace && kb.customer_profile) || readyIds.has(kb.id)));
   const sharedList = orgStore.sharedKnowledgeBases || [];
   const sharedMapped = sharedList
     .filter(
@@ -750,6 +763,7 @@ const allSelectedItems = computed(() => {
     ...kb,
     type: "kb" as const,
     kbType: kb.type,
+    group: isPeterWorkspace && kb.customer_profile ? 'customer' : undefined,
     isAgentConfigured: agentKbIds.includes(kb.id),
   }));
 
@@ -816,6 +830,7 @@ const removeSelectedItem = (item: MentionItem) => {
 };
 
 const getMentionIcon = (item: MentionItem) => {
+  if (item.group === 'customer') return 'user';
   switch (item.type) {
     case "file":
       return "file";
@@ -1408,10 +1423,20 @@ const loadMentionItems = async (q: string, resetIndex = true, append = false) =>
 
   // 根据智能体的 kb_selection_mode 过滤知识库；选中共享智能体时使用该空间下的知识库，否则使用本空间 + 共享给自己的
   let kbItems: any[] = [];
+  let customerItems: MentionItem[] = [];
   let tagItems: MentionItem[] = [];
   let mcpItems: MentionItem[] = [];
   let skillItems: MentionItem[] = [];
   if (!append) {
+    if (canMentionCustomers.value) {
+      // The composer can receive @ before its mount-time prefetch finishes.
+      // Wait on that same deduplicated load before taking the customer snapshot.
+      await loadKnowledgeBases();
+      customerItems = chatResources.rawKnowledgeBases
+        .filter(kb => kb.customer_profile && (!q || kb.name?.toLowerCase().includes(q.toLowerCase())))
+        .map(kb => ({ id: kb.id, name: kb.name, type: 'kb', group: 'customer',
+          kbType: 'document', description: kb.description, count: kb.knowledge_count || 0 }));
+    }
     mentionCompatibilityFilteredAll.value = false;
     let availableKbs: any[];
     const sourceTenantId = settingsStore.selectedAgentSourceTenantId;
@@ -1431,6 +1456,7 @@ const loadMentionItems = async (q: string, resetIndex = true, append = false) =>
           org_name: orgLabel,
           capabilities: kb.capabilities,
           indexing_strategy: kb.indexing_strategy,
+          customer_profile: kb.customer_profile,
         }));
         sharedAgentKbList.value = list.map((kb: any) => ({
           id: kb.id,
@@ -1459,6 +1485,7 @@ const loadMentionItems = async (q: string, resetIndex = true, append = false) =>
           org_name: s.org_name || "",
           capabilities: s.knowledge_base.capabilities,
           indexing_strategy: s.knowledge_base.indexing_strategy,
+          customer_profile: s.knowledge_base.customer_profile,
         }));
       const ownIds = new Set(availableKbs.map((kb: any) => kb.id));
       sharedKbsForMention.forEach((kb: any) => {
@@ -1468,6 +1495,8 @@ const loadMentionItems = async (q: string, resetIndex = true, append = false) =>
         }
       });
     }
+
+    if (isPeterWorkspace) availableKbs = availableKbs.filter(kb => !kb.customer_profile);
 
     if (hasAgentConfig.value) {
       const kbMode = agentKBSelectionMode.value;
@@ -1696,7 +1725,7 @@ const loadMentionItems = async (q: string, resetIndex = true, append = false) =>
     // Append file items to existing list
     mentionItems.value = [...mentionItems.value, ...fileItems];
   } else {
-    mentionItems.value = [...kbItems, ...tagItems, ...mcpItems, ...skillItems, ...fileItems];
+    mentionItems.value = [...kbItems, ...customerItems, ...tagItems, ...mcpItems, ...skillItems, ...fileItems];
   }
   console.log("[Mention] Total items:", mentionItems.value.length, {
     kbItems: kbItems.length,
@@ -1920,6 +1949,12 @@ const triggerMention = () => {
 
 const onMentionSelect = (item: any) => {
   if (item.type === "kb") {
+    if (item.group === 'customer') {
+      // A conversation binds to one customer. Choosing another replaces the chip;
+      // sendMsg creates a separate session when the existing one has a different binding.
+      const customerIds = new Set(chatResources.rawKnowledgeBases.filter(kb => kb.customer_profile).map(kb => kb.id));
+      settingsStore.selectKnowledgeBases(selectedKbIds.value.filter(id => !customerIds.has(id)));
+    }
     settingsStore.addKnowledgeBase(item.id);
   } else if (item.type === "file") {
     settingsStore.addFile(item.id);
@@ -2294,7 +2329,11 @@ const handleSelectAgent = async (agent: CustomAgent, sourceTenantId?: string) =>
     return;
   }
 
+  const customerIds = isPeterWorkspace && !sourceTenantId
+    ? chatResources.rawKnowledgeBases.filter(kb => kb.customer_profile && selectedKbIds.value.includes(kb.id)).map(kb => kb.id)
+    : [];
   settingsStore.selectAgent(agent.id, sourceTenantId);
+  if (customerIds.length) settingsStore.selectKnowledgeBases(customerIds);
   settingsStore.toggleAgent(!!isAgentType);
 
   // 同步模型（选中的对话模型随智能体切换，含共享智能体）。

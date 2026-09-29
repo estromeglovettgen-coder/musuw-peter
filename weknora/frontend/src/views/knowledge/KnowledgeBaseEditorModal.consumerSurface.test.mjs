@@ -21,12 +21,12 @@ test('Lite knowledge creation never renders the FAQ type control and always norm
   assert.ok(typeControlIndex >= 0, 'Standard editor keeps the native type control')
   const typeSectionStart = template.lastIndexOf('<section', typeControlIndex)
   const typeSectionEnd = template.indexOf('>', typeSectionStart)
-  assert.match(template.slice(typeSectionStart, typeSectionEnd + 1), /v-if="!authStore\.isLiteMode"/)
-  assert.match(template, /v-if="!authStore\.isLiteMode"[\s\S]*?data-guide="kb-create-type"/)
+  assert.match(template.slice(typeSectionStart, typeSectionEnd + 1), /v-if="!authStore\.isLiteMode && !isCustomer"/)
+  assert.match(template, /v-if="!authStore\.isLiteMode && !isCustomer"[\s\S]*?data-guide="kb-create-type"/)
   assert.match(editor, /normalizeKnowledgeBaseType\(/)
   assert.match(editor, /const initFormData = \(type: 'document' \| 'faq' = 'document'\)[\s\S]*?normalizeKnowledgeBaseType\(type\)/)
   assert.match(editor, /type:\s*normalizeKnowledgeBaseType\(formData\.value\.type\)/)
-  assert.match(editor, /const createPayload:[\s\S]*?type:\s*normalizeKnowledgeBaseType\(formData\.value\.type\)/)
+  assert.match(editor, /const createPayload = authStore\.isLiteMode \?[\s\S]*?type: 'document'[\s\S]*?: buildSubmitData\(\)/)
 })
 
 test('Lite technical section deep links fall back to Basic while Advanced remains reachable', () => {
@@ -47,7 +47,7 @@ test('Lite knowledge-base creation pre-fills a first available localized name an
   assert.match(editor, /knowledgeEditor\.basic\.defaultNameWithIndex/)
   assert.match(editor, /chatResources\.rawKnowledgeBases/)
   assert.match(editor, /name: authStore\.isLiteMode \? getLiteDefaultKnowledgeBaseName\(\) : ''/)
-  assert.match(editor, /<KbCreateContextualGuide\s+:when="visible && editorMode === 'create'"/)
+  assert.match(editor, /<KbCreateContextualGuide\s+:when="visible && editorMode === 'create' && !isCustomer"/)
   assert.match(createGuide, /key: 'nameLite'/)
   assert.match(createGuide, /key: 'submitLite'/)
 })
@@ -65,7 +65,7 @@ test('Lite knowledge editor does not expose model, embedding, or parser selector
 test('Lite create submits managed auto-tag defaults without leaking user model choices', () => {
   assert.match(editor, /LITE_AUTO_TAG_MODEL_ID\s*=\s*'builtin-deepseek-v4-flash'/)
   assert.match(editor, /autoTagConfig:[\s\S]*?modelId:\s*authStore\.isLiteMode\s*\?\s*LITE_AUTO_TAG_MODEL_ID[\s\S]*?maxTags:\s*3[\s\S]*?skipIfTagged:\s*true/)
-  assert.match(editor, /createPayload\.auto_tag_config\s*=\s*authStore\.isLiteMode\s*\?[\s\S]*?model_id:\s*LITE_AUTO_TAG_MODEL_ID[\s\S]*?max_tags:\s*3[\s\S]*?skip_if_tagged:\s*true/)
+  assert.match(editor, /auto_tag_config:\s*\{[\s\S]*?model_id:\s*LITE_AUTO_TAG_MODEL_ID[\s\S]*?max_tags:\s*3[\s\S]*?skip_if_tagged:\s*true/)
 })
 
 test('Lite edit payloads preserve server-owned Wiki and graph model settings', () => {

@@ -58,6 +58,7 @@ func readyPlatformKnowledgeBaseModels() map[string]*types.Model {
 }
 
 func TestCreateKnowledgeBaseRejectsUnavailablePlatformCatalogBeforePersisting(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	repo := newFakeKBRepo()
 	models := readyPlatformKnowledgeBaseModels()
 	delete(models, types.PlatformKnowledgeBaseVLMModelID)
@@ -75,6 +76,7 @@ func TestCreateKnowledgeBaseRejectsUnavailablePlatformCatalogBeforePersisting(t 
 }
 
 func TestCreateKnowledgeBasePersistsWhenPlatformCatalogIsReady(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	repo := newFakeKBRepo()
 	svc := &knowledgeBaseService{
 		repo:         repo,
@@ -90,6 +92,7 @@ func TestCreateKnowledgeBasePersistsWhenPlatformCatalogIsReady(t *testing.T) {
 }
 
 func TestCreateKnowledgeBaseTreatsCatalogLookupFailureAsTemporary(t *testing.T) {
+	t.Setenv("MUSUW_PRODUCT_EDITION", "lite")
 	repo := newFakeKBRepo()
 	svc := &knowledgeBaseService{
 		repo:         repo,

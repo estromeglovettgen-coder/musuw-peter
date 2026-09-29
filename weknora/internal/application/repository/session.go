@@ -160,6 +160,9 @@ func (r *sessionRepository) QueryPaged(
 	// Base filter shared by count and list queries.
 	applyBase := func(db *gorm.DB) *gorm.DB {
 		db = db.Where("s.tenant_id = ? AND s.deleted_at IS NULL", q.TenantID)
+		if customerID := types.CustomerKnowledgeBaseFromContext(ctx); customerID != "" {
+			db = db.Where("s.customer_knowledge_base_id = ?", customerID)
+		}
 		if q.UserID != "" {
 			db = db.Where("(s.user_id = ? OR s.user_id IS NULL OR s.user_id = '')", q.UserID)
 		}

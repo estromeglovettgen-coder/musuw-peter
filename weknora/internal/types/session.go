@@ -76,6 +76,7 @@ type ContextConfig struct {
 
 // Session represents the session
 type Session struct {
+	CustomerKnowledgeBaseID string `json:"customer_knowledge_base_id,omitempty" gorm:"type:varchar(36);index;<-:create"`
 	// ID
 	ID string `json:"id"          gorm:"type:varchar(36);primaryKey"`
 	// Title

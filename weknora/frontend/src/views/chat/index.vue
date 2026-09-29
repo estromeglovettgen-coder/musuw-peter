@@ -139,6 +139,7 @@ export default defineComponent({
     />
 
     <div class="visual-chat-input" :class="{ 'is-embedded': embeddedMode }">
+      <p v-if="customerArchiveStatus && isReplying" class="customer-archive-status" role="status">{{ customerArchiveStatus }}</p>
       <InputField ref="inputFieldRef" :is-replying="isReplying" :session-id="session_id" :assistant-message-id="currentAssistantMessageId" :embedded-mode="embeddedMode" @send-msg="(query: any, modelId: any, mentionedItems: any, imageFiles: any, attachmentFiles: any, thinking: any, reasoningEffort: any) => sendMsg(query, modelId, mentionedItems, imageFiles, attachmentFiles, thinking, reasoningEffort)" @stop-generation="handleStopGeneration" />
     </div>
 
@@ -149,6 +150,7 @@ export default defineComponent({
 </template>
 
 <style scoped lang="less">
+.customer-archive-status { max-width: 760px; margin: 0 auto 8px; color: var(--td-text-color-secondary); font-size: 12px; }
 .visual-chat-view { width: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; position: relative; display: flex; flex-direction: column; overflow: hidden; background: #fff; color: #1f2937; transition: padding-right 220ms cubic-bezier(.22,.61,.36,1); }
 .visual-chat-view.has-references-panel:not(.is-embedded) { @media (min-width: 960px) { padding-right: 420px; } }
 .visual-chat-view.is-embedded { min-width: 100%; max-width: 100%; }

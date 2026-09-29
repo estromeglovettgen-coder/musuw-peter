@@ -15,7 +15,7 @@ test('consumer editor keeps Lite scene ownership while exposing full main settin
   assert.match(editor, /embeddingModelId: data\.embedding_model_id/)
   assert.match(editor, /embedding_model_id: formData\.value\.modelConfig\.embeddingModelId/)
   assert.match(editor, /consumerSceneModelsForCreate/)
-  assert.match(editor, /const sceneModels = consumerSceneModelsForCreate\(\)/)
+  assert.match(editor, /const sceneModels = authStore\.isLiteMode \? consumerSceneModelsForCreate\(\) : \{\}/)
   assert.match(editor, /\.\.\.sceneModels/)
   const doSubmit = editor.slice(editor.indexOf('const doSubmit = async () => {'), editor.indexOf('// 重置所有状态'))
   const createStart = doSubmit.indexOf("if (editorMode.value === 'create')")

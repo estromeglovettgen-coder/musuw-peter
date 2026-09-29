@@ -91,6 +91,8 @@ import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import InputField from '@/components/Input-field.vue';
 import ContextualGuide from '@/components/ContextualGuide.vue';
 import { createSessions } from "@/api/chat/index";
+import { mentionedCustomer } from '@/api/customer';
+import { isPeterWorkspace } from '@/config/workspaceSurface';
 import { BUILTIN_SMART_REASONING_ID, getSuggestedQuestions } from "@/api/agent/index";
 import type { SuggestedQuestion } from "@/api/agent/index";
 import { useMenuStore } from '@/stores/menu';
@@ -273,6 +275,10 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
     };
 
     try {
+        if (isPeterWorkspace) {
+            const customer = await mentionedCustomer(mentionedItems);
+            if (customer) sessionData.customer_knowledge_base_id = customer.id;
+        }
         const res = await createSessions(sessionData);
         if (res.data && res.data.id) {
             await navigateToSession(res.data.id, value, modelId, mentionedItems, imageFiles, attachmentFiles, thinking, reasoningEffort);

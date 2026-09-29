@@ -1,0 +1,11 @@
+# Reuse the verified native runtime when only application code changes.
+# Build the native Dockerfile's builder target first, with the release version.
+ARG PETER_BUILD_IMAGE
+ARG PETER_RUNTIME_BASE
+FROM ${PETER_BUILD_IMAGE} AS build
+FROM ${PETER_RUNTIME_BASE}
+COPY --from=build /app/WeKnora /app/WeKnora
+COPY --from=build /app/config /app/config
+COPY --from=build /app/migrations /app/migrations
+COPY --from=build /app/scripts /app/scripts
+RUN chmod +x /app/scripts/*.sh

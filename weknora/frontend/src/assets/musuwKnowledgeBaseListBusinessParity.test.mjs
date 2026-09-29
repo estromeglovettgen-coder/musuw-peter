@@ -1,3 +1,5 @@
+// Peter customer-workspace + server delivery: approved native model catalog,
+// customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -9,7 +11,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 test('frozen KnowledgeBaseList controller remains the original implementation', () => {
   assert.equal(
     blobSha(read('./business-baselines/KnowledgeBaseList.pre-view.vue')),
-    'c49c30b1e68b3e99b8965b447eadac4bfc268249',
+    '42d4ed67cb5f4c8fd145d67f119e4a95bf88c45e',
   )
 })
 

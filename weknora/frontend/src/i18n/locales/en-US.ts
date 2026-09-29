@@ -1400,6 +1400,7 @@ export default {
         control_plane_unreachable: 'Skipped: control plane unreachable',
         sandbox_not_created: 'Skipped: sandbox was not created',
         sandbox_exec_failed: 'Skipped: in-sandbox execution failed',
+        network_disabled: 'Skipped: network access is disabled for this sandbox',
       },
       checks: {
         client_build: 'Client construction',

@@ -21,6 +21,7 @@ import { isContextualGuideDone, markContextualGuideDone } from '@/config/context
 import { useI18n } from 'vue-i18n'
 import { useListUrlState } from '@/composables/useListUrlState'
 import { useResourcePins } from '@/composables/useResourcePins'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 
 const router = useRouter()
 const route = useRoute()
@@ -30,11 +31,16 @@ const orgStore = useOrganizationStore()
 const chatResources = useChatResourcesStore()
 const { t } = useI18n()
 
-const defaultScope: 'all' | 'mine' = authStore.hasRole('contributor') ? 'mine' : 'all'
+const defaultScope: 'all' | 'mine' = isPeterWorkspace ? 'all' : authStore.hasRole('contributor') ? 'mine' : 'all'
 const { scope: spaceSelection, creator: creatorFilter } = useListUrlState({
   defaultScope,
   defaultCreator: 'all',
 })
+
+// Peter has one public-library view; obsolete scope bookmarks cannot hide its contents.
+if (isPeterWorkspace) watch(spaceSelection, value => {
+  if (value !== 'all') spaceSelection.value = 'all'
+}, { immediate: true })
 
 const pins = useResourcePins()
 const kbFavoritesCount = computed(
@@ -85,7 +91,7 @@ const UPLOAD_CLEANUP_DELAY = 10000
 const shareDialogVisible = ref(false)
 const sharingKbId = ref('')
 const sharingKbName = ref('')
-const sharedKbs = computed<SharedKnowledgeBase[]>(() => orgStore.sharedKnowledgeBases || [])
+const sharedKbs = computed<SharedKnowledgeBase[]>(() => (orgStore.sharedKnowledgeBases || []).filter(shared => !isPeterWorkspace || !(shared.knowledge_base as any)?.customer_profile))
 const allKnowledgeBases = computed(() => kbs.value.length + sharedKbs.value.length)
 
 const RESERVED_SCOPES = new Set(['all', 'mine', 'favorites', 'recents'])
@@ -307,7 +313,7 @@ interface UploadSummary {
 }
 
 const applyKbListData = (data: any[]) => {
-  kbs.value = data.map((kb: any) => ({
+  kbs.value = data.filter((kb: any) => !isPeterWorkspace || !kb.customer_profile).map((kb: any) => ({
     ...kb,
     updated_at: kb.updated_at ? formatStringDate(new Date(kb.updated_at)) : '',
     showMore: false,

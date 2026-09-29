@@ -67,6 +67,9 @@ func (s *sessionService) resolveKnowledgeBases(
 	ctx context.Context,
 	req *types.QARequest,
 ) (kbIDs []string, knowledgeIDs []string, err error) {
+	if req.Session != nil && req.Session.CustomerKnowledgeBaseID != "" {
+		return s.resolveCustomerKnowledge(ctx, req)
+	}
 	kbIDs = req.KnowledgeBaseIDs
 	knowledgeIDs = req.KnowledgeIDs
 	requestedKBIDs := append([]string(nil), req.KnowledgeBaseIDs...)

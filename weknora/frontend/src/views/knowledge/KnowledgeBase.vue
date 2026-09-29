@@ -41,6 +41,7 @@ const readStateValue = <T,>(value: T | { value: T }): T => {
 export default defineComponent({
   ...legacy,
   name: 'KnowledgeBase',
+  props: { ...(legacy.props || {}), embedded: { type: Boolean, default: false } },
   components: {
     ...(legacy.components || {}),
     DocContent, EmptyKnowledge, ContextualGuide, KBSwitcherDropdown, KnowledgeBaseEditorModal, FAQEntryManager,
@@ -187,8 +188,8 @@ export default defineComponent({
 
 <template>
   <template v-if="!isFAQ">
-    <main class="visual-knowledge-page" :class="{ 'is-graph-tab': activeKbTab === 'graph' }">
-      <header class="visual-knowledge-header">
+    <main class="visual-knowledge-page" :class="{ 'is-graph-tab': activeKbTab === 'graph', 'is-embedded': embedded }">
+      <header v-if="!embedded" class="visual-knowledge-header">
         <div class="visual-knowledge-header__copy">
           <nav class="visual-knowledge-breadcrumb" :aria-label="$t('menu.knowledgeBase')">
             <button type="button" class="visual-knowledge-breadcrumb__back" @click="handleNavigateToKbList">
@@ -229,7 +230,7 @@ export default defineComponent({
         </div>
       </header>
 
-      <div v-if="unsupportedFileTypes.length || missingStorageEngine" class="visual-knowledge-alerts">
+      <div v-if="activeKbTab === 'documents' && (unsupportedFileTypes.length || missingStorageEngine)" class="visual-knowledge-alerts">
         <button v-if="unsupportedFileTypes.length" type="button" :disabled="authStore.isLiteMode" @click="goToParserSettings"><t-icon name="info-circle" /><span>{{ $t('knowledgeBase.unsupportedTypesHint', { types: unsupportedFileTypes.map((t: string) => '.' + t).join('、') }) }}</span><strong v-if="!authStore.isLiteMode">{{ $t('knowledgeBase.goToParserSettings') }} →</strong></button>
         <button v-if="missingStorageEngine" type="button" :disabled="authStore.isLiteMode" @click="handleOpenKBSettings"><t-icon name="info-circle" /><span>{{ $t('knowledgeBase.missingStorageEngine') }}</span><strong v-if="!authStore.isLiteMode">{{ $t('knowledgeBase.goToStorageSettings') }} →</strong></button>
       </div>
@@ -238,7 +239,12 @@ export default defineComponent({
         <WikiBrowser v-if="kbId" :knowledge-base-id="kbId" :view="activeKbTab === 'graph' ? 'graph' : 'browser'" :can-edit="canEdit" @open-source-doc="openSourceDoc" @status-change="onWikiStatusChange" @view-graph="onViewWikiInGraph" />
       </section>
 
-      <section v-if="activeKbTab === 'documents' || !isWiki" class="visual-knowledge-documents">
+      <section v-if="embedded && activeKbTab !== 'documents' && !isWiki" class="visual-knowledge-unavailable" role="status">
+        <t-loading v-if="!kbInfo" text="正在读取…" />
+        <template v-else><p>此客户尚未启用 Wiki。</p><t-button v-if="canEdit" variant="outline" @click="handleOpenKBSettings">前往设置</t-button></template>
+      </section>
+
+      <section v-if="activeKbTab === 'documents' || (!embedded && !isWiki)" class="visual-knowledge-documents">
         <KbFolderTree v-if="showFolderTree" class="visual-knowledge-documents__tree" :kb-id="kbId" :tree="folderTree" :selected-path="selectedFolderPath" :loading="folderTreeLoading" :collapsed="folderTreeCollapsed" :can-edit="canEdit" :can-delete="canMutateKnowledge" @open-document="openKnowledgeItem" @delete-folder="handleFolderDelete" @select="handleFolderSelect" @update:collapsed="handleFolderTreeCollapsedChange" @rename="handleFolderRename" />
 
         <div class="visual-knowledge-content">
@@ -415,6 +421,8 @@ export default defineComponent({
 
 <style scoped lang="less">
 @import './components/knowledge-base-layout.less';
+.visual-knowledge-page.is-embedded { padding: 0; height: 100%; background: transparent; }
+.visual-knowledge-unavailable { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--td-text-color-secondary); }
 .visual-knowledge-loading { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 .visual-knowledge-load-error { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--td-text-color-secondary); }
 .visual-knowledge-load-error { flex-shrink: 0; justify-content: space-between; color: var(--td-error-color); }

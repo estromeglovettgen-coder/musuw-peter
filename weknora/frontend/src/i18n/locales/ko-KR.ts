@@ -5515,6 +5515,7 @@ export default {
         control_plane_unreachable: '컨트롤 플레인에 연결할 수 없어 건너뜀',
         sandbox_not_created: '샌드박스가 생성되지 않아 건너뜀',
         sandbox_exec_failed: '샌드박스 내 실행 실패로 건너뜀',
+        network_disabled: '이 샌드박스의 네트워크 접근이 비활성화되어 건너뜀',
       },
       noVolumeSupport: 'This backend does not support volume mounts; skills relying on a shared volume will be unavailable.',
       checks: {

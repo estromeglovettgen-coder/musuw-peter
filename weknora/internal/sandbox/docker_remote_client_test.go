@@ -624,6 +624,20 @@ func TestDockerClientConnectUnpausesPausedContainer(t *testing.T) {
 	require.Empty(t, engine.started)
 }
 
+func TestDockerClientConnectRejectsFailedActivityRefresh(t *testing.T) {
+	engine := newFakeDockerEngine()
+	engine.inspect["container-1"] = container.InspectResponse{
+		ID: "container-1", State: &container.State{Status: "running"},
+	}
+	engine.execExit = 1
+	engine.execStderr = "cannot update activity marker"
+	docker := newTestDockerClient(t, engine)
+	handle, err := docker.Connect(context.Background(), "container-1")
+	require.Error(t, err)
+	require.Nil(t, handle, "a sandbox that cleanup still considers idle must not be reported as ready")
+	require.False(t, CanReplaceRemoteBinding(err), "a transient filesystem error must preserve the session filesystem")
+}
+
 // A missing container must classify as NotFound so the lifecycle rebinds the
 // session instead of failing every execution forever.
 func TestDockerClientConnectMissingContainerIsReplaceable(t *testing.T) {

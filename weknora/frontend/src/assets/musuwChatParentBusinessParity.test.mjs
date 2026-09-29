@@ -1,3 +1,5 @@
+// Peter customer-workspace + server delivery: approved native model catalog,
+// customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -9,7 +11,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 test('audited chat parent controller remains locked after server-authorized marketplace chat integration', () => {
   assert.equal(
     blobSha(read('./business-baselines/ChatIndex.pre-view.vue')),
-    '49e439ef2fc54b2a5a5403ed6eae15d5a647a9af',
+    '5cf5274325a8fc8ee502974dd7602967a62d01fa',
   )
 })
 

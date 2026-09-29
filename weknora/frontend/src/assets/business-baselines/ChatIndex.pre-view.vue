@@ -131,11 +131,16 @@ import InputField from '../../components/Input-field.vue';
 import botmsg from './components/botmsg.vue';
 import usermsg from './components/usermsg.vue';
 import { getMessageList, getSession } from "@/api/chat/index";
-import { getSuggestedQuestions } from "@/api/agent/index";
+import { archiveCustomerFiles, mentionedCustomer, newCustomerSession } from '@/api/customer';
+import { getKnowledgeBaseById } from '@/api/knowledge-base';
+import { isPeterWorkspace } from '@/config/workspaceSurface';
+import { getAgentById, getSuggestedQuestions, BUILTIN_SMART_REASONING_ID } from "@/api/agent/index";
+import { useOrganizationStore } from '@/stores/organization';
 import { deleteTemporaryAttachment, uploadTemporaryAttachment } from '@/api/chat/temporary-attachments';
 import { useStream } from '../../api/chat/streame'
 import { useMenuStore } from '@/stores/menu';
 import { useSettingsStore } from '@/stores/settings';
+import { useChatResourcesStore } from '@/stores/chatResources';
 import { useCurrentEntitlementStore } from '@/stores/entitlement';
 import { MessagePlugin } from 'tdesign-vue-next';
 import { useI18n } from 'vue-i18n';
@@ -224,6 +229,8 @@ const attachStreamDebugToMessage = (message) => {
 const route = useRoute();
 const session_id = ref(props.session_id || route.params.chatid);
 const currentSession = ref(null);
+const customerArchiveStatus = ref('');
+const customerTurnPreparing = ref(false);
 
 // 拉 session 详情，并按其 last_request_state 把输入栏状态恢复到当时的发起态。
 // 嵌入式（embeddedMode）由宿主页面注入 agent/KB，所以跳过整套恢复逻辑，
@@ -240,6 +247,15 @@ const loadSessionAndHydrate = async (sid) => {
                 // 离开会话时会从快照还原，避免本会话的状态污染新建对话。
                 useSettingsStoreInstance.snapshotAsDefaultsIfNeeded();
                 useSettingsStoreInstance.applyLastRequestState(lastState);
+            }
+            if (isPeterWorkspace && sessionRes.data.customer_knowledge_base_id) {
+                const resources = useChatResourcesStore();
+                await resources.ensureKnowledgeBases();
+                if (sid !== session_id.value) return;
+                useSettingsStoreInstance.snapshotAsDefaultsIfNeeded();
+                const customerIds = new Set(resources.rawKnowledgeBases.filter(kb => kb.customer_profile).map(kb => kb.id));
+                const publicIds = useSettingsStoreInstance.settings.selectedKnowledgeBases.filter(id => !customerIds.has(id));
+                useSettingsStoreInstance.selectKnowledgeBases([...publicIds, sessionRes.data.customer_knowledge_base_id]);
             }
         }
     } catch (error) {
@@ -701,16 +717,57 @@ const handleStopGeneration = () => {
 };
 
 const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = [], attachmentFiles = [], thinkingEnabled = useSettingsStoreInstance.conversationModels.thinkingEnabled !== false, reasoningEffort = useSettingsStoreInstance.conversationModels.reasoningEffort || '') => {
+    if (customerTurnPreparing.value) return;
+    const turnSessionID = session_id.value;
+    const selectedAgentId = props.embeddedMode ? props.agentId : (useSettingsStoreInstance.selectedAgentId || '');
+    const selectedAgentSourceTenantId = props.embeddedMode
+        ? undefined
+        : (useSettingsStoreInstance.selectedAgentSourceTenantId || undefined);
+    let customer = null;
+    let archiveCustomerSources = false;
+    if (isPeterWorkspace && !props.embeddedMode) {
+        customerTurnPreparing.value = true;
+        try {
+            if (!currentSession.value) await loadSessionAndHydrate(turnSessionID);
+            const selected = await mentionedCustomer(mentionedItems);
+            if (selected && selected.id !== currentSession.value?.customer_knowledge_base_id) {
+                const nextSession = await newCustomerSession(selected.id, selected.name);
+                usemenuStore.changeIsFirstSession(true);
+                usemenuStore.changeFirstQuery(value, mentionedItems, modelId, imageFiles, attachmentFiles, thinkingEnabled, reasoningEffort);
+                await router.push(`/platform/chat/${nextSession.id}`);
+                return;
+            }
+            if (currentSession.value?.customer_knowledge_base_id) {
+                const response = await getKnowledgeBaseById(currentSession.value.customer_knowledge_base_id);
+                customer = response.data;
+            }
+            if (customer && (imageFiles.length || attachmentFiles.length)) {
+                const agentId = selectedAgentId || BUILTIN_SMART_REASONING_ID;
+                const sourceTenantId = selectedAgentSourceTenantId;
+                const agent = sourceTenantId
+                    ? (await useOrganizationStore().fetchSharedAgents({ force: true })).find(
+                        item => item.agent.id === agentId && String(item.source_tenant_id) === sourceTenantId,
+                    )?.agent
+                    : (await getAgentById(agentId)).data;
+                if (!agent?.config) throw new Error('无法读取智能体的附件归档设置，请重试');
+                archiveCustomerSources = agent.config.archive_customer_sources !== false;
+            }
+        } catch (error) {
+            MessagePlugin.error(error?.message || '客户会话准备失败，请重试');
+            return;
+        } finally { customerTurnPreparing.value = false; }
+    }
+    if (turnSessionID !== session_id.value) return;
     stopStream();
     outgoingMarketplaceProductId = props.embeddedMode ? '' : (useSettingsStoreInstance.settings.marketplaceProductId || '');
     prepareForNewOutgoingMessage();
     isReplying.value = true;
     loading.value = true;
-    const selectedAgentId = props.embeddedMode ? props.agentId : (useSettingsStoreInstance.selectedAgentId || '');
-    const selectedAgentSourceTenantId = props.embeddedMode
-        ? undefined
-        : (useSettingsStoreInstance.selectedAgentSourceTenantId || undefined);
-
+    customerArchiveStatus.value = '';
+    if (customer && archiveCustomerSources) {
+        await archiveCustomerFiles(customer.id, imageFiles, attachmentFiles, message => { customerArchiveStatus.value = message; });
+        if (turnSessionID !== session_id.value) return;
+    }
     // Images are unified with the attachment pipeline: on the authenticated web
     // client they upload as temporary documents (understood in the background by
     // the VLM) and are sent as attachment_ids. The inline base64 `images`
@@ -833,8 +890,8 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
 
     // Get knowledge_base_ids from settings store (selected by user via KnowledgeBaseSelector)
     // Merge @mentioned KB/file IDs so retrieval uses the same targets user @mentioned (including shared KBs)
-    const sidebarKbIds = props.embeddedMode ? props.kbIds : (useSettingsStoreInstance.settings.selectedKnowledgeBases || []);
-    const sidebarFileIds = props.embeddedMode ? [] : (useSettingsStoreInstance.settings.selectedFiles || []);
+    const sidebarKbIds = customer ? [customer.id, ...(customer.customer_profile.shared_knowledge_base_ids || [])] : props.embeddedMode ? props.kbIds : (useSettingsStoreInstance.settings.selectedKnowledgeBases || []);
+    const sidebarFileIds = customer || props.embeddedMode ? [] : (useSettingsStoreInstance.settings.selectedFiles || []);
     const kbIdSet = new Set(sidebarKbIds);
     const fileIdSet = new Set(sidebarFileIds);
     for (const kbId of pendingSuggestionKnowledgeBaseIds) {

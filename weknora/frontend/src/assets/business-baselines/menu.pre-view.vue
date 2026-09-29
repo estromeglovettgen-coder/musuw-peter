@@ -332,7 +332,7 @@ const isMenuItemActive = (itemPath: string): boolean => {
   const currentRoute = route.name;
   switch (itemPath) {
     case "knowledge-bases":
-      return currentRoute === "knowledgeBaseList" || currentRoute === "knowledgeBaseDetail" || currentRoute === "knowledgeBaseSettings";
+      return currentRoute === "knowledgeBaseList" || currentRoute === "knowledgeBaseDetail" || currentRoute === "knowledgeBaseSettings" || currentRoute === "customerList" || currentRoute === "customerProject";
     case "creatChat":
       return currentRoute === "kbCreatChat" || currentRoute === "globalCreatChat";
     case "settings":

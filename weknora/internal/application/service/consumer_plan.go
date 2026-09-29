@@ -26,6 +26,11 @@ func effectiveStorageQuota(tenant *types.Tenant, at time.Time) int64 {
 }
 
 func (s *knowledgeBaseService) checkCreateKnowledgeBaseEntitlement(ctx context.Context) error {
+	// Consumer plans belong to the hosted Lite product. Private Standard
+	// workspaces manage their own infrastructure and model credentials.
+	if !isLiteProductEdition() {
+		return nil
+	}
 	plan, ok := effectivePlanFromContext(ctx)
 	if !ok {
 		return nil
@@ -46,6 +51,9 @@ func (s *knowledgeBaseService) checkCreateKnowledgeBaseEntitlement(ctx context.C
 }
 
 func (s *knowledgeService) checkCreateKnowledgeEntitlement(ctx context.Context, kbID, fileType string, fileBytes int64) error {
+	if !isLiteProductEdition() {
+		return nil
+	}
 	tenant, ok := types.TenantInfoFromContext(ctx)
 	if !ok || tenant == nil || tenant.Plan == "" {
 		return nil

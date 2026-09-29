@@ -2,12 +2,73 @@ package sandbox
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/moby/moby/api/types/container"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDockerIdleSweeperPreservesActiveSessionAfterRestart(t *testing.T) {
+	now := time.Now().UTC()
+	sweeper, engine := newSweeperFixture(t, time.Minute, now, []container.Summary{{
+		ID: "resumed-session", State: "running", Created: now.Add(-time.Hour).Unix(),
+		Labels: map[string]string{dockerManagedLabel: "true", remoteMetadataTenantID: "42", remoteMetadataSessionID: "sales-session"},
+	}})
+	engine.statResult[dockerActivityMarker] = container.PathStat{Mtime: now.Add(-time.Hour)}
+	sweeper.client.sweeper = sweeper
+	cfg := DefaultConfig()
+	cfg.Type = SandboxTypeDocker
+	cfg.DockerImage = "sandbox:test"
+	manager, err := NewSessionBoundManager(SessionBoundManagerConfig{
+		Config: cfg, Client: sweeper.client, Store: NewMemorySessionSandboxBindingStore(),
+		Checker: PermissiveSessionExistenceChecker{}, SkipHealthProbe: true,
+	})
+	require.NoError(t, err)
+	ctx := types.WithSandboxTenantID(context.Background(), 42)
+	require.NoError(t, manager.BeginSessionTurn(ctx, "sales-session"))
+	reclaimed, err := sweeper.sweep(ctx)
+	require.NoError(t, err)
+	require.Zero(t, reclaimed, "attachment restoration must not race idle cleanup before its first exec refreshes the marker")
+	require.Empty(t, engine.removed)
+	require.NoError(t, manager.EndSessionTurn(ctx, "sales-session"))
+	reclaimed, err = sweeper.sweep(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 1, reclaimed, "releasing the lease must still allow genuinely idle sandboxes to be reclaimed")
+}
+
+type failingSweepLeaseStore struct {
+	*MemorySessionSandboxBindingStore
+}
+
+func (s *failingSweepLeaseStore) TurnState(context.Context, SessionSandboxKey) (bool, bool, error) {
+	return false, false, errors.New("binding store unavailable")
+}
+
+func TestDockerIdleSweeperDoesNotDeleteWhenSessionActivityCannotBeRead(t *testing.T) {
+	now := time.Now().UTC()
+	sweeper, engine := newSweeperFixture(t, time.Minute, now, []container.Summary{{
+		ID: "uncertain-session", State: "running", Created: now.Add(-time.Hour).Unix(),
+		Labels: map[string]string{dockerManagedLabel: "true", remoteMetadataTenantID: "42", remoteMetadataSessionID: "sales-session"},
+	}})
+	engine.statResult[dockerActivityMarker] = container.PathStat{Mtime: now.Add(-time.Hour)}
+	sweeper.client.sweeper = sweeper
+	cfg := DefaultConfig()
+	cfg.Type = SandboxTypeDocker
+	cfg.DockerImage = "sandbox:test"
+	_, err := NewSessionBoundManager(SessionBoundManagerConfig{
+		Config: cfg, Client: sweeper.client,
+		Store:   &failingSweepLeaseStore{NewMemorySessionSandboxBindingStore()},
+		Checker: PermissiveSessionExistenceChecker{}, SkipHealthProbe: true,
+	})
+	require.NoError(t, err)
+	reclaimed, err := sweeper.sweep(context.Background())
+	require.NoError(t, err)
+	require.Zero(t, reclaimed)
+	require.Empty(t, engine.removed)
+}
 
 // newSweeperFixture wires a sweeper over a fake daemon holding the given
 // containers, with the activity marker of each one set from markers.

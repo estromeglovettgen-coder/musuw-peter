@@ -5520,6 +5520,7 @@ export default {
         control_plane_unreachable: '控制面不可达，已跳过',
         sandbox_not_created: '沙箱未创建，已跳过',
         sandbox_exec_failed: '沙箱内执行失败，已跳过',
+        network_disabled: '此沙箱已关闭外网访问，已跳过',
       },
       checks: {
         client_build: '客户端构建',

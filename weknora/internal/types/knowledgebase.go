@@ -65,6 +65,7 @@ const (
 
 // KnowledgeBase represents a knowledge base entity
 type KnowledgeBase struct {
+	CustomerProfile *CustomerProfile `json:"customer_profile,omitempty" gorm:"type:json"`
 	// Unique identifier of the knowledge base
 	ID string `yaml:"id"                      json:"id"                      gorm:"type:varchar(36);primaryKey"`
 	// Name of the knowledge base
@@ -216,6 +217,7 @@ func (kb *KnowledgeBase) ApplyPlatformKnowledgeBaseDefaults() {
 
 // KnowledgeBaseConfig represents the knowledge base configuration
 type KnowledgeBaseConfig struct {
+	CustomerProfile *CustomerProfile `json:"customer_profile,omitempty"`
 	// Chunking configuration
 	ChunkingConfig ChunkingConfig `yaml:"chunking_config"         json:"chunking_config"`
 	// Image processing configuration

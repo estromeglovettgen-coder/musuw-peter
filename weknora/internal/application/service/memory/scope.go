@@ -38,5 +38,8 @@ func ResolveScope(ctx context.Context) (interfaces.MemoryScope, error) {
 	if subjectID == "" {
 		return interfaces.MemoryScope{}, ErrNoMemoryScope
 	}
+	if customerID := types.CustomerKnowledgeBaseFromContext(ctx); customerID != "" {
+		subjectID += ":customer:" + customerID
+	}
 	return interfaces.MemoryScope{TenantID: tenantID, SubjectID: subjectID}, nil
 }

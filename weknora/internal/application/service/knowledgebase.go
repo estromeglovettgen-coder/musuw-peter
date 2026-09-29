@@ -122,6 +122,12 @@ func (s *knowledgeBaseService) GetRepository() interfaces.KnowledgeBaseRepositor
 func (s *knowledgeBaseService) CreateKnowledgeBase(ctx context.Context,
 	kb *types.KnowledgeBase,
 ) (*types.KnowledgeBase, error) {
+	if err := kb.CustomerProfile.Validate(); err != nil {
+		return nil, apperrors.NewBadRequestError(err.Error())
+	}
+	if kb.CustomerProfile != nil && kb.Type != "" && kb.Type != types.KnowledgeBaseTypeDocument {
+		return nil, apperrors.NewBadRequestError("customers require a document knowledge base")
+	}
 	if err := rejectLiteFAQKnowledgeBase(kb); err != nil {
 		return nil, err
 	}
@@ -147,7 +153,9 @@ func (s *knowledgeBaseService) CreateKnowledgeBase(ctx context.Context,
 		kb.CreatorID = uid
 	}
 	consumerCandidates := requestedConsumerModels(kb)
-	kb.ApplyPlatformKnowledgeBaseDefaults()
+	if isLiteProductEdition() {
+		kb.ApplyPlatformKnowledgeBaseDefaults()
+	}
 	// Lite exposes only RAG and Wiki as selectable document-library
 	// strategies. Graph is an intentionally hidden platform default, so a
 	// graph-only request would create a library that accepts and parses files
@@ -366,7 +374,7 @@ func (s *knowledgeBaseService) resolveNewKnowledgeBaseModel(
 // browser never chooses these models: their IDs are platform-owned defaults,
 // so a missing or stale catalog is a temporary platform readiness failure.
 func (s *knowledgeBaseService) ensurePlatformKnowledgeBaseModels(ctx context.Context, kb *types.KnowledgeBase) error {
-	if kb == nil || kb.Type != types.KnowledgeBaseTypeDocument {
+	if !isLiteProductEdition() || kb == nil || kb.Type != types.KnowledgeBaseTypeDocument {
 		return nil
 	}
 	if s.modelService == nil {
@@ -781,6 +789,15 @@ func (s *knowledgeBaseService) UpdateKnowledgeBase(ctx context.Context,
 				return nil, err
 			}
 		} else {
+			if config.CustomerProfile != nil {
+				if kb.CustomerProfile == nil {
+					return nil, apperrors.NewBadRequestError("this knowledge base is not a customer")
+				}
+				if err := config.CustomerProfile.Validate(); err != nil {
+					return nil, apperrors.NewBadRequestError(err.Error())
+				}
+				kb.CustomerProfile = config.CustomerProfile
+			}
 			kb.ChunkingConfig = config.ChunkingConfig
 			kb.ImageProcessingConfig = config.ImageProcessingConfig
 			if config.FAQConfig != nil {
@@ -1297,16 +1314,23 @@ func (s *knowledgeBaseService) ProcessKBDelete(ctx context.Context, t *asynq.Tas
 		logger.Infof(ctx, "Deleting physical files and extracted images")
 		for _, knowledge := range knowledgeList {
 			if knowledge.FilePath != "" {
-				if err := deleteFileIdempotent(ctx, s.fileSvc, knowledge.FilePath); err != nil {
+				if err := s.deleteFileForAccountErasure(ctx, tenantID, knowledge.FilePath); err != nil {
 					logger.Errorf(ctx, "Failed to delete file %s: %v", knowledge.FilePath, err)
 					return err
 				}
 			}
 		}
-		if err := deleteExtractedImagesStrict(ctx, s.fileSvc,
-			knowledgeResourceOwners(s.resourceCatalog, knowledgeIDs...), imageURLs); err != nil {
-			logger.Errorf(ctx, "Failed to delete extracted images for KB %s: %v", kbID, err)
-			return err
+		owners := knowledgeResourceOwners(s.resourceCatalog, knowledgeIDs...)
+		for _, imageURL := range imageURLs {
+			deletable, err := owners.deletableStrict(ctx, imageURL)
+			if err != nil {
+				return fmt.Errorf("release extracted image %s: %w", imageURL, err)
+			}
+			if deletable {
+				if err := s.deleteFileForAccountErasure(ctx, tenantID, imageURL); err != nil {
+					return fmt.Errorf("delete extracted image %s: %w", imageURL, err)
+				}
+			}
 		}
 
 		// Delete all chunks after physical object cleanup succeeds. Retaining

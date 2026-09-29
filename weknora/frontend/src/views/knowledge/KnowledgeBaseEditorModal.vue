@@ -29,14 +29,27 @@
     </div>
 
     <form v-if="formData" class="kb-settings-scroll" @submit.prevent="handleSubmit">
+      <CustomerInitialSources v-if="isCustomer && currentSection === 'sources'" v-model="initialSources" :created="!!savedCustomerId" :uploading="saving" />
+      <template v-if="!savedCustomerId">
+      <section v-if="isCustomer && currentSection === 'customer'" class="kb-config-section section">
+        <div class="section-header"><h2>{{ templateMode ? '客户类型模板' : '客户资料' }}</h2></div>
+        <t-loading v-if="customerResourcesLoading" text="正在读取客户设置…" />
+        <t-alert v-else-if="customerResourcesError" theme="error" :message="customerResourcesError"><template #operation><t-button variant="text" @click="loadCustomerResources">重试</t-button></template></t-alert>
+        <template v-else>
+          <label v-if="!templateMode && editorMode === 'create' && customerConfig.templates.length" class="customer-template-picker">客户类型模板
+            <t-select v-model="selectedTemplateId" aria-label="客户类型模板" filterable :options="customerConfig.templates.map(item => ({ label: item.name, value: item.id }))" placeholder="选择模板，一键套用配置" :disabled="loading || saving" @change="applyCustomerTemplate" />
+          </label>
+          <CustomerProfileFields v-model:name="formData.name" v-model:description="formData.description" v-model:profile="formData.customerProfile" :config="customerConfig" :libraries="customerLibraries" :pages="customerWikiPages" :template-mode="templateMode" :editing="editorMode === 'edit'" />
+        </template>
+      </section>
       <div v-show="currentSection === 'basic'" class="kb-config-section section">
         <div class="section-header">
-          <h2>{{ $t('knowledgeEditor.sidebar.basic') }}</h2>
-          <p class="section-description">{{ $t('knowledgeEditor.modalDescription') }}</p>
+          <h2>{{ isCustomer ? 'Wiki 与检索' : $t('knowledgeEditor.sidebar.basic') }}</h2>
+          <p v-if="!isCustomer" class="section-description">{{ $t('knowledgeEditor.modalDescription') }}</p>
         </div>
 
         <div class="settings-group">
-          <section v-if="editorMode === 'edit' && activeKbId" class="setting-row">
+          <section v-if="!isCustomer && editorMode === 'edit' && activeKbId" class="setting-row">
             <div class="setting-info">
               <label>{{ $t('knowledgeEditor.basic.kbId') }}</label>
               <p class="desc">{{ $t('knowledgeEditor.basic.kbIdDesc') }}</p>
@@ -51,7 +64,7 @@
             </div>
           </section>
 
-          <section v-if="!authStore.isLiteMode" class="setting-row">
+          <section v-if="!authStore.isLiteMode && !isCustomer" class="setting-row">
             <div class="setting-info">
               <label>{{ $t('knowledgeEditor.basic.typeLabel') }} <span class="is-required">*</span></label>
               <p class="desc">{{ $t('knowledgeEditor.basic.typeDescription') }}</p>
@@ -143,7 +156,7 @@
             </div>
           </section>
 
-          <section class="setting-row" data-guide="kb-create-name">
+          <section v-if="!isCustomer" class="setting-row" data-guide="kb-create-name">
             <div class="setting-info">
               <label>{{ $t('knowledgeEditor.basic.nameLabel') }} <span class="is-required">*</span></label>
             </div>
@@ -158,7 +171,7 @@
             </div>
           </section>
 
-          <section class="setting-row setting-row-vertical">
+          <section v-if="!isCustomer" class="setting-row setting-row-vertical">
             <div class="setting-info">
               <label>{{ $t('knowledgeEditor.basic.descriptionLabel') }}</label>
             </div>
@@ -370,18 +383,19 @@
               <KnowledgeBaseActivitySettings v-if="activeKbId" :kb-id="activeKbId" :active="currentSection === 'activity'" />
             </div>
 
+      </template>
     </form>
 
     <template #footer>
-      <t-button variant="outline" @click="handleClose">
-        {{ $t('common.cancel') }}
+      <t-button variant="outline" :disabled="saving" @click="handleClose">
+        {{ savedCustomerId ? '进入客户' : $t('common.cancel') }}
       </t-button>
       <t-button
         v-if="formData"
         theme="primary"
         data-guide="kb-create-submit"
         :loading="saving"
-        :disabled="saving || (authStore.isLiteMode && !isFAQ && !formData.indexingStrategy.vectorEnabled && !formData.indexingStrategy.keywordEnabled && !formData.indexingStrategy.wikiEnabled)"
+        :disabled="saving || loading || (isCustomer && (customerResourcesLoading || !!customerResourcesError)) || (authStore.isLiteMode && !isFAQ && !formData.indexingStrategy.vectorEnabled && !formData.indexingStrategy.keywordEnabled && !formData.indexingStrategy.wikiEnabled)"
         @click="handleSubmit"
       >
         {{ saveButtonLabel }}
@@ -390,7 +404,7 @@
   </VisualSettingsShell>
 
   <KbCreateContextualGuide
-    :when="visible && editorMode === 'create'"
+    :when="visible && editorMode === 'create' && !isCustomer"
     :is-faq="isFAQ"
     :needs-embedding="kbCreateNeedsEmbedding"
   />
@@ -401,7 +415,11 @@ import KbCreateContextualGuide from '@/components/KbCreateContextualGuide.vue'
 import VisualSettingsShell from '@/views/settings/components/VisualSettingsShell.vue'
 import { KB_EDITOR_FOCUS_SECTION_EVENT, markContextualGuideDone } from '@/config/contextualGuides'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { createKnowledgeBase, getKnowledgeBaseById, listKnowledgeFiles, updateKnowledgeBase } from '@/api/knowledge-base'
+import { createKnowledgeBase, getKnowledgeBaseById, listKnowledgeBases, listKnowledgeFiles, updateKnowledgeBase, uploadKnowledgeFile } from '@/api/knowledge-base'
+import { CUSTOMER_CONTENT, CUSTOMER_EXTRACTION, emptyCustomerProfile, getCustomerConfig, customerTemplateConfig, type CustomerConfig, type CustomerTemplate, type CustomerUploadItem } from '@/api/customer'
+import { listWikiPages } from '@/api/wiki'
+import CustomerProfileFields from '@/views/customer/CustomerProfileFields.vue'
+import CustomerInitialSources from '@/views/customer/CustomerInitialSources.vue'
 import { updateKBConfig, type KBModelConfigRequest } from '@/api/initialization'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { selectInitialModelId } from '@/utils/modelDefaults'
@@ -450,23 +468,29 @@ const props = defineProps<{
   mode: 'create' | 'edit'
   kbId?: string
   initialType?: 'document' | 'faq'
+  customer?: boolean
+  templateMode?: boolean
+  customerTemplate?: CustomerTemplate
+  customerChoices?: CustomerConfig
 }>()
 
 // Emits
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'success', kbId: string): void
+  (e: 'template-save', template: CustomerTemplate): void
 }>()
 
 const editorMode = computed(() => props.mode)
 const activeKbId = computed(() => props.kbId)
+const isCustomer = computed(() => !!props.customer || !!props.templateMode || !!formData.value?.customerProfile)
 const editorTitle = computed(() =>
-  editorMode.value === 'create'
+  props.templateMode ? '客户类型模板' : isCustomer.value ? (editorMode.value === 'create' ? '新建客户' : '编辑客户') : editorMode.value === 'create'
     ? t('knowledgeEditor.titleCreate')
     : t('knowledgeEditor.titleEdit')
 )
 const saveButtonLabel = computed(() =>
-  editorMode.value === 'create'
+  props.templateMode ? '完成配置' : savedCustomerId.value ? '重试失败文件' : isCustomer.value ? (editorMode.value === 'create' ? '创建客户' : '保存客户') : editorMode.value === 'create'
     ? t('knowledgeEditor.buttons.confirmCreate')
     : t('knowledgeEditor.buttons.save')
 )
@@ -508,7 +532,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener(KB_EDITOR_FOCUS_SECTION_EVENT, onKbEditorFocusSection)
+  if (resetTimer) clearTimeout(resetTimer)
+  loadVersion++
 })
+let resetTimer: ReturnType<typeof setTimeout> | undefined
+let loadVersion = 0
 const saving = ref(false)
 const loading = ref(false)
 const allModels = ref<any[]>([])
@@ -567,8 +595,10 @@ const DEFAULT_CHUNKING_PRESET = {
 } as const
 
 const navItems = computed(() => {
+  if (savedCustomerId.value) return [{ key: 'sources', icon: 'upload', label: '资料上传' }]
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
-    { key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') },
+    ...(isCustomer.value ? [{ key: 'customer', icon: 'user', label: props.templateMode ? '模板配置' : '客户资料' }, ...(!props.templateMode ? [{ key: 'sources', icon: 'upload', label: '聊天资料' }] : [])] : []),
+    { key: 'basic', icon: 'info-circle', label: isCustomer.value ? 'Wiki 与检索' : t('knowledgeEditor.sidebar.basic') },
   ]
   if (authStore.isLiteMode) {
     const liteItems: { key: string; icon: string; label: string; badge?: number }[] = LITE_KB_EDITOR_SECTIONS.map((item) => ({
@@ -654,6 +684,67 @@ const advancedSettingsRef = ref<InstanceType<typeof KBAdvancedSettings>>()
 
 // 表单数据
 const formData = ref<any>(null)
+const customerConfig = ref<CustomerConfig>({ statuses: [], tags: [], templates: [] })
+const selectedTemplateId = ref('')
+const appliedTemplateNote = ref<string | null>(null)
+const customerLibraries = ref<any[]>([])
+const customerWikiPages = ref<any[]>([])
+const customerResourcesLoading = ref(false)
+const customerResourcesError = ref('')
+const initialSources = ref<CustomerUploadItem[]>([])
+const savedCustomerId = ref('')
+
+async function loadCustomerResources() {
+  const version = loadVersion
+  customerResourcesLoading.value = true
+  customerResourcesError.value = ''
+  try {
+    const [config, libraries, wiki]: any[] = await Promise.all([
+      props.customerChoices || getCustomerConfig(), listKnowledgeBases(),
+      activeKbId.value && formData.value?.indexingStrategy.wikiEnabled ? listWikiPages(activeKbId.value, { page_size: 100 }) : Promise.resolve(null),
+    ])
+    if (version !== loadVersion) return
+    customerConfig.value = config
+    customerLibraries.value = (libraries.data || []).filter((kb: any) => !kb.customer_profile)
+    customerWikiPages.value = wiki?.data?.pages || []
+    if (editorMode.value === 'create' && formData.value?.customerProfile && !formData.value.customerProfile.status) {
+      formData.value.customerProfile.status = config.statuses[0]
+    }
+  } catch (error: any) {
+    if (version === loadVersion) customerResourcesError.value = error.message || '客户设置加载失败，请重试'
+  } finally {
+    if (version === loadVersion) customerResourcesLoading.value = false
+  }
+}
+
+function finishSave(id: string) {
+  emit('success', id)
+  emit('update:visible', false)
+}
+
+async function uploadCustomerSources(id: string) {
+  savedCustomerId.value = id
+  currentSection.value = 'sources'
+  for (const item of initialSources.value) {
+    if (item.status === 'success') continue
+    item.status = 'uploading'; item.progress = 0; item.error = ''
+    try {
+      const result: any = await uploadKnowledgeFile(id, { file: item.file }, event => {
+        if (event.total) item.progress = Math.min(100, Math.round(event.loaded / event.total * 100))
+      })
+      if (!result?.success) throw new Error(result?.message || '上传失败')
+      item.status = 'success'; item.progress = 100
+    } catch (error: any) {
+      item.status = 'error'; item.error = error.message || '上传失败'
+    }
+  }
+  if (initialSources.value.some(item => item.status === 'error')) {
+    MessagePlugin.warning('客户已保存，部分文件上传失败，可重试')
+    return
+  }
+  MessagePlugin.success(initialSources.value.length ? `客户已保存，${initialSources.value.length} 份资料已上传` : '客户已保存')
+  finishSave(id)
+}
 // FAQ remains a Standard/admin capability.  Lite's form is document-only
 // even if stale state or a crafted deep link tries to inject another type.
 const isFAQ = computed(() => !authStore.isLiteMode && formData.value?.type === 'faq')
@@ -722,22 +813,40 @@ const initFormData = (type: 'document' | 'faq' = 'document') => ({
   type: normalizeKnowledgeBaseType(type),
   name: authStore.isLiteMode ? getLiteDefaultKnowledgeBaseName() : '',
   description: '',
+  ...(props.customer || props.templateMode ? { customerProfile: emptyCustomerProfile() } : {}),
+  faqConfig: { indexMode: 'question_only', questionIndexMode: 'separate' },
   chunkingConfig: {
+    ...DEFAULT_CHUNKING_PRESET,
+    separators: ['\n\n', '\n', '。', '！', '？', ';', '；'],
+    parentChunkSize: 4096,
+    childChunkSize: 384,
+    strategy: '',
+    tokenLimit: 0,
+    languages: [],
     tableMetadataInstructions: '',
   },
   modelConfig: {
-    llmModelId: settingsStore.getConsumerSceneModel('rag').trim(),
+    llmModelId: authStore.isLiteMode ? settingsStore.getConsumerSceneModel('rag').trim() : '',
+    embeddingModelId: '',
+    wikiSynthesisModelId: '',
   },
+  storageBackendId: '',
+  storageProvider: tenantDefaultStorageProvider.value,
+  vectorStoreId: '',
+  vectorStoreInfo: {},
+  multimodalConfig: { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
+  asrConfig: { enabled: false, modelId: '', language: '' },
+  nodeExtractConfig: { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
   indexingStrategy: {
-    vectorEnabled: true,
-    keywordEnabled: true,
+    vectorEnabled: !props.customer,
+    keywordEnabled: !props.customer,
     wikiEnabled: true,
-    graphEnabled: true,
+    graphEnabled: !props.customer,
   },
   wikiConfig: {
-    extractionGranularity: 'standard' as 'focused' | 'standard' | 'exhaustive',
-    contentInstructions: '',
-    extractionInstructions: '',
+    extractionGranularity: (props.customer ? 'focused' : 'standard') as 'focused' | 'standard' | 'exhaustive',
+    contentInstructions: props.customer ? CUSTOMER_CONTENT : '',
+    extractionInstructions: props.customer ? CUSTOMER_EXTRACTION : '',
   },
   questionGenerationConfig: {
     enabled: true,
@@ -803,8 +912,139 @@ const loadSummaryModelOptions = async (force = false) => {
   }
 }
 
+// Shared hydration for saved KBs and detached customer-template snapshots.
+const formFromNative = (kb: any) => {
+  const kbType = normalizeKnowledgeBaseType(kb.type)
+  return {
+    type: kbType,
+    name: kb.name || '',
+    description: kb.description || '',
+    ...((kb as any).customer_profile ? { customerProfile: {
+      ...emptyCustomerProfile(), ...(kb as any).customer_profile,
+      tags: (kb as any).customer_profile.tags || [],
+      shared_knowledge_base_ids: (kb as any).customer_profile.shared_knowledge_base_ids || [],
+    } } : {}),
+    imageProcessingConfig: kb.image_processing_config,
+    faqConfig: {
+      indexMode: kb.faq_config?.index_mode || 'question_only',
+      questionIndexMode: kb.faq_config?.question_index_mode || 'separate'
+    },
+    modelConfig: {
+      llmModelId: kb.summary_model_id || '',
+      embeddingModelId: kb.embedding_model_id || '',
+      wikiSynthesisModelId: kb.wiki_config?.synthesis_model_id || ''
+    },
+    chunkingConfig: {
+      chunkSize: kb.chunking_config?.chunk_size || 512,
+      // Fallback only used when the loaded KB has no chunk_overlap stored.
+      // Aligned with chunker.DefaultChunkOverlap on the backend.
+      chunkOverlap: kb.chunking_config?.chunk_overlap ?? 80,
+      separators: kb.chunking_config?.separators || ['\n\n', '\n', '。', '！', '？', ';', '；'],
+      parserEngineRules: kb.chunking_config?.parser_engine_rules || undefined,
+      enableParentChild: kb.chunking_config?.enable_parent_child || false,
+      parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
+      childChunkSize: kb.chunking_config?.child_chunk_size || 384,
+      // Existing KBs without strategy field render as empty (= legacy behavior).
+      // The user has to actively pick a value to opt in to the new tiers.
+      strategy: kb.chunking_config?.strategy || '',
+      tokenLimit: kb.chunking_config?.token_limit || 0,
+      languages: kb.chunking_config?.languages || [],
+      tableMetadataInstructions: kb.chunking_config?.table_metadata_instructions || ''
+    },
+    storageBackendId: (kb.storage_backend_id || '') as string,
+    storageProvider: (kb.storage_provider_config?.provider || kb.storage_config?.provider || 'local') as string,
+    multimodalConfig: {
+      enabled: !!kb.vlm_config?.enabled,
+      vllmModelId: kb.vlm_config?.model_id || '',
+      descriptionLanguage: kb.vlm_config?.description_language || '',
+      customInstructions: kb.vlm_config?.custom_instructions || ''
+    },
+    asrConfig: {
+      enabled: !!kb.asr_config?.enabled,
+      modelId: kb.asr_config?.model_id || '',
+      language: kb.asr_config?.language || ''
+    },
+    nodeExtractConfig: {
+      enabled: kb.extract_config?.enabled || false,
+      text: kb.extract_config?.text || '',
+      tags: kb.extract_config?.tags || [],
+      nodes: (kb.extract_config?.nodes || []).map((node: any) => ({
+        name: node.name,
+        attributes: node.attributes || []
+      })),
+      relations: kb.extract_config?.relations || [],
+      customInstructions: kb.extract_config?.custom_instructions || ''
+    },
+    questionGenerationConfig: {
+      enabled: kb.question_generation_config?.enabled || false,
+      questionCount: kb.question_generation_config?.question_count || 3,
+      customInstructions: kb.question_generation_config?.custom_instructions || ''
+    },
+    autoTagConfig: {
+      enabled: kb.auto_tag_config?.enabled || false,
+      modelId: authStore.isLiteMode
+        ? LITE_AUTO_TAG_MODEL_ID
+        : (kb.auto_tag_config?.model_id || ''),
+      maxTags: authStore.isLiteMode ? 3 : (kb.auto_tag_config?.max_tags || 3),
+      skipIfTagged: authStore.isLiteMode
+        ? true
+        : (kb.auto_tag_config?.skip_if_tagged ?? true)
+    },
+    wikiConfig: {
+      synthesisModelId: kb.wiki_config?.synthesis_model_id || '',
+      maxPagesPerIngest: kb.wiki_config?.max_pages_per_ingest || 0,
+      extractionGranularity: (
+        kb.wiki_config?.extraction_granularity === 'focused' ||
+        kb.wiki_config?.extraction_granularity === 'exhaustive'
+          ? kb.wiki_config.extraction_granularity
+          : 'standard'
+      ) as 'focused' | 'standard' | 'exhaustive',
+      contentInstructions: kb.wiki_config?.content_instructions || '',
+      extractionInstructions: kb.wiki_config?.extraction_instructions || '',
+    },
+    indexingStrategy: {
+      vectorEnabled: kb.indexing_strategy?.vector_enabled ?? true,
+      keywordEnabled: kb.indexing_strategy?.keyword_enabled ?? true,
+      wikiEnabled: kb.indexing_strategy?.wiki_enabled ?? false,
+      graphEnabled: kb.indexing_strategy?.graph_enabled ?? false,
+    },
+    // Vector-store binding. vectorStoreId is editor-only state; it
+    // is only included in the create request, never the update
+    // request, because the binding is immutable after creation.
+    // vectorStoreInfo carries the read-only display fields that the
+    // edit view renders below; they come straight from the KB
+    // response.
+    vectorStoreId: kb.vector_store_id || '',
+    vectorStoreInfo: {
+      source: kb.vector_store_source,
+      name: kb.vector_store_name,
+      engineType: kb.vector_store_engine_type,
+      status: kb.vector_store_status,
+    },
+  }
+}
+
+function applyCustomerTemplate() {
+  const template = customerConfig.value.templates.find(item => item.id === selectedTemplateId.value)
+  if (!template || props.templateMode || editorMode.value !== 'create' || !formData.value) return
+  const current = formData.value
+  const snapshot = JSON.parse(JSON.stringify(template.config))
+  const next = formFromNative({ ...snapshot, type: 'document', name: current.name, description: current.description })
+  next.customerProfile.contact = current.customerProfile.contact
+  // Preserve a note the user wrote; switching templates can replace a previous
+  // template's untouched default note. Source files live outside this snapshot.
+  if (current.customerProfile.note && current.customerProfile.note !== appliedTemplateNote.value) {
+    next.customerProfile.note = current.customerProfile.note
+  }
+  appliedTemplateNote.value = snapshot.customer_profile.note || ''
+  chunkingDirty.value = true
+  formData.value = next
+  MessagePlugin.success(`已套用「${template.name}」`)
+}
+
 // 加载知识库数据（编辑模式）
 const loadKBData = async (kbIdOverride?: string) => {
+  const version = loadVersion
   const kbId = kbIdOverride ?? activeKbId.value
   if (editorMode.value !== 'edit' || !kbId) return
   
@@ -814,126 +1054,27 @@ const loadKBData = async (kbIdOverride?: string) => {
       getKnowledgeBaseById(kbId),
       listKnowledgeFiles(kbId, { page: 1, page_size: 1 })
     ])
+    if (version !== loadVersion) return
     
     if (!kbInfo || !kbInfo.data) {
       throw new Error(t('knowledgeEditor.messages.notFound'))
     }
 
     const kb = kbInfo.data
+    if (props.customer && !(kb as any).customer_profile) throw new Error('未找到客户项目')
     hasFiles.value = (filesResult as any)?.total > 0
     kbCreatorId.value = (kb as any).creator_id || ''
     kbTenantId.value = Number((kb as any).tenant_id || 0)
 
-    // 设置表单数据
-    const kbType = normalizeKnowledgeBaseType(kb.type)
-    formData.value = {
-      type: kbType,
-      name: kb.name || '',
-      description: kb.description || '',
-      faqConfig: {
-        indexMode: kb.faq_config?.index_mode || 'question_only',
-        questionIndexMode: kb.faq_config?.question_index_mode || 'separate'
-      },
-      modelConfig: {
-        llmModelId: kb.summary_model_id || '',
-        embeddingModelId: kb.embedding_model_id || '',
-        wikiSynthesisModelId: kb.wiki_config?.synthesis_model_id || ''
-      },
-      chunkingConfig: {
-        chunkSize: kb.chunking_config?.chunk_size || 512,
-        // Fallback only used when the loaded KB has no chunk_overlap stored.
-        // Aligned with chunker.DefaultChunkOverlap on the backend.
-        chunkOverlap: kb.chunking_config?.chunk_overlap || 80,
-        separators: kb.chunking_config?.separators || ['\n\n', '\n', '。', '！', '？', ';', '；'],
-        parserEngineRules: kb.chunking_config?.parser_engine_rules || undefined,
-        enableParentChild: kb.chunking_config?.enable_parent_child || false,
-        parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
-        childChunkSize: kb.chunking_config?.child_chunk_size || 384,
-        // Existing KBs without strategy field render as empty (= legacy behavior).
-        // The user has to actively pick a value to opt in to the new tiers.
-        strategy: kb.chunking_config?.strategy || '',
-        tokenLimit: kb.chunking_config?.token_limit || 0,
-        languages: kb.chunking_config?.languages || [],
-        tableMetadataInstructions: kb.chunking_config?.table_metadata_instructions || ''
-      },
-      storageBackendId: (kb.storage_backend_id || '') as string,
-      storageProvider: (kb.storage_provider_config?.provider || kb.storage_config?.provider || 'local') as string,
-      multimodalConfig: {
-        enabled: !!kb.vlm_config?.enabled,
-        vllmModelId: kb.vlm_config?.model_id || '',
-        descriptionLanguage: kb.vlm_config?.description_language || '',
-        customInstructions: kb.vlm_config?.custom_instructions || ''
-      },
-      asrConfig: {
-        enabled: !!kb.asr_config?.enabled,
-        modelId: kb.asr_config?.model_id || '',
-        language: kb.asr_config?.language || ''
-      },
-      nodeExtractConfig: {
-        enabled: kb.extract_config?.enabled || false,
-        text: kb.extract_config?.text || '',
-        tags: kb.extract_config?.tags || [],
-        nodes: (kb.extract_config?.nodes || []).map((node: any) => ({
-          name: node.name,
-          attributes: node.attributes || []
-        })),
-        relations: kb.extract_config?.relations || [],
-        customInstructions: kb.extract_config?.custom_instructions || ''
-      },
-      questionGenerationConfig: {
-        enabled: kb.question_generation_config?.enabled || false,
-        questionCount: kb.question_generation_config?.question_count || 3,
-        customInstructions: kb.question_generation_config?.custom_instructions || ''
-      },
-      autoTagConfig: {
-        enabled: kb.auto_tag_config?.enabled || false,
-        modelId: authStore.isLiteMode
-          ? LITE_AUTO_TAG_MODEL_ID
-          : (kb.auto_tag_config?.model_id || ''),
-        maxTags: authStore.isLiteMode ? 3 : (kb.auto_tag_config?.max_tags || 3),
-        skipIfTagged: authStore.isLiteMode
-          ? true
-          : (kb.auto_tag_config?.skip_if_tagged ?? true)
-      },
-      wikiConfig: {
-        synthesisModelId: kb.wiki_config?.synthesis_model_id || '',
-        maxPagesPerIngest: kb.wiki_config?.max_pages_per_ingest || 0,
-        extractionGranularity: (
-          kb.wiki_config?.extraction_granularity === 'focused' ||
-          kb.wiki_config?.extraction_granularity === 'exhaustive'
-            ? kb.wiki_config.extraction_granularity
-            : 'standard'
-        ) as 'focused' | 'standard' | 'exhaustive',
-        contentInstructions: kb.wiki_config?.content_instructions || '',
-        extractionInstructions: kb.wiki_config?.extraction_instructions || '',
-      },
-      indexingStrategy: {
-        vectorEnabled: kb.indexing_strategy?.vector_enabled ?? true,
-        keywordEnabled: kb.indexing_strategy?.keyword_enabled ?? true,
-        wikiEnabled: kb.indexing_strategy?.wiki_enabled ?? false,
-        graphEnabled: kb.indexing_strategy?.graph_enabled ?? false,
-      },
-      // Vector-store binding. vectorStoreId is editor-only state; it
-      // is only included in the create request, never the update
-      // request, because the binding is immutable after creation.
-      // vectorStoreInfo carries the read-only display fields that the
-      // edit view renders below; they come straight from the KB
-      // response.
-      vectorStoreId: '',
-      vectorStoreInfo: {
-        source: kb.vector_store_source,
-        name: kb.vector_store_name,
-        engineType: kb.vector_store_engine_type,
-        status: kb.vector_store_status,
-      },
-    }
+    formData.value = formFromNative(kb)
     initialStorageProvider.value = formData.value.storageProvider
   } catch (error) {
+    if (version !== loadVersion) return
     console.error('Failed to load knowledge base data:', error)
     MessagePlugin.error(t('knowledgeEditor.messages.loadDataFailed'))
     handleClose()
   } finally {
-    loading.value = false
+    if (version === loadVersion) loading.value = false
   }
 }
 
@@ -1104,11 +1245,22 @@ const handleNodeExtractUpdate = (config: any) => {
 // 验证表单
 const validateForm = (): boolean => {
   if (!formData.value) return false
+  if (isCustomer.value) {
+    if (customerResourcesLoading.value || customerResourcesError.value) {
+      currentSection.value = 'customer'
+      return false
+    }
+    if (!formData.value.customerProfile.status || formData.value.customerProfile.tags.length > 30 || formData.value.customerProfile.shared_knowledge_base_ids.length > 30) {
+      MessagePlugin.warning('请选择客户状态，标签和关联知识库各不超过 30 项')
+      currentSection.value = 'customer'
+      return false
+    }
+  }
 
   // 验证基本信息
   if (!formData.value.name || !formData.value.name.trim()) {
-    MessagePlugin.warning(t('knowledgeEditor.messages.nameRequired'))
-    currentSection.value = 'basic'
+    MessagePlugin.warning(props.templateMode ? '请填写模板名称' : t('knowledgeEditor.messages.nameRequired'))
+    currentSection.value = isCustomer.value ? 'customer' : 'basic'
     return false
   }
 
@@ -1128,11 +1280,6 @@ const validateForm = (): boolean => {
   // multimodal, chunking, and storage validation stay server-owned.
   if (authStore.isLiteMode) return true
 
-  // Creation is server-owned zero configuration. The client may forward the
-  // four persisted scene candidates during submit, but does not require any
-  // edit-only model/settings validation while opening the modal.
-  if (editorMode.value === 'create') return true
-
   // 验证模型配置 - embedding 模型仅在检索索引启用时必须
   const needsEmbedding = formData.value.indexingStrategy?.vectorEnabled || formData.value.indexingStrategy?.keywordEnabled
   if (needsEmbedding && !formData.value.modelConfig.embeddingModelId) {
@@ -1148,9 +1295,15 @@ const validateForm = (): boolean => {
   }
 
   // 验证多模态配置（如果启用）
-  if (formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
+  if (!isFAQ.value && formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
     MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
     currentSection.value = 'multimodal'
+    return false
+  }
+
+  if (!isFAQ.value && formData.value.asrConfig.enabled && !formData.value.asrConfig.modelId) {
+    MessagePlugin.warning(t('knowledgeEditor.asr.modelPlaceholder'))
+    currentSection.value = 'asr'
     return false
   }
 
@@ -1168,9 +1321,10 @@ const buildSubmitData = () => {
   if (!formData.value) return null
 
   const data: any = {
-    name: formData.value.name,
-    description: formData.value.description,
+    name: formData.value.name.trim(),
+    description: formData.value.description.trim(),
     type: normalizeKnowledgeBaseType(formData.value.type),
+    ...(isCustomer.value ? { customer_profile: formData.value.customerProfile } : {}),
     chunking_config: {
       chunk_size: formData.value.chunkingConfig.chunkSize,
       chunk_overlap: formData.value.chunkingConfig.chunkOverlap,
@@ -1267,6 +1421,8 @@ const buildSubmitData = () => {
       }
 
   if (normalizeKnowledgeBaseType(formData.value.type) === 'faq') {
+    delete data.vlm_config
+    delete data.asr_config
     data.faq_config = {
       index_mode: formData.value.faqConfig?.indexMode || 'question_only',
       question_index_mode: formData.value.faqConfig?.questionIndexMode || 'separate'
@@ -1297,7 +1453,7 @@ const buildSubmitData = () => {
 
   // Always persist extract_config so the toggle state from GraphSettings is saved,
   // regardless of whether the graph indexing strategy is currently enabled.
-  if (formData.value.nodeExtractConfig) {
+  if (!isFAQ.value && formData.value.nodeExtractConfig) {
     data.extract_config = {
       enabled: !!formData.value.nodeExtractConfig.enabled,
       text: formData.value.nodeExtractConfig.text || '',
@@ -1313,7 +1469,28 @@ const buildSubmitData = () => {
 
 // 提交表单
 const handleSubmit = async () => {
+  if (saving.value || loading.value) return
+  if (savedCustomerId.value) {
+    saving.value = true
+    try { await uploadCustomerSources(savedCustomerId.value) } finally { saving.value = false }
+    return
+  }
   if (!validateForm()) {
+    return
+  }
+
+  if (props.templateMode) {
+    const name = formData.value.name.trim()
+    if (customerConfig.value.templates.some(item => item.id !== props.customerTemplate?.id && item.name === name)) {
+      MessagePlugin.warning('此模板名称已存在')
+      currentSection.value = 'customer'
+      return
+    }
+    emit('template-save', {
+      id: props.customerTemplate?.id || crypto.randomUUID(), name,
+      description: formData.value.description.trim(), config: customerTemplateConfig(buildSubmitData()),
+    })
+    emit('update:visible', false)
     return
   }
 
@@ -1348,58 +1525,42 @@ const doSubmit = async () => {
   saving.value = true
   try {
     if (editorMode.value === 'create') {
-      const sceneModels = consumerSceneModelsForCreate()
-      const createPayload: any = {
+      const sceneModels = authStore.isLiteMode ? consumerSceneModelsForCreate() : {}
+      const createPayload = authStore.isLiteMode ? {
+        ...sceneModels,
         name: formData.value.name.trim(),
         description: formData.value.description.trim(),
-        type: normalizeKnowledgeBaseType(formData.value.type),
-        ...sceneModels,
+        type: 'document',
         summary_model_id: formData.value.modelConfig.llmModelId.trim()
           || String(sceneModels.summary_model_id || ''),
-      }
-      if (normalizeKnowledgeBaseType(formData.value.type) === 'faq') {
-        // FAQ is a distinct native knowledge-base type. Do not leak the
-        // document-only Wiki/VLM/ASR scene configuration into its create
-        // request, and preserve the native FAQ indexing choices.
-        delete createPayload.wiki_config
-        delete createPayload.vlm_config
-        delete createPayload.asr_config
-        createPayload.faq_config = {
-          index_mode: formData.value.faqConfig?.indexMode || 'question_only',
-          question_index_mode: formData.value.faqConfig?.questionIndexMode || 'separate',
-        }
-      } else {
-        createPayload.indexing_strategy = {
+        indexing_strategy: {
           vector_enabled: !!formData.value.indexingStrategy.vectorEnabled,
           keyword_enabled: !!formData.value.indexingStrategy.keywordEnabled,
           wiki_enabled: !!formData.value.indexingStrategy.wikiEnabled,
           graph_enabled: true,
-        }
-        createPayload.wiki_config = {
+        },
+        wiki_config: {
           ...((sceneModels.wiki_config as Record<string, unknown>) || {}),
           extraction_granularity: formData.value.wikiConfig.extractionGranularity,
           content_instructions: formData.value.wikiConfig.contentInstructions.trim(),
           extraction_instructions: formData.value.wikiConfig.extractionInstructions.trim(),
-        }
-        createPayload.auto_tag_config = authStore.isLiteMode
-          ? {
-              enabled: formData.value.autoTagConfig?.enabled || false,
-              model_id: LITE_AUTO_TAG_MODEL_ID,
-              max_tags: 3,
-              skip_if_tagged: true,
-            }
-          : {
-              enabled: formData.value.autoTagConfig?.enabled || false,
-              model_id: formData.value.autoTagConfig?.modelId || '',
-              max_tags: formData.value.autoTagConfig?.maxTags || 3,
-              skip_if_tagged: formData.value.autoTagConfig?.skipIfTagged ?? true,
-            }
-      }
+        },
+        auto_tag_config: {
+          enabled: formData.value.autoTagConfig?.enabled || false,
+          model_id: LITE_AUTO_TAG_MODEL_ID,
+          max_tags: 3,
+          skip_if_tagged: true,
+        },
+      } : buildSubmitData()
       const result: any = await createKnowledgeBase(createPayload)
       if (!result.success || !result.data?.id) {
         throw new Error(result.message || t('knowledgeEditor.messages.createFailed'))
       }
       const createdKbId = result.data.id as string
+      if (isCustomer.value) {
+        await uploadCustomerSources(createdKbId)
+        return
+      }
       MessagePlugin.success(t('knowledgeEditor.messages.createSuccess'))
       markContextualGuideDone('kbCreate')
       emit('success', createdKbId)
@@ -1419,7 +1580,11 @@ const doSubmit = async () => {
     }
 
       // 1. 更新基本信息（名称、描述）和 FAQ/Wiki 配置
-      const updateConfig: any = {}
+      const updateConfig: any = authStore.isLiteMode ? {} : {
+        chunking_config: data.chunking_config,
+        image_processing_config: formData.value.imageProcessingConfig,
+      }
+      if (isCustomer.value) updateConfig.customer_profile = data.customer_profile
       if (normalizeKnowledgeBaseType(formData.value.type) === 'faq' && formData.value.faqConfig) {
         updateConfig.faq_config = {
           index_mode: formData.value.faqConfig.indexMode || 'question_only',
@@ -1502,6 +1667,10 @@ const doSubmit = async () => {
       if (!authStore.isLiteMode) {
         await updateKBConfig(kbId, config)
       }
+      if (isCustomer.value) {
+        await uploadCustomerSources(kbId)
+        return
+      }
       MessagePlugin.success(t('knowledgeEditor.messages.updateSuccess'))
 
     emit('success', kbId)
@@ -1547,18 +1716,31 @@ const resetState = () => {
   chunkingDirty.value = false
   kbCreatorId.value = ''
   kbTenantId.value = 0
+  customerConfig.value = { statuses: [], tags: [], templates: [] }
+  selectedTemplateId.value = ''
+  appliedTemplateNote.value = null
+  customerLibraries.value = []
+  customerWikiPages.value = []
+  customerResourcesLoading.value = false
+  customerResourcesError.value = ''
+  initialSources.value = []
+  savedCustomerId.value = ''
 }
 
 // 关闭弹窗
 const handleClose = () => {
+  if (saving.value && isCustomer.value) return
+  if (savedCustomerId.value) {
+    finishSave(savedCustomerId.value)
+    return
+  }
   emit('update:visible', false)
-  setTimeout(() => {
-    resetState()
-  }, 300)
 }
 
 // 监听弹窗打开/关闭
 watch(() => props.visible, async (newVal) => {
+  const version = ++loadVersion
+  if (resetTimer) clearTimeout(resetTimer)
   if (newVal) {
     // 打开弹窗时，先重置状态
     resetState()
@@ -1568,13 +1750,24 @@ watch(() => props.visible, async (newVal) => {
         authStore.isLiteMode ? uiStore.kbEditorInitialSection : 'basic',
       )
       formData.value = initFormData(props.initialType || 'document')
+      if (isCustomer.value) currentSection.value = 'customer'
       hasFiles.value = false
-      await loadSummaryModelOptions()
+      loading.value = true
+      await Promise.all([loadSummaryModelOptions(), loadTenantDefaultStorageProvider(), ...(isCustomer.value ? [loadCustomerResources()] : [])])
+      if (version === loadVersion && formData.value && !formData.value.storageBackendId) {
+        formData.value.storageProvider = tenantDefaultStorageProvider.value
+      }
+      if (version === loadVersion && props.templateMode && props.customerTemplate) {
+        chunkingDirty.value = true
+        formData.value = formFromNative(JSON.parse(JSON.stringify({ ...props.customerTemplate.config, type: 'document', name: props.customerTemplate.name, description: props.customerTemplate.description })))
+      }
+      if (version === loadVersion) loading.value = false
       return
     }
 
     // Lite remains a single consumer form; never leave it on a hidden
     // Standard-only section when a stale deep-link is present.
+    loading.value = true
     if (authStore.isLiteMode) {
       currentSection.value = normalizeKnowledgeBaseSection(uiStore.kbEditorInitialSection)
     } else if (uiStore.kbEditorInitialSection) {
@@ -1585,8 +1778,14 @@ watch(() => props.visible, async (newVal) => {
       loadSummaryModelOptions(),
       loadTenantDefaultStorageProvider(),
     ])
+    if (version !== loadVersion) return
     if (props.kbId) {
       await loadKBData()
+    }
+    if (version !== loadVersion || !props.visible) return
+    if (isCustomer.value) {
+      currentSection.value = 'customer'
+      await loadCustomerResources()
     }
     // Keep stale deep-links from selecting a section that this KB/type does
     // not expose (for example a document-only section on an FAQ). This also
@@ -1597,12 +1796,12 @@ watch(() => props.visible, async (newVal) => {
     }
   } else {
     // 关闭弹窗时，延迟重置状态（等待动画结束）
-    setTimeout(() => {
+    resetTimer = setTimeout(() => {
       resetState()
       currentSection.value = 'basic' // 重置为默认 section
     }, 300)
   }
-})
+}, { immediate: true })
 
 // 监听全局设置弹窗关闭后刷新模型列表
 watch(
@@ -1616,6 +1815,15 @@ watch(
 </script>
 
 <style scoped lang="less">
+.customer-template-picker {
+  display: block;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--td-component-border);
+  font-size: 14px;
+  font-weight: 500;
+  :deep(.t-select__wrap) { margin-top: 8px; }
+}
 .kb-config-overlay {
   position: fixed;
   inset: 0;

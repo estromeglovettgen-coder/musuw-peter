@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import LegacyKnowledgeBaseListBusiness from '@/assets/business-baselines/KnowledgeBaseList.pre-view.vue'
 import { duplicateKnowledgeBase, getKnowledgeBaseCopyProgress } from '@/api/knowledge-base'
 import { useAuthStore } from '@/stores/auth'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useMarketplaceLibrary } from '@/composables/useMarketplaceLibrary'
 import KnowledgeBaseEditorModal from './KnowledgeBaseEditorModal.vue'
 import ShareKnowledgeBaseDialog from '@/components/ShareKnowledgeBaseDialog.vue'
@@ -67,6 +68,7 @@ export default defineComponent({
       )
       legacyState.filteredKnowledgeBases = computed(() => {
         const list = readRef(baseFilteredKnowledgeBases) || []
+        if (isPeterWorkspace) return list.filter((kb: any) => !kb?.customer_profile)
         if (!authStore.isLiteMode) return list
         return list.filter((kb: any) => kb?.isMine !== false)
       })
@@ -128,7 +130,7 @@ export default defineComponent({
         await copyById(kb.id)
       }
       state.handleDuplicateById = copyById
-      return { ...state, libraryFilter, mineLibraryCount, marketLibraryCount, marketLibraryEntries, marketLibraryLoading, marketLibraryFailed, loadMarketLibrary }
+      return { ...state, isPeterWorkspace, libraryFilter, mineLibraryCount, marketLibraryCount, marketLibraryEntries, marketLibraryLoading, marketLibraryFailed, loadMarketLibrary }
     }
     return state
   },
@@ -138,7 +140,7 @@ export default defineComponent({
 <template>
   <div class="visual-kb-workspace">
     <ListSpaceSidebar
-      v-if="!authStore.isLiteMode"
+      v-if="!authStore.isLiteMode && !isPeterWorkspace"
       v-model="spaceSelection"
       :count-all="allKnowledgeBases"
       :count-mine="kbs.length"
@@ -152,7 +154,7 @@ export default defineComponent({
       <header class="visual-kb-list__header" style="--wails-draggable: drag">
         <div class="visual-kb-list__heading">
           <div class="visual-kb-list__title-row"><t-icon name="folder" /><h1>{{ $t('knowledgeBase.title') }}</h1></div>
-          <p>{{ $t(authStore.isLiteMode ? 'knowledgeList.liteSubtitle' : 'knowledgeList.subtitle') }}</p>
+          <p v-if="!isPeterWorkspace">{{ $t(authStore.isLiteMode ? 'knowledgeList.liteSubtitle' : 'knowledgeList.subtitle') }}</p>
         </div>
         <button v-if="authStore.hasRole('contributor')" type="button" class="visual-kb-list__create" data-guide="kb-list-create" @click="handleCreateKnowledgeBase"><t-icon name="folder-add" size="16px" aria-hidden="true" /><span>{{ $t('knowledgeList.create') }}</span></button>
       </header>
@@ -177,7 +179,7 @@ export default defineComponent({
       </section>
 
       <section class="visual-kb-list__content">
-        <MarketplaceLibraryCards v-if="!authStore.isLiteMode && spaceSelection === 'all'"
+        <MarketplaceLibraryCards v-if="!authStore.isLiteMode && !isPeterWorkspace && spaceSelection === 'all'"
           :entries="marketLibraryEntries" :loading="marketLibraryLoading" :failed="marketLibraryFailed" @retry="loadMarketLibrary" />
 
         <section v-if="!authStore.isLiteMode || libraryFilter !== 'subscribed'" :class="{ 'visual-kb-source-group': authStore.isLiteMode }" :aria-label="authStore.isLiteMode ? $t('creatorMarketplace.libraryMineTitle') : undefined">

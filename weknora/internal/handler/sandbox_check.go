@@ -56,6 +56,7 @@ const (
 	skipReasonControlPlaneUnreachable = "control_plane_unreachable"
 	skipReasonSandboxNotCreated       = "sandbox_not_created"
 	skipReasonSandboxExecFailed       = "sandbox_exec_failed"
+	skipReasonNetworkDisabled         = "network_disabled"
 )
 
 // SandboxCheckResponse aggregates the probes for one sandbox configuration.
@@ -334,6 +335,10 @@ func (h *SystemHandler) runDeepSandboxCheck(
 		result.add("sandbox_exec", true, "", latency)
 	}
 
+	if cfg.Type == sandbox.SandboxTypeDocker && cfg.DockerNetworkMode == "none" {
+		result.skip("egress_available", skipReasonNetworkDisabled)
+		return
+	}
 	h.probeSandboxEgress(probeCtx, client, handle, result)
 }
 

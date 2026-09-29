@@ -77,6 +77,7 @@ function businessControllerPlugin(): Plugin {
     async load(id) {
       const baselinePath = virtualToBaseline.get(id)
       if (!baselinePath || !id.endsWith(virtualSuffix)) return null
+      this.addWatchFile(baselinePath)
 
       const originalFilename = id.slice(0, -virtualSuffix.length)
       const source = readFileSync(baselinePath, 'utf8')
@@ -99,6 +100,17 @@ function businessControllerPlugin(): Plugin {
         sourcemap: false,
       })
       return transformed.code
+    },
+    handleHotUpdate({ file, server }) {
+      const modules = [...virtualToBaseline.entries()]
+        .filter(([, baselinePath]) => baselinePath === file)
+        .flatMap(([id]) => {
+          const module = server.moduleGraph.getModuleById(id)
+          if (!module) return []
+          server.moduleGraph.invalidateModule(module)
+          return [module]
+        })
+      if (modules.length) return modules
     },
   }
 }
@@ -186,7 +198,9 @@ export default defineConfig({
         onlyExplicitManualChunks: true,
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          if (id.includes('mermaid') || id.includes('/dagre') || id.includes('cytoscape')) {
+          // Do not match '/dagre': it also matches @antv/layout's internal
+          // Dagre class and creates a G6 → Mermaid → G6 initialization cycle.
+          if (id.includes('mermaid')) {
             return 'vendor-mermaid'
           }
           if (id.includes('marked') || id.includes('katex')) {

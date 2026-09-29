@@ -9,7 +9,7 @@ import { getAgentNotReadyReasonKeys } from '../utils/agent-readiness'
 // The wrapper's displayed state alone cannot prove its send-time closure agrees.
 const source = readFileSync(new URL('../assets/business-baselines/Input-field.pre-view.vue', import.meta.url), 'utf8').split('<script setup lang="ts">')[1].split('</script>')[0]
 const ast = ts.createSourceFile('Input-field.ts', source, ts.ScriptTarget.Latest, true)
-const names = ['sceneOptionsFor', 'sceneModelsFor', 'sceneManagedByConsumerResolver', 'availableModels', 'selectedModelId', 'handleModelChange', 'collectAgentNotReadyReasons']
+const names = ['fallbackAvailableModels', 'sceneOptionsFor', 'sceneModelsFor', 'sceneManagedByConsumerResolver', 'availableModels', 'selectedModelId', 'handleModelChange', 'collectAgentNotReadyReasons']
 const declarations = names.map(name => ast.statements.find(statement => ts.isVariableStatement(statement)
   && statement.declarationList.declarations.some(declaration => declaration.name.getText(ast) === name))!.getText(ast))
 const modelWatch = ast.statements.find(statement => statement.getText(ast).startsWith('watch(')
@@ -18,16 +18,16 @@ const javascript = ts.transpileModule(`${declarations.join('\n')}\n${modelWatch}
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText
 
-function controller({ lite = true, market = true } = {}) {
+function controller({ lite = true, market = true, peter = false, custom = true, models = [] as any[] } = {}) {
   const model = ref('flash')
   const agentModelId = ref('flash')
-  const selectedAgentId = ref('custom-agent')
+  const selectedAgentId = ref(custom ? 'custom-agent' : 'builtin-smart-reasoning')
   const scope = effectScope()
   const updates: unknown[] = []
-  const state = scope.run(() => new Function('context', `const { computed, watch, isCustomAgent, authStore, settingsStore, selectedAgentId, agentModelId, effectiveConsumerScene, consumerSceneOptions, allModels, fallbackAvailableModels, BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID, readLastChatModelID, writeLastChatModelID, ensureReasoningSelection, showModelSelector, marketplaceChat, getAgentNotReadyReasonKeys, formatAgentNotReadyReasons } = context; ${javascript}`)({
-    computed, watch, isCustomAgent: ref(true), authStore: { isLiteMode: lite }, selectedAgentId, agentModelId,
+  const state = scope.run(() => new Function('context', `const { computed, watch, isCustomAgent, authStore, settingsStore, selectedAgentId, agentModelId, effectiveConsumerScene, consumerSceneOptions, allModels, rawAvailableModels, isPeterWorkspace, BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID, readLastChatModelID, writeLastChatModelID, ensureReasoningSelection, showModelSelector, marketplaceChat, getAgentNotReadyReasonKeys, formatAgentNotReadyReasons } = context; ${javascript}`)({
+    computed, watch, isCustomAgent: ref(custom), isPeterWorkspace: peter, authStore: { isLiteMode: lite }, selectedAgentId, agentModelId,
     settingsStore: {
-      selectedAgentId: 'custom-agent', selectedAgentSourceTenantId: null,
+      selectedAgentId: selectedAgentId.value, selectedAgentSourceTenantId: null,
       settings: { marketplaceProductId: market ? 'taylor' : '' },
       conversationModels: { get selectedChatModelId() { return model.value } },
       getConsumerSceneModel: () => model.value,
@@ -40,7 +40,7 @@ function controller({ lite = true, market = true } = {}) {
       { model_id: 'allowed', display_name: 'Allowed reasoning model', selectable: true, locked: false },
       { model_id: 'locked', display_name: 'Higher tier model', selectable: false, locked: true },
     ] } }),
-    allModels: ref([]), fallbackAvailableModels: ref([]),
+    allModels: ref(models), rawAvailableModels: ref(models),
     BUILTIN_QUICK_ANSWER_ID: 'builtin-quick-answer', BUILTIN_SMART_REASONING_ID: 'builtin-smart-reasoning',
     readLastChatModelID: () => '', writeLastChatModelID() {}, ensureReasoningSelection() { updates.push('reasoning') }, showModelSelector: ref(true),
     marketplaceChat: { agent: { id: 'market-agent' } }, getAgentNotReadyReasonKeys, formatAgentNotReadyReasons: (keys: string[]) => keys,
@@ -96,8 +96,8 @@ test('manual Standard shared-builtin selection preserves its source-model behavi
   const actionJS = ts.transpileModule(`${actionSource}; return handleSelectAgent`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
   for (const lite of [false, true]) {
     const selectedModelId = ref('member-choice')
-    const action = new Function('context', `const { authStore, chatResources, settingsStore, agents, collectAgentNotReadyReasons, sceneManagedByConsumerResolver, ensureModelSelection, selectedModelId, BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID, t, MessagePlugin } = context; ${actionJS}`)({
-      authStore: { isLiteMode: lite }, chatResources: { isFresh: () => true },
+    const action = new Function('context', `const { isPeterWorkspace, authStore, chatResources, settingsStore, agents, collectAgentNotReadyReasons, sceneManagedByConsumerResolver, ensureModelSelection, selectedModelId, BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID, t, MessagePlugin } = context; ${actionJS}`)({
+      isPeterWorkspace: false, authStore: { isLiteMode: lite }, chatResources: { isFresh: () => true },
       settingsStore: { selectAgent() {}, toggleAgent() {} }, agents: ref([]),
       collectAgentNotReadyReasons: () => ({ keys: [], labels: [] }), sceneManagedByConsumerResolver: ref(true),
       ensureModelSelection() {}, selectedModelId, BUILTIN_QUICK_ANSWER_ID: 'quick', BUILTIN_SMART_REASONING_ID: 'smart',
@@ -105,5 +105,20 @@ test('manual Standard shared-builtin selection preserves its source-model behavi
     })
     await action({ id: 'smart', is_builtin: true, config: { model_id: 'source-model', agent_mode: 'smart-reasoning' } }, '77')
     assert.equal(selectedModelId.value, lite ? 'member-choice' : 'source-model')
+  }
+})
+
+// Private Peter workspaces use their native configured models, including on
+// the first visit with a built-in agent and no shared C-end model catalog.
+test('Peter built-in and custom agents use native models without consumer scene requests', () => {
+  for (const custom of [false, true]) {
+    const app = controller({ lite:false, market:false, peter:true, custom, models:[
+      {id:'private-deepseek', name:'deepseek-flash', type:'KnowledgeQA', status:'active', parameters:{provider:'generic'}},
+      {id:'disabled', name:'disabled', type:'KnowledgeQA', status:'inactive', parameters:{provider:'generic'}},
+    ] })
+    try {
+      assert.equal(app.sceneManagedByConsumerResolver.value,false)
+      assert.deepEqual(app.availableModels.value.map((m:any)=>m.id),['private-deepseek'])
+    } finally { app.stop() }
   }
 })

@@ -16,7 +16,7 @@ import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
 import type { DeploymentCapabilityKey } from '@/config/deploymentCapabilities'
 import { MessagePlugin } from 'tdesign-vue-next'
 import i18n from '@/i18n'
-import { workspaceRouteRedirect } from '@/config/workspaceSurface'
+import { isPeterWorkspace, workspaceRouteRedirect } from '@/config/workspaceSurface'
 import {
   buildSettingsRouteQuery,
   normalizeExposedIntegrationSettingsSection,
@@ -244,13 +244,27 @@ const router = createRouter({
         {
           path: "knowledge-bases",
           name: "knowledgeBaseList",
-          component: () => import("../views/knowledge/KnowledgeBaseList.vue"),
+          component: () => import("../views/customer/CustomerLibrary.vue"),
+          beforeEnter: to => isPeterWorkspace && to.query.type === 'customer' ? { path: '/platform/customers' } : true,
           meta: { requiresInit: true, requiresAuth: true }
         },
         {
           path: "knowledge-bases/:kbId",
           name: "knowledgeBaseDetail",
-          component: () => import("../views/knowledge/KnowledgeBase.vue"),
+          component: () => import("../views/customer/CustomerKnowledgeView.vue"),
+          meta: { requiresInit: true, requiresAuth: true }
+        },
+        {
+          path: "customers",
+          name: "customerList",
+          component: () => import("../views/customer/CustomerLibrary.vue"),
+          beforeEnter: () => isPeterWorkspace || { path: '/platform/knowledge-bases' },
+          meta: { requiresInit: true, requiresAuth: true }
+        },
+        {
+          path: "customers/:kbId",
+          name: "customerProject",
+          component: () => import("../views/customer/CustomerProject.vue"),
           meta: { requiresInit: true, requiresAuth: true }
         },
         {

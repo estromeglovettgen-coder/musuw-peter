@@ -268,6 +268,7 @@ const loadRetrievalConfig = async () => {
 }
 
 const loadConsumerSceneOptions = async () => {
+  if (!authStore.isLiteMode) return
   consumerSceneLoading.value = true
   try {
     await Promise.all(consumerScenes.map(scene => chatResources.ensureConsumerSceneOptions(scene)))
