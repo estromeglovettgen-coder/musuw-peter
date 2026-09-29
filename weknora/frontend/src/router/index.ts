@@ -490,11 +490,16 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Hosted Musuw delegates sign-in; private deployments use the native form.
+  // Peter uses Musuw's original UI backed by this deployment's native accounts.
   if (to.path === '/login' || to.path === '/register') {
     if (!authStore.isLoggedIn) {
       const restored = await hydrateSessionFromToken(authStore)
       if (!restored) {
+        if (isPeterWorkspace && to.path === '/login') {
+          window.location.replace(to.query.error ? '/auth/error' : '/auth/start')
+          next(false)
+          return
+        }
         if (usesNativeAuthentication()) {
           next()
           return

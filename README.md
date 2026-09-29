@@ -8,10 +8,11 @@ Peter 的独立定制工作区。开放完整智能体编辑、浏览器模型�
 
 ```sh
 npm ci --prefix weknora/frontend
+npm ci --prefix auth
 npm run dev
 ```
 
-打开 <http://127.0.0.1:4217/>。本地使用原生注册/登录；以 `peter@localhost.test` 注册后重启可成为本地管理员，也可启动前设置 `PETER_ADMIN_EMAIL`。此管理员引导只适用于本机验收环境。
+打开 <http://127.0.0.1:4217/>。登录页复用 Musuw 原有界面，账号仍由本地原生接口管理。首次本地初始化可打开 `/register`，以 `peter@localhost.test` 注册后重启成为本地管理员，也可启动前设置 `PETER_ADMIN_EMAIL`。此管理员引导只适用于本机验收环境。
 
 数据库、上传文件、加密密钥及日志保存在 `.runtime/peter/`，重启不丢失。`Ctrl+C` 停止这套环境。服务只监听本机，前端端口 4217、后端端口 18187；不连接原 Musuw 生产数据库或账户系统。SQLite 用于本地预览。根据最新指定，服务器版部署在腾讯云 `62.234.188.55`，使用独立 PostgreSQL、Redis、解析与检索服务；部署说明见 [服务器交付说明](docs/PETER_SERVER_DELIVERY.md)。
 

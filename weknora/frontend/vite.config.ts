@@ -125,6 +125,9 @@ function embedHtmlDevFallback(): Plugin {
         const qIdx = raw.indexOf('?')
         const path = qIdx >= 0 ? raw.slice(0, qIdx) : raw
         const qs = qIdx >= 0 ? raw.slice(qIdx) : ''
+        if (process.env.VITE_WORKSPACE_PROFILE === 'peter' && /^\/auth\/(start|error|logout)\/?$/.test(path)) {
+          req.url = `/auth/index.html${qs}`
+        }
         if (path.startsWith('/embed/') && path !== '/embed.html' && !path.includes('.')) {
           req.url = `/embed.html${qs}`
         }

@@ -58,8 +58,10 @@ process.on('SIGTERM', () => stop())
 
 try {
   if (!existsSync(join(app, 'frontend/node_modules/vite/bin/vite.js'))) throw new Error('Run npm ci --prefix weknora/frontend first.')
+  if (!existsSync(join(root, 'auth/node_modules/vite/bin/vite.js'))) throw new Error('Run npm ci --prefix auth first.')
   await requireFree(ports.web)
   await requireFree(ports.api)
+  run('npm', ['run', 'auth:peter:build'], { stdio: 'inherit' })
   mkdirSync(local, { recursive: true, mode: 0o700 })
   const secretPath = join(local, 'secrets.json')
   if (!existsSync(secretPath)) writeFileSync(secretPath, JSON.stringify({

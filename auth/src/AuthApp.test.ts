@@ -54,6 +54,20 @@ describe("auth shell browser routes", () => {
 });
 
 describe("auth shell localized copy", () => {
+  it("keeps the original Musuw layout with only the private deployment's password sign-in", () => {
+    const html = renderToStaticMarkup(
+      createElement(AuthApp, { runtime: {} as AuthRuntime, passwordOnly: true }),
+    );
+    expect(html).toContain('class="auth-showcase"');
+    expect(html).toContain('name="email"');
+    expect(html).toContain('name="password"');
+    expect(html).toContain('type="submit"');
+    expect(html).not.toContain("auth-forgot");
+    expect(html).not.toContain("auth-mode-switch");
+    expect(html).not.toContain("auth-provider-options");
+    expect(html).not.toContain("auth-legal-note");
+  });
+
   it("has complete visible Chinese and English entry copy", () => {
     for (const locale of ["zh-CN", "en-US"] as const) {
       const copy = getAuthCopy(locale);
@@ -178,7 +192,7 @@ describe("auth shell TikHub reference experience", () => {
     expect(source).toContain('className="auth-message auth-message--success"');
     expect(source).toContain('className="auth-result-primary"');
     expect(source).toContain('className="auth-link auth-back-link"');
-    expect(source).toContain('{!isRecoveryExperience ? (');
+    expect(source).toContain('{!isRecoveryExperience && !passwordOnly ? (');
     expect(source).toContain('src="/auth/auth-reference/google.svg"');
     expect(source).toContain('src="/auth/musuw-logo.png"');
   });

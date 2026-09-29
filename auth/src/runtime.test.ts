@@ -754,6 +754,32 @@ describe("Supabase to WeKnora authorization continuation", () => {
 });
 
 describe("password identity continuation", () => {
+  it("uses the private server account API without any hosted identity configuration", async () => {
+    const assigned = vi.fn();
+    const nativeStore = storage();
+    nativeStore.setItem("weknora_user", '{"id":"previous-account"}');
+    nativeStore.setItem("weknora_selected_tenant_id", "previous-tenant");
+    const fetch = vi.fn<typeof globalThis.fetch>(async (url) => {
+      expect(String(url)).toBe("https://62.234.188.55/api/v1/auth/login");
+      return response({ success: true, token: "private-access", refresh_token: "private-refresh" });
+    });
+    const runtime = createAuthRuntime({
+      localMusuwPasswordAuth: true,
+      nativeStorage: nativeStore,
+      storage: storage(),
+      location: { origin: "https://62.234.188.55", assign: assigned },
+      fetch,
+    });
+    await expect(runtime.resumeStart()).resolves.toEqual({ state: "start_login_required" });
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(runtime.signInWithPassword("peter@example.test", "private-password"))
+      .resolves.toEqual({ state: "identity_complete" });
+    expect(nativeStore.getItem("weknora_token")).toBe("private-access");
+    expect(nativeStore.getItem("weknora_user")).toBeNull();
+    expect(nativeStore.getItem("weknora_selected_tenant_id")).toBeNull();
+    expect(assigned).toHaveBeenCalledWith("https://62.234.188.55/");
+  });
+
   it("keeps local Musuw auth restricted to an explicit loopback development switch", () => {
     expect(isLocalMusuwAuthEnabled(true, "true", "localhost")).toBe(true);
     expect(isLocalMusuwAuthEnabled(true, "true", "127.0.0.1")).toBe(true);

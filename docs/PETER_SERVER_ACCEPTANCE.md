@@ -6,7 +6,7 @@
 
 ## 交付版本
 
-- 前端及匹配源码目录：`/opt/musuw-peter/releases/20260929-10`。
+- 前端及匹配源码目录：`/opt/musuw-peter/releases/20260929-11`。
 - 应用镜像：`musuw-peter:20260929-04`，镜像 ID `437efa2eea7a`。
 - 前端最终类型检查和生产构建通过；全量前端单测 1298 项通过，后续修正另有定向单测及服务器浏览器复验。
 - Go 服务、文件、接口、路由、类型、迁移、工具、重排和沙箱测试通过；沙箱修正的 `-race` 测试通过。
@@ -15,7 +15,7 @@
 
 | Peter 的操作 | 实际验证结果 |
 | --- | --- |
-| 登录与模型配置 | 原生登录；浏览器测试 DeepSeek、编辑保存后重新打开并再次调用；密钥返回值脱敏；公共注册关闭 |
+| 登录与模型配置 | Musuw 原有登录界面，Peter 原生账号；浏览器测试 DeepSeek、编辑保存后重新打开并再次调用；密钥返回值脱敏；公共注册关闭 |
 | 智能体 DIY | 创建销售及报表智能体；复制并改提示词后真实回答随之变化；保存配置可重开，临时副本已删除 |
 | Skills 与沙箱 | 原生 ZIP 安装和持久快照；真实 CSV 输入经工具执行后生成 JSON；下载文件独立核对为 3 位客户、12 次跟进 |
 | 失败与恢复 | 错误 ZIP 被拒绝；技能禁用/启用保存生效；脚本退出码 7、超时杀进程后，下一次命令成功 |
@@ -70,3 +70,13 @@
 - 远端 `/var/tmp/peter-sandbox-integration04.log` 为原生真实 Docker 场景记录；故障注入修正后的恢复用例通过记录在 `/var/tmp/peter-sandbox-recovery04.log`。
 
 交互原则参考 [Carbon 表单](https://carbondesignsystem.com/components/form/usage/)、[Carbon 空状态](https://carbondesignsystem.com/patterns/empty-states-pattern/)、[Fluent Tabs](https://fluent2.microsoft.design/components/web/react/core/tablist/usage) 和 [Fluent 无障碍](https://fluent2.microsoft.design/accessibility)，继续复用现有 TDesign。
+
+## 登录界面恢复（2026-09-29）
+
+纠正私有部署采用上游默认登录界面的问题：直接复用原 Musuw 的 `AuthApp`、`AuthShowcase` 和样式，只接 Peter 同源账号密码接口。客户资料、模型与数据库没有迁移。
+
+- 105 项 auth 测试、17 项路由/登录交接检查、登录页与工作区类型检查及生产构建通过。
+- `e2e/peter/server-login.mjs` 在实际 HTTPS 服务器通过八项检查：原有布局、真实错误密码、临时失败可重试、正确账号登录并刷新、已登录重入、退出并刷新、390px 手机布局、无浏览器异常或外部身份请求。
+- 本地开发入口 `/auth/start` 同样实际渲染原 Musuw 页面。
+- 本次集中复查覆盖构建是否包含登录资源、原托管配置隔离、原生会话衔接、历史用户缓存清理和部署回退。原 Musuw 样式及动态背景组件未改写。
+- 证据：`auth-login-tests.log`、`login-route-tests.log`、`login-build.log`、`auth-login-build.log`、`login-browser.log`、`login-acceptance.json`、`login-after.png`、`login-mobile.png`，均在忽略目录 `.runtime/peter/deployment/`。

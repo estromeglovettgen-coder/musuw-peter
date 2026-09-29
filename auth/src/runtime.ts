@@ -118,10 +118,7 @@ export type AuthConfig = Readonly<{
 type LocationLike = Readonly<{ assign(url: string): void; origin: string }>;
 
 type RuntimeOptions = Readonly<{
-  config: AuthConfig;
-  createIdentityClient: (config: AuthConfig) => IdentityClient;
   fetch?: typeof globalThis.fetch;
-  localMusuwPasswordAuth?: boolean;
   location?: LocationLike;
   nativeStorage: SessionStorageLike;
   nextFlowId?: () => string;
@@ -130,7 +127,19 @@ type RuntimeOptions = Readonly<{
   onDiagnostic?: (event: DiagnosticEvent) => void;
   sharedStorage?: SessionStorageLike;
   storage: SessionStorageLike;
-}>;
+}> & (
+  | Readonly<{
+      config: AuthConfig;
+      createIdentityClient: (config: AuthConfig) => IdentityClient;
+      localMusuwPasswordAuth?: boolean;
+    }>
+  | Readonly<{
+      // Private deployments reuse the Musuw UI with their own account API.
+      localMusuwPasswordAuth: true;
+      config?: never;
+      createIdentityClient?: never;
+    }>
+);
 
 type LoginFlowKind = "oauth" | "recovery" | "signup";
 
@@ -505,8 +514,12 @@ export function createAuthRuntime(options: RuntimeOptions) {
     options.location ??
     ({ assign: (url: string) => window.location.assign(url), origin: window.location.origin } satisfies LocationLike);
   let client: IdentityClient | null = null;
+  const publicOrigin = options.config?.publicOrigin ?? location.origin;
 
   const identity = (): IdentityClient => {
+    if (!options.config || !options.createIdentityClient) {
+      throw new Error("Hosted identity is not enabled for this deployment");
+    }
     if (client === null) client = options.createIdentityClient(options.config);
     return client;
   };
@@ -666,7 +679,7 @@ export function createAuthRuntime(options: RuntimeOptions) {
     const raw = options.storage.getItem(weknoraAuthorizationKey);
     if (raw === null) return null;
     const expected = jsonOf(raw, (value) =>
-      parseExpectedWeKnoraAuthorization(value, now(), options.config.publicOrigin),
+      parseExpectedWeKnoraAuthorization(value, now(), publicOrigin),
     );
     if (expected === null) options.storage.removeItem(weknoraAuthorizationKey);
     return expected;
@@ -716,6 +729,12 @@ export function createAuthRuntime(options: RuntimeOptions) {
       }
 
       try {
+        // The workspace must hydrate this account, not a previous cached profile.
+        for (const key of [
+          "weknora_user", "weknora_tenant", "weknora_memberships",
+          "weknora_selected_tenant_id", "weknora_selected_tenant_name",
+          "weknora_knowledge_bases", "weknora_current_kb",
+        ]) options.nativeStorage.removeItem(key);
         options.nativeStorage.setItem(nativeRefreshTokenKey, refreshToken);
         options.nativeStorage.setItem(nativeTokenKey, token);
       } catch {
@@ -767,7 +786,7 @@ export function createAuthRuntime(options: RuntimeOptions) {
 
   const startWeKnoraOIDC = async (): Promise<IdentityCompletionView> => {
     try {
-      const redirectURI = new URL(callbackPath, options.config.publicOrigin).toString();
+      const redirectURI = new URL(callbackPath, publicOrigin).toString();
       const endpoint = new URL(oidcURLPath, location.origin);
       endpoint.searchParams.set("redirect_uri", redirectURI);
       const response = await withinRequestDeadline(
@@ -941,8 +960,8 @@ export function createAuthRuntime(options: RuntimeOptions) {
             const expected = expectedWeKnoraAuthorization();
             const redirectURL =
               expected === null
-                ? safeRegisteredRedirectURL(details.data.redirect_url, options.config.publicOrigin)
-                : safeRedirectURL(details.data.redirect_url, expected, options.config.publicOrigin);
+                ? safeRegisteredRedirectURL(details.data.redirect_url, publicOrigin)
+                : safeRedirectURL(details.data.redirect_url, expected, publicOrigin);
             if (redirectURL === null) {
               clearContinuation();
               return { code: "oauth_continuation_invalid", state: "authorization_error" };
@@ -954,7 +973,7 @@ export function createAuthRuntime(options: RuntimeOptions) {
 
           if (
             details.data.authorization_id !== authorizationId ||
-            details.data.client.id !== options.config.weknoraOAuthClientId
+            details.data.client.id !== options.config?.weknoraOAuthClientId
           ) {
             clearContinuation();
             return { code: "oauth_client_not_allowed", state: "authorization_error" };
@@ -964,7 +983,7 @@ export function createAuthRuntime(options: RuntimeOptions) {
           const registeredCallback = new URL(details.data.redirect_uri);
           if (
             expected === null
-              ? !isTrustedRegisteredCallback(registeredCallback, options.config.publicOrigin)
+              ? !isTrustedRegisteredCallback(registeredCallback, publicOrigin)
               : !registeredCallbackMatches(details.data.redirect_uri, expected)
           ) {
             clearContinuation();
@@ -978,8 +997,8 @@ export function createAuthRuntime(options: RuntimeOptions) {
           const redirectURL =
             approved.error === null && approved.data !== null
               ? expected === null
-                ? safeRegisteredRedirectURL(approved.data.redirect_url, options.config.publicOrigin)
-                : safeRedirectURL(approved.data.redirect_url, expected, options.config.publicOrigin)
+                ? safeRegisteredRedirectURL(approved.data.redirect_url, publicOrigin)
+                : safeRedirectURL(approved.data.redirect_url, expected, publicOrigin)
               : null;
           if (redirectURL === null) {
             clearContinuation();

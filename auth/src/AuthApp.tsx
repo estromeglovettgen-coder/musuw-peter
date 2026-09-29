@@ -409,7 +409,7 @@ function passwordResetMessage(result: PasswordResetRequestView, copy: AuthCopy):
   return copy.errors.resetUnavailable;
 }
 
-export function AuthApp({ runtime }: Readonly<{ runtime: AuthRuntime }>) {
+export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: AuthRuntime; passwordOnly?: boolean }>) {
   const [locale] = useState<AuthLocale>(() => {
     if (typeof window === "undefined") return "en-US";
     return getInitialAuthLocale();
@@ -983,9 +983,9 @@ export function AuthApp({ runtime }: Readonly<{ runtime: AuthRuntime }>) {
             <div className="auth-field-group">
               <div className="auth-field-label-row">
                 <label htmlFor="password">{copy.password}</label>
-                <button className="auth-link auth-forgot" disabled={isSubmitting} onClick={showPasswordReset} type="button">
+                {!passwordOnly && <button className="auth-link auth-forgot" disabled={isSubmitting} onClick={showPasswordReset} type="button">
                   {copy.forgotPassword}
-                </button>
+                </button>}
               </div>
               <div className="auth-password-field">
                 <input
@@ -1016,12 +1016,12 @@ export function AuthApp({ runtime }: Readonly<{ runtime: AuthRuntime }>) {
             <button disabled={isSubmitting} type="submit">
               {isSubmitting ? copy.signingIn : copy.signIn}
             </button>
-            <div className="auth-form-actions auth-mode-switch">
+            {!passwordOnly && <div className="auth-form-actions auth-mode-switch">
               <span>{copy.needAccount}</span>
               <button className="auth-link" disabled={isSubmitting} onClick={showRegister} type="button">
                 {copy.createAccount}
               </button>
-            </div>
+            </div>}
           </form>
         ) : screen === "register" ? (
           <form className="auth-form" key="password-register" noValidate onSubmit={(event) => void signUpWithPassword(event)}>
@@ -1266,7 +1266,7 @@ export function AuthApp({ runtime }: Readonly<{ runtime: AuthRuntime }>) {
           </form>
         )}
 
-        {isPasswordMode ? (
+        {isPasswordMode && !passwordOnly ? (
           <>
             <div className="auth-divider" role="separator">
               <span>{copy.divider}</span>
@@ -1294,7 +1294,7 @@ export function AuthApp({ runtime }: Readonly<{ runtime: AuthRuntime }>) {
           </>
         ) : null}
 
-        {!isRecoveryExperience ? (
+        {!isRecoveryExperience && !passwordOnly ? (
           <p className="auth-legal-note">
             {copy.legal.acknowledgement}{" "}
             <a href={authLegalHref("terms", locale)} rel="noopener noreferrer" target="_blank">

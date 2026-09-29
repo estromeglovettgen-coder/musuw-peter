@@ -11,7 +11,7 @@
   "packageManager": "npm@11.16.0",
   "scripts": {
     "dev": "node scripts/peter-dev.mjs",
-    "app:build": "VITE_WORKSPACE_PROFILE=peter VITE_AUTH_MODE=native npm --prefix weknora/frontend run build-with-types",
+    "app:build": "npm run auth:peter:build && VITE_WORKSPACE_PROFILE=peter VITE_AUTH_MODE=native npm --prefix weknora/frontend run build-with-types",
     "app:e2e:batch": "playwright test --config=playwright.session-batch.config.ts",
     "app:test": "npm --prefix weknora/frontend test",
     "admin:build": "npm --prefix weknora/frontend run build-with-types",
@@ -20,6 +20,7 @@
     "admin:test": "node --test scripts/musuw-admin-*.test.mjs",
     "admin:deploy:test": "python3 scripts/operations-deploy.test.py",
     "auth:build": "npm --prefix auth run build",
+    "auth:peter:build": "VITE_WORKSPACE_PROFILE=peter npm --prefix auth run build -- --outDir ../weknora/frontend/public/auth --emptyOutDir",
     "auth:test": "npm --prefix auth test",
     "homepage:build": "npm --prefix storefront run build",
     "homepage:test": "npm --prefix storefront test",

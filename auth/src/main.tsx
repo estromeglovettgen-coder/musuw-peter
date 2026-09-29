@@ -17,29 +17,35 @@ if (root === null) {
 
 let content: React.ReactNode;
 try {
-  const runtimeConfig = (window as Window & {
-    __RUNTIME_CONFIG__?: { auth?: unknown };
-  }).__RUNTIME_CONFIG__;
-  const config = authConfigFromRuntimeOrEnvironment(
-    import.meta.env,
-    runtimeConfig?.auth,
-    import.meta.env.PROD,
-  );
-  const runtime = createAuthRuntime({
-    config,
+  const passwordOnly = import.meta.env["VITE_WORKSPACE_PROFILE"] === "peter";
+  const sharedOptions = {
     onDiagnostic: reportDiagnostic,
-    createIdentityClient: (identityConfig) =>
-      createSupabaseIdentityClient(identityConfig, window.sessionStorage, window.localStorage),
-    localMusuwPasswordAuth: isLocalMusuwAuthEnabled(
-      import.meta.env.DEV,
-      import.meta.env["VITE_MUSUW_DEV_LOCAL_AUTH"],
-      window.location.hostname,
-    ),
     nativeStorage: window.localStorage,
     sharedStorage: window.localStorage,
     storage: window.sessionStorage,
-  });
-  content = <AuthApp runtime={runtime} />;
+  };
+  let runtime;
+  if (passwordOnly) {
+    runtime = createAuthRuntime({ ...sharedOptions, localMusuwPasswordAuth: true });
+  } else {
+    const runtimeConfig = (window as Window & {
+      __RUNTIME_CONFIG__?: { auth?: unknown };
+    }).__RUNTIME_CONFIG__;
+    runtime = createAuthRuntime({
+      ...sharedOptions,
+      config: authConfigFromRuntimeOrEnvironment(
+        import.meta.env, runtimeConfig?.auth, import.meta.env.PROD,
+      ),
+      createIdentityClient: (identityConfig) =>
+        createSupabaseIdentityClient(identityConfig, window.sessionStorage, window.localStorage),
+      localMusuwPasswordAuth: isLocalMusuwAuthEnabled(
+        import.meta.env.DEV,
+        import.meta.env["VITE_MUSUW_DEV_LOCAL_AUTH"],
+        window.location.hostname,
+      ),
+    });
+  }
+  content = <AuthApp runtime={runtime} passwordOnly={passwordOnly} />;
 } catch {
   const copy = getAuthCopy(getInitialAuthLocale());
   content = (
