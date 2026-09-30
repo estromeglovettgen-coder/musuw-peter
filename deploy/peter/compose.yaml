@@ -11,6 +11,9 @@ services:
     image: ${PETER_APP_IMAGE:?set the verified release image}
     restart: unless-stopped
     env_file: /etc/musuw-peter/app.env
+    environment:
+      # TEI grants one permit per input; keep two background batches below its four-permit limit.
+      BATCH_EMBED_SIZE: '1'
     ports: ['127.0.0.1:18187:8080']
     entrypoint: ['/bin/bash', '/peter-entrypoint.sh']
     command: ['./WeKnora']
