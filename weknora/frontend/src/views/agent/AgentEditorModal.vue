@@ -775,7 +775,7 @@
                 </div>
 
                 <!-- 附件上传 -->
-                <div v-show="currentSection === 'multimodal'" class="section">
+                <div v-if="!isPeterWorkspace" v-show="currentSection === 'multimodal'" class="section">
                   <div class="section-header">
                     <h2>{{ $t('agentEditor.imageUpload.sectionTitle') }}</h2>
                     <p class="section-description">{{ $t('agentEditor.imageUpload.sectionDesc') }}</p>
@@ -1596,7 +1596,7 @@
                 </div>
 
                 <!-- 网络搜索配置 -->
-                <div v-show="currentSection === 'websearch'" class="section">
+                <div v-if="!isPeterWorkspace" v-show="currentSection === 'websearch'" class="section">
                   <div class="section-header">
                     <h2>{{ $t('agent.editor.webSearchConfig') }}</h2>
                     <p class="section-description">{{ $t('agent.editor.webSearchConfigDesc') }}</p>
@@ -1994,6 +1994,7 @@ const LITE_EDITOR_VISIBLE_SECTIONS = new Set(['basic', 'knowledge', 'prompts', '
 
 function resolveEditorSection(section?: string | null): string {
   const key = AGENT_EDITOR_SECTION_ALIASES[section || 'basic'] || section || 'basic';
+  if (isPeterWorkspace && (key === 'websearch' || key === 'multimodal')) return 'basic';
   const visibleSections = authStore.isLiteMode
     ? LITE_EDITOR_VISIBLE_SECTIONS
     : EDITOR_VISIBLE_SECTIONS;
@@ -2691,8 +2692,10 @@ const navItems = computed(() => {
   if (hasKnowledgeBase.value) {
     items.push({ key: 'retrieval', icon: 'search', label: t('agent.editor.retrievalStrategy') });
   }
-  items.push({ key: 'websearch', icon: 'internet', label: t('agent.editor.webSearchConfig') });
-  items.push({ key: 'multimodal', icon: 'attach', label: t('agentEditor.imageUpload.navLabel') });
+  if (!isPeterWorkspace) {
+    items.push({ key: 'websearch', icon: 'internet', label: t('agent.editor.webSearchConfig') });
+    items.push({ key: 'multimodal', icon: 'attach', label: t('agentEditor.imageUpload.navLabel') });
+  }
   items.push({ key: 'suggestions', icon: 'help-circle', label: t('agentEditor.questionSuggestions.navLabel') });
   if (isAgentMode.value) {
     items.push({ key: 'tools', icon: 'tools', label: t('agent.editor.toolsConfig') });
@@ -2927,6 +2930,28 @@ const getDefaultSmartReasoningTools = () => Array.from(new Set([
 // into defaultFormData: that object is also the legacy edit fallback, and doing
 // so would silently turn missing historical fields on when an old agent is saved.
 const applyNewAgentCapabilityDefaults = () => {
+  if (isPeterWorkspace && !authStore.isLiteMode) {
+    const config = formData.value.config;
+    const visionModel = allModels.value.find((model) =>
+      model.type === 'VLLM' && model.display_name === 'DeepSeek 图像理解',
+    );
+    const searchProvider = webSearchProviderList.value.find((provider) => provider.name === 'Platform Web Search')
+      || webSearchProviderList.value.find((provider) => provider.is_default);
+    Object.assign(config, {
+      web_search_enabled: true,
+      web_search_provider_id: searchProvider?.id || '',
+      web_search_max_results: 5,
+      web_fetch_enabled: true,
+      web_fetch_top_n: 5,
+      image_upload_enabled: true,
+      vlm_model_id: selectInitialModelId(allModels.value, 'VLLM', visionModel?.id) || '',
+      attachment_image_understanding: true,
+      attachment_ocr_max_pages: 0,
+      image_storage_provider: '',
+      audio_upload_enabled: false,
+    });
+    return;
+  }
   if (!authStore.isLiteMode) return;
   const config = formData.value.config;
   config.image_upload_enabled = true;
@@ -3414,6 +3439,7 @@ const onAgentTypeChange = (val: AgentType) => {
   if (val !== 'custom') {
     applyAgentTypePreset(preset);
   }
+  if (isPeterWorkspace && editorMode.value === 'create') applyNewAgentCapabilityDefaults();
 
   // 用新预设的默认名/描述刷新自动填充字段
   if (canOverrideName) {
@@ -4814,6 +4840,7 @@ const hasPlaceholder = (text: string | undefined, placeholder: string): boolean 
 };
 
 const handleSave = async () => {
+  if (isPeterWorkspace && editorMode.value === 'create') applyNewAgentCapabilityDefaults();
   // 验证必填项（内置智能体不验证名称和系统提示词）
   if (!isBuiltinAgent.value) {
     if (!formData.value.name || !formData.value.name.trim()) {
@@ -4877,7 +4904,8 @@ const handleSave = async () => {
   // 校验 VLM 模型（当图片上传启用时必填）
   if (formData.value.config.image_upload_enabled && !formData.value.config.vlm_model_id) {
     MessagePlugin.error(t('agentEditor.imageUpload.vlmModelRequired'));
-    currentSection.value = authStore.isLiteMode ? 'basic' : 'multimodal';
+    currentSection.value = authStore.isLiteMode || isPeterWorkspace ? 'basic' : 'multimodal';
+    if (isPeterWorkspace) uiStore.openSettings('models', 'vllm');
     return;
   }
 
@@ -4885,7 +4913,8 @@ const handleSave = async () => {
   // 用户首次上传音频时才收到后端拒绝。
   if (formData.value.config.audio_upload_enabled && !formData.value.config.asr_model_id) {
     MessagePlugin.error(t('uploadConfirm.asrModelRequired'));
-    currentSection.value = authStore.isLiteMode ? 'basic' : 'multimodal';
+    currentSection.value = authStore.isLiteMode || isPeterWorkspace ? 'basic' : 'multimodal';
+    if (isPeterWorkspace) uiStore.openSettings('models', 'asr');
     return;
   }
 
