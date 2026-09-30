@@ -3,7 +3,7 @@
 入口：<https://62.234.188.55/>。本机验收凭据保存在忽略版本控制的
 `.runtime/peter/deployment/account.json`，不得提交或粘贴到公开记录。
 主链路与修复版整机重启验收已通过，范围与限制见 [服务器验收记录](PETER_SERVER_ACCEPTANCE.md)。
-当前前端发布目录为 `20260930-03`，应用镜像为 `musuw-peter:20260930-02`（healthy）。工作区入口 `frontend/index.html` 的 SHA-256 为 `49904f70684b4d324022a434e17b2e3054538bda7b0ce3a875e8baf2b7a804d6`，原 Musuw 登录入口 `frontend/auth/index.html` 为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`；服务器当前文件已核对。完整回退组合为前端目录 `20260930-01` 和应用镜像 `musuw-peter:20260929-05`。最终日常链路验收见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
+当前前端发布目录为 `20260930-05`（源码提交 `c29702b`），应用镜像为 `musuw-peter:20260930-02`（healthy）。工作区入口 `frontend/index.html` 的 SHA-256 为 `066dc900e3324d3b7b894fdffa33e2ef3510ec4d9cc948d72695e6cdd6872b30`，原 Musuw 登录入口 `frontend/auth/index.html` 为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`；公网文件已核对。此版在真实浏览器完成登录、客户创建/编辑、自定义标签回车及点选、标签筛选、智能体侧栏与隐藏设置路由验收，临时客户已清理。回退组合为前端目录 `20260930-03` 和应用镜像 `musuw-peter:20260930-02`。更广的业务链路验收见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
 
 ## 部署边界
 
@@ -77,7 +77,7 @@ curl -fsS https://62.234.188.55/health
 4. 复核浏览器冷启动、已打开页面导航、流式回答、客户和知识库、下载及新旧会话恢复。
 5. 若仅为兼容的代码/界面更新，可回退应用镜像及 `current` 链接；涉及破坏性数据库迁移时，
    必须使用对应的数据恢复方案，不能假设旧二进制能读取新结构。当前可回退的组合为
-   `musuw-peter:20260929-05` 与 `/opt/musuw-peter/releases/20260930-01`；回退后仍须核对登录、客户资料、技能会话和产物下载。
+   `musuw-peter:20260930-02` 与 `/opt/musuw-peter/releases/20260930-03`；回退后仍须核对登录、客户资料、技能会话和产物下载。
 
 旧业务“不要备份”的授权只用于本次明确的旧数据清理。未来真实客户数据应另行配置备份；
 目前没有离机备份目的地，容器持久化和发布回退不能替代灾难恢复。
