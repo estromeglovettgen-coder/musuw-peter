@@ -125,7 +125,7 @@
         </div>
       </div>
 
-      <div v-if="!authStore.isLiteMode" class="visual-setting-row">
+      <div v-if="!authStore.isLiteMode && !isPeterWorkspace" class="visual-setting-row">
         <div class="visual-setting-row__copy">
           <label for="visual-sans-font-select">{{ $t('font.uiFont') }}</label>
           <p>{{ $t('font.uiFontDescription') }}</p>
@@ -151,7 +151,7 @@
         </div>
       </div>
 
-      <div v-if="!authStore.isLiteMode" class="visual-setting-row">
+      <div v-if="!authStore.isLiteMode && !isPeterWorkspace" class="visual-setting-row">
         <div class="visual-setting-row__copy">
           <label for="visual-mono-font-select">{{ $t('font.monoFont') }}</label>
           <p>{{ $t('font.monoFontDescription') }}</p>
@@ -177,7 +177,7 @@
         </div>
       </div>
 
-      <div v-if="!authStore.isLiteMode" class="visual-setting-row">
+      <div v-if="!authStore.isLiteMode && !isPeterWorkspace" class="visual-setting-row">
         <div class="visual-setting-row__copy">
           <label>{{ $t('font.fontSize') }}</label>
           <p>{{ $t('font.fontSizeDescription') }}</p>
@@ -201,6 +201,7 @@ import { useI18n } from 'vue-i18n'
 import { normalizeLocale, persistLocalePreference } from '@/i18n/locale'
 import { useTheme, type ThemeColor, type ThemeMode } from '@/composables/useTheme'
 import { useAuthStore } from '@/stores/auth'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   useFont,
   SANS_STACKS,

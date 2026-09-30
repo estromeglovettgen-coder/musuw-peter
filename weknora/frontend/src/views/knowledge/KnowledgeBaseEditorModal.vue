@@ -201,7 +201,7 @@
               />
             </div>
 
-            <div v-if="!authStore.isLiteMode && currentSection === 'vectorStore'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && isWorkspaceKnowledgeBaseSectionVisible('vectorStore') && currentSection === 'vectorStore'" class="kb-config-section">
               <KBVectorStoreSettings
                 v-if="formData"
                 :mode="editorMode"
@@ -237,7 +237,7 @@
               </div>
             </div>
 
-            <div v-if="!authStore.isLiteMode && !isFAQ && currentSection === 'parser'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && !isFAQ && isWorkspaceKnowledgeBaseSectionVisible('parser') && currentSection === 'parser'" class="kb-config-section">
               <KBParserSettings
                 v-if="formData"
                 :parser-engine-rules="formData.chunkingConfig.parserEngineRules"
@@ -245,7 +245,7 @@
               />
             </div>
 
-            <div v-if="!authStore.isLiteMode && !isFAQ && currentSection === 'storage'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && !isFAQ && isWorkspaceKnowledgeBaseSectionVisible('storage') && currentSection === 'storage'" class="kb-config-section">
               <KBStorageSettings
                 v-if="formData"
                 :storage-backend-id="formData.storageBackendId"
@@ -256,7 +256,7 @@
               />
             </div>
 
-            <div v-if="!authStore.isLiteMode && !isFAQ && currentSection === 'chunking'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && !isFAQ && isWorkspaceKnowledgeBaseSectionVisible('chunking') && currentSection === 'chunking'" class="kb-config-section">
               <KBChunkingSettings
                 v-if="formData"
                 :config="formData.chunkingConfig"
@@ -264,7 +264,7 @@
               />
             </div>
 
-            <div v-if="!authStore.isLiteMode && !isFAQ && currentSection === 'multimodal'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && !isFAQ && isWorkspaceKnowledgeBaseSectionVisible('multimodal', isPeterWorkspace, needsPeterMediaRepair('multimodal')) && currentSection === 'multimodal'" class="kb-config-section">
               <div class="kb-config-field__heading">
                 <label>{{ $t('knowledgeEditor.multimodal.title') }}</label>
                 <p>{{ $t('knowledgeEditor.multimodal.description') }}</p>
@@ -314,7 +314,7 @@
               </div>
             </div>
 
-            <div v-if="!authStore.isLiteMode && !isFAQ && currentSection === 'asr'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && !isFAQ && isWorkspaceKnowledgeBaseSectionVisible('asr', isPeterWorkspace, needsPeterMediaRepair('asr')) && currentSection === 'asr'" class="kb-config-section">
               <div class="kb-config-field__heading">
                 <label>{{ $t('knowledgeEditor.asr.title') }}</label>
                 <p>{{ $t('knowledgeEditor.asr.description') }}</p>
@@ -345,7 +345,7 @@
               </div>
             </div>
 
-            <div v-if="!authStore.isLiteMode && !isFAQ && currentSection === 'graph'" class="kb-config-section">
+            <div v-if="!authStore.isLiteMode && !isFAQ && isWorkspaceKnowledgeBaseSectionVisible('graph') && currentSection === 'graph'" class="kb-config-section">
               <GraphSettings
                 v-if="formData"
                 :graph-extract="formData.nodeExtractConfig"
@@ -355,7 +355,7 @@
               />
             </div>
 
-            <div v-if="!isFAQ && currentSection === 'advanced'" class="kb-config-section">
+            <div v-if="!isFAQ && isWorkspaceKnowledgeBaseSectionVisible('advanced') && currentSection === 'advanced'" class="kb-config-section">
               <KBAdvancedSettings
                 ref="advancedSettingsRef"
                 v-if="formData"
@@ -404,7 +404,7 @@
   </VisualSettingsShell>
 
   <KbCreateContextualGuide
-    :when="visible && editorMode === 'create' && !isCustomer"
+    :when="visible && editorMode === 'create' && !isCustomer && !isPeterWorkspace"
     :is-faq="isFAQ"
     :needs-embedding="kbCreateNeedsEmbedding"
   />
@@ -423,11 +423,13 @@ import CustomerInitialSources from '@/views/customer/CustomerInitialSources.vue'
 import { updateKBConfig, type KBModelConfigRequest } from '@/api/initialization'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { selectInitialModelId } from '@/utils/modelDefaults'
+import { createPeterProcessingDefaults, selectPeterMediaModelIds, withPeterGraphExtractionDefaults } from '@/utils/peterKnowledgeDefaults'
 import { copyWithToast } from '@/utils/clipboard'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useSettingsStore } from '@/stores/settings'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
+import { isPeterWorkspace, isWorkspaceKnowledgeBaseSectionVisible } from '@/config/workspaceSurface'
 import KBModelConfig from './settings/KBModelConfig.vue'
 import KBParserSettings from './settings/KBParserSettings.vue'
 import KBStorageSettings from './settings/KBStorageSettings.vue'
@@ -576,6 +578,25 @@ const canViewActivity = computed(() => {
 // 用户是否在分块设置中手动改过任何值。一旦为 true，就不再根据索引策略自动调整默认分块参数。
 const chunkingDirty = ref(false)
 
+function hasActivePeterMediaModel(section: 'multimodal' | 'asr'): boolean {
+  if (!formData.value) return false
+  const media = section === 'multimodal' ? formData.value.multimodalConfig : formData.value.asrConfig
+  const modelId = section === 'multimodal' ? media?.vllmModelId : media?.modelId
+  const modelType = section === 'multimodal' ? 'VLLM' : 'ASR'
+  return Boolean(modelId && allModels.value.some(
+    model => model.id === modelId && model.type === modelType && (!model.status || model.status === 'active'),
+  ))
+}
+
+function needsPeterMediaRepair(section: 'multimodal' | 'asr'): boolean {
+  if (!isPeterWorkspace) return false
+  // The upload page can open this section when processing was disabled, too.
+  if (currentSection.value === section) return true
+  if (!formData.value) return false
+  const media = section === 'multimodal' ? formData.value.multimodalConfig : formData.value.asrConfig
+  return Boolean(media?.enabled && !hasActivePeterMediaModel(section))
+}
+
 // 仅 Wiki 索引模式下的分块预设：更大 chunk、无 overlap、关闭父子分块。
 // 该预设只在「创建模式」下、且用户尚未手动调整分块参数时生效，避免覆盖既有 KB 的配置。
 const WIKI_ONLY_CHUNKING_PRESET = {
@@ -637,7 +658,10 @@ const navItems = computed(() => {
   if (canViewActivity.value) {
     items.push({ key: 'activity', icon: 'history', label: t('knowledgeEditor.sidebar.activity') })
   }
-  return items
+  return items.filter((item) => isWorkspaceKnowledgeBaseSectionVisible(
+    item.key, isPeterWorkspace,
+    (item.key === 'multimodal' || item.key === 'asr') && needsPeterMediaRepair(item.key),
+  ))
 })
 
 const currentSectionLabel = computed(() =>
@@ -691,6 +715,7 @@ const customerLibraries = ref<any[]>([])
 const customerWikiPages = ref<any[]>([])
 const customerResourcesLoading = ref(false)
 const customerResourcesError = ref('')
+const peterGraphReady = ref(false)
 const initialSources = ref<CustomerUploadItem[]>([])
 const savedCustomerId = ref('')
 
@@ -714,6 +739,15 @@ async function loadCustomerResources() {
     if (version === loadVersion) customerResourcesError.value = error.message || '客户设置加载失败，请重试'
   } finally {
     if (version === loadVersion) customerResourcesLoading.value = false
+  }
+}
+
+async function loadPeterGraphReadiness() {
+  try {
+    await editorResources.ensureSystemInfo(true)
+    peterGraphReady.value = editorResources.systemInfo?.graph_database_engine === 'Neo4j'
+  } catch {
+    peterGraphReady.value = false
   }
 }
 
@@ -764,6 +798,16 @@ const applyDefaultModelsIfEmpty = () => {
   }
   if (!formData.value.modelConfig.embeddingModelId && embeddingModelId) {
     formData.value.modelConfig.embeddingModelId = embeddingModelId
+  }
+  if (isPeterWorkspace && normalizeKnowledgeBaseType(formData.value.type) === 'document') {
+    const media = selectPeterMediaModelIds(
+      allModels.value,
+      formData.value.multimodalConfig.vllmModelId,
+      formData.value.asrConfig.modelId,
+    )
+    formData.value.multimodalConfig.vllmModelId = media.visionModelId
+    formData.value.asrConfig.modelId = media.asrModelId
+    formData.value.imageProcessingConfig = { model_id: media.visionModelId }
   }
 }
 
@@ -834,14 +878,14 @@ const initFormData = (type: 'document' | 'faq' = 'document') => ({
   storageProvider: tenantDefaultStorageProvider.value,
   vectorStoreId: '',
   vectorStoreInfo: {},
-  multimodalConfig: { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
-  asrConfig: { enabled: false, modelId: '', language: '' },
-  nodeExtractConfig: { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
+  multimodalConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer || !!props.templateMode).multimodalConfig : { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
+  asrConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer || !!props.templateMode).asrConfig : { enabled: false, modelId: '', language: '' },
+  nodeExtractConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer || !!props.templateMode).nodeExtractConfig : { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
   indexingStrategy: {
     vectorEnabled: !props.customer,
     keywordEnabled: !props.customer,
     wikiEnabled: true,
-    graphEnabled: !props.customer,
+    graphEnabled: isPeterWorkspace || !props.customer,
   },
   wikiConfig: {
     extractionGranularity: (props.customer ? 'focused' : 'standard') as 'focused' | 'standard' | 'exhaustive',
@@ -1038,8 +1082,24 @@ function applyCustomerTemplate() {
   }
   appliedTemplateNote.value = snapshot.customer_profile.note || ''
   chunkingDirty.value = true
+  if (isPeterWorkspace) {
+    const media = selectPeterMediaModelIds(allModels.value, next.multimodalConfig.vllmModelId, next.asrConfig.modelId)
+    next.multimodalConfig = { ...next.multimodalConfig, enabled: true, vllmModelId: media.visionModelId }
+    next.asrConfig = { ...next.asrConfig, enabled: true, modelId: media.asrModelId }
+    next.imageProcessingConfig = { model_id: media.visionModelId }
+    next.indexingStrategy.graphEnabled = true
+    next.nodeExtractConfig = withPeterGraphExtractionDefaults(next.nodeExtractConfig, true)
+    next.modelConfig.llmModelId = selectInitialModelId(allModels.value, 'KnowledgeQA', next.modelConfig.llmModelId) || ''
+    next.modelConfig.embeddingModelId = selectInitialModelId(allModels.value, 'Embedding', next.modelConfig.embeddingModelId) || ''
+    next.modelConfig.wikiSynthesisModelId = selectInitialModelId(allModels.value, 'KnowledgeQA', next.modelConfig.wikiSynthesisModelId) || ''
+    // Infrastructure bindings are deployment-specific; templates carry customer
+    // rules, while new customers use this server's current storage defaults.
+    next.vectorStoreId = ''
+    next.storageBackendId = ''
+    next.storageProvider = tenantDefaultStorageProvider.value
+  }
   formData.value = next
-  MessagePlugin.success(`已套用「${template.name}」`)
+  MessagePlugin.success(`已套用「${template.name}」，存储使用当前默认配置`)
 }
 
 // 加载知识库数据（编辑模式）
@@ -1245,6 +1305,11 @@ const handleNodeExtractUpdate = (config: any) => {
 // 验证表单
 const validateForm = (): boolean => {
   if (!formData.value) return false
+  if (isPeterWorkspace && editorMode.value === 'create' && !props.templateMode && !isFAQ.value && !peterGraphReady.value) {
+    MessagePlugin.warning('知识图谱服务暂不可用，请稍后重试')
+    currentSection.value = isCustomer.value ? 'customer' : 'basic'
+    return false
+  }
   if (isCustomer.value) {
     if (customerResourcesLoading.value || customerResourcesError.value) {
       currentSection.value = 'customer'
@@ -1295,13 +1360,15 @@ const validateForm = (): boolean => {
   }
 
   // 验证多模态配置（如果启用）
-  if (!isFAQ.value && formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
+  if (!isFAQ.value && formData.value.multimodalConfig.enabled &&
+      (!formData.value.multimodalConfig.vllmModelId || (isPeterWorkspace && !hasActivePeterMediaModel('multimodal')))) {
     MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
     currentSection.value = 'multimodal'
     return false
   }
 
-  if (!isFAQ.value && formData.value.asrConfig.enabled && !formData.value.asrConfig.modelId) {
+  if (!isFAQ.value && formData.value.asrConfig.enabled &&
+      (!formData.value.asrConfig.modelId || (isPeterWorkspace && !hasActivePeterMediaModel('asr')))) {
     MessagePlugin.warning(t('knowledgeEditor.asr.modelPlaceholder'))
     currentSection.value = 'asr'
     return false
@@ -1364,6 +1431,9 @@ const buildSubmitData = () => {
       : '',
     description_language: formData.value.multimodalConfig.descriptionLanguage || '',
     custom_instructions: formData.value.multimodalConfig.customInstructions || ''
+  }
+  if (formData.value.multimodalConfig.enabled) {
+    data.image_processing_config = { model_id: formData.value.multimodalConfig.vllmModelId || '' }
   }
 
   // 添加ASR语音识别配置
@@ -1692,10 +1762,10 @@ const doSubmit = async () => {
     const code = error?.response?.data?.error?.code ?? error?.code
     if (code === 2200) {
       MessagePlugin.error(t('knowledgeEditor.errors.vectorStoreBindingInvalid'))
-      currentSection.value = 'vectorStore'
+      currentSection.value = isPeterWorkspace ? 'models' : 'vectorStore'
     } else if (code === 2201) {
       MessagePlugin.error(t('knowledgeEditor.errors.vectorStoreUnavailable'))
-      currentSection.value = 'vectorStore'
+      currentSection.value = isPeterWorkspace ? 'models' : 'vectorStore'
     } else {
       MessagePlugin.error(error?.message || t('common.operationFailed'))
     }
@@ -1723,6 +1793,7 @@ const resetState = () => {
   customerWikiPages.value = []
   customerResourcesLoading.value = false
   customerResourcesError.value = ''
+  peterGraphReady.value = false
   initialSources.value = []
   savedCustomerId.value = ''
 }
@@ -1753,13 +1824,27 @@ watch(() => props.visible, async (newVal) => {
       if (isCustomer.value) currentSection.value = 'customer'
       hasFiles.value = false
       loading.value = true
-      await Promise.all([loadSummaryModelOptions(), loadTenantDefaultStorageProvider(), ...(isCustomer.value ? [loadCustomerResources()] : [])])
+      await Promise.all([
+        loadSummaryModelOptions(isPeterWorkspace),
+        loadTenantDefaultStorageProvider(),
+        ...(isPeterWorkspace && !props.templateMode ? [loadPeterGraphReadiness()] : []),
+        ...(isCustomer.value ? [loadCustomerResources()] : []),
+      ])
       if (version === loadVersion && formData.value && !formData.value.storageBackendId) {
         formData.value.storageProvider = tenantDefaultStorageProvider.value
       }
       if (version === loadVersion && props.templateMode && props.customerTemplate) {
         chunkingDirty.value = true
-        formData.value = formFromNative(JSON.parse(JSON.stringify({ ...props.customerTemplate.config, type: 'document', name: props.customerTemplate.name, description: props.customerTemplate.description })))
+        const templateForm = formFromNative(JSON.parse(JSON.stringify({ ...props.customerTemplate.config, type: 'document', name: props.customerTemplate.name, description: props.customerTemplate.description })))
+        if (isPeterWorkspace) {
+          const media = selectPeterMediaModelIds(allModels.value, templateForm.multimodalConfig.vllmModelId, templateForm.asrConfig.modelId)
+          templateForm.multimodalConfig = { ...templateForm.multimodalConfig, enabled: true, vllmModelId: media.visionModelId }
+          templateForm.asrConfig = { ...templateForm.asrConfig, enabled: true, modelId: media.asrModelId }
+          templateForm.imageProcessingConfig = { model_id: media.visionModelId }
+          templateForm.indexingStrategy.graphEnabled = true
+          templateForm.nodeExtractConfig = withPeterGraphExtractionDefaults(templateForm.nodeExtractConfig, true)
+        }
+        formData.value = templateForm
       }
       if (version === loadVersion) loading.value = false
       return
@@ -1775,7 +1860,7 @@ watch(() => props.visible, async (newVal) => {
     }
 
     await Promise.all([
-      loadSummaryModelOptions(),
+      loadSummaryModelOptions(isPeterWorkspace),
       loadTenantDefaultStorageProvider(),
     ])
     if (version !== loadVersion) return

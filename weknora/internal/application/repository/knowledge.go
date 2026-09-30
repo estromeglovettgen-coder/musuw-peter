@@ -1040,6 +1040,39 @@ func (r *knowledgeRepository) FailKnowledgeParseAttempt(
 	return result.RowsAffected > 0, nil
 }
 
+// FailKnowledgeEnrichmentAttempt is the terminal failure transition for a
+// required post-processing task such as graph extraction. The attempt guard
+// prevents an old worker from failing a document that has since been reparsed.
+func (r *knowledgeRepository) FailKnowledgeEnrichmentAttempt(
+	ctx context.Context,
+	id string,
+	attempt int,
+	errorMessage string,
+) (bool, error) {
+	query := r.db.WithContext(ctx).
+		Model(&types.Knowledge{}).
+		Where("id = ? AND deleted_at IS NULL AND parse_status = ?", id, types.ParseStatusFinalizing)
+	if attempt > 0 {
+		query = query.Where(
+			"NOT EXISTS (SELECT 1 FROM knowledge_processing_spans WHERE knowledge_id = ? AND attempt > ?)",
+			id, attempt,
+		)
+	} else {
+		query = query.Where(
+			"NOT EXISTS (SELECT 1 FROM knowledge_processing_spans WHERE knowledge_id = ?)", id)
+	}
+	result := query.Updates(map[string]interface{}{
+		"parse_status":           types.ParseStatusFailed,
+		"error_message":          common.CleanInvalidUTF8(errorMessage),
+		"pending_subtasks_count": 0,
+		"updated_at":             time.Now(),
+	})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
+
 // UpdateActiveDeletingKnowledgeColumns only touches rows that are still visible
 // to normal queries and have not moved out of the transient deleting state.
 func (r *knowledgeRepository) UpdateActiveDeletingKnowledgeColumns(

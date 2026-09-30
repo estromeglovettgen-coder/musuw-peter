@@ -14,6 +14,10 @@ services:
     environment:
       # TEI grants one permit per input; keep each request below its four-permit limit.
       BATCH_EMBED_SIZE: '1'
+      NEO4J_ENABLE: 'true'
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+    secrets: [neo4j_auth]
     ports: ['127.0.0.1:18187:8080']
     entrypoint: ['/bin/bash', '/peter-entrypoint.sh']
     command: ['./WeKnora']
@@ -30,6 +34,7 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
+      neo4j: {condition: service_healthy}
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:8080/health']
       interval: 30s
@@ -72,6 +77,34 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    logging: *logging
+
+  neo4j:
+    image: neo4j@sha256:155c8aad10d5c838bc3bbc476c0418779086547822acb214ec5e3d49ba336907
+    restart: unless-stopped
+    entrypoint: ['/bin/sh', '/peter-neo4j-entrypoint.sh']
+    command: ['neo4j']
+    secrets: [neo4j_auth]
+    volumes:
+      - /var/lib/musuw-peter/neo4j:/data
+      - ./neo4j-entrypoint.sh:/peter-neo4j-entrypoint.sh:ro
+    environment:
+      NEO4JLABS_PLUGINS: '["apoc"]'
+      NEO4J_apoc_export_file_enabled: 'true'
+      NEO4J_apoc_import_file_enabled: 'true'
+      NEO4J_apoc_import_file_use__neo4j__config: 'true'
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 256m
+      NEO4J_server_memory_pagecache_size: 128m
+    mem_limit: 768m
+    cpus: 0.75
+    pids_limit: 256
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:7474/ >/dev/null']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     logging: *logging
 
   embeddings:
@@ -153,6 +186,8 @@ services:
 secrets:
   db_password:
     file: /etc/musuw-peter/db-password
+  neo4j_auth:
+    file: /etc/musuw-peter/neo4j-auth
   searxng_secret:
     file: /etc/musuw-peter/searxng-secret
 

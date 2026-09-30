@@ -259,6 +259,35 @@ func finalizeSubtaskDetached(
 	}
 }
 
+// A graph extraction error is fatal for a graph-enabled document only after
+// Asynq has exhausted its retries. Mark the document failed atomically before
+// another subtask can promote it to completed; keep raw model errors in logs
+// and traces rather than exposing them in the document's public error field.
+func finalizeGraphExtractSubtaskDetached(
+	ctx context.Context,
+	repo interfaces.KnowledgeRepository,
+	knowledgeID string,
+	attempt, chunkIndex int,
+	retErr error,
+	superseded, final bool,
+) {
+	if retErr == nil || !final {
+		finalizeSubtaskDetached(ctx, repo, knowledgeID,
+			fmt.Sprintf("graph_chunk[%d]", chunkIndex), retErr, superseded, final)
+		return
+	}
+	if repo == nil || knowledgeID == "" || superseded {
+		return
+	}
+	dctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), finalizeSubtaskDetachedTimeout)
+	defer cancel()
+	const publicError = "实体关系提取失败，请检查模型配置后重试"
+	if _, err := repo.FailKnowledgeEnrichmentAttempt(dctx, knowledgeID, attempt, publicError); err != nil {
+		logger.Warnf(ctx, "graph extract terminal failure status update failed knowledge=%s chunk=%d err=%v",
+			knowledgeID, chunkIndex, err)
+	}
+}
+
 // beginStage / endStage / failStage / skipStage are the by-name shims
 // the pipeline uses so call sites don't have to thread *Span values
 // through the existing function signatures. Each helper looks up the

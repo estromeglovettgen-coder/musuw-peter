@@ -115,7 +115,7 @@ test('usage and general settings retain the authoritative unboxed row scale', ()
   assert.match(general, /\.visual-setting-row__copy label\s*\{[\s\S]*font-size: 14px;/)
   assert.match(general, /\.visual-general-settings__header\s*\{[\s\S]*margin: 0 0 8px;/)
   assert.match(general, /\.visual-general-settings__header p\s*\{[\s\S]*color: #9ca3af;[\s\S]*font-size: 12px;[\s\S]*line-height: 16px;/)
-  const consumerGeneral = general.split('<div v-if="!authStore.isLiteMode"')[0]
+  const consumerGeneral = general.split('<div v-if="!authStore.isLiteMode && !isPeterWorkspace"')[0]
   assert.doesNotMatch(consumerGeneral, /id="visual-language-select"[\s\S]*<t-select|id="visual-theme-select"[\s\S]*<t-select|id="visual-theme-color-select"[\s\S]*<t-select/)
   assert.match(general, /visual-general-settings__select-control/)
   assert.match(general, /id="visual-sans-font-select"[\s\S]*<t-select/)

@@ -109,9 +109,9 @@ test('Lite Settings exposes member channels and retains manager settings; Standa
   for (const standardOnly of ['visual-sans-font-select', 'visual-mono-font-select']) {
     const index = general.indexOf(standardOnly)
     assert.ok(index >= 0, `Standard preference source lost ${standardOnly}`)
-    assert.match(general.slice(Math.max(0, index - 260), index), /v-if="!authStore\.isLiteMode"/)
+    assert.match(general.slice(Math.max(0, index - 260), index), /v-if="!authStore\.isLiteMode && !isPeterWorkspace"/)
   }
-  assert.match(general, /v-if="!authStore\.isLiteMode"[\s\S]*font\.fontSize/)
+  assert.match(general, /v-if="!authStore\.isLiteMode && !isPeterWorkspace"[\s\S]*font\.fontSize/)
 
   // Complete Standard sections remain mounted in source, not deleted.
   for (const component of [

@@ -126,7 +126,7 @@
               </div>
             </aside>
 
-            <aside v-if="!authStore.isLiteMode" class="settings-sidebar">
+            <aside v-if="!authStore.isLiteMode && navItems.length" class="settings-sidebar">
               <div class="settings-sidebar-header">
                 <h2 class="settings-sidebar-title">{{ t('uploadConfirm.parseConfig') }}</h2>
               </div>
@@ -162,7 +162,7 @@
 
             <div class="config-panel">
               <div class="content-wrapper upload-confirm-content">
-                  <div v-show="activeSection === 'tags'" class="section">
+                  <div v-show="activeSection === 'tags' && mode !== 'reparse'" class="section">
                     <div class="section-content">
                       <div class="section-header">
                         <h2 class="section-title">{{ t('uploadConfirm.tabTags') }}</h2>
@@ -196,7 +196,14 @@
                     </div>
                   </div>
 
-                  <div v-if="!authStore.isLiteMode" v-show="activeSection === 'parser'" class="section">
+                  <div v-if="isPeterWorkspace && mode === 'reparse' && activeSection === 'tags'" class="section">
+                    <div class="section-content">
+                      <h2 class="section-title">{{ t('uploadConfirm.reparseSource') }}</h2>
+                      <p class="section-desc">{{ t('uploadConfirm.reparseHint') }}</p>
+                    </div>
+                  </div>
+
+                  <div v-if="!authStore.isLiteMode && !isPeterWorkspace" v-show="activeSection === 'parser'" class="section">
                     <KBParserSettings
                       :relevant-extensions="batchFileExts"
                       :parser-engine-rules="uiState.chunkingConfig.parserEngineRules"
@@ -217,7 +224,7 @@
                     </div>
                   </div>
 
-                  <div v-if="!authStore.isLiteMode" v-show="activeSection === 'chunking'" class="section">
+                  <div v-if="!authStore.isLiteMode && !isPeterWorkspace" v-show="activeSection === 'chunking'" class="section">
                     <div class="section-content">
                       <div class="section-header">
                         <h2 class="section-title">{{ t('knowledgeEditor.chunking.title') }}</h2>
@@ -359,7 +366,7 @@
                     </div>
                   </div>
 
-                  <div v-if="!authStore.isLiteMode && !usesManagedMediaRouting" v-show="activeSection === 'multimodal'" class="section" data-section="multimodal">
+                  <div v-if="!authStore.isLiteMode && !usesManagedMediaRouting && isWorkspaceUploadSectionVisible('multimodal', issueSectionKeys.has('multimodal'))" v-show="activeSection === 'multimodal'" class="section" data-section="multimodal">
                     <div class="kb-settings-block">
                       <div class="section-header">
                         <h2 class="section-title">{{ t('knowledgeEditor.multimodal.title') }}</h2>
@@ -435,7 +442,7 @@
                     </div>
                   </div>
 
-                  <div v-if="!authStore.isLiteMode" v-show="activeSection === 'asr'" class="section" data-section="asr">
+                  <div v-if="!authStore.isLiteMode && isWorkspaceUploadSectionVisible('asr', issueSectionKeys.has('asr'))" v-show="activeSection === 'asr'" class="section" data-section="asr">
                     <div class="kb-settings-block">
                       <div class="section-header">
                         <h2 class="section-title">{{ t('knowledgeEditor.asr.title') }}</h2>
@@ -491,7 +498,7 @@
                     </div>
                   </div>
 
-                  <div v-if="!authStore.isLiteMode" v-show="activeSection === 'question'" class="section">
+                  <div v-if="!authStore.isLiteMode && !isPeterWorkspace" v-show="activeSection === 'question'" class="section">
                     <div class="kb-settings-block">
                       <div class="section-header">
                         <h2 class="section-title">{{ t('knowledgeEditor.advanced.questionGeneration.label') }}</h2>
@@ -571,6 +578,7 @@ import { useChatResourcesStore } from '@/stores/chatResources'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
+import { isPeterWorkspace, isWorkspaceUploadSectionVisible } from '@/config/workspaceSurface'
 import { formatFileSize, getFileIcon } from '@/utils/files'
 import { getUploadFileKey, isSupportedSocialShareInput } from '../utils/uploadSources'
 import { listKnowledgeTags } from '@/api/knowledge-base'
@@ -904,7 +912,7 @@ const isGraphDatabaseEnabled = computed(() => {
 })
 
 const isGraphSectionAvailable = computed(() => {
-  return isGraphDatabaseEnabled.value && uiState.value.graphEnabled
+  return !isPeterWorkspace && isGraphDatabaseEnabled.value && uiState.value.graphEnabled
 })
 
 const showMultimodalModelError = computed(() => {
@@ -987,7 +995,7 @@ const navItems = computed(() => {
   if (isGraphSectionAvailable.value) {
     push('graph', 'chart-bubble', t('knowledgeEditor.sidebar.graph'))
   }
-  return items
+  return items.filter(item => isWorkspaceUploadSectionVisible(item.key, !!item.issue))
 })
 
 function getSectionNavStatus(
@@ -1089,9 +1097,9 @@ const canConfirm = computed(() => {
 
 function getDefaultSection(): ConfigSectionKey {
   if (authStore.isLiteMode) return 'tags'
-  if (props.mode === 'reparse') return 'parser'
   if (issueSectionKeys.value.has('multimodal')) return 'multimodal'
   if (issueSectionKeys.value.has('asr')) return 'asr'
+  if (props.mode === 'reparse' && !isPeterWorkspace) return 'parser'
   return 'tags'
 }
 

@@ -3,7 +3,7 @@
 入口：<https://62.234.188.55/>。本机验收凭据保存在忽略版本控制的
 `.runtime/peter/deployment/account.json`，不得提交或粘贴到公开记录。
 主链路与修复版整机重启验收已通过，范围与限制见 [服务器验收记录](PETER_SERVER_ACCEPTANCE.md)。
-当前前端发布目录为 `20260930-01`，应用镜像为 `musuw-peter:20260929-05`（healthy）。工作区入口 `frontend/index.html` 的 SHA-256 为 `d18ba64496f8e66b9131bda639b5cbe84f268346e0787e777ff2bc23c3bcece8`，原 Musuw 登录入口 `frontend/auth/index.html` 为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`；服务器当前文件已核对。回退对象为前端目录 `20260929-14` 和应用镜像 `musuw-peter:20260929-04`，两者均保留在服务器。最终日常链路验收见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
+当前前端发布目录为 `20260930-03`，应用镜像为 `musuw-peter:20260930-02`（healthy）。工作区入口 `frontend/index.html` 的 SHA-256 为 `49904f70684b4d324022a434e17b2e3054538bda7b0ce3a875e8baf2b7a804d6`，原 Musuw 登录入口 `frontend/auth/index.html` 为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`；服务器当前文件已核对。完整回退组合为前端目录 `20260930-01` 和应用镜像 `musuw-peter:20260929-05`。最终日常链路验收见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
 
 ## 部署边界
 
@@ -24,11 +24,11 @@
 | `/var/lib/musuw-peter/` | 数据库、Redis、上传文件、预装技能、解析临时文件、检索模型及搜索配置 |
 | `/etc/letsencrypt/live/peter-ip/` | 公网 IP 的 TLS 证书；由定时任务续期 |
 
-Compose 包含 app、PostgreSQL、Redis、Embedding、ReRank、docreader 和 SearXNG；只有 app 的
+Compose 包含 app、PostgreSQL、Redis、Embedding、ReRank、docreader、SearXNG 和 Neo4j；只有 app 的
 `127.0.0.1:18187` 交给 nginx。数据库与搜索服务没有公开端口。进程使用 `unless-stopped`，
 数据和密钥独立于容器持久化。SearXNG 限制为 350MB / 0.5 核；启动时由一次性初始化容器将
 `deploy/peter/searxng-settings.yml` 复制到 `/var/lib/musuw-peter/searxng/`。搜索密钥仅保存在
-`/etc/musuw-peter/searxng-secret`，由 Docker secret 注入，仓库配置不含固定密钥。
+`/etc/musuw-peter/searxng-secret`，由 Docker secret 注入，仓库配置不含固定密钥。Neo4j 仅在内部网络开放，其数据与密钥分别持久化在 `/var/lib/musuw-peter/neo4j` 与 `/etc/musuw-peter/neo4j-auth`；容量及实测见 [图谱部署记录](PETER_NEO4J_DEPLOYMENT.md)。
 
 命名沙箱按需建立，限制 512MB / 1 核 / 128 进程，闲置 15 分钟回收。
 临时工作目录不是长期文件存储；聊天中收集的输出文件通过原生附件接口持久保存。
@@ -73,19 +73,20 @@ curl -fsS https://62.234.188.55/health
    合并到新版，保证更新前已经打开的页面仍能按需加载旧脚本。新版入口仍引用新版哈希。
 3. 生成新的应用镜像，修改 Peter 的 `PETER_APP_IMAGE`，执行 Compose 的 `up -d app`。
    原生迁移成功、健康检查和最小业务链路通过后，再切换 `current` 到匹配的前端发布目录。
+   本次在系统包索引不可用时，使用 `deploy/peter/Dockerfile.incremental` 以已验证的 `musuw-peter-build:20260929-05` 为编译基底，仍重新编译完整应用和沙箱集成测试二进制，再由 `Dockerfile.release` 叠加到原生运行镜像；未改动系统包。
 4. 复核浏览器冷启动、已打开页面导航、流式回答、客户和知识库、下载及新旧会话恢复。
 5. 若仅为兼容的代码/界面更新，可回退应用镜像及 `current` 链接；涉及破坏性数据库迁移时，
    必须使用对应的数据恢复方案，不能假设旧二进制能读取新结构。当前可回退的组合为
-   `musuw-peter:20260929-04` 与 `/opt/musuw-peter/releases/20260929-14`；回退后仍须核对登录、客户资料、技能会话和产物下载。
+   `musuw-peter:20260929-05` 与 `/opt/musuw-peter/releases/20260930-01`；回退后仍须核对登录、客户资料、技能会话和产物下载。
 
 旧业务“不要备份”的授权只用于本次明确的旧数据清理。未来真实客户数据应另行配置备份；
 目前没有离机备份目的地，容器持久化和发布回退不能替代灾难恢复。
 
 ## 模型与容量边界
 
-- DeepSeek 提供当前对话、智能推理、Wiki 和已验证的图像理解；密钥通过服务端原生加密存储。
+- DeepSeek 提供当前对话、智能推理、Wiki、实体关系提取和已验证的图像理解；密钥通过服务端原生加密存储。
 - 本机运行 512 维中文 Embedding 和多语言 ReRank，为资料检索提供实际服务。
-- MD/TXT/PDF/图片已经走过实际解析链路；语音识别需要单独的 ASR 服务，当前没有配置。
+- ASR 已配置独立的 `openai/whisper-large-v3` 模型；新建 Peter 知识库和客户默认启用图像理解、音频转写及 Neo4j 实体图谱，日常创建界面隐藏服务内部配置。模型状态和实际解析验收须以 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md) 的最新结果为准。
 - MCP、IM、网页嵌入等保留原生可配置入口；外部系统必须具备自己的凭据和连通条件。
 - 4GB 主机配置了资源限额与交换空间，已通过少量客户/文档和顺序模型操作验收，
   不能据此承诺大量同时解析或不限量沙箱。原地构建会暂时争用主机资源，

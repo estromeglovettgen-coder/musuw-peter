@@ -6,8 +6,22 @@ export const isPeterWorkspace = import.meta.env?.VITE_WORKSPACE_PROFILE === 'pet
 const PETER_SETTINGS = new Set([
   'general', 'userprofile', 'models', 'mymemory', 'memory', 'mcp',
   'integration-im', 'integration-embed',
-  'skills', 'sandbox', 'envvars',
+  'skills', 'envvars',
 ])
+
+const PETER_HIDDEN_KB_SECTIONS = new Set([
+  'vectorStore', 'parser', 'storage', 'chunking', 'multimodal', 'asr', 'graph', 'advanced',
+])
+
+export function isWorkspaceKnowledgeBaseSectionVisible(section: string, peter = isPeterWorkspace, needsRepair = false): boolean {
+  return !peter || !PETER_HIDDEN_KB_SECTIONS.has(section)
+    || (needsRepair && (section === 'multimodal' || section === 'asr'))
+}
+
+export function isWorkspaceUploadSectionVisible(section: string, needsRepair = false, peter = isPeterWorkspace): boolean {
+  if (!peter) return true
+  return section === 'tags' || (needsRepair && (section === 'multimodal' || section === 'asr'))
+}
 
 export function isWorkspaceSettingsSectionVisible(section: string, peter = isPeterWorkspace): boolean {
   return !peter || PETER_SETTINGS.has(section)

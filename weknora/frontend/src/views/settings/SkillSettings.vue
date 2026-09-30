@@ -4,18 +4,18 @@
       <div class="section-header__title-row">
         <h2>{{ $t('settings.skills.title') }}</h2>
         <t-tooltip
-          :content="$t('settings.skills.helpTooltip')"
+          :content="$t(isPeterWorkspace ? 'settings.skills.peterHelp' : 'settings.skills.helpTooltip')"
           placement="right"
           overlay-class-name="skill-settings__help-tooltip"
         >
           <t-icon
             name="help-circle"
             class="section-header__help"
-            :aria-label="$t('settings.skills.helpTooltip')"
+            :aria-label="$t(isPeterWorkspace ? 'settings.skills.peterHelp' : 'settings.skills.helpTooltip')"
           />
         </t-tooltip>
       </div>
-      <p class="section-description">{{ $t('settings.skills.description') }}</p>
+      <p class="section-description">{{ $t(isPeterWorkspace ? 'settings.skills.peterDescription' : 'settings.skills.description') }}</p>
     </div>
 
     <div v-if="loading" class="loading-container">
@@ -24,16 +24,16 @@
 
     <template v-else>
       <div v-if="catalog.length === 0" class="empty-state">
-        <t-empty :description="$t('settings.skills.emptyDesc')" />
+        <t-empty :description="$t(isPeterWorkspace ? 'settings.skills.peterEmptyDesc' : 'settings.skills.emptyDesc')" />
         <p v-if="skillConfigs.length === 0" class="empty-hint">
-          {{ $t('settings.skills.emptyNoSandboxHint') }}
+          {{ $t(isPeterWorkspace ? 'settings.skills.peterNoWorkspace' : 'settings.skills.emptyNoSandboxHint') }}
         </p>
         <div class="empty-actions">
           <t-button theme="primary" @click="openAdd">
             {{ $t('settings.skills.addSkill') }}
           </t-button>
           <t-button
-            v-if="skillConfigs.length === 0"
+            v-if="skillConfigs.length === 0 && !isPeterWorkspace"
             theme="default"
             variant="outline"
             @click="uiStore.openSettings('sandbox')"
@@ -116,7 +116,7 @@
                       :type="inst.sandbox_type"
                       size="xs"
                     />
-                    <span class="skill-card__chip-name">{{ installName(inst) }}</span>
+                    <span class="skill-card__chip-name">{{ isPeterWorkspace && skillConfigs.length === 1 ? $t('settings.skills.peterWorkspace') : installName(inst) }}</span>
                     <span v-if="installChipStatus(item, inst)" class="skill-card__chip-status">
                       {{ installChipStatus(item, inst) }}
                     </span>
@@ -131,8 +131,8 @@
                     v-if="targetsFor(item).length > 0"
                     type="button"
                     class="skill-card__chip skill-card__chip--add"
-                    :title="$t('settings.skills.installToSandbox')"
-                    :aria-label="$t('settings.skills.installToSandbox')"
+                    :title="$t(isPeterWorkspace ? 'settings.skills.peterInstall' : 'settings.skills.installToSandbox')"
+                    :aria-label="$t(isPeterWorkspace ? 'settings.skills.peterInstall' : 'settings.skills.installToSandbox')"
                     @click="openInstall(item)"
                   >
                     <t-icon name="add" size="14px" />
@@ -271,7 +271,7 @@
       </template>
 
       <template v-else>
-        <section v-if="skillConfigs.length > 0" class="setting-drawer__section">
+        <section v-if="skillConfigs.length > 0 && (!isPeterWorkspace || skillConfigs.length > 1)" class="setting-drawer__section">
           <h4 class="setting-drawer__section-title">{{ $t('settings.skills.pickSandboxes') }}</h4>
           <p class="installer-model-hint">{{ $t('settings.skills.pickSandboxesHint') }}</p>
           <t-checkbox-group v-model="addTargetIds" class="sandbox-pick-list">
@@ -286,9 +286,10 @@
             </t-checkbox>
           </t-checkbox-group>
         </section>
-        <p v-else class="installer-model-hint">{{ $t('settings.skills.emptyNoSandboxHint') }}</p>
+        <p v-else-if="skillConfigs.length === 0" class="installer-model-hint">{{ $t(isPeterWorkspace ? 'settings.skills.peterNoWorkspace' : 'settings.skills.emptyNoSandboxHint') }}</p>
+        <p v-else class="installer-model-hint">{{ $t('settings.skills.peterOneWorkspaceHint') }}</p>
 
-        <section v-if="addTargetIds.length > 0" class="setting-drawer__section">
+        <section v-if="addTargetIds.length > 0 && !isPeterWorkspace" class="setting-drawer__section">
           <h4 class="setting-drawer__section-title">{{ $t('settings.sandbox.skillInstallerModel') }}</h4>
           <p class="installer-model-hint">{{ $t('settings.sandbox.skillInstallerModelHint') }}</p>
           <ModelSelector
@@ -303,7 +304,7 @@
 
     <SettingDrawer
       v-model:visible="showInstall"
-      :title="$t('settings.skills.installToSandbox')"
+      :title="$t(isPeterWorkspace ? 'settings.skills.peterInstall' : 'settings.skills.installToSandbox')"
       :description="installDrawerDesc"
       :icon="SKILL_ICON"
       width="560px"
@@ -312,11 +313,11 @@
       storage-key="setting-drawer:width:skill-catalog-install"
       :confirm-loading="installing"
       :confirm-disabled="installTargetIds.length === 0"
-      :confirm-text="$t('settings.skills.installToSandbox')"
+      :confirm-text="$t(isPeterWorkspace ? 'settings.skills.peterInstall' : 'settings.skills.installToSandbox')"
       @confirm="confirmInstall"
     >
-      <p class="installer-model-hint">{{ $t('settings.skills.installToSandboxDesc') }}</p>
-      <section v-if="installTargets.length > 0" class="setting-drawer__section">
+      <p class="installer-model-hint">{{ $t(isPeterWorkspace && installTargets.length === 1 ? 'settings.skills.peterOneWorkspaceHint' : 'settings.skills.installToSandboxDesc') }}</p>
+      <section v-if="installTargets.length > 0 && (!isPeterWorkspace || installTargets.length > 1)" class="setting-drawer__section">
         <t-checkbox-group v-model="installTargetIds" class="sandbox-pick-list">
           <t-checkbox v-for="cfg in installTargets" :key="cfg.id" :value="cfg.id" class="sandbox-pick">
             <span class="sandbox-pick__main">
@@ -329,8 +330,8 @@
           </t-checkbox>
         </t-checkbox-group>
       </section>
-      <p v-else class="installer-model-hint">{{ $t('settings.skills.noSandboxToInstall') }}</p>
-      <section v-if="installTargetIds.length > 0" class="setting-drawer__section">
+      <p v-else-if="installTargets.length === 0" class="installer-model-hint">{{ $t('settings.skills.noSandboxToInstall') }}</p>
+      <section v-if="installTargetIds.length > 0 && !isPeterWorkspace" class="setting-drawer__section">
         <h4 class="setting-drawer__section-title">{{ $t('settings.sandbox.skillInstallerModel') }}</h4>
         <p class="installer-model-hint">{{ $t('settings.sandbox.skillInstallerModelHint') }}</p>
         <ModelSelector
@@ -383,6 +384,7 @@ import SandboxBackendBadge from '@/components/settings/SandboxBackendBadge.vue'
 import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { SKILL_ICON } from '@/types/mention'
 import { useUIStore } from '@/stores/ui'
 import {
@@ -463,8 +465,8 @@ const addSteps = computed(() => [
 
 const addStepDescription = computed(() =>
   addStep.value === 0
-    ? t('settings.skills.addStepRegisterDesc')
-    : t('settings.skills.addStepInstallDesc'),
+    ? t(isPeterWorkspace ? 'settings.skills.peterAddSourceHint' : 'settings.skills.addStepRegisterDesc')
+    : t(isPeterWorkspace ? 'settings.skills.peterAddInstallHint' : 'settings.skills.addStepInstallDesc'),
 )
 
 const addPrimaryLoading = computed(() =>
@@ -477,12 +479,12 @@ const addPrimaryDisabled = computed(() => {
     if (registeredCatalog.value) return false
     return !sourceInput.value.trim() && !pendingFile.value
   }
-  return addTargetIds.value.length > 0 && !installerModelId.value
+  return !isPeterWorkspace && addTargetIds.value.length > 0 && !installerModelId.value
 })
 
 const addPrimaryText = computed(() => {
   if (addStep.value === 0) return t('common.next')
-  if (addTargetIds.value.length > 0) return t('settings.skills.installToSandbox')
+  if (addTargetIds.value.length > 0) return t(isPeterWorkspace ? 'settings.skills.peterInstall' : 'settings.skills.installToSandbox')
   return t('settings.skills.addFinish')
 })
 
@@ -495,13 +497,13 @@ const installTargets = computed(() => {
 const installDrawerDesc = computed(() => {
   const item = installCatalog.value
   if (!item) return t('settings.skills.installToSandboxDesc')
-  return t('settings.skills.installDrawerDesc', { name: item.name })
+  return t(isPeterWorkspace ? 'settings.skills.peterInstallDrawerDesc' : 'settings.skills.installDrawerDesc', { name: item.name })
 })
 
 const manageDesc = computed(() => {
   const record = manageRecord.value
   if (!record) return ''
-  return t('settings.skills.manageDrawerDesc', { name: record.name })
+  return t(isPeterWorkspace ? 'settings.skills.peterManageDesc' : 'settings.skills.manageDrawerDesc', { name: record.name })
 })
 
 function liveInstalls(item: SkillCatalogItem): SkillCatalogInstall[] {
@@ -672,7 +674,7 @@ function resetAddWizard() {
 
 async function openAdd() {
   resetAddWizard()
-  await loadInstallerModel()
+  if (!isPeterWorkspace) await loadInstallerModel()
   showAdd.value = true
 }
 
@@ -695,7 +697,7 @@ function openInstall(item: SkillCatalogItem) {
   installCatalog.value = item
   const remaining = targetsFor(item)
   installTargetIds.value = remaining.length === 1 ? [remaining[0].id] : []
-  void loadInstallerModel()
+  if (!isPeterWorkspace) void loadInstallerModel()
   showInstall.value = true
 }
 
@@ -764,6 +766,9 @@ async function onInstallerModelChange(modelId: string) {
 
 async function ensureInstallerModelIfNeeded(configIds: string[]) {
   if (configIds.length === 0) return
+  // The server resolves the Peter workspace's active default chat model.
+  // Avoid persisting a model chosen only because it was last used in the browser.
+  if (isPeterWorkspace) return
   if (!installerModelId.value) {
     throw new Error(t('settings.sandbox.skillInstallerModelRequired'))
   }

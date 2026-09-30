@@ -527,6 +527,20 @@ func TestModelOutputGraphResultsUseChunkAliases(t *testing.T) {
 	)
 }
 
+func TestModelOutputPreservesStoredGraphRelationshipsWithoutChunks(t *testing.T) {
+	registry := newSourceRegistry()
+	output := registry.ModelOutput(&types.ToolResult{
+		Success: true,
+		Output:  "Knowledge graph query: Alice and Bob\nRelationships:\n- Alice —[knows]→ Bob\n",
+		Data: map[string]interface{}{
+			"display_type": "graph_query_results",
+			"results":      []map[string]interface{}{},
+		},
+	})
+	require.Contains(t, output, "Alice —[knows]→ Bob")
+	require.NotContains(t, output, "<chunk")
+}
+
 func TestModelOutputDoesNotRegisterInternalSchemesAsWebSources(t *testing.T) {
 	registry := newSourceRegistry()
 	output := registry.ModelOutput(&types.ToolResult{

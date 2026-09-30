@@ -100,6 +100,7 @@ type agentService struct {
 	webSearchService      interfaces.WebSearchService
 	knowledgeBaseService  interfaces.KnowledgeBaseService
 	knowledgeService      interfaces.KnowledgeService
+	graphRepository       interfaces.RetrieveGraphRepository
 	fileService           interfaces.FileService
 	chunkService          interfaces.ChunkService
 	duckdb                *sql.DB
@@ -122,6 +123,7 @@ func NewAgentService(
 	modelService interfaces.ModelService,
 	knowledgeBaseService interfaces.KnowledgeBaseService,
 	knowledgeService interfaces.KnowledgeService,
+	graphRepository interfaces.RetrieveGraphRepository,
 	fileService interfaces.FileService,
 	chunkService interfaces.ChunkService,
 	mcpServiceService interfaces.MCPServiceService,
@@ -147,6 +149,7 @@ func NewAgentService(
 		modelService:          modelService,
 		knowledgeBaseService:  knowledgeBaseService,
 		knowledgeService:      knowledgeService,
+		graphRepository:       graphRepository,
 		fileService:           fileService,
 		chunkService:          chunkService,
 		mcpServiceService:     mcpServiceService,
@@ -744,7 +747,7 @@ func (s *agentService) registerTools(
 	}
 
 	// ---- Capability detection from SearchTargets ----
-	var hasVectorKB bool
+	var hasVectorKB, hasGraphKB bool
 	var wikiKBIDs []string
 	wikiRoutes := tools.NewWikiRouteResolver()
 	for _, target := range config.SearchTargets {
@@ -757,6 +760,9 @@ func (s *agentService) registerTools(
 		}
 		if kb.IsVectorEnabled() || kb.IsKeywordEnabled() {
 			hasVectorKB = true
+		}
+		if kb.IsGraphEnabled() {
+			hasGraphKB = true
 		}
 		if kb.IsWikiEnabled() {
 			wikiKBIDs = append(wikiKBIDs, kb.ID)
@@ -875,7 +881,6 @@ func (s *agentService) registerTools(
 		tools.ToolKnowledgeSearch:     true,
 		tools.ToolGrepChunks:          true,
 		tools.ToolListKnowledgeChunks: true,
-		tools.ToolQueryKnowledgeGraph: true,
 		tools.ToolGetDocumentInfo:     true,
 		tools.ToolDatabaseQuery:       true,
 	}
@@ -925,6 +930,9 @@ func (s *agentService) registerTools(
 			logger.Warnf(ctx, "Dropped RAG tools %v because no RAG-capable KB is in scope", dropped)
 		}
 	}
+	if !hasGraphKB {
+		allowedTools = withoutString(allowedTools, tools.ToolQueryKnowledgeGraph)
+	}
 
 	// Deduplicate while preserving original order.
 	allowedTools = dedupStrings(allowedTools)
@@ -954,7 +962,7 @@ func (s *agentService) registerTools(
 		case tools.ToolListKnowledgeChunks:
 			toolToRegister = tools.NewListKnowledgeChunksTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolQueryKnowledgeGraph:
-			toolToRegister = tools.NewQueryKnowledgeGraphTool(s.knowledgeBaseService, config.SearchTargets).
+			toolToRegister = tools.NewQueryKnowledgeGraphTool(s.knowledgeBaseService, s.graphRepository, config.SearchTargets).
 				WithKnowledgeScope(s.knowledgeService)
 		case tools.ToolGetDocumentInfo:
 			toolToRegister = tools.NewGetDocumentInfoTool(s.knowledgeService, s.chunkService, config.SearchTargets)

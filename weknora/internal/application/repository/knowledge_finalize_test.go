@@ -172,6 +172,99 @@ func TestKnowledgeRepository_FailKnowledgeParseAttemptGuardsTerminalAndNewerWork
 	})
 }
 
+func TestKnowledgeRepository_FailKnowledgeEnrichmentAttempt(t *testing.T) {
+	db := setupKnowledgeTestDB(t)
+	require.NoError(t, db.Exec(spansTestDDL).Error)
+	repo := NewKnowledgeRepository(db)
+	ctx := context.Background()
+
+	t.Run("terminal graph error is visible and cannot become completed", func(t *testing.T) {
+		id := insertProcessingKnowledge(t, db)
+		entered, err := repo.SetFinalizing(ctx, id, 2)
+		require.NoError(t, err)
+		require.True(t, entered)
+		require.NoError(t, db.Exec(`
+			INSERT INTO knowledge_processing_spans
+				(knowledge_id, attempt, span_id, name, kind, status)
+			VALUES (?, 1, 'root-1', 'knowledge_processing', 'root', 'running')
+		`, id).Error)
+		updated, err := repo.FailKnowledgeEnrichmentAttempt(ctx, id, 1, "实体关系提取失败，请重试")
+		require.NoError(t, err)
+		require.True(t, updated)
+		_, promoted, err := repo.FinalizeSubtask(ctx, id) // A concurrent summary finished later.
+		require.NoError(t, err)
+		assert.False(t, promoted)
+		status, pending := reloadKnowledgeRow(t, db, id)
+		assert.Equal(t, types.ParseStatusFailed, status)
+		assert.Zero(t, pending)
+		assert.Equal(t, "实体关系提取失败，请重试", reloadKnowledgeErrorMessage(t, db, id))
+
+		// A user-triggered reparse starts a fresh attempt and may complete.
+		require.NoError(t, db.Exec("UPDATE knowledges SET parse_status = ? WHERE id = ?", types.ParseStatusProcessing, id).Error)
+		require.NoError(t, db.Exec(`
+			INSERT INTO knowledge_processing_spans
+				(knowledge_id, attempt, span_id, name, kind, status)
+			VALUES (?, 2, 'root-2', 'knowledge_processing', 'root', 'running')
+		`, id).Error)
+		entered, err = repo.SetFinalizing(ctx, id, 1)
+		require.NoError(t, err)
+		require.True(t, entered)
+		_, promoted, err = repo.FinalizeSubtask(ctx, id)
+		require.NoError(t, err)
+		assert.True(t, promoted)
+		status, pending = reloadKnowledgeRow(t, db, id)
+		assert.Equal(t, types.ParseStatusCompleted, status)
+		assert.Zero(t, pending)
+		assert.Empty(t, reloadKnowledgeErrorMessage(t, db, id))
+	})
+
+	t.Run("cancelled row is not overwritten", func(t *testing.T) {
+		id := insertProcessingKnowledge(t, db)
+		_, err := repo.SetFinalizing(ctx, id, 1)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec("UPDATE knowledges SET parse_status = ? WHERE id = ?", types.ParseStatusCancelled, id).Error)
+		updated, err := repo.FailKnowledgeEnrichmentAttempt(ctx, id, 1, "late graph error")
+		require.NoError(t, err)
+		assert.False(t, updated)
+		status, _ := reloadKnowledgeRow(t, db, id)
+		assert.Equal(t, types.ParseStatusCancelled, status)
+	})
+
+	t.Run("old attempt cannot fail a new finalizing attempt", func(t *testing.T) {
+		id := insertProcessingKnowledge(t, db)
+		_, err := repo.SetFinalizing(ctx, id, 1)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec(`
+			INSERT INTO knowledge_processing_spans
+				(knowledge_id, attempt, span_id, name, kind, status)
+			VALUES (?, 2, 'root-2', 'knowledge_processing', 'root', 'running')
+		`, id).Error)
+		updated, err := repo.FailKnowledgeEnrichmentAttempt(ctx, id, 1, "stale graph error")
+		require.NoError(t, err)
+		assert.False(t, updated)
+		status, pending := reloadKnowledgeRow(t, db, id)
+		assert.Equal(t, types.ParseStatusFinalizing, status)
+		assert.Equal(t, 1, pending)
+	})
+
+	t.Run("legacy task cannot fail a tracked attempt", func(t *testing.T) {
+		id := insertProcessingKnowledge(t, db)
+		_, err := repo.SetFinalizing(ctx, id, 1)
+		require.NoError(t, err)
+		require.NoError(t, db.Exec(`
+			INSERT INTO knowledge_processing_spans
+				(knowledge_id, attempt, span_id, name, kind, status)
+			VALUES (?, 1, 'root-1', 'knowledge_processing', 'root', 'running')
+		`, id).Error)
+		updated, err := repo.FailKnowledgeEnrichmentAttempt(ctx, id, 0, "legacy graph error")
+		require.NoError(t, err)
+		assert.False(t, updated)
+		status, pending := reloadKnowledgeRow(t, db, id)
+		assert.Equal(t, types.ParseStatusFinalizing, status)
+		assert.Equal(t, 1, pending)
+	})
+}
+
 func insertKnowledgeWithStatus(t *testing.T, db *gorm.DB, status string, deleted bool) string {
 	t.Helper()
 	id := uuid.New().String()

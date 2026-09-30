@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -24,6 +25,17 @@ type fakeAgentKnowledgeBaseService struct {
 	kb *types.KnowledgeBase
 }
 
+type fakeAgentGraphRepository struct {
+	interfaces.RetrieveGraphRepository
+}
+
+func (*fakeAgentGraphRepository) SearchNode(context.Context, types.NameSpace, []string) (*types.GraphData, error) {
+	return &types.GraphData{
+		Node:     []*types.GraphNode{{Name: "Alice"}, {Name: "Bob"}},
+		Relation: []*types.GraphRelation{{Node1: "Alice", Node2: "Bob", Type: "knows"}},
+	}, nil
+}
+
 func TestValidateAgentConfigDefaultsToFiftyIterations(t *testing.T) {
 	config := &types.AgentConfig{}
 	require.NoError(t, (&agentService{}).ValidateConfig(config))
@@ -44,6 +56,34 @@ func (s *fakeAgentKnowledgeBaseService) GetKnowledgeBaseByID(context.Context, st
 		return nil, errors.New("knowledge base not found")
 	}
 	return s.kb, nil
+}
+
+func (s *fakeAgentKnowledgeBaseService) GetKnowledgeBaseByIDOnly(context.Context, string) (*types.KnowledgeBase, error) {
+	if s.kb == nil {
+		return nil, errors.New("knowledge base not found")
+	}
+	return s.kb, nil
+}
+
+func TestRegisterToolsKeepsGraphToolForGraphOnlyKB(t *testing.T) {
+	registry := tools.NewToolRegistry()
+	svc := &agentService{graphRepository: &fakeAgentGraphRepository{}, knowledgeBaseService: &fakeAgentKnowledgeBaseService{kb: &types.KnowledgeBase{
+		ID: "kb-graph", IndexingStrategy: types.IndexingStrategy{GraphEnabled: true},
+		ExtractConfig: &types.ExtractConfig{Enabled: true},
+	}}}
+	err := svc.registerTools(context.Background(), registry, &types.AgentConfig{
+		AllowedTools:  []string{tools.ToolQueryKnowledgeGraph, tools.ToolKnowledgeSearch},
+		SearchTargets: types.SearchTargets{{Type: types.SearchTargetTypeKnowledgeBase, KnowledgeBaseID: "kb-graph"}},
+	}, nil, nil, "")
+	require.NoError(t, err)
+	require.True(t, toolRegistered(registry, tools.ToolQueryKnowledgeGraph))
+	require.False(t, toolRegistered(registry, tools.ToolKnowledgeSearch))
+	tool, err := registry.GetTool(tools.ToolQueryKnowledgeGraph)
+	require.NoError(t, err)
+	result, err := tool.Execute(context.Background(), json.RawMessage(`{"knowledge_base_ids":["kb-graph"],"query":"Alice and Bob"}`))
+	require.NoError(t, err)
+	require.True(t, result.Success)
+	require.Contains(t, result.Output, "Alice —[knows]→ Bob")
 }
 
 type fakeAgentKnowledgeService struct {

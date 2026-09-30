@@ -145,9 +145,15 @@ export interface DocumentInfoData {
 // Graph query results data
 export interface GraphQueryResultsData {
     display_type: 'graph_query_results';
-    results: SearchResultItem[];
+    results?: SearchResultItem[];
     count: number;
-    graph_config: GraphConfig;
+    graph_config?: GraphConfig;
+    graph_data?: {
+        nodes: Array<{ id: string; label: string; attributes?: string[] }>;
+        edges: Array<{ source: string; target: string; type: string }>;
+        total_nodes: number;
+        total_edges: number;
+    };
 }
 
 // Thinking data

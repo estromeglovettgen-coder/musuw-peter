@@ -261,13 +261,12 @@ func (s *ChunkExtractService) Handle(ctx context.Context, t *asynq.Task) error {
 	var handleErr error
 	graphOut := types.JSONMap{}
 	defer func() {
-		// Decrement the parent's enrichment counter on terminal exit so a
-		// completed (or terminally-failed) per-chunk extract releases its
-		// slot in pending_subtasks_count. KnowledgeID is the new (post-#? )
-		// payload field; legacy in-flight tasks without it are skipped.
-		finalizeSubtaskDetached(ctx, s.knowledgeRepo, p.KnowledgeID,
-			fmt.Sprintf("graph_chunk[%d]", p.ChunkIndex),
-			handleErr, false, isFinalAsynqAttempt(ctx))
+		// Exhausted graph retries must fail the document visibly. The
+		// repository guards cancellation and a newer reparse attempt.
+		finalizeGraphExtractSubtaskDetached(ctx, s.knowledgeRepo, p.KnowledgeID,
+			p.Attempt, p.ChunkIndex, handleErr,
+			attemptSuperseded(ctx, s.tracker(), p.KnowledgeID, p.Attempt),
+			isFinalAsynqAttempt(ctx))
 		if gSpan == nil {
 			return
 		}

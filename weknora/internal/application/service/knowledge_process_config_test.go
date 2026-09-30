@@ -37,6 +37,29 @@ func TestResolveProcessConfig_OverridesChunkSize(t *testing.T) {
 	require.Equal(t, 50, eff.ChunkingConfig.ChunkOverlap)
 }
 
+func TestEmptyReparseOverridesReplaceOldMediaSnapshot(t *testing.T) {
+	t.Parallel()
+
+	kb := &types.KnowledgeBase{
+		VLMConfig: types.VLMConfig{Enabled: true, ModelID: "current-vision"},
+		ASRConfig: types.ASRConfig{Enabled: true, ModelID: "current-speech"},
+	}
+	knowledge := &types.Knowledge{}
+	require.NoError(t, knowledge.SetProcessOverrides(&types.KnowledgeProcessOverrides{
+		VLMConfig: &types.VLMConfig{Enabled: true, ModelID: "removed-vision"},
+		ASRConfig: &types.ASRConfig{Enabled: true, ModelID: "removed-speech"},
+	}))
+
+	// Peter sends process_config: {} on reparse. ReparseKnowledge persists it
+	// through SetProcessOverrides before resolving the effective config.
+	require.NoError(t, knowledge.SetProcessOverrides(&types.KnowledgeProcessOverrides{}))
+	overrides, err := knowledge.ProcessOverrides()
+	require.NoError(t, err)
+	effective := ResolveProcessConfig(kb, overrides)
+	require.Equal(t, "current-vision", effective.VLMConfig.ModelID)
+	require.Equal(t, "current-speech", effective.ASRConfig.ModelID)
+}
+
 func TestResolveProcessConfig_OverrideTogglesParentChild(t *testing.T) {
 	t.Parallel()
 

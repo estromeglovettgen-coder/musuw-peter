@@ -145,8 +145,8 @@ test("Lite Settings exposes member channels and retains manager policy sections 
     assert.ok(generalSettings.includes(standardOnlyControl), `standard preference source lost ${standardOnlyControl}`);
   }
   assert.ok(
-    (generalSettings.match(/v-if="!authStore\.isLiteMode"/g) || []).length >= 3,
-    'font controls must remain Standard-only in General Settings',
+    (generalSettings.match(/v-if="!authStore\.isLiteMode && !isPeterWorkspace"/g) || []).length >= 3,
+    'font controls must remain Standard non-Peter preferences in General Settings',
   );
   assert.doesNotMatch(generalSettings, /isAutoCheckUpdateEnabled|toggleAutoCheckUpdate/);
 });

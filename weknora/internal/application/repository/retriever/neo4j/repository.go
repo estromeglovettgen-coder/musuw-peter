@@ -176,9 +176,18 @@ func (n *Neo4jRepository) SearchNode(
 	result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		labelExpr := n.Label(namespace)
 		query := `
-			MATCH (n:` + labelExpr + `)-[r]-(m:` + labelExpr + `)
-			WHERE ANY(nodeText IN $nodes WHERE n.name CONTAINS nodeText)
+			MATCH (n:` + labelExpr + `)-[r]->(m:` + labelExpr + `)
+			WHERE n.kg = m.kg AND ANY(nodeText IN $nodes WHERE
+				trim(nodeText) <> '' AND (
+					toLower(n.name) CONTAINS toLower(nodeText) OR
+					toLower(m.name) CONTAINS toLower(nodeText) OR
+					toLower(nodeText) CONTAINS toLower(n.name) OR
+					toLower(nodeText) CONTAINS toLower(m.name)
+				)
+			)
 			RETURN n, r, m
+			ORDER BY n.name, m.name
+			LIMIT 100
 		`
 		params := map[string]interface{}{"nodes": nodes}
 		result, err := tx.Run(ctx, query, params)
@@ -194,29 +203,43 @@ func (n *Neo4jRepository) SearchNode(
 			rel, _ := record.Get("r")
 			targetNode, _ := record.Get("m")
 
-			nodeData := node.(neo4j.Node)
-			targetNodeData := targetNode.(neo4j.Node)
+			nodeData, nodeOK := node.(neo4j.Node)
+			targetNodeData, targetOK := targetNode.(neo4j.Node)
+			relData, relOK := rel.(neo4j.Relationship)
+			if !nodeOK || !targetOK || !relOK {
+				continue
+			}
 
 			// Convert node to types.Node
 			for _, n := range []neo4j.Node{nodeData, targetNodeData} {
-				nameStr := n.Props["name"].(string)
-				if _, ok := nodeSeen[nameStr]; !ok {
-					nodeSeen[nameStr] = true
+				nameStr, ok := n.Props["name"].(string)
+				if !ok || nameStr == "" {
+					continue
+				}
+				if !nodeSeen[n.ElementId] {
+					nodeSeen[n.ElementId] = true
 					graphData.Node = append(graphData.Node, &types.GraphNode{
 						Name:       nameStr,
-						Chunks:     listI2listS(n.Props["chunks"].([]interface{})),
-						Attributes: listI2listS(n.Props["attributes"].([]interface{})),
+						Chunks:     graphStringList(n.Props["chunks"]),
+						Attributes: graphStringList(n.Props["attributes"]),
 					})
 				}
 			}
 
 			// Convert relationship to types.Relation
-			relData := rel.(neo4j.Relationship)
+			sourceName, sourceOK := nodeData.Props["name"].(string)
+			targetName, targetOK := targetNodeData.Props["name"].(string)
+			if !sourceOK || !targetOK {
+				continue
+			}
 			graphData.Relation = append(graphData.Relation, &types.GraphRelation{
-				Node1: nodeData.Props["name"].(string),
-				Node2: targetNodeData.Props["name"].(string),
+				Node1: sourceName,
+				Node2: targetName,
 				Type:  relData.Type,
 			})
+		}
+		if err := result.Err(); err != nil {
+			return nil, fmt.Errorf("failed to read graph query: %w", err)
 		}
 		return graphData, nil
 	})
@@ -227,10 +250,16 @@ func (n *Neo4jRepository) SearchNode(
 	return result.(*types.GraphData), nil
 }
 
-func listI2listS(list []any) []string {
-	result := make([]string, len(list))
-	for i, v := range list {
-		result[i] = fmt.Sprintf("%v", v)
+func graphStringList(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		if text, ok := item.(string); ok {
+			result = append(result, text)
+		}
 	}
 	return result
 }

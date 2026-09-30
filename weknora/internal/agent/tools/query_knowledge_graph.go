@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"sync"
+	"strings"
 
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -45,7 +45,7 @@ Knowledge graph must be pre-configured in knowledge bases:
 - **Entity types** (Nodes): e.g., "Technology", "Tool", "Concept"
 - **Relationship types** (Relations): e.g., "depends_on", "uses", "contains"
 
-If KB is not configured with graph, tool will return regular search results.
+The KB must have graph extraction enabled. This tool reads actual stored entities and relationships.
 
 ## Workflow
 1. **Relationship exploration**: query_knowledge_graph → list_knowledge_chunks (for detailed content)
@@ -54,8 +54,7 @@ If KB is not configured with graph, tool will return regular search results.
 
 ## Notes
 - Results indicate graph configuration status
-- Cross-KB results are automatically deduplicated
-- Results are sorted by relevance`,
+- Results stay within the Agent's KB, document, and tag scope`,
 	schema: utils.GenerateSchema[QueryKnowledgeGraphInput](),
 }
 
@@ -68,15 +67,15 @@ type QueryKnowledgeGraphInput struct {
 // QueryKnowledgeGraphTool queries the knowledge graph for entities and relationships
 type QueryKnowledgeGraphTool struct {
 	BaseTool
-	knowledgeService      interfaces.KnowledgeBaseService
+	knowledgeBaseService  interfaces.KnowledgeBaseService
+	graphRepository       interfaces.RetrieveGraphRepository
 	scopeKnowledgeService interfaces.KnowledgeService
 	searchTargets         types.SearchTargets
 	scopeEnforced         bool
 }
 
-// WithKnowledgeScope enables document/tag-level result filtering for Agent
-// calls. The graph backend queries by KB, so the tool must enforce narrower
-// SearchTargets before returning any result to the model.
+// WithKnowledgeScope enables document/tag resolution for Agent calls. Narrow
+// scopes become document-specific Neo4j queries before any graph is returned.
 func (t *QueryKnowledgeGraphTool) WithKnowledgeScope(
 	knowledgeService interfaces.KnowledgeService,
 ) *QueryKnowledgeGraphTool {
@@ -86,12 +85,14 @@ func (t *QueryKnowledgeGraphTool) WithKnowledgeScope(
 
 // NewQueryKnowledgeGraphTool creates a new query knowledge graph tool
 func NewQueryKnowledgeGraphTool(
-	knowledgeService interfaces.KnowledgeBaseService,
+	knowledgeBaseService interfaces.KnowledgeBaseService,
+	graphRepository interfaces.RetrieveGraphRepository,
 	searchTargets ...types.SearchTargets,
 ) *QueryKnowledgeGraphTool {
 	tool := &QueryKnowledgeGraphTool{
-		BaseTool:         queryKnowledgeGraphTool,
-		knowledgeService: knowledgeService,
+		BaseTool:             queryKnowledgeGraphTool,
+		knowledgeBaseService: knowledgeBaseService,
+		graphRepository:      graphRepository,
 	}
 	// Presence of the variadic argument — not its length — enables the Agent
 	// authorization boundary, so an empty scope fails closed.
@@ -102,285 +103,215 @@ func NewQueryKnowledgeGraphTool(
 	return tool
 }
 
-// Execute performs the knowledge graph query with concurrent KB processing
+// Execute searches Neo4j entity relationships in the server-owned Agent scope.
 func (t *QueryKnowledgeGraphTool) Execute(ctx context.Context, args json.RawMessage) (*types.ToolResult, error) {
-	// Parse args from json.RawMessage
 	var input QueryKnowledgeGraphInput
 	if err := json.Unmarshal(args, &input); err != nil {
-		return &types.ToolResult{
-			Success: false,
-			Error:   fmt.Sprintf("Failed to parse args: %v", err),
-		}, err
+		return &types.ToolResult{Success: false, Error: fmt.Sprintf("failed to parse args: %v", err)}, err
 	}
-
-	// Extract knowledge_base_ids array
-	if len(input.KnowledgeBaseIDs) == 0 {
-		return &types.ToolResult{
-			Success: false,
-			Error:   "knowledge_base_ids is required and must be a non-empty array",
-		}, fmt.Errorf("knowledge_base_ids is required")
+	if len(input.KnowledgeBaseIDs) == 0 || len(input.KnowledgeBaseIDs) > 10 {
+		err := fmt.Errorf("knowledge_base_ids must contain 1 to 10 KB IDs")
+		return &types.ToolResult{Success: false, Error: err.Error()}, err
 	}
-
-	// Validate max 10 KBs
-	if len(input.KnowledgeBaseIDs) > 10 {
-		return &types.ToolResult{
-			Success: false,
-			Error:   "knowledge_base_ids must contain at most 10 KB IDs",
-		}, fmt.Errorf("too many KB IDs")
+	for _, id := range input.KnowledgeBaseIDs {
+		if strings.TrimSpace(id) == "" {
+			err := fmt.Errorf("knowledge_base_ids cannot contain empty IDs")
+			return &types.ToolResult{Success: false, Error: err.Error()}, err
+		}
 	}
 	if t.scopeEnforced {
 		if err := validateKnowledgeBaseIDsInSearchTargets(t.searchTargets, input.KnowledgeBaseIDs); err != nil {
 			return &types.ToolResult{Success: false, Error: err.Error()}, err
 		}
 	}
-
-	query := input.Query
+	query := strings.TrimSpace(input.Query)
 	if query == "" {
-		return &types.ToolResult{
-			Success: false,
-			Error:   "query is required",
-		}, fmt.Errorf("invalid query")
+		err := fmt.Errorf("query is required")
+		return &types.ToolResult{Success: false, Error: err.Error()}, err
+	}
+	if t.graphRepository == nil {
+		err := fmt.Errorf("knowledge graph backend is unavailable")
+		return &types.ToolResult{Success: false, Error: err.Error()}, err
 	}
 
-	// Concurrently query all knowledge bases
-	type graphQueryResult struct {
-		kbID    string
-		kb      *types.KnowledgeBase
-		results []*types.SearchResult
-		err     error
-	}
-
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	kbResults := make(map[string]*graphQueryResult)
-
-	searchParams := types.SearchParams{
-		QueryText:  query,
-		MatchCount: 10,
-	}
-
-	for _, kbID := range input.KnowledgeBaseIDs {
-		wg.Add(1)
-		go func(id string) {
-			defer wg.Done()
-
-			// Get knowledge base to check graph configuration
-			kb, err := t.knowledgeService.GetKnowledgeBaseByIDOnly(ctx, id)
-			if err != nil {
-				mu.Lock()
-				kbResults[id] = &graphQueryResult{kbID: id, err: fmt.Errorf("failed to get knowledge base: %v", err)}
-				mu.Unlock()
-				return
-			}
-
-			// Check if graph extraction is enabled
-			if kb.ExtractConfig == nil || (len(kb.ExtractConfig.Nodes) == 0 && len(kb.ExtractConfig.Relations) == 0) {
-				mu.Lock()
-				kbResults[id] = &graphQueryResult{kbID: id, err: fmt.Errorf("graph extraction not configured")}
-				mu.Unlock()
-				return
-			}
-
-			// Query graph
-			results, err := t.knowledgeService.HybridSearch(ctx, id, searchParams)
-			if err != nil {
-				mu.Lock()
-				kbResults[id] = &graphQueryResult{kbID: id, kb: kb, err: fmt.Errorf("query failed: %v", err)}
-				mu.Unlock()
-				return
-			}
-			if t.scopeEnforced {
-				results, err = filterSearchResultsInSearchTargets(
-					ctx, t.searchTargets, id, results, t.scopeKnowledgeService,
-				)
-				if err != nil {
-					mu.Lock()
-					kbResults[id] = &graphQueryResult{kbID: id, kb: kb, err: err}
-					mu.Unlock()
-					return
-				}
-			}
-
-			mu.Lock()
-			kbResults[id] = &graphQueryResult{kbID: id, kb: kb, results: results}
-			mu.Unlock()
-		}(kbID)
-	}
-
-	wg.Wait()
-
-	// Collect and deduplicate results
-	seenChunks := make(map[string]*types.SearchResult)
-	var errors []string
 	graphConfigs := make(map[string]graphConfigSummary)
 	kbCounts := make(map[string]int)
-
-	for _, kbID := range input.KnowledgeBaseIDs {
-		result := kbResults[kbID]
-		if result.err != nil {
-			errors = append(errors, fmt.Sprintf("KB %s: %v", kbID, result.err))
+	nodes := make(map[string]map[string]interface{})
+	edges := make(map[string]map[string]interface{})
+	relationLines := make(map[string]string)
+	var failures []string
+	successfulQueries := 0
+	for _, kbID := range dedupNonEmptyStrings(input.KnowledgeBaseIDs) {
+		kb, err := t.knowledgeBaseService.GetKnowledgeBaseByIDOnly(ctx, kbID)
+		if err != nil || kb == nil || kb.ID != kbID {
+			failures = append(failures, fmt.Sprintf("KB %s: knowledge base unavailable", kbID))
 			continue
 		}
-
-		if result.kb != nil && result.kb.ExtractConfig != nil {
-			graphConfigs[kbID] = summarizeGraphConfig(result.kb.ExtractConfig)
+		if !kb.IsGraphEnabled() {
+			failures = append(failures, fmt.Sprintf("KB %s: graph extraction is disabled", kbID))
+			continue
 		}
-
-		kbCounts[kbID] = len(result.results)
-		for _, r := range result.results {
-			if _, seen := seenChunks[r.ID]; !seen {
-				seenChunks[r.ID] = r
+		graphConfigs[kbID] = summarizeGraphConfig(kb.ExtractConfig)
+		namespaces, err := t.graphNamespacesForKB(ctx, kb)
+		if err != nil {
+			failures = append(failures, fmt.Sprintf("KB %s: %v", kbID, err))
+			continue
+		}
+		// An empty document/tag scope must never widen to a whole-KB query.
+		if len(namespaces) == 0 {
+			kbCounts[kbID] = 0
+			successfulQueries++
+			continue
+		}
+		for _, namespace := range namespaces {
+			graph, searchErr := t.graphRepository.SearchNode(ctx, namespace, []string{query})
+			if searchErr != nil || graph == nil {
+				failures = append(failures, fmt.Sprintf("KB %s: graph query failed or backend unavailable", kbID))
+				continue
+			}
+			successfulQueries++
+			for _, node := range graph.Node {
+				if node == nil || strings.TrimSpace(node.Name) == "" {
+					continue
+				}
+				key := graphEntityKey(namespace, node.Name)
+				nodes[key] = map[string]interface{}{
+					"id": key, "label": node.Name, "attributes": node.Attributes,
+					"kb_id": kbID, "knowledge_id": namespace.Knowledge,
+				}
+			}
+			for _, relation := range graph.Relation {
+				if relation == nil || relation.Node1 == "" || relation.Node2 == "" || relation.Type == "" {
+					continue
+				}
+				sourceID := graphEntityKey(namespace, relation.Node1)
+				targetID := graphEntityKey(namespace, relation.Node2)
+				for _, endpoint := range []struct{ id, name string }{{sourceID, relation.Node1}, {targetID, relation.Node2}} {
+					if _, exists := nodes[endpoint.id]; !exists {
+						nodes[endpoint.id] = map[string]interface{}{
+							"id": endpoint.id, "label": endpoint.name, "kb_id": kbID,
+							"knowledge_id": namespace.Knowledge,
+						}
+					}
+				}
+				key := sourceID + "|" + relation.Type + "|" + targetID
+				edges[key] = map[string]interface{}{
+					"source": sourceID, "target": targetID, "type": relation.Type,
+					"kb_id": kbID, "knowledge_id": namespace.Knowledge,
+				}
+				relationLines[key] = fmt.Sprintf("%s —[%s]→ %s", relation.Node1, relation.Type, relation.Node2)
 			}
 		}
 	}
-
-	// Convert map to slice and sort by score
-	allResults := make([]*types.SearchResult, 0, len(seenChunks))
-	for _, result := range seenChunks {
-		allResults = append(allResults, result)
+	nodeKeys := sortedMapKeys(nodes)
+	edgeKeys := sortedMapKeys(edges)
+	nodeRows := make([]map[string]interface{}, 0, len(nodeKeys))
+	edgeRows := make([]map[string]interface{}, 0, len(edgeKeys))
+	for _, key := range nodeKeys {
+		nodeRows = append(nodeRows, nodes[key])
 	}
-
-	sort.Slice(allResults, func(i, j int) bool {
-		return allResults[i].Score > allResults[j].Score
-	})
-
-	if len(allResults) == 0 {
-		return &types.ToolResult{
-			Success: true,
-			Output:  "No relevant graph information found.",
-			Data: map[string]interface{}{
-				"knowledge_base_ids": input.KnowledgeBaseIDs,
-				"query":              query,
-				"results":            []interface{}{},
-				"graph_configs":      graphConfigsToData(graphConfigs),
-				"graph_config":       aggregateGraphConfig(graphConfigs),
-				"errors":             errors,
-			},
-		}, nil
+	for _, key := range edgeKeys {
+		edgeRows = append(edgeRows, edges[key])
+		kbID := edges[key]["kb_id"].(string)
+		kbCounts[kbID]++
 	}
-
-	// Format output with enhanced graph information
-	output := "=== Knowledge Graph Query ===\n\n"
-	output += fmt.Sprintf("📊 Query: %s\n", query)
-	output += fmt.Sprintf("🎯 Target Knowledge Bases: %v\n", input.KnowledgeBaseIDs)
-	output += fmt.Sprintf("✓ Found %d relevant results (deduplicated)\n\n", len(allResults))
-
-	if len(errors) > 0 {
-		output += "=== ⚠️ Partial Failures ===\n"
-		for _, errMsg := range errors {
-			output += fmt.Sprintf("  - %s\n", errMsg)
+	var output strings.Builder
+	fmt.Fprintf(&output, "Knowledge graph query: %s\nFound %d entities and %d relationships.\n",
+		query, len(nodeRows), len(edgeRows))
+	if len(edgeRows) > 0 {
+		output.WriteString("Relationships:\n")
+		for _, key := range edgeKeys {
+			fmt.Fprintf(&output, "- %s\n", relationLines[key])
 		}
-		output += "\n"
 	}
-
-	// Display graph configuration status
-	hasGraphConfig := false
-	output += "=== 📈 Graph Configuration Status ===\n\n"
-	for kbID, config := range graphConfigs {
-		hasGraphConfig = true
-		output += fmt.Sprintf("Knowledge Base [%s]:\n", kbID)
-
-		if len(config.Nodes) > 0 {
-			output += fmt.Sprintf("  ✓ Entity Types (%d): %v\n", len(config.Nodes), config.Nodes)
-		} else {
-			output += "  ⚠️ No entity types configured\n"
+	if len(failures) > 0 {
+		output.WriteString("Graph query errors:\n")
+		for _, failure := range failures {
+			fmt.Fprintf(&output, "- %s\n", failure)
 		}
-
-		if len(config.Relations) > 0 {
-			output += fmt.Sprintf("  ✓ Relationship Types (%d): %v\n", len(config.Relations), config.Relations)
-		} else {
-			output += "  ⚠️ No relationship types configured\n"
-		}
-		output += "\n"
 	}
-
-	if !hasGraphConfig {
-		output += "⚠️ None of the queried knowledge bases have graph extraction configured\n"
-		output += "💡 Hint: Configure entity and relationship types in knowledge base settings\n\n"
-	}
-
-	// Display result counts by KB
-	if len(kbCounts) > 0 {
-		output += "=== 📚 Knowledge Base Coverage ===\n"
-		for kbID, count := range kbCounts {
-			output += fmt.Sprintf("  - %s: %d results\n", kbID, count)
-		}
-		output += "\n"
-	}
-
-	// Display search results
-	output += "=== 🔍 Query Results ===\n\n"
-	if !hasGraphConfig {
-		output += "💡 Returning relevant document chunks (knowledge base has no graph configuration)\n\n"
-	} else {
-		output += "💡 Content retrieval based on graph configuration\n\n"
-	}
-
-	formattedResults := make([]map[string]interface{}, 0, len(allResults))
-	currentKB := ""
-
-	for i, result := range allResults {
-		// Group by knowledge base
-		if result.KnowledgeID != currentKB {
-			currentKB = result.KnowledgeID
-			if i > 0 {
-				output += "\n"
-			}
-			output += fmt.Sprintf("[Source Document: %s]\n\n", result.KnowledgeTitle)
-		}
-
-		relevanceLevel := GetRelevanceLevel(result.Score)
-
-		output += fmt.Sprintf("Result #%d:\n", i+1)
-		output += fmt.Sprintf("  📍 Relevance: %.2f (%s)\n", result.Score, relevanceLevel)
-		output += fmt.Sprintf("  🔗 Match Type: %s\n", FormatMatchType(result.MatchType))
-		output += fmt.Sprintf("  📄 Content: %s\n", result.Content)
-		output += fmt.Sprintf("  🆔 chunk_id: %s\n\n", result.ID)
-
-		formattedResults = append(formattedResults, map[string]interface{}{
-			"result_index":      i + 1,
-			"chunk_id":          result.ID,
-			"chunk_index":       result.ChunkIndex,
-			"chunk_type":        result.ChunkType,
-			"content":           result.Content,
-			"score":             result.Score,
-			"relevance_level":   relevanceLevel,
-			"knowledge_id":      result.KnowledgeID,
-			"knowledge_base_id": result.KnowledgeBaseID,
-			"knowledge_title":   result.KnowledgeTitle,
-			"match_type":        FormatMatchType(result.MatchType),
-		})
-	}
-
-	output += "=== 💡 Tips ===\n"
-	output += "- ✓ Results are deduplicated across knowledge bases and sorted by relevance\n"
-	output += "- ✓ Use get_chunk_detail to get full content\n"
-	output += "- ✓ Use list_knowledge_chunks to explore context\n"
-	if !hasGraphConfig {
-		output += "- ⚠️ Configure graph extraction for more precise entity-relationship results\n"
-	}
-	output += "- ⏳ Full graph query language (Cypher) support is under development\n"
-
-	// Build structured graph data for frontend visualization
-	graphData := buildGraphVisualizationData(allResults)
-
-	return &types.ToolResult{
-		Success: true,
-		Output:  output,
+	success := successfulQueries > 0
+	result := &types.ToolResult{
+		Success: success,
+		Output:  output.String(),
 		Data: map[string]interface{}{
+			"display_type":       "graph_query_results",
 			"knowledge_base_ids": input.KnowledgeBaseIDs,
 			"query":              query,
-			"results":            formattedResults,
-			"count":              len(allResults),
+			"results":            []map[string]interface{}{},
+			"count":              len(edgeRows),
 			"kb_counts":          kbCounts,
 			"graph_configs":      graphConfigsToData(graphConfigs),
 			"graph_config":       aggregateGraphConfig(graphConfigs),
-			"graph_data":         graphData,
-			"has_graph_config":   hasGraphConfig,
-			"errors":             errors,
-			"display_type":       "graph_query_results",
+			"has_graph_config":   len(graphConfigs) > 0,
+			"graph_data": map[string]interface{}{
+				"nodes": nodeRows, "edges": edgeRows,
+				"total_nodes": len(nodeRows), "total_edges": len(edgeRows),
+			},
+			"errors": failures,
 		},
-	}, nil
+	}
+	if !success {
+		result.Error = "knowledge graph query failed"
+		return result, fmt.Errorf("%s", result.Error)
+	}
+	return result, nil
+}
+
+// graphNamespacesForKB keeps document and tag selections inside the Neo4j
+// query itself. Graph nodes without chunks cannot be safely filtered afterward.
+func (t *QueryKnowledgeGraphTool) graphNamespacesForKB(
+	ctx context.Context, kb *types.KnowledgeBase,
+) ([]types.NameSpace, error) {
+	if !t.scopeEnforced {
+		return []types.NameSpace{{KnowledgeBase: kb.ID}}, nil
+	}
+	var documentIDs []string
+	for _, target := range t.searchTargets {
+		if target == nil || target.KnowledgeBaseID != kb.ID {
+			continue
+		}
+		if target.TenantID != kb.TenantID {
+			return nil, fmt.Errorf("knowledge base ownership changed")
+		}
+		if searchTargetIsWholeKB(target) {
+			return []types.NameSpace{{KnowledgeBase: kb.ID}}, nil
+		}
+		explicitIDs, tagIDs := searchTargetScope(target)
+		documentIDs = append(documentIDs, explicitIDs...)
+		if len(tagIDs) > 0 {
+			if t.scopeKnowledgeService == nil {
+				return nil, fmt.Errorf("knowledge service is unavailable for tag scope")
+			}
+			taggedIDs, err := t.scopeKnowledgeService.ListKnowledgeIDsByTagIDs(
+				ctx, kb.TenantID, kb.ID, tagIDs,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve tag scope: %w", err)
+			}
+			documentIDs = append(documentIDs, taggedIDs...)
+		}
+	}
+	documentIDs = dedupNonEmptyStrings(documentIDs)
+	sort.Strings(documentIDs)
+	namespaces := make([]types.NameSpace, 0, len(documentIDs))
+	for _, id := range documentIDs {
+		namespaces = append(namespaces, types.NameSpace{KnowledgeBase: kb.ID, Knowledge: id})
+	}
+	return namespaces, nil
+}
+
+func graphEntityKey(namespace types.NameSpace, name string) string {
+	return namespace.KnowledgeBase + "/" + namespace.Knowledge + "/" + name
+}
+
+func sortedMapKeys[V any](values map[string]V) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func summarizeGraphConfig(config *types.ExtractConfig) graphConfigSummary {
@@ -475,35 +406,4 @@ func uniqueStrings(values []string) []string {
 	}
 	sort.Strings(result)
 	return result
-}
-
-// buildGraphVisualizationData builds structured data for graph visualization
-func buildGraphVisualizationData(results []*types.SearchResult) map[string]interface{} {
-	// Build a simple graph structure for frontend visualization
-	nodes := make([]map[string]interface{}, 0)
-	edges := make([]map[string]interface{}, 0)
-
-	// Create nodes from results
-	seenEntities := make(map[string]bool)
-	for i, result := range results {
-		if !seenEntities[result.ID] {
-			nodes = append(nodes, map[string]interface{}{
-				"id":       result.ID,
-				"label":    fmt.Sprintf("Chunk %d", i+1),
-				"content":  result.Content,
-				"kb_id":    result.KnowledgeID,
-				"kb_title": result.KnowledgeTitle,
-				"score":    result.Score,
-				"type":     "chunk",
-			})
-			seenEntities[result.ID] = true
-		}
-	}
-
-	return map[string]interface{}{
-		"nodes":       nodes,
-		"edges":       edges,
-		"total_nodes": len(nodes),
-		"total_edges": len(edges),
-	}
 }

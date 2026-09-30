@@ -1315,11 +1315,14 @@
                 <div v-show="currentSection === 'skills' && isAgentMode" class="section">
                   <div class="section-header">
                     <h2>{{ $t('agent.editor.skillsConfig') }}</h2>
-                    <p class="section-description">{{ $t('agent.editor.skillsConfigDesc') }}</p>
+                    <p class="section-description">{{ $t(isPeterWorkspace ? 'agent.editor.peterSkillsDesc' : 'agent.editor.skillsConfigDesc') }}</p>
+                    <a v-if="isPeterWorkspace && canInstallSkills" href="javascript:void(0)" class="go-settings-link" @click.prevent="openSkillSettings">
+                      {{ $t('agent.editor.goSkillSettings') }}
+                    </a>
                   </div>
 
                   <div class="settings-group">
-                    <div class="setting-row">
+                    <div v-if="!peterUsesSoleSandbox" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.sandboxBackend') }}</label>
                         <p class="desc">{{ $t('agent.editor.sandboxBackendHint') }}</p>
@@ -1371,7 +1374,7 @@
                       </div>
                     </div>
 
-                    <div class="setting-row">
+                    <div v-if="!isPeterWorkspace" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.skillsSelection') }}</label>
                         <p class="desc">{{ skillsSelectionHint }}</p>
@@ -1400,10 +1403,18 @@
                       </div>
                     </div>
 
+                    <p v-if="isPeterWorkspace && !effectiveSkillSandboxId" class="desc empty-hint">
+                      {{ $t('settings.skills.peterNoWorkspace') }}
+                    </p>
+                    <p v-else-if="isPeterWorkspace && skillCatalog.length === 0" class="desc empty-hint">
+                      {{ $t('agent.editor.noSkillsAvailable') }}
+                    </p>
+                    <p v-else-if="isPeterWorkspace" class="skill-ready-stat">{{ skillListSummary }}</p>
+
                     <div v-if="showCatalogSkillList" class="setting-row setting-row-vertical">
                       <div class="setting-control setting-control-full">
                         <t-checkbox-group
-                          v-model="formData.config.selected_skills"
+                          v-model="selectedSkillsForUi"
                           class="skill-pick-list"
                         >
                           <article
@@ -1416,7 +1427,7 @@
                             }"
                           >
                             <t-checkbox
-                              v-if="skillsSelectionMode === 'selected'"
+                              v-if="isPeterWorkspace || skillsSelectionMode === 'selected'"
                               :value="skill.name"
                               :disabled="!skill.selectable"
                               class="skill-pick__check"
@@ -1828,6 +1839,7 @@ import { type ModelConfig } from '@/api/model';
 import { type AgentNotReadyReasonKey, agentRequiresRerankModel } from '@/utils/agent-readiness';
 import { isPeterWorkspace, isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface';
 import { installSkillCatalog, type SkillCatalogItem } from '@/api/skill';
+import { checkedPeterSkills, updatePeterSkills } from '@/utils/peterSkillSelection';
 import { type WebSearchProviderEntity } from '@/api/web-search-provider';
 import {
   isNamedSandboxBackend,
@@ -2074,6 +2086,16 @@ const catalogReady = ref(false);
 const installingCatalogId = ref('');
 const skillsSelectionMode = ref<'all' | 'selected' | 'none'>('none');
 const hasSandboxSelected = computed(() => !!formData.value.config.sandbox_config_id);
+const peterUsesSoleSandbox = computed(() => {
+  if (!isPeterWorkspace) return false
+  const configs = namedSandboxConfigs()
+  const selected = formData.value.config.sandbox_config_id || ''
+  return configs.length === 1 && (!selected || selected === configs[0].id)
+})
+const effectiveSkillSandboxId = computed(() =>
+  formData.value.config.sandbox_config_id
+  || (peterUsesSoleSandbox.value ? namedSandboxConfigs()[0].id : ''),
+)
 const canEnableSkills = computed(() =>
   hasSandboxSelected.value || namedSandboxConfigs().length === 1,
 );
@@ -2087,7 +2109,7 @@ type CatalogSkillRow = SkillCatalogItem & {
 }
 
 const catalogSkillRows = computed<CatalogSkillRow[]>(() => {
-  const sandboxId = formData.value.config.sandbox_config_id || ''
+  const sandboxId = effectiveSkillSandboxId.value
   return skillCatalog.value.map((item) => {
     const inst = sandboxId
       ? (item.installations || []).find((row) => row.sandbox_config_id === sandboxId)
@@ -2101,10 +2123,30 @@ const catalogSkillRows = computed<CatalogSkillRow[]>(() => {
 })
 
 const showCatalogSkillList = computed(() =>
-  skillsSelectionMode.value !== 'none'
-  && hasSandboxSelected.value
+  (isPeterWorkspace || skillsSelectionMode.value !== 'none')
+  && !!effectiveSkillSandboxId.value
   && catalogSkillRows.value.length > 0,
 )
+
+const selectedSkillsForUi = computed<string[]>({
+  get: () => isPeterWorkspace
+    ? checkedPeterSkills(
+      skillsSelectionMode.value,
+      formData.value.config.selected_skills || [],
+      catalogSkillRows.value.filter((skill) => skill.selectable).map((skill) => skill.name),
+    )
+    : formData.value.config.selected_skills || [],
+  set: (checked) => {
+    if (!isPeterWorkspace) {
+      formData.value.config.selected_skills = checked
+      return
+    }
+    const next = updatePeterSkills(checked)
+    skillsSelectionMode.value = next.mode
+    formData.value.config.selected_skills = next.selected
+    autoBindSoleSandbox()
+  },
+})
 
 const skillsSelectionHint = computed(() => {
   if (skillsSelectionMode.value === 'all') return t('agent.editor.skillsAllListHint')
@@ -2139,7 +2181,7 @@ function skillStatusHint(skill: CatalogSkillRow): string {
 }
 
 function canInstallSkillRow(skill: CatalogSkillRow): boolean {
-  if (!canInstallSkills.value || !hasSandboxSelected.value) return false
+  if (!canInstallSkills.value || !effectiveSkillSandboxId.value) return false
   return !skill.installed || skill.installStatus === 'failed'
 }
 
@@ -2159,7 +2201,7 @@ function autoBindSoleSandbox() {
 
 function openSkillSettings() {
   if (authStore.isLiteMode) return
-  const configId = formData.value.config.sandbox_config_id || ''
+  const configId = effectiveSkillSandboxId.value
   uiStore.openSettings('skills', configId || undefined)
 }
 
@@ -2176,7 +2218,7 @@ function pruneSelectedSkills() {
 async function syncInstalledSkills(force = false) {
   if (authStore.isLiteMode) return
   autoBindSoleSandbox()
-  const configId = formData.value.config.sandbox_config_id || ''
+  const configId = effectiveSkillSandboxId.value
   await editorResources.ensureSkills(configId, force)
   try {
     await editorResources.ensureSkillCatalog(force)
@@ -2190,7 +2232,7 @@ async function syncInstalledSkills(force = false) {
 
 async function installCatalogToCurrent(skill: CatalogSkillRow) {
   if (authStore.isLiteMode) return
-  const configId = formData.value.config.sandbox_config_id || ''
+  const configId = effectiveSkillSandboxId.value
   if (!configId || installingCatalogId.value) return
   installingCatalogId.value = skill.id
   try {

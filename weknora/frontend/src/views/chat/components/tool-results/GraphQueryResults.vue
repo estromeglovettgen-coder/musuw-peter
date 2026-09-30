@@ -13,8 +13,29 @@
       </div>
     </div>
 
-    <!-- Results List -->
-    <div v-if="data.results && data.results.length > 0" class="results-list">
+    <!-- Stored Neo4j entity relationships -->
+    <div v-if="data.graph_data?.edges?.length" class="results-list">
+      <div class="results-header">
+        {{ $t('chat.graphResultsHeader', { count: data.graph_data.total_edges }) }}
+      </div>
+      <div v-for="(edge, index) in data.graph_data.edges" :key="`${edge.source}:${edge.type}:${edge.target}`" class="result-card">
+        <div class="result-header">
+          <div class="result-title">
+            <span class="result-index">#{{ index + 1 }}</span>
+            <span class="knowledge-title">{{ nodeLabel(edge.source) }} → {{ nodeLabel(edge.target) }}</span>
+          </div>
+          <div class="result-meta">{{ edge.type }}</div>
+        </div>
+      </div>
+    </div>
+    <div v-else-if="data.graph_data?.nodes?.length && !data.results?.length" class="results-list">
+      <div v-for="node in data.graph_data.nodes" :key="node.id" class="result-card">
+        <div class="result-header"><span class="knowledge-title">{{ node.label }}</span></div>
+      </div>
+    </div>
+
+    <!-- Legacy chunk results from earlier tool responses -->
+    <div v-else-if="data.results && data.results.length > 0" class="results-list">
       <div class="results-header">
         {{ $t('chat.graphResultsHeader', { count: data.count }) }}
       </div>
@@ -53,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { GraphQueryResultsData, RelevanceLevel } from '@/types/tool-results';
 import { useI18n } from 'vue-i18n';
 
@@ -64,6 +85,8 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const expandedResults = ref<string[]>([]);
+const nodeLabels = computed(() => new Map(props.data.graph_data?.nodes.map(node => [node.id, node.label]) ?? []));
+const nodeLabel = (id: string): string => nodeLabels.value.get(id) ?? '—';
 
 const toggleResult = (chunkId: string) => {
   const index = expandedResults.value.indexOf(chunkId);
@@ -135,4 +158,3 @@ const getRelevanceLabel = (level: RelevanceLevel): string => {
   font-weight: 500;
 }
 </style>
-

@@ -33,6 +33,7 @@ import {
   batchDeleteKnowledge,
   batchReparseKnowledge,
   getKnowledgeDetails,
+  getKnowledgeBaseById,
   getKnowledgeSpans,
   listKnowledgeFolders,
   listKnowledgeFiles,
@@ -53,6 +54,7 @@ import BatchTagDialog from './components/BatchTagDialog.vue';
 import KbTagManageDrawer from './components/KbTagManageDrawer.vue';
 import WikiBrowser from './wiki/WikiBrowser.vue';
 import { getWikiStats } from '@/api/wiki';
+import { listModels } from '@/api/model';
 import {
   isKnowledgeParseInFlight,
   knowledgeNeedsStatusPolling,
@@ -77,6 +79,7 @@ import { UPLOAD_VIDEO_EXTENSIONS } from '@/views/knowledge/utils/uploadSources';
 import { isKnowledgeBaseRuntimeReady, isKnowledgeBaseStorageReady } from '@/utils/knowledgeBaseRuntime';
 import { resolveKnowledgeDisplayName } from '@/utils/knowledgeDisplayName';
 import { deleteKnowledgeFolder } from './deleteFolder';
+import { needsPeterMediaModelCheck, peterMediaRepairSection } from '@/views/knowledge/peterMediaReadiness';
 const route = useRoute();
 const { t } = useI18n();
 const kbId = computed(() => (route.params as any).kbId as string || '');
@@ -501,6 +504,7 @@ const awaitBatchReparseReflection = async (ids: string[]) => {
 
 const confirmBatchReparse = async () => {
   if (batchReparsing.value || batchDeleting.value || batchCancelling.value || selectedIds.value.size === 0) return;
+  const targetKbId = kbId.value;
   const allIds = Array.from(selectedIds.value);
   const ids = allIds.filter((id) => {
     const item = cardList.value.find((c) => c.id === id);
@@ -516,7 +520,18 @@ const confirmBatchReparse = async () => {
   }
   batchReparsing.value = true;
   try {
-    const res: any = await batchReparseKnowledge(kbId.value, ids);
+    const mediaSources = await Promise.all(ids.map(async (id) => {
+      const item = cardList.value.find((card) => card.id === id);
+      if (item?.file_type || item?.file_name) return item.file_type || item.file_name || '';
+      const response: any = await getKnowledgeDetails(id);
+      const detail = response?.data || response;
+      return detail?.file_type || detail?.file_name || '';
+    }));
+    if (targetKbId !== kbId.value) return;
+    if (!await ensurePeterMediaReady(mediaSources)) return;
+    // Peter's editor owns processing settings. An explicit empty override
+    // replaces old per-document snapshots so this reparse uses the current KB.
+    const res: any = await batchReparseKnowledge(targetKbId, ids, isPeterWorkspace ? {} : undefined);
     if (res?.success) {
       MessagePlugin.success(t('knowledgeBase.batchReparseSuccess', { count: ids.length }));
       applyOptimisticBatchReparse(ids);
@@ -1695,6 +1710,37 @@ const ensureDocumentKbReady = () => {
   return true;
 };
 
+// The direct uploader has no confirmation dialog. Check the current KB and
+// model catalog only for file types that the server requires VLM/ASR for.
+// A repair opens the KB editor; cancelling it never resumes a pending upload.
+const ensurePeterMediaReady = async (fileTypesOrNames: string[]): Promise<boolean> => {
+  if (!isPeterWorkspace || !needsPeterMediaModelCheck(fileTypesOrNames)) return true;
+  const targetKbId = kbId.value;
+  if (!targetKbId) return false;
+  try {
+    const [kbResponse, models] = await Promise.all([
+      getKnowledgeBaseById(targetKbId),
+      listModels(),
+    ]);
+    if (targetKbId !== kbId.value) return false;
+    const kb = kbResponse?.data;
+    if (!kb) throw new Error('Knowledge base details unavailable');
+    const repairSection = peterMediaRepairSection(fileTypesOrNames, kb, models);
+    if (repairSection) {
+      MessagePlugin.warning(t(repairSection === 'multimodal'
+        ? 'knowledgeEditor.advanced.multimodal.vllmPlaceholder'
+        : 'knowledgeEditor.asr.modelPlaceholder'));
+      uiStore.openKBSettings(targetKbId, repairSection);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Failed to check knowledge base media models:', error);
+    MessagePlugin.error(t('knowledgeBase.loadingFailed'));
+    return false;
+  }
+};
+
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
 const AUDIO_EXTENSIONS = ['mp3', 'wav', 'm4a', 'flac', 'ogg'];
@@ -1877,14 +1923,16 @@ const startPlatformDefaultUpload = async (files: File[], urls: string[] = []) =>
   }
 };
 
-const handleUploadSourceFiles = (files: File[]) => {
+const handleUploadSourceFiles = async (files: File[]) => {
   if (!ensureDocumentKbReady()) return;
   if (files.length === 0) return;
+  if (!await ensurePeterMediaReady(files.map(file => file.name))) return;
   void startPlatformDefaultUpload(files);
 };
 
-const handleUploadSourceUrl = (url: string) => {
+const handleUploadSourceUrl = async (url: string) => {
   if (!ensureDocumentKbReady()) return;
+  if (!await ensurePeterMediaReady([url])) return;
   void startPlatformDefaultUpload([], [url]);
 };
 
@@ -1969,12 +2017,13 @@ const confirmRebuildKnowledge = async (index: number, item: KnowledgeCard) => {
   }
   closeCardMoreMenu(index);
 
+  if (!await ensurePeterMediaReady([item.file_type || item.file_name || ''])) return;
   await submitReparse(item.id);
 };
 
 const submitReparse = async (id: string) => {
   try {
-    await reparseKnowledge(id);
+    await reparseKnowledge(id, isPeterWorkspace ? { process_config: {} } : undefined);
     delete traceAvailableById[id];
     traceAvailableById[id] = true;
     MessagePlugin.success(t('knowledgeBase.rebuildSubmitted'));
