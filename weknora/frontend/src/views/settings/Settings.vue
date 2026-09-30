@@ -3,6 +3,7 @@
     :visible="visible"
     :dialog-label="$t('general.settings')"
     :content-label="activeNavLabel"
+    :z-index="1200"
     :route-mode="isSettingsRoute"
     :content-wide="currentSection === 'members'"
     :content-full="SYSTEM_ADMIN_SECTIONS.has(currentSection) || isIntegrationSection(currentSection)"

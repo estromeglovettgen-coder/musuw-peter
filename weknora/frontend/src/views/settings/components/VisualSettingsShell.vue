@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<{
   contentFull?: boolean
   modalClass?: string
   contentClass?: string
+  zIndex?: number
 }>(), {
   contentLabel: '',
   routeMode: false,
@@ -17,6 +18,7 @@ const props = withDefaults(defineProps<{
   contentFull: false,
   modalClass: '',
   contentClass: '',
+  zIndex: 1100,
 })
 
 const emit = defineEmits<{
@@ -71,7 +73,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="visual-settings-overlay" :class="{ 'is-route': routeMode }" @click.self="emit('close')">
+    <div v-if="visible" class="visual-settings-overlay" :class="{ 'is-route': routeMode }" :style="{ zIndex }" @click.self="emit('close')">
       <section
         ref="dialogRef"
         class="visual-settings-modal"
