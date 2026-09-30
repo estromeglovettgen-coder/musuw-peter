@@ -139,7 +139,7 @@ export default defineComponent({
     />
 
     <div class="visual-chat-input" :class="{ 'is-embedded': embeddedMode }">
-      <p v-if="customerArchiveStatus && isReplying" class="customer-archive-status" role="status">{{ customerArchiveStatus }}</p>
+      <p v-if="customerArchiveStatus && (isReplying || customerArchiveFailed)" class="customer-archive-status" :role="customerArchiveFailed ? 'alert' : 'status'">{{ customerArchiveStatus }}</p>
       <InputField ref="inputFieldRef" :is-replying="isReplying" :session-id="session_id" :assistant-message-id="currentAssistantMessageId" :embedded-mode="embeddedMode" @send-msg="(query: any, modelId: any, mentionedItems: any, imageFiles: any, attachmentFiles: any, thinking: any, reasoningEffort: any) => sendMsg(query, modelId, mentionedItems, imageFiles, attachmentFiles, thinking, reasoningEffort)" @stop-generation="handleStopGeneration" />
     </div>
 

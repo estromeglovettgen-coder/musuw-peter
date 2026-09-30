@@ -53,7 +53,18 @@ if (mode === 'seed') {
   state.reportAttachment=attachment.id;save()
   const stream=await chat(state.reportSession,state.reportAgent,'请用 customer-report 技能处理我上传的 followups.csv，执行脚本并生成 /workspace/output/customer-report.json，最后给我这个文件的下载链接。',{attachment_ids:[attachment.id]})
   console.log(stream.slice(-3500))
+  const events=stream.split('\n').filter(line=>line.startsWith('data:')).map(line=>JSON.parse(line.slice(5)))
+  assert.ok(!events.some(event=>event.response_type==='error'),'skill chat must not emit an error')
+  state.reportMessage=events.find(event=>event.response_type==='agent_query')?.assistant_message_id
+  assert.ok(state.reportMessage,'agent stream must expose the persisted assistant message ID')
+  save()
   const artifacts=await api(`/api/v1/sessions/${state.reportSession}/artifacts`)
+  assert.equal(artifacts.data?.length,1,'skill must create exactly one output artifact')
+  const response=await request(`/api/v1/sessions/${state.reportSession}/messages/${state.reportMessage}/artifacts/0/download`)
+  assert.equal(response.status,200,'the newly generated artifact must be downloadable without refresh')
+  const output=JSON.parse(await response.text())
+  assert.deepEqual(output,{customers:3,followups:12,names:['Alex','Ben','Casey']})
+  record('Skill artifact download returns independently verified contents without refresh')
   writeFileSync(`${runtime}/report-artifacts.json`,JSON.stringify(artifacts,null,2),{mode:0o600})
   console.log(JSON.stringify(artifacts,null,2))
 } else if(mode==='status') {

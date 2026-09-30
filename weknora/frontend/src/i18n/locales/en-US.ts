@@ -6040,9 +6040,9 @@ export default {
       kbMetricRag: 'RAG KBs',
       kbMetricWiki: 'Wiki KBs',
       statusInactive: '{count} ticked tool(s) cannot take effect with the current config',
-      effectiveLabel: 'Effective Tools',
-      effectiveDesc: 'Computed from the current config — these are the tools the agent will actually be able to call',
-      effectiveEmpty: 'No tool available — the agent will fall back to plain model chat'
+      effectiveLabel: 'Built-in tool preview',
+      effectiveDesc: 'Shows tools enabled on this page. Check Skills for sandbox and skill tools.',
+      effectiveEmpty: 'No built-in tools enabled here. Check Skills for sandbox and skill tools.'
     },
     embed: {
       title: 'Web Page Embed',

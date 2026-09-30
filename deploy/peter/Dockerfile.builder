@@ -4,8 +4,7 @@ ARG PETER_RUNTIME_BASE
 FROM ${PETER_RUNTIME_BASE} AS runtime
 FROM golang:1.26-bookworm AS builder
 WORKDIR /app
-RUN sed -i 's@http://deb.debian.org@https://mirrors.cloud.tencent.com@g' /etc/apt/sources.list.d/debian.sources \
-    && apt-get -o Acquire::By-Hash=false -o Acquire::Retries=1 -o Acquire::https::Timeout=20 update && apt-get install -y --no-install-recommends libsqlite3-dev \
+RUN apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 update && apt-get install -y --no-install-recommends libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 ENV GOPROXY=https://goproxy.cn,direct GOMAXPROCS=2
 COPY go.mod go.sum ./

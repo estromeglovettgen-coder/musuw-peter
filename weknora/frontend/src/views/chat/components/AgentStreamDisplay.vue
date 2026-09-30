@@ -57,8 +57,7 @@
                         class="thinking-inline-content markdown-content">
                         <div class="thinking-inline-markdown" v-html="renderMarkdownContent(event.content)"></div>
                       </div>
-                      <span v-else-if="getThinkingSummary(event)" class="action-summary">{{ getThinkingSummary(event)
-                        }}</span>
+                      <span v-else class="action-summary">{{ getThinkingStatus(event) }}</span>
                     </div>
                   </div>
                   <div v-if="event.title && event.content && isEventExpanded(event.event_id)" class="action-details">
@@ -80,8 +79,8 @@
                       <span class="action-name">{{ $t('agent.think') }}</span>
                       <span v-if="event.tool_data?.thought_number" class="action-badge">{{
                         event.tool_data.thought_number }}/{{ event.tool_data.total_thoughts }}</span>
-                      <span v-if="getThinkingSummary(event) && !isEventExpanded(event.tool_call_id)"
-                        class="action-summary">{{ getThinkingSummary(event) }}</span>
+                      <span v-if="!isEventExpanded(event.tool_call_id)"
+                        class="action-summary">{{ getThinkingStatus(event) }}</span>
                     </div>
                   </div>
                   <div v-if="event.tool_data?.thought && isEventExpanded(event.tool_call_id)" class="action-details">
@@ -268,8 +267,7 @@
                       class="thinking-inline-content markdown-content">
                       <div class="thinking-inline-markdown" v-html="renderMarkdownContent(event.content)"></div>
                     </div>
-                    <span v-else-if="getThinkingSummary(event) && !isEventExpanded(event.event_id)"
-                      class="action-summary">{{ getThinkingSummary(event) }}</span>
+                    <span v-else class="action-summary">{{ getThinkingStatus(event) }}</span>
                   </div>
                 </div>
                 <div v-if="event.title && event.content && isEventExpanded(event.event_id)" class="action-details">
@@ -307,8 +305,8 @@
                     <span class="action-name">{{ $t('agent.think') }}</span>
                     <span v-if="event.tool_data?.thought_number" class="action-badge">{{ event.tool_data.thought_number
                     }}/{{ event.tool_data.total_thoughts }}</span>
-                    <span v-if="getThinkingSummary(event) && !isEventExpanded(event.tool_call_id)"
-                      class="action-summary">{{ getThinkingSummary(event) }}</span>
+                    <span v-if="!isEventExpanded(event.tool_call_id)"
+                      class="action-summary">{{ getThinkingStatus(event) }}</span>
                   </div>
                 </div>
                 <div v-if="event.tool_data?.thought && isEventExpanded(event.tool_call_id)" class="action-details">
@@ -1375,11 +1373,12 @@ const isThinkingActive = (eventId: string): boolean => {
   return activeThinkingIds.value.has(eventId);
 };
 
-// Watch event stream to auto-expand thinking events and auto-collapse when non-thinking follows
+// Track the active thinking round for progress feedback. Reasoning stays folded
+// unless the user opens it, including while new chunks arrive.
 watch(eventStream, (stream) => {
   if (!stream || !Array.isArray(stream)) return;
 
-  // Scan stream to find thinking events to expand and collapse
+  // Scan stream to find the active thinking events.
   const newActiveIds = new Set<string>();
 
   // Walk backwards to find the trailing thinking block
@@ -1394,8 +1393,6 @@ watch(eventStream, (stream) => {
 
     if (inTrailingThinking && isThinking && id) {
       newActiveIds.add(id);
-      // Auto-expand if not yet known
-      expandedEvents.value.add(id);
     } else if (!isThinking) {
       inTrailingThinking = false;
     }
@@ -1799,19 +1796,12 @@ const getThinkingContent = (event: any): string => {
   return '';
 };
 
-// Get a short summary snippet from thinking content for display in the header
-const getThinkingSummary = (event: any): string => {
-  const content = getThinkingContent(event);
-  if (!content) return '';
-  const cleaned = sanitizeForDisplay(content)
-    .replace(/^#+\s+/gm, '')
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
-    .replace(/`/g, '')
-    .replace(/\n+/g, ' ')
-    .trim();
-  if (cleaned.length <= 50) return cleaned;
-  return cleaned.slice(0, 50) + '...';
+// A closed card reports progress without quoting the model's raw reasoning.
+const getThinkingStatus = (event: any): string => {
+  const id = event.type === 'thinking' ? event.event_id : event.tool_call_id;
+  return !isConversationDone.value && isThinkingActive(id)
+    ? t('chat.thinking')
+    : t('agentStream.toolStatus.thinkingDone');
 };
 
 // Helper: build the full result list with plan_task_change injections and thinking merging

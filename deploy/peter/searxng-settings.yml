@@ -1,0 +1,41 @@
+use_default_settings:
+  engines:
+    keep_only: [bing]
+
+general:
+  instance_name: "Peter Search"
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: false
+
+server:
+  base_url: false
+  image_proxy: true
+  http_protocol_version: "1.0"
+  method: "GET"
+  limiter: false
+  public_instance: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "auto"
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+  formats:
+    - html
+    - json
+
+engines:
+  - name: bing
+    disabled: false
+    # Mainland egress is redirected here; SearXNG's search fetch does not follow redirects.
+    base_url: https://cn.bing.com
+
+outgoing:
+  request_timeout: 6.0
+  max_request_timeout: 10.0
+  pool_connections: 100
+  pool_maxsize: 20
+  enable_http2: true

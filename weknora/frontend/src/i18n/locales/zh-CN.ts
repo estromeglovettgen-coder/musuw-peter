@@ -1098,9 +1098,9 @@ export default {
       kbMetricRag: 'RAG 知识库',
       kbMetricWiki: 'Wiki 知识库',
       statusInactive: '有 {count} 个已勾选工具在当前配置下无法生效',
-      effectiveLabel: '最终启用的工具',
-      effectiveDesc: '根据当前配置计算，这是智能体保存后实际能调用的工具集合',
-      effectiveEmpty: '当前没有可用工具，智能体将退化为纯模型问答'
+      effectiveLabel: '内置工具预览',
+      effectiveDesc: '显示此页启用的内置工具；沙箱和技能工具请在「技能」页查看',
+      effectiveEmpty: '未启用此页的内置工具；沙箱和技能工具请在「技能」页查看'
     },
     desc: {
       name: '为智能体设置一个易于识别的名称',

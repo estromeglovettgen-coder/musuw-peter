@@ -3,7 +3,7 @@
 入口：<https://62.234.188.55/>。本机验收凭据保存在忽略版本控制的
 `.runtime/peter/deployment/account.json`，不得提交或粘贴到公开记录。
 主链路与修复版整机重启验收已通过，范围与限制见 [服务器验收记录](PETER_SERVER_ACCEPTANCE.md)。
-当前前端发布 `20260929-12`，应用镜像 `musuw-peter:20260929-04`；上一版前端 `20260929-11` 可直接回退。
+当前前端发布目录为 `20260930-01`，应用镜像为 `musuw-peter:20260929-05`（healthy）。工作区入口 `frontend/index.html` 的 SHA-256 为 `d18ba64496f8e66b9131bda639b5cbe84f268346e0787e777ff2bc23c3bcece8`，原 Musuw 登录入口 `frontend/auth/index.html` 为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`；服务器当前文件已核对。回退对象为前端目录 `20260929-14` 和应用镜像 `musuw-peter:20260929-04`，两者均保留在服务器。最终日常链路验收见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
 
 ## 部署边界
 
@@ -20,13 +20,15 @@
 | `/opt/musuw-peter/current` | 当前前端及可追溯源码发布目录的符号链接 |
 | `/opt/musuw-peter/releases/` | 版本化发布；不要覆盖已发布的源文件 |
 | `/opt/musuw-peter/deploy/` | Compose、入口脚本和部署变量 |
-| `/etc/musuw-peter/` | 应用、数据库、Redis 和加密配置，只允许管理账户访问 |
-| `/var/lib/musuw-peter/` | 数据库、Redis、上传文件、预装技能、解析临时文件及检索模型 |
+| `/etc/musuw-peter/` | 应用、数据库、Redis 与搜索服务密钥，只允许管理账户访问 |
+| `/var/lib/musuw-peter/` | 数据库、Redis、上传文件、预装技能、解析临时文件、检索模型及搜索配置 |
 | `/etc/letsencrypt/live/peter-ip/` | 公网 IP 的 TLS 证书；由定时任务续期 |
 
-Compose 包含 app、PostgreSQL、Redis、Embedding、ReRank 和 docreader；只有 app 的
-`127.0.0.1:18187` 交给 nginx。数据库等没有公开端口。进程使用 `unless-stopped`，
-数据和加密密钥独立于容器持久化。
+Compose 包含 app、PostgreSQL、Redis、Embedding、ReRank、docreader 和 SearXNG；只有 app 的
+`127.0.0.1:18187` 交给 nginx。数据库与搜索服务没有公开端口。进程使用 `unless-stopped`，
+数据和密钥独立于容器持久化。SearXNG 限制为 350MB / 0.5 核；启动时由一次性初始化容器将
+`deploy/peter/searxng-settings.yml` 复制到 `/var/lib/musuw-peter/searxng/`。搜索密钥仅保存在
+`/etc/musuw-peter/searxng-secret`，由 Docker secret 注入，仓库配置不含固定密钥。
 
 命名沙箱按需建立，限制 512MB / 1 核 / 128 进程，闲置 15 分钟回收。
 临时工作目录不是长期文件存储；聊天中收集的输出文件通过原生附件接口持久保存。
@@ -43,12 +45,20 @@ ssh musuw-build-x64
 cd /opt/musuw-peter/deploy
 sudo docker compose ps
 sudo docker compose logs --tail=100 app
+sudo docker compose ps searxng
 sudo systemctl status nginx docker peter-sandbox-network.service
 sudo systemctl list-timers peter-cert-renew.timer
 curl -fsS https://62.234.188.55/health
 ```
 
 应用恢复使用 `sudo docker compose up -d app`；依赖恢复使用 `sudo docker compose up -d`。
+搜索服务单独恢复使用 `sudo docker compose up -d searxng`，不会重启 app。app 的
+`/etc/musuw-peter/app.env` 需保留 `SSRF_WHITELIST_EXTRA=embeddings,reranker,searxng`；
+变更后运行 `sudo docker compose up -d --no-deps --force-recreate app` 才会进入运行环境。
+搜索配置只启用 Bing，并直连 `https://cn.bing.com`：本机出口访问 `www.bing.com` 会重定向，
+而搜索引擎请求不跟随重定向。检查搜索时先用保存的 Web Search Provider 测试，再用临时智能体
+实际调用 `web_search` 核对结果标题与网址；只看到容器健康或 HTTP 200 不代表搜索可用。
+若提供商无结果或目标网站阻断网页抓取，应明确显示失败，修复连通性前不要把网页检索说成已验收。
 不要使用 `down -v`，也不要删除持久目录。服务状态正常后，还需真实登录、打开客户、
 查询资料并继续一次旧技能会话；HTTP 200 不能证明业务链路恢复。
 
@@ -57,15 +67,16 @@ curl -fsS https://62.234.188.55/health
 
 ## 发布与回退
 
-1. 先通过相关测试和前端类型检查/构建。使用本仓库 `deploy/peter/` 的构建文件，
+1. 先通过相关测试和前端类型检查/构建。必须在本仓库**根目录**执行 `npm run app:build`：该命令同时设置 `VITE_WORKSPACE_PROFILE=peter` 与 `VITE_AUTH_MODE=native`。直接在 `weknora/frontend` 执行 `npm run build` 会产出通用界面，不得发布。使用本仓库 `deploy/peter/` 的构建文件，
    不调用历史 Musuw 发布脚本。保留当前发布目录和应用镜像。
-2. `npm run build` 同时构建原 Musuw 登录页和工作区，登录静态文件位于 `frontend/auth/`；nginx 配置须同步使用本仓库 Peter 版本。将前端上传到新的发布目录；把上一版 `assets/` 中的哈希文件按“不覆盖同名文件”
+2. `npm run app:build` 同时构建原 Musuw 登录页和工作区，登录静态文件位于 `frontend/auth/`；nginx 配置须同步使用本仓库 Peter 版本。将前端上传到新的发布目录；把上一版 `assets/` 中的哈希文件按“不覆盖同名文件”
    合并到新版，保证更新前已经打开的页面仍能按需加载旧脚本。新版入口仍引用新版哈希。
 3. 生成新的应用镜像，修改 Peter 的 `PETER_APP_IMAGE`，执行 Compose 的 `up -d app`。
    原生迁移成功、健康检查和最小业务链路通过后，再切换 `current` 到匹配的前端发布目录。
 4. 复核浏览器冷启动、已打开页面导航、流式回答、客户和知识库、下载及新旧会话恢复。
 5. 若仅为兼容的代码/界面更新，可回退应用镜像及 `current` 链接；涉及破坏性数据库迁移时，
-   必须使用对应的数据恢复方案，不能假设旧二进制能读取新结构。
+   必须使用对应的数据恢复方案，不能假设旧二进制能读取新结构。当前可回退的组合为
+   `musuw-peter:20260929-04` 与 `/opt/musuw-peter/releases/20260929-14`；回退后仍须核对登录、客户资料、技能会话和产物下载。
 
 旧业务“不要备份”的授权只用于本次明确的旧数据清理。未来真实客户数据应另行配置备份；
 目前没有离机备份目的地，容器持久化和发布回退不能替代灾难恢复。

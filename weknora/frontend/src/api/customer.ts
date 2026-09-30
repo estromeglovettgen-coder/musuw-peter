@@ -84,8 +84,14 @@ export async function archiveCustomerFiles(id: string, images: File[], attachmen
     const file = originals[index]
     if (archivedFiles.get(file)?.has(id)) continue
     progress(`正在保存客户资料 ${index+1}/${originals.length}：${file.name}`)
-    try { await uploadKnowledgeFile(id,{file}); const saved=archivedFiles.get(file) || new Set<string>(); saved.add(id); archivedFiles.set(file,saved) }
+    try {
+      const response = await uploadKnowledgeFile(id, {file})
+      if (response?.success !== true) throw new Error('客户资料保存失败')
+      const saved = archivedFiles.get(file) || new Set<string>()
+      saved.add(id)
+      archivedFiles.set(file, saved)
+    }
     catch { failures.push(file.name) }
   }
-  if (originals.length) progress(failures.length ? `未归档：${failures.join('、')}。附件仍随本次对话保存，请在客户资料页重新上传。` : `已将 ${originals.length} 份原始资料保存到客户库`)
+  if (originals.length) progress(failures.length ? `未归档：${failures.join('、')}。请在客户资料页重新上传。` : `已将 ${originals.length} 份原始资料保存到客户库`)
 }

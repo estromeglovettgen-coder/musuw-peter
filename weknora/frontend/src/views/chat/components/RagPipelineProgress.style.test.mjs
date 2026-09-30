@@ -33,6 +33,14 @@ test('RAG retrieval opens the shared references drawer and keeps thinking scroll
   assert.match(source, /watch\(thinkingContent/)
 })
 
+test('RAG thinking starts folded and keeps a progress label while it streams', () => {
+  assert.match(source, /const thinkingExpanded = ref\(false\)/)
+  assert.doesNotMatch(source, /watch\(thinkingPending, \(pending\) => \{ if \(pending\) thinkingExpanded\.value = true \}\)/)
+  assert.match(source, /thinkingContent && thinkingExpanded/)
+  assert.match(source, /thinkingPending \? t\('chat\.thinking'\) : t\('agentStream\.toolStatus\.thinkingDone'\)/)
+  assert.match(source, /function toggleThinking\(\) \{ if \(showThinkingStep\.value && thinkingContent\.value\) thinkingExpanded\.value = !thinkingExpanded\.value \}/)
+})
+
 test('RAG visual layer is compact, clickable only when actionable, and reduced-motion safe', () => {
   assert.match(source, /button\.visual-rag-step\.is-clickable \{ cursor: pointer; \}/)
   assert.match(source, /\.visual-rag-step\s*\{[^\n]*padding: 0 0 14px/)

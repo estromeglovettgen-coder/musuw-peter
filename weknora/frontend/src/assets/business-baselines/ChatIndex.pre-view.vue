@@ -126,7 +126,7 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import { ref, onMounted, onBeforeMount, onUnmounted, nextTick, watch, reactive, computed } from 'vue';
-import { useRoute, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
 import InputField from '../../components/Input-field.vue';
 import botmsg from './components/botmsg.vue';
 import usermsg from './components/usermsg.vue';
@@ -227,9 +227,11 @@ const attachStreamDebugToMessage = (message) => {
     message.debugRequest = payload;
 };
 const route = useRoute();
+const router = useRouter();
 const session_id = ref(props.session_id || route.params.chatid);
 const currentSession = ref(null);
 const customerArchiveStatus = ref('');
+const customerArchiveFailed = ref(false);
 const customerTurnPreparing = ref(false);
 
 // 拉 session 详情，并按其 last_request_state 把输入栏状态恢复到当时的发起态。
@@ -764,8 +766,12 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
     isReplying.value = true;
     loading.value = true;
     customerArchiveStatus.value = '';
+    customerArchiveFailed.value = false;
     if (customer && archiveCustomerSources) {
-        await archiveCustomerFiles(customer.id, imageFiles, attachmentFiles, message => { customerArchiveStatus.value = message; });
+        await archiveCustomerFiles(customer.id, imageFiles, attachmentFiles, message => {
+            customerArchiveStatus.value = message;
+            customerArchiveFailed.value = message.startsWith('未归档：');
+        });
         if (turnSessionID !== session_id.value) return;
     }
     // Images are unified with the attachment pipeline: on the authenticated web
@@ -1094,6 +1100,8 @@ onMounted(async () => {
 const clearData = () => {
     historyRequestId++;
     historyLoadError.value = null;
+    customerArchiveStatus.value = '';
+    customerArchiveFailed.value = false;
     stopStream();
     referencesDrawer.close();
     isReplying.value = false;

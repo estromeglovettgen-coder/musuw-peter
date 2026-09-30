@@ -38,10 +38,16 @@ try {
   record('Customer template created and persisted entirely through browser')
   await page.getByRole('button',{name:'客户设置',exact:true}).click()
   await page.getByText('状态与标签',{exact:true}).click()
-  await page.getByRole('button',{name:/拖动排序 待了解/}).dragTo(page.locator('.choice').filter({hasText:'服务中'}))
+  const expectedStatuses=[...config.statuses]
+  const from=expectedStatuses.indexOf('待了解'), to=expectedStatuses.indexOf('服务中')
+  assert.ok(from>=0 && to>=0 && from!==to,'drag fixture must contain distinct statuses')
+  expectedStatuses.splice(to,0,expectedStatuses.splice(from,1)[0])
+  assert.notDeepEqual(expectedStatuses,config.statuses,'drag must change the order')
+  await page.getByRole('button',{name:/拖动排序 待了解/}).dragTo(page.locator('.choices[aria-label="客户状态"] .choice').filter({hasText:'服务中'}))
+  assert.deepEqual(await page.locator('.choices[aria-label="客户状态"] .choice > span').allTextContents(),expectedStatuses)
   await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/v1/tenants/kv/customer-config') && r.request().method()==='PUT' && r.ok()),page.getByRole('button',{name:'保存',exact:true}).click()])
   const ordered=(await api('/api/v1/tenants/kv/customer-config')).data
-  assert.equal(ordered.statuses[0],'待了解')
+  assert.deepEqual(ordered.statuses,expectedStatuses)
   record('Customer status drag-and-drop order persisted')
   await page.getByRole('button',{name:'新建客户',exact:true}).click()
   await page.locator('input[placeholder="选择模板，一键套用配置"]').click()

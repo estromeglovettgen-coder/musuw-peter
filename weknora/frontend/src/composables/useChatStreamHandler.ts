@@ -404,7 +404,9 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
       if (item.id) existingIds.add(item.id)
 
       item.isAgentMode = false
-      const willContinueStream = preserveIncompleteStreamReactive && !item.is_completed
+      // An incomplete row can resume streaming in every consumer. Its event
+      // array must stay reactive because later chunks mutate it in place.
+      const willContinueStream = !item.is_completed
       if (willContinueStream) {
         item.agentEventStream = item.agentEventStream || []
         item._eventMap = new Map()
@@ -418,15 +420,16 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
 
       if (item.agent_steps && Array.isArray(item.agent_steps) && item.agent_steps.length > 0) {
         item.isAgentMode = true
-        item.agentEventStream = markRaw(
-          reconstructEventStreamFromSteps(
-            item.agent_steps as unknown[],
-            String(item.content || ''),
-            Boolean(item.is_completed),
-            Boolean(item.is_fallback),
-            Number(item.agent_duration_ms) || 0,
-          ),
+        const reconstructedStream = reconstructEventStreamFromSteps(
+          item.agent_steps as unknown[],
+          String(item.content || ''),
+          Boolean(item.is_completed),
+          Boolean(item.is_fallback),
+          Number(item.agent_duration_ms) || 0,
         )
+        item.agentEventStream = willContinueStream
+          ? reconstructedStream
+          : markRaw(reconstructedStream)
         item.hideContent = true
       }
 

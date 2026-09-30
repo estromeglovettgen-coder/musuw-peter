@@ -139,6 +139,38 @@ func TestGenerateTitleFallsBackWhenModelAnswersWithCitation(t *testing.T) {
 	}
 }
 
+func TestGenerateTitleForCustomerSessionUsesQuestionInsteadOfUngroundedModelAnswer(t *testing.T) {
+	t.Parallel()
+
+	const query = "Mira 的测试确认码是什么？"
+	const want = "Mira 的测试确认码是什么"
+	model := &generatedTitleChatModel{response: "无法提供，未收到 Mira 的资料。"}
+	repo := &generatedTitleSessionRepository{}
+	svc := &sessionService{
+		cfg: &config.Config{Conversation: &config.ConversationConfig{
+			GenerateSessionTitlePrompt: "Return only a short title.",
+		}},
+		sessionRepo:  repo,
+		modelService: &generatedTitleModelService{model: model},
+	}
+	session := &types.Session{
+		ID: "customer-session", UserID: "peter", CustomerKnowledgeBaseID: "mira-kb",
+	}
+
+	title, err := svc.GenerateTitle(context.Background(), session, []types.Message{{
+		Role: "user", Content: query,
+	}}, "model-1")
+	if err != nil {
+		t.Fatalf("GenerateTitle() error = %v", err)
+	}
+	if title != want || repo.currentTitle != want {
+		t.Fatalf("title = %q, persisted = %q, want %q", title, repo.currentTitle, want)
+	}
+	if model.callPurpose != "" {
+		t.Fatalf("customer title unexpectedly called a model: %q", model.callPurpose)
+	}
+}
+
 func TestGenerateTitleDoesNotOverwriteManualRenameThatWinsDuringModelCall(t *testing.T) {
 	t.Parallel()
 

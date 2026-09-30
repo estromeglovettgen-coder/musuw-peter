@@ -1096,9 +1096,9 @@ export default {
       kbMetricRag: 'RAG 지식베이스',
       kbMetricWiki: 'Wiki 지식베이스',
       statusInactive: '{count}개의 체크된 도구가 현재 설정에서는 작동하지 않습니다',
-      effectiveLabel: '최종 활성 도구',
-      effectiveDesc: '현재 설정 기준 저장 시 에이전트가 실제 호출할 수 있는 도구 집합',
-      effectiveEmpty: '사용 가능한 도구가 없어 일반 모델 대화로 동작합니다'
+      effectiveLabel: '기본 도구 미리보기',
+      effectiveDesc: '이 페이지에서 활성화한 도구입니다. 샌드박스와 스킬 도구는 스킬 탭에서 확인하세요.',
+      effectiveEmpty: '이 페이지에서 활성화한 기본 도구가 없습니다. 샌드박스와 스킬 도구는 스킬 탭에서 확인하세요.'
     },
     desc: {
       name: '에이전트를 쉽게 식별할 수 있는 이름을 설정하세요',

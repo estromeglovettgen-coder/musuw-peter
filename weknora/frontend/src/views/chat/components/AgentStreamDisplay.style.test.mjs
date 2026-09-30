@@ -39,6 +39,25 @@ test('expanded model reasoning stays inline without a separate thinking title', 
   assert.match(source, /\.tree-child \.thinking-event-card \.action-title\s*\{[\s\S]*position:\s*static/)
 })
 
+test('streaming reasoning stays folded until the user opens it, with no raw preview in the header', () => {
+  const template = source.split('<script')[0]
+  const streamWatch = source.slice(
+    source.indexOf('watch(eventStream, (stream) => {'),
+    source.indexOf('// State for intermediate steps collapse'),
+  )
+  const toggle = source.slice(
+    source.indexOf('const toggleEvent = (eventId: string) => {'),
+    source.indexOf('const handleActionHeaderClick ='),
+  )
+
+  assert.doesNotMatch(streamWatch, /expandedEvents\.value\.add\(/)
+  assert.match(toggle, /expandedEvents\.value\.add\(eventId\)/)
+  assert.doesNotMatch(template, /getThinkingSummary\(event\)/)
+  assert.match(template, /getThinkingStatus\(event\)/)
+  assert.match(source, /t\('chat\.thinking'\)/)
+  assert.match(source, /t\('agentStream\.toolStatus\.thinkingDone'\)/)
+})
+
 test('streaming tool log uses the same timeline structure', () => {
   assert.match(source, /'is-streaming-timeline': showStreamingTimeline/)
   assert.match(source, /'tree-child': isStreamingTimelineEvent\(event\)/)

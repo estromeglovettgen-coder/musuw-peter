@@ -139,7 +139,7 @@ async function save() {
           <h3>{{ group.name }}</h3>
           <p v-if="group.key === 'statuses'">拖动排序，第一个状态用于新建客户的默认值。</p>
           <div class="choices" :aria-label="group.name">
-            <div v-for="(value, index) in config[group.key]" :key="value" class="choice" :class="{ 'is-dragging': dragged?.group === group.key && dragged.value === value, 'is-drop-target': dragged?.group === group.key && dropTarget === value && dragged.value !== value }" @dragover="dragOver($event, group.key, value)" @drop="drop($event, group.key, value)">
+            <div v-for="(value, index) in config[group.key]" :key="value" class="choice" :class="{ 'is-dragging': dragged?.group === group.key && dragged.value === value, 'is-drop-target': dragged?.group === group.key && dropTarget === value && dragged.value !== value }" @dragenter="dragOver($event, group.key, value)" @dragover="dragOver($event, group.key, value)" @drop="drop($event, group.key, value)">
               <button type="button" class="drag-handle" draggable="true" :disabled="saving" :aria-label="`拖动排序 ${value}，第 ${index + 1} 项`" title="拖动排序，也可使用方向键" @dragstart="startDrag($event, group.key, value)" @dragend="endDrag" @keydown="keyboardMove($event, group.key, value)"><t-icon name="move" aria-hidden="true" /></button>
               <span>{{ value }}</span>
               <t-button variant="text" shape="square" size="small" :disabled="saving" :aria-label="`删除选项 ${value}`" @click="config[group.key].splice(index, 1)"><t-icon name="close" /></t-button>

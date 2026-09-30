@@ -72,7 +72,7 @@
               :disabled="!thinkingContent"
               @click="toggleThinking"
             >
-              <strong>{{ t('agent.think') }}</strong>
+              <strong>{{ thinkingPending ? t('chat.thinking') : t('agentStream.toolStatus.thinkingDone') }}</strong>
               <t-icon v-if="thinkingContent" name="chevron-down" :class="{ 'is-folded': !thinkingExpanded }" />
             </button>
             <div v-if="thinkingContent && thinkingExpanded" class="visual-rag-thinking__content">{{ thinkingContent }}</div>
@@ -120,7 +120,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const referencesDrawer = useChatReferencesDrawer()
 const userExpanded = ref(false)
-const thinkingExpanded = ref(true)
+const thinkingExpanded = ref(false)
 const rootElement = ref<HTMLElement | null>(null)
 const waitView = ref<RagWaitView>({ kind: 'none', stalled: false })
 const waitController = createRagWaitController((view) => { waitView.value = view })
@@ -240,9 +240,9 @@ const showThinkingStep = computed(() => hasThinkingEvent.value)
 const thinkingPending = computed(
   () =>
     showThinkingStep.value &&
-    !hasThinking.value &&
     !hasAnswer.value &&
-    !props.session?.is_completed,
+    !props.session?.is_completed &&
+    props.session?.agentEventStream?.at(-1)?.type === 'thinking',
 )
 
 const isThinkingStreaming = computed(
@@ -309,7 +309,6 @@ function scrollThinkingDetailToBottom() {
   })
 }
 
-watch(thinkingPending, (pending) => { if (pending) thinkingExpanded.value = true })
 watch(waitKind, (kind) => waitController.update(kind), { immediate: true })
 watch(hasAnswer, (answered) => { if (answered && hasThinking.value) thinkingExpanded.value = false })
 watch(thinkingContent, () => { if (isThinkingStreaming.value) scrollThinkingDetailToBottom() })

@@ -826,6 +826,16 @@ func (s *sessionService) GenerateTitle(ctx context.Context,
 		return "", stderrors.New("no user message found")
 	}
 
+	// A customer title model sees only this question, not the customer's KB or
+	// the answer. It can therefore turn a factual question into a false answer
+	// (for example, claiming Mira's records are missing). Use the user's own words
+	// for this bound workspace instead of asking a second model to guess.
+	if session.CustomerKnowledgeBaseID != "" {
+		if title := fallbackSessionTitle(message.Content); title != "" {
+			return s.persistSessionTitle(ctx, session, title)
+		}
+	}
+
 	// Use provided modelID, or fallback to first available KnowledgeQA model
 	if modelID == "" {
 		models, err := s.modelService.ListModels(ctx)

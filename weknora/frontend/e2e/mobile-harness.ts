@@ -36,6 +36,7 @@ const router = createRouter({
     { path: 'chat/:chatid', name: 'chat', component: () => import('@/views/chat/index.vue') },
     { path: 'knowledge-bases', name: 'knowledgeBaseList', component: () => import('@/views/knowledge/KnowledgeBaseList.vue') },
     { path: 'knowledge-bases/:kbId', name: 'knowledgeBase', component: () => import('@/views/knowledge/KnowledgeBase.vue') },
+    { path: 'customers/:kbId', name: 'customerProject', component: () => import('@/views/customer/CustomerProject.vue') },
     { path: 'agents', name: 'agentList', component: () => import('@/views/agent/AgentList.vue') },
     { path: 'settings', name: 'settings', component: () => import('@/views/settings/Settings.vue') },
     { path: 'marketplace', name: 'marketplace', component: () => import('@/views/marketplace/Marketplace.vue') },

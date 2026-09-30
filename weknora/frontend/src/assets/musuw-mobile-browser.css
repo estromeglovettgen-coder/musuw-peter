@@ -158,9 +158,21 @@
   html .main.musuw-workspace-surface .wiki-content { min-height: 0; }
   html .main.musuw-workspace-surface .wiki-reader { padding: 16px 4px; }
   html .main.musuw-workspace-surface .wiki-reader-title-row { flex-wrap: wrap; gap: 12px; }
-  html .main.musuw-workspace-surface .wiki-graph-search-container { width: calc(100% - 24px); top: 12px; left: 12px; }
-  html .main.musuw-workspace-surface .wiki-graph-canvas { min-height: 0; }
-  html .main.musuw-workspace-surface .wiki-graph-legend { top: auto; bottom: 12px; right: 12px; max-width: calc(100% - 48px); max-height: 36%; overflow-y: auto; }
+  html .main.musuw-workspace-surface .wiki-graph { display: flex; flex-direction: column; }
+  html .main.musuw-workspace-surface .wiki-graph-search-container {
+    position: relative; order: -1; flex: 0 0 auto; box-sizing: border-box;
+    width: 100%; top: auto; left: auto; padding: 8px 12px;
+  }
+  html .main.musuw-workspace-surface .wiki-graph-canvas { flex: 1 1 0; height: auto; min-height: 0; }
+  html .main.musuw-workspace-surface .wiki-graph-legend,
+  html .main.musuw-workspace-surface .wiki-graph-legend.legend-shifted {
+    position: relative; inset: auto; flex: 0 0 auto; box-sizing: border-box;
+    width: 100%; max-width: none; max-height: min(150px, 30%);
+    overflow-y: auto; border-radius: 0; box-shadow: none; opacity: 1;
+  }
+  html .main.musuw-workspace-surface .wiki-graph-legend:has(.graph-controls) { max-height: 45%; }
+  html .main.musuw-workspace-surface .wiki-graph-legend .legend-items,
+  html .main.musuw-workspace-surface .wiki-graph-legend .legend-actions { flex-direction: row; flex-wrap: wrap; }
 
   /* Drawers retain their contents, but cannot keep a desktop minimum width. */
   .t-drawer__content-wrapper--right,

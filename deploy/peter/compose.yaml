@@ -112,9 +112,46 @@ services:
     pids_limit: 192
     logging: *logging
 
+  searxng-init:
+    image: searxng/searxng@sha256:3284e8900e9b3e5df284ae8c48a26851ae2eff6f99b4b0b18ec3da5a4d9095c3
+    entrypoint: ['/bin/sh', '-ec']
+    command: ['cp /template/settings.yml /etc/searxng/settings.yml && chmod 0644 /etc/searxng/settings.yml']
+    network_mode: none
+    restart: 'no'
+    volumes:
+      - ./searxng-settings.yml:/template/settings.yml:ro
+      - /var/lib/musuw-peter/searxng:/etc/searxng
+    logging: *logging
+
+  searxng:
+    image: searxng/searxng@sha256:3284e8900e9b3e5df284ae8c48a26851ae2eff6f99b4b0b18ec3da5a4d9095c3
+    restart: unless-stopped
+    entrypoint: ['/bin/sh', '/peter-searxng-entrypoint.sh']
+    secrets: [searxng_secret]
+    volumes:
+      - /var/lib/musuw-peter/searxng:/etc/searxng
+      - ./searxng-entrypoint.sh:/peter-searxng-entrypoint.sh:ro
+    depends_on:
+      searxng-init: {condition: service_completed_successfully}
+    mem_limit: 350m
+    cpus: 0.5
+    pids_limit: 128
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID]
+    security_opt: ['no-new-privileges:true']
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/config']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+
 secrets:
   db_password:
     file: /etc/musuw-peter/db-password
+  searxng_secret:
+    file: /etc/musuw-peter/searxng-secret
 
 networks:
   default:

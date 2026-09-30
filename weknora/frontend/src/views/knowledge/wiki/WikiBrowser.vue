@@ -1573,6 +1573,7 @@ function closeObsidianGraphSettings() {
 // Events originating inside the settings wrapper are allowed through so the
 // panel's own sliders and buttons remain usable.
 function handleGraphPointerDown(event: PointerEvent) {
+  graphAutoFitCanceled = true;
   if (obsidianGraphSettings.value.close) return;
   const target = event.target;
   const settingsPanel = (event.currentTarget as HTMLElement).querySelector(
@@ -1589,6 +1590,8 @@ const showArrows = ref(true);
 let graphRendererController: WikiGraphRendererController | null = null;
 let graphRendererContainer: HTMLElement | null = null;
 let graphRenderRevision = 0;
+let graphAutoFitTimer: ReturnType<typeof setTimeout> | null = null;
+let graphAutoFitCanceled = false;
 
 // Graph filtering
 const graphFilterTypes = ref<Set<string>>(
@@ -4513,6 +4516,8 @@ const graphRendererCallbacks = {
 
 function disposeGraphRenderer() {
   graphRenderRevision += 1
+  if (graphAutoFitTimer) clearTimeout(graphAutoFitTimer)
+  graphAutoFitTimer = null
   cancelPendingGraphNodeClick()
   graphRendererController?.destroy()
   graphRendererController = null
@@ -4549,6 +4554,16 @@ async function renderGraph(opts: RenderGraphOpts = {}): Promise<boolean> {
     })
     if (revision !== graphRenderRevision) return false
     graphReady.value = active
+    if (active && !opts.preserveLayout && window.matchMedia('(max-width: 760px)').matches) {
+      graphAutoFitCanceled = false
+      if (graphAutoFitTimer) clearTimeout(graphAutoFitTimer)
+      // The force worker moves nodes after render; fit once after that initial
+      // layout settles, unless the user has already moved or selected the graph.
+      graphAutoFitTimer = setTimeout(() => {
+        graphAutoFitTimer = null
+        if (revision === graphRenderRevision && !graphAutoFitCanceled) void fitGraphToView()
+      }, 900)
+    }
     return active
   } catch (error) {
     if (revision === graphRenderRevision) graphReady.value = false
