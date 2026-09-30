@@ -1409,7 +1409,7 @@
                       </div>
                     </div>
 
-                    <div v-if="!isPeterWorkspace" class="setting-row">
+                    <div class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.skillsSelection') }}</label>
                         <p class="desc">{{ skillsSelectionHint }}</p>
@@ -1441,15 +1441,10 @@
                     <p v-if="isPeterWorkspace && !effectiveSkillSandboxId" class="desc empty-hint">
                       {{ $t('settings.skills.peterNoWorkspace') }}
                     </p>
-                    <p v-else-if="isPeterWorkspace && skillCatalog.length === 0" class="desc empty-hint">
-                      {{ $t('agent.editor.noSkillsAvailable') }}
-                    </p>
-                    <p v-else-if="isPeterWorkspace" class="skill-ready-stat">{{ skillListSummary }}</p>
-
                     <div v-if="showCatalogSkillList" class="setting-row setting-row-vertical">
                       <div class="setting-control setting-control-full">
                         <t-checkbox-group
-                          v-model="selectedSkillsForUi"
+                          v-model="formData.config.selected_skills"
                           class="skill-pick-list"
                         >
                           <article
@@ -1462,7 +1457,7 @@
                             }"
                           >
                             <t-checkbox
-                              v-if="isPeterWorkspace || skillsSelectionMode === 'selected'"
+                              v-if="skillsSelectionMode === 'selected'"
                               :value="skill.name"
                               :disabled="!skill.selectable"
                               class="skill-pick__check"
@@ -1893,7 +1888,6 @@ import { type ModelConfig } from '@/api/model';
 import { type AgentNotReadyReasonKey, agentRequiresRerankModel } from '@/utils/agent-readiness';
 import { isPeterWorkspace, isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface';
 import { installSkillCatalog, type SkillCatalogItem } from '@/api/skill';
-import { checkedPeterSkills, updatePeterSkills } from '@/utils/peterSkillSelection';
 import { type WebSearchProviderEntity } from '@/api/web-search-provider';
 import {
   isNamedSandboxBackend,
@@ -2181,30 +2175,10 @@ const catalogSkillRows = computed<CatalogSkillRow[]>(() => {
 })
 
 const showCatalogSkillList = computed(() =>
-  (isPeterWorkspace || skillsSelectionMode.value !== 'none')
+  skillsSelectionMode.value !== 'none'
   && !!effectiveSkillSandboxId.value
   && catalogSkillRows.value.length > 0,
 )
-
-const selectedSkillsForUi = computed<string[]>({
-  get: () => isPeterWorkspace
-    ? checkedPeterSkills(
-      skillsSelectionMode.value,
-      formData.value.config.selected_skills || [],
-      catalogSkillRows.value.filter((skill) => skill.selectable).map((skill) => skill.name),
-    )
-    : formData.value.config.selected_skills || [],
-  set: (checked) => {
-    if (!isPeterWorkspace) {
-      formData.value.config.selected_skills = checked
-      return
-    }
-    const next = updatePeterSkills(checked)
-    skillsSelectionMode.value = next.mode
-    formData.value.config.selected_skills = next.selected
-    autoBindSoleSandbox()
-  },
-})
 
 const skillsSelectionHint = computed(() => {
   if (skillsSelectionMode.value === 'all') return t('agent.editor.skillsAllListHint')
@@ -2731,7 +2705,7 @@ const navItems = computed(() => {
   return isPeterWorkspace ? items.map(withPeterNavLabel) : items;
 });
 
-const PETER_PRIMARY_EDITOR_SECTIONS = new Set(['basic', 'prompts', 'knowledge', 'tools', 'skills']);
+const PETER_PRIMARY_EDITOR_SECTIONS = new Set(['basic', 'prompts', 'knowledge', 'conversation', 'tools', 'skills']);
 const PETER_EDITOR_NAV_LABELS: Record<string, [string, string]> = {
   basic: ['身份与回答方式', 'Identity & response'],
   prompts: ['回答规则', 'Response rules'],
@@ -2739,7 +2713,6 @@ const PETER_EDITOR_NAV_LABELS: Record<string, [string, string]> = {
   tools: ['可用能力', 'Available capabilities'],
   skills: ['技能', 'Skills'],
   model: ['模型与生成', 'Model & generation'],
-  conversation: ['对话记忆', 'Conversation memory'],
   retrieval: ['资料检索', 'Material retrieval'],
   websearch: ['联网搜索', 'Web search'],
   multimodal: ['附件处理', 'Attachment handling'],

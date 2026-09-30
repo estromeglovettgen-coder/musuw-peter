@@ -1125,7 +1125,7 @@ export default {
       fallbackPrompt: 'Fallback Prompt',
       fallbackPromptPlaceholder: 'Leave empty to use default prompt',
       skillsConfig: 'Skills',
-      peterSkillsDesc: 'Check the skills this agent should use. You can install missing skills here.',
+      peterSkillsDesc: 'Use all skills, select specific skills, or disable skills. You can install missing skills here.',
       skillsConfigDesc: 'Choose the sandbox that runs skill scripts, then pick from the workspace catalog. Skills not installed on that sandbox are visible but cannot be enabled until they are installed.',
       skillsSelection: 'Available skills',
       skillsSelectionDesc: 'The list comes from the workspace skill catalog. Only skills that are ready on the selected sandbox can be enabled.',

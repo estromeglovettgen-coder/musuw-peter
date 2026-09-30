@@ -4,7 +4,7 @@
 export const isPeterWorkspace = import.meta.env?.VITE_WORKSPACE_PROFILE === 'peter'
 
 const PETER_SETTINGS = new Set([
-  'general', 'userprofile', 'models', 'mymemory', 'memory', 'mcp',
+  'general', 'userprofile', 'models', 'mymemory', 'memory', 'chathistory', 'mcp',
   'integration-im', 'integration-embed',
   'skills',
 ])

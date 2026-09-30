@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { isWorkspaceKnowledgeBaseSectionVisible, isWorkspaceSettingsSectionVisible, isWorkspaceUploadSectionVisible, workspaceRouteRedirect } from './workspaceSurface'
 
 test('Peter keeps normal settings and model management without opening platform administration', () => {
-  for (const key of ['general', 'userprofile', 'models', 'memory', 'mymemory', 'mcp', 'integration-im', 'integration-embed', 'skills']) {
+  for (const key of ['general', 'userprofile', 'models', 'memory', 'mymemory', 'chathistory', 'mcp', 'integration-im', 'integration-embed', 'skills']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), true, key)
   }
   for (const key of ['usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'envvars', 'runtime-queues']) {
@@ -19,6 +19,7 @@ test('direct links cannot reopen hidden Peter billing, market or administration 
   }
   assert.equal(workspaceRouteRedirect('/platform/settings', 'usage', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/settings', 'models', true), null)
+  assert.equal(workspaceRouteRedirect('/platform/settings', 'chathistory', true), null)
   for (const section of ['skills']) {
     assert.equal(workspaceRouteRedirect('/platform/settings', section, true), null)
   }

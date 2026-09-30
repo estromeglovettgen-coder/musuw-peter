@@ -6109,7 +6109,7 @@ export default {
       fallbackPrompt: '兜底提示词',
       fallbackPromptPlaceholder: '留空使用系统默认提示词',
       skillsConfig: '技能',
-      peterSkillsDesc: '勾选这个智能体要使用的技能。尚未安装的技能可从这里安装。',
+      peterSkillsDesc: '选择全部、指定或禁用技能；指定时勾选要使用的技能。尚未安装的技能可从这里安装。',
       skillsConfigDesc: '先选择运行沙箱，再从空间目录中选用。未装到该沙箱的技能可以看见，但要先安装才能勾选。',
       skillsSelection: '可用技能',
       skillsSelectionDesc: '列表来自空间技能目录。只能启用当前沙箱上已就绪的技能。',

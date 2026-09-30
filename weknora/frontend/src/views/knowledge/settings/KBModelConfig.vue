@@ -5,13 +5,9 @@
       <p class="section-description">{{ $t(isPeterWorkspace
         ? peterModelsSelected ? 'knowledgeEditor.models.peter.ready' : 'knowledgeEditor.models.peter.missing'
         : 'knowledgeEditor.models.description') }}</p>
-      <button v-if="isPeterWorkspace && peterModelsSelected" type="button" class="peter-model-toggle"
-        :aria-expanded="showPeterModels" @click="showPeterModels = !showPeterModels">
-        {{ $t(showPeterModels ? 'knowledgeEditor.models.peter.collapse' : 'knowledgeEditor.models.peter.adjust') }}
-      </button>
     </div>
 
-    <div v-if="!isPeterWorkspace || !peterModelsSelected || showPeterModels" class="settings-group">
+    <div class="settings-group">
       <!-- LLM 大语言模型 -->
       <div class="setting-row" data-guide="kb-create-llm">
         <div class="setting-info">
@@ -118,7 +114,6 @@ const emit = defineEmits<{
 
 const uiStore = useUIStore()
 const { t } = useI18n()
-const showPeterModels = ref(false)
 const peterModelsSelected = computed(() => !!props.config.llmModelId && (props.ragEnabled !== true || !!props.config.embeddingModelId))
 
 const llmSelectorRef = ref<InstanceType<typeof ModelSelector>>()
@@ -170,17 +165,6 @@ const handleAddModel = (subSection: string) => {
     margin: 0;
     line-height: 1.5;
   }
-}
-
-.peter-model-toggle {
-  margin-top: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--td-brand-color);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
 }
 
 .peter-model-label { display: flex; align-items: center; gap: 4px; }

@@ -6105,7 +6105,7 @@ export default {
       fallbackPrompt: '폴백 프롬프트',
       fallbackPromptPlaceholder: '시스템 기본 프롬프트를 사용하려면 비워 두세요.',
       skillsConfig: '스킬',
-      peterSkillsDesc: '이 에이전트가 사용할 스킬을 선택하세요. 설치되지 않은 스킬은 여기서 설치할 수 있습니다.',
+      peterSkillsDesc: '모든 스킬 사용, 특정 스킬 선택 또는 스킬 비활성화를 선택하세요. 설치되지 않은 스킬은 여기서 설치할 수 있습니다.',
       skillsConfigDesc: '스킬 스크립트가 실행될 샌드박스를 고른 뒤, 워크스페이스 카탈로그에서 선택합니다. 해당 샌드박스에 설치되지 않은 스킬은 보이지만 설치 전에는 선택할 수 없습니다.',
       skillsSelection: '사용 가능한 스킬',
       skillsSelectionDesc: '목록은 워크스페이스 스킬 카탈로그에서 가져옵니다. 선택한 샌드박스에서 준비된 스킬만 사용할 수 있습니다.',

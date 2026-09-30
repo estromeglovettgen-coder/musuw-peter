@@ -79,11 +79,15 @@ try {
   checks.push('Skill directory explains install then agent selection; no hidden sandbox link')
 
   await page.goto(`${origin}/platform/agents?edit=${copy.id}&section=skills`, { waitUntil: 'domcontentloaded' })
+  const selection = page.locator('.agent-scope-select:visible')
+  await selection.waitFor({ timeout: 60000 })
+  await selection.click()
+  await page.locator('.t-select-option:visible').filter({ hasText: /^指定$/ }).click()
   const customerReport = page.locator('.skill-pick').filter({ hasText: 'customer-report' })
   await customerReport.waitFor({ timeout: 60000 })
   assert.ok(await page.locator('.skill-pick').count() >= 2)
   assert.equal(await page.locator('.sandbox-config-select:visible').count(), 0)
-  assert.equal(await page.locator('.agent-scope-select:visible').count(), 0)
+  assert.equal(await selection.count(), 1)
   await customerReport.locator('.skill-pick__check').click()
   await page.getByRole('button', { name: '保存并关闭' }).click()
   await page.locator('.skill-pick').first().waitFor({ state: 'hidden', timeout: 60000 })
@@ -95,7 +99,7 @@ try {
   assert.deepEqual(saved.config.selected_skills, ['customer-report'])
   assert.equal(saved.config.sandbox_config_id, soleSandbox.id)
   assert.deepEqual(pageErrors, [])
-  checks.push('One click selects a ready skill and saves the sole sandbox binding')
+  checks.push('Selected mode saves the ready skill and sole sandbox binding')
 
   sessionId = (await api(token, '/api/v1/sessions', 'POST', { title: 'Skill UI 虚构 CSV 验收' })).id
   const upload = new FormData()
