@@ -30,10 +30,10 @@ test('direct links cannot reopen hidden Peter billing, market or administration 
 })
 
 test('Peter knowledge-base and customer editors keep business settings while hiding managed processing', () => {
-  for (const key of ['customer', 'sources', 'basic', 'models', 'faq', 'datasource', 'share', 'activity']) {
+  for (const key of ['customer', 'sources', 'basic', 'models', 'faq']) {
     assert.equal(isWorkspaceKnowledgeBaseSectionVisible(key, true), true, key)
   }
-  for (const key of ['vectorStore', 'parser', 'storage', 'chunking', 'multimodal', 'asr', 'graph', 'advanced']) {
+  for (const key of ['vectorStore', 'parser', 'storage', 'chunking', 'multimodal', 'asr', 'graph', 'advanced', 'datasource', 'share', 'activity']) {
     assert.equal(isWorkspaceKnowledgeBaseSectionVisible(key, true), false, key)
     assert.equal(isWorkspaceKnowledgeBaseSectionVisible(key, false), true, key)
   }

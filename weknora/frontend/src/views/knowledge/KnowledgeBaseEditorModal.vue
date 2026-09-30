@@ -523,8 +523,10 @@ const currentSection = ref<string>('basic')
  * existing section names and navigation contract.
  */
 const normalizeKnowledgeBaseSection = (section?: string | null): string => {
-  if (!authStore.isLiteMode) return section || 'basic'
-  return section === 'advanced' ? 'advanced' : 'basic'
+  const resolved = section || 'basic'
+  if (isPeterWorkspace && !isWorkspaceKnowledgeBaseSectionVisible(resolved, true)) return 'basic'
+  if (!authStore.isLiteMode) return resolved
+  return resolved === 'advanced' ? 'advanced' : 'basic'
 }
 
 const normalizeKnowledgeBaseType = (type?: unknown): 'document' | 'faq' => {

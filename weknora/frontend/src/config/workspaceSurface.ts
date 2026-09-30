@@ -11,6 +11,7 @@ const PETER_SETTINGS = new Set([
 
 const PETER_HIDDEN_KB_SECTIONS = new Set([
   'vectorStore', 'parser', 'storage', 'chunking', 'multimodal', 'asr', 'graph', 'advanced',
+  'datasource', 'share', 'activity',
 ])
 
 export function isWorkspaceKnowledgeBaseSectionVisible(section: string, peter = isPeterWorkspace, needsRepair = false): boolean {
