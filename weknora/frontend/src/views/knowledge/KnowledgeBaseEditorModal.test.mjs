@@ -68,10 +68,11 @@ test('create exposes native RAG, Wiki, Wiki instructions, and summary model whil
   // create still forwards only the consumer scene choices below.
   assert.match(source, /applyDefaultModelsIfEmpty/)
   assert.doesNotMatch(source, /type ModelConfig/)
-  assert.match(
-    source,
-    /const initFormData = \(type: 'document' \| 'faq' = 'document'\) => \(\{[\s\S]*indexingStrategy:[\s\S]*wikiConfig:[\s\S]*modelConfig:/,
-  )
+  const initialFields = source.slice(source.indexOf('const initFormData ='), source.indexOf('const consumerSceneModelsForCreate'))
+  assert.match(initialFields, /modelConfig:/)
+  assert.match(initialFields, /indexingStrategy:/)
+  assert.match(initialFields, /wikiConfig:/)
+  assert.match(initialFields, /isPeterWorkspace \? createPeterProcessingDefaults/)
 
   const visibilityWatcher = source.slice(
     source.indexOf('watch(() => props.visible'),

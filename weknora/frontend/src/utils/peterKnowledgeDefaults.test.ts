@@ -2,6 +2,16 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createPeterProcessingDefaults, selectPeterMediaModelIds, withPeterGraphExtractionDefaults } from './peterKnowledgeDefaults'
 
+test('Peter customer and knowledge-base creation start with retrieval, Wiki, and standard extraction', () => {
+  for (const customer of [false, true]) {
+    const defaults = createPeterProcessingDefaults(customer)
+    assert.equal(defaults.indexingStrategy.vectorEnabled, true)
+    assert.equal(defaults.indexingStrategy.keywordEnabled, true)
+    assert.equal(defaults.indexingStrategy.wikiEnabled, true)
+    assert.equal(defaults.wikiConfig.extractionGranularity, 'standard')
+  }
+})
+
 test('new Peter document libraries and customer projects start with media and graph processing', () => {
   for (const customer of [false, true]) {
     const defaults = createPeterProcessingDefaults(customer)

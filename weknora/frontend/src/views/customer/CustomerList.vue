@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { listKnowledgeBases } from '@/api/knowledge-base'
 import { getCustomerConfig, type CustomerConfig } from '@/api/customer'
 import KnowledgeBaseEditorModal from '@/views/knowledge/KnowledgeBaseEditorModal.vue'
+import CustomerTags from './CustomerTags.vue'
 import { customerVisibleNote, customerVisibleTags } from './customerPresentation'
 const router = useRouter()
 const customers = ref<any[]>([])
@@ -44,7 +45,7 @@ onMounted(load)
     <t-alert v-if="error" theme="error" :message="error"><template #operation><t-button variant="text" :disabled="loading" @click="load">重新加载</t-button></template></t-alert>
     <div v-if="loading && !customers.length" class="customer-empty"><t-loading text="正在读取客户…"/></div>
     <div v-else-if="!error && !visible.length" class="customer-empty"><t-icon name="usergroup" size="32px"/><h3>{{customers.length ? '没有符合条件的客户' : '从第一位客户开始'}}</h3><button v-if="customers.length" class="customer-secondary" @click="clearFilters">清除筛选</button><button v-else class="customer-primary" @click="openCreate">新建客户</button></div>
-    <div v-else-if="visible.length" class="customer-table-wrap"><table class="customer-table"><thead><tr><th>客户</th><th>标签</th><th>备注</th><th>资料</th><th>最近更新</th><th></th></tr></thead><tbody><tr v-for="customer in visible" :key="customer.id" @click="router.push(`/platform/customers/${customer.id}`)"><td><router-link class="customer-name" :to="`/platform/customers/${customer.id}`" @click.stop><span><strong>{{customer.name}}</strong><small>{{customer.customer_profile.contact || '暂未填写联系方式'}}</small></span></router-link></td><td><div class="customer-tags"><span v-for="item in customerVisibleTags(customer.customer_profile)" :key="item">{{item}}</span><span v-if="!customerVisibleTags(customer.customer_profile).length">—</span></div></td><td><p class="customer-table-description">{{customerVisibleNote(customer.customer_profile.note, customer.description) || '还没有补充备注'}}</p></td><td>{{customer.knowledge_count || 0}} 份</td><td class="customer-muted">{{date(customer.updated_at)}}</td><td><t-icon name="chevron-right"/></td></tr></tbody></table></div>
+    <div v-else-if="visible.length" class="customer-table-wrap"><table class="customer-table"><thead><tr><th>客户</th><th>标签</th><th>备注</th><th>资料</th><th>最近更新</th><th></th></tr></thead><tbody><tr v-for="customer in visible" :key="customer.id" @click="router.push(`/platform/customers/${customer.id}`)"><td><router-link class="customer-name" :to="`/platform/customers/${customer.id}`" @click.stop><span><strong>{{customer.name}}</strong><small>{{customer.customer_profile.contact || '暂未填写联系方式'}}</small></span></router-link></td><td><CustomerTags :tags="customerVisibleTags(customer.customer_profile)" /></td><td><p class="customer-table-description">{{customerVisibleNote(customer.customer_profile.note, customer.description) || '还没有补充备注'}}</p></td><td>{{customer.knowledge_count || 0}} 份</td><td class="customer-muted">{{date(customer.updated_at)}}</td><td><t-icon name="chevron-right"/></td></tr></tbody></table></div>
     <KnowledgeBaseEditorModal v-model:visible="showCreate" mode="create" customer @success="id => router.push(`/platform/customers/${id}`)" />
   </main>
 </template>

@@ -868,57 +868,60 @@ const getLiteDefaultKnowledgeBaseName = (): string => {
   )
 }
 
-const initFormData = (type: 'document' | 'faq' = 'document') => ({
-  type: normalizeKnowledgeBaseType(type),
-  name: authStore.isLiteMode ? getLiteDefaultKnowledgeBaseName() : '',
-  description: '',
-  ...(props.customer ? { customerProfile: emptyCustomerProfile() } : {}),
-  faqConfig: { indexMode: 'question_only', questionIndexMode: 'separate' },
-  chunkingConfig: {
-    ...DEFAULT_CHUNKING_PRESET,
-    separators: ['\n\n', '\n', '。', '！', '？', ';', '；'],
-    parentChunkSize: 4096,
-    childChunkSize: 384,
-    strategy: '',
-    tokenLimit: 0,
-    languages: [],
-    tableMetadataInstructions: '',
-  },
-  modelConfig: {
-    llmModelId: authStore.isLiteMode ? settingsStore.getConsumerSceneModel('rag').trim() : '',
-    embeddingModelId: '',
-    wikiSynthesisModelId: '',
-  },
-  storageBackendId: '',
-  storageProvider: tenantDefaultStorageProvider.value,
-  vectorStoreId: '',
-  vectorStoreInfo: {},
-  multimodalConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer).multimodalConfig : { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
-  asrConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer).asrConfig : { enabled: false, modelId: '', language: '' },
-  nodeExtractConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer).nodeExtractConfig : { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
-  indexingStrategy: {
-    vectorEnabled: !props.customer,
-    keywordEnabled: !props.customer,
-    wikiEnabled: true,
-    graphEnabled: isPeterWorkspace || !props.customer,
-  },
-  wikiConfig: {
-    extractionGranularity: (props.customer ? 'focused' : 'standard') as 'focused' | 'standard' | 'exhaustive',
-    contentInstructions: props.customer ? CUSTOMER_CONTENT : '',
-    extractionInstructions: props.customer ? CUSTOMER_EXTRACTION : '',
-  },
-  questionGenerationConfig: {
-    enabled: true,
-    questionCount: 3,
-    customInstructions: ''
-  },
-  autoTagConfig: {
-    enabled: false,
-    modelId: authStore.isLiteMode ? LITE_AUTO_TAG_MODEL_ID : '',
-    maxTags: 3,
-    skipIfTagged: true
-  },
-})
+const initFormData = (type: 'document' | 'faq' = 'document') => {
+  const peterDefaults = isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer) : null
+  return {
+    type: normalizeKnowledgeBaseType(type),
+    name: authStore.isLiteMode ? getLiteDefaultKnowledgeBaseName() : '',
+    description: '',
+    ...(props.customer ? { customerProfile: emptyCustomerProfile() } : {}),
+    faqConfig: { indexMode: 'question_only', questionIndexMode: 'separate' },
+    chunkingConfig: {
+      ...DEFAULT_CHUNKING_PRESET,
+      separators: ['\n\n', '\n', '。', '！', '？', ';', '；'],
+      parentChunkSize: 4096,
+      childChunkSize: 384,
+      strategy: '',
+      tokenLimit: 0,
+      languages: [],
+      tableMetadataInstructions: '',
+    },
+    modelConfig: {
+      llmModelId: authStore.isLiteMode ? settingsStore.getConsumerSceneModel('rag').trim() : '',
+      embeddingModelId: '',
+      wikiSynthesisModelId: '',
+    },
+    storageBackendId: '',
+    storageProvider: tenantDefaultStorageProvider.value,
+    vectorStoreId: '',
+    vectorStoreInfo: {},
+    multimodalConfig: peterDefaults?.multimodalConfig ?? { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
+    asrConfig: peterDefaults?.asrConfig ?? { enabled: false, modelId: '', language: '' },
+    nodeExtractConfig: peterDefaults?.nodeExtractConfig ?? { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
+    indexingStrategy: {
+      vectorEnabled: peterDefaults?.indexingStrategy.vectorEnabled ?? !props.customer,
+      keywordEnabled: peterDefaults?.indexingStrategy.keywordEnabled ?? !props.customer,
+      wikiEnabled: peterDefaults?.indexingStrategy.wikiEnabled ?? true,
+      graphEnabled: peterDefaults?.indexingStrategy.graphEnabled ?? !props.customer,
+    },
+    wikiConfig: {
+      extractionGranularity: (peterDefaults?.wikiConfig.extractionGranularity ?? (props.customer ? 'focused' : 'standard')) as 'focused' | 'standard' | 'exhaustive',
+      contentInstructions: props.customer ? CUSTOMER_CONTENT : '',
+      extractionInstructions: props.customer ? CUSTOMER_EXTRACTION : '',
+    },
+    questionGenerationConfig: {
+      enabled: true,
+      questionCount: 3,
+      customInstructions: ''
+    },
+    autoTagConfig: {
+      enabled: false,
+      modelId: authStore.isLiteMode ? LITE_AUTO_TAG_MODEL_ID : '',
+      maxTags: 3,
+      skipIfTagged: true
+    },
+  }
+}
 
 const consumerSceneModelsForCreate = () => {
   const payload: Record<string, unknown> = {}

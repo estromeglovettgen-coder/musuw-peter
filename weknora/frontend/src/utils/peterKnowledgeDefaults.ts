@@ -32,7 +32,8 @@ export function createPeterProcessingDefaults(customer: boolean) {
   return {
     multimodalConfig: { enabled: true, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
     asrConfig: { enabled: true, modelId: '', language: '' },
-    indexingStrategy: { graphEnabled: true },
+    indexingStrategy: { vectorEnabled: true, keywordEnabled: true, wikiEnabled: true, graphEnabled: true },
+    wikiConfig: { extractionGranularity: 'standard' as const },
     nodeExtractConfig: { enabled: true, ...example, customInstructions: '' },
   }
 }

@@ -12,6 +12,7 @@ import { customerSessions, emptyCustomerProfile, newCustomerSession } from '@/ap
 import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import KnowledgeBaseEditorModal from '@/views/knowledge/KnowledgeBaseEditorModal.vue'
 import KnowledgeBase from '@/views/knowledge/KnowledgeBase.vue'
+import CustomerTags from './CustomerTags.vue'
 import { selectCustomerOverview } from './customerOverview'
 import { customerVisibleNote, customerVisibleTags } from './customerPresentation'
 import './customer.css'
@@ -107,7 +108,7 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
     <div v-if="busy" class="customer-empty"><t-loading text="正在读取客户资料…"/></div>
     <div v-else-if="error" class="customer-empty"><p>{{error}}</p><button class="customer-secondary" @click="load">重新加载</button></div>
     <template v-else-if="kb">
-      <header class="customer-heading"><div class="customer-title"><div><h1>{{name}}</h1><div v-if="customerTags.length" class="customer-tags"><span v-for="item in customerTags" :key="item">{{item}}</span></div></div></div><div class="customer-actions"><button class="customer-secondary" @click="openEdit"><t-icon name="edit"/>编辑客户</button><button class="customer-primary" :disabled="openingChat" @click="chat()"><t-icon name="chat"/>继续分析</button></div></header>
+      <header class="customer-heading"><div class="customer-title"><div><h1>{{name}}</h1><CustomerTags v-if="customerTags.length" :tags="customerTags" /></div></div><div class="customer-actions"><button class="customer-secondary" @click="openEdit"><t-icon name="edit"/>编辑客户</button><button class="customer-primary" :disabled="openingChat" @click="chat()"><t-icon name="chat"/>继续分析</button></div></header>
       <nav class="customer-project-tabs" aria-label="客户项目"><span v-for="item in tabs" :key="item.key" class="customer-project-tab"><router-link :to="item.href" :class="{active:tab===item.key}" :aria-current-value="tab===item.key ? 'page' : 'false'">{{item.name}}</router-link><PeterTermHelp v-if="item.help" :text="item.help" :label="`了解${item.name}`" /></span></nav>
       <t-alert v-if="detailError" theme="warning" :message="detailError" style="margin-bottom:16px"><template #operation><button class="customer-icon" @click="load">刷新</button></template></t-alert>
       <t-alert v-if="uploadStatus" :theme="uploading ? 'info' : 'success'" :message="uploadStatus" style="margin-bottom:16px"/>
