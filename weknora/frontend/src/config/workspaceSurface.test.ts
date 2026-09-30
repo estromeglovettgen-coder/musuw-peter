@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 import { isWorkspaceKnowledgeBaseSectionVisible, isWorkspaceSettingsSectionVisible, isWorkspaceUploadSectionVisible, workspaceRouteRedirect } from './workspaceSurface'
 
 test('Peter keeps normal settings and model management without opening platform administration', () => {
-  for (const key of ['general', 'userprofile', 'models', 'memory', 'mymemory', 'mcp', 'integration-im', 'integration-embed', 'skills', 'envvars']) {
+  for (const key of ['general', 'userprofile', 'models', 'memory', 'mymemory', 'mcp', 'integration-im', 'integration-embed', 'skills']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), true, key)
   }
-  for (const key of ['usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'runtime-queues']) {
+  for (const key of ['usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'envvars', 'runtime-queues']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), false, key)
     assert.equal(isWorkspaceSettingsSectionVisible(key, false), true, key)
   }
@@ -19,9 +19,10 @@ test('direct links cannot reopen hidden Peter billing, market or administration 
   }
   assert.equal(workspaceRouteRedirect('/platform/settings', 'usage', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/settings', 'models', true), null)
-  for (const section of ['skills', 'envvars']) {
+  for (const section of ['skills']) {
     assert.equal(workspaceRouteRedirect('/platform/settings', section, true), null)
   }
+  assert.equal(workspaceRouteRedirect('/platform/settings', 'envvars', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/settings', 'sandbox', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/agents', undefined, true), null)
   assert.equal(workspaceRouteRedirect('/platform/knowledge-bases/test', undefined, true), null)

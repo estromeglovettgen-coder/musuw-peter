@@ -30,7 +30,9 @@
     <t-form ref="formRef" :data="formData" :rules="rules" layout="vertical">
 
       <section v-if="!isEdit" class="setting-drawer__section">
-        <h4 class="setting-drawer__section-title">{{ $t('model.editor.sectionType') }}</h4>
+        <h4 class="setting-drawer__section-title">{{ $t('model.editor.sectionType') }}
+          <PeterTermHelp v-if="isPeterWorkspace" :text="$t('modelSettings.peter.typeHelp')" :label="$t('modelSettings.peter.typeTitle')" />
+        </h4>
         <div class="model-type-options" role="radiogroup" :aria-label="$t('model.editor.typeLabel')">
           <button
             v-for="opt in modelTypeChoices"
@@ -229,14 +231,20 @@
           </div>
 
           <div v-if="formData.provider !== 'weknoracloud'" class="form-item">
-            <label class="form-label required">{{ $t('model.editor.baseUrlLabel') }}</label>
+            <div class="peter-model-field-heading">
+              <label class="form-label required">{{ $t('model.editor.baseUrlLabel') }}</label>
+              <PeterTermHelp v-if="isPeterWorkspace" :text="$t('modelSettings.peter.baseUrlHelp')" :label="$t('model.editor.baseUrlLabel')" />
+            </div>
             <t-input v-model="formData.baseUrl" :placeholder="getBaseUrlPlaceholder()" />
           </div>
 
           <div v-if="formData.provider !== 'weknoracloud'" class="form-item">
-            <label class="form-label">{{
-              isSignedRerank ? signedRerankAccessKeyLabel : $t('model.editor.apiKeyOptional')
-            }}</label>
+            <div class="peter-model-field-heading">
+              <label class="form-label">{{
+                isSignedRerank ? signedRerankAccessKeyLabel : $t('model.editor.apiKeyOptional')
+              }}</label>
+              <PeterTermHelp v-if="isPeterWorkspace" :text="$t('modelSettings.peter.apiKeyHelp')" label="API Key" />
+            </div>
             <!--
               Edit mode: credentials live behind the /credentials subresource
               of the model — managed by the shared CredentialResource card,
@@ -283,14 +291,20 @@
 
           <!-- 自定义 HTTP Header（类似 OpenAI Python SDK 的 extra_headers） -->
           <div v-if="formData.provider !== 'weknoracloud'" class="form-item">
-            <div class="custom-headers-header">
+            <button v-if="isPeterWorkspace && !formData.customHeaders?.length" type="button" class="peter-model-options-toggle"
+              :aria-expanded="showPeterHeaders"
+              @click="showPeterHeaders = !showPeterHeaders">
+              {{ $t(showPeterHeaders ? 'modelSettings.peter.hideConnectionOptions' : 'modelSettings.peter.connectionOptions') }}
+            </button>
+            <div v-if="!isPeterWorkspace || showPeterHeaders || !!formData.customHeaders?.length" class="custom-headers-header">
               <label class="form-label" style="margin-bottom: 0;">{{ $t('model.editor.customHeadersLabel') }}</label>
+              <PeterTermHelp v-if="isPeterWorkspace" :text="$t('modelSettings.peter.headersHelp')" :label="$t('model.editor.customHeadersLabel')" />
               <t-button variant="text" size="small" theme="primary" @click="addCustomHeader">
                 <template #icon><t-icon name="add" /></template>
                 {{ $t('model.editor.customHeadersAdd') }}
               </t-button>
             </div>
-            <p class="form-desc custom-headers-desc">{{ $t('model.editor.customHeadersDesc') }}</p>
+            <p v-if="!isPeterWorkspace" class="form-desc custom-headers-desc">{{ $t('model.editor.customHeadersDesc') }}</p>
             <div v-if="formData.customHeaders && formData.customHeaders.length > 0" class="custom-headers-list">
               <div v-for="(item, idx) in formData.customHeaders" :key="idx" class="custom-header-row">
                 <t-input v-model="item.key" :placeholder="$t('model.editor.customHeadersKeyPlaceholder')"
@@ -413,6 +427,8 @@ import {
 } from '@/api/model'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import {
   defaultThinkingControl,
   resolveThinkingControl,
@@ -478,6 +494,7 @@ const emit = defineEmits<{
 }>()
 
 const draftModelType = ref<EditorModelType>(props.modelType)
+const showPeterHeaders = ref(false)
 
 const isEdit = computed(() => !!props.modelData)
 
@@ -486,11 +503,11 @@ const activeModelType = computed(() => (
 ))
 
 const modelTypeChoices = computed(() => ([
-  { value: 'chat' as const, label: t('modelSettings.typeShort.chat'), icon: 'chat' },
-  { value: 'embedding' as const, label: t('modelSettings.typeShort.embedding'), icon: 'chart-bubble' },
-  { value: 'rerank' as const, label: t('modelSettings.typeShort.rerank'), icon: 'filter-sort' },
-  { value: 'vllm' as const, label: t('modelSettings.typeShort.vllm'), icon: 'image' },
-  { value: 'asr' as const, label: t('modelSettings.typeShort.asr'), icon: 'sound' },
+  { value: 'chat' as const, label: t(isPeterWorkspace ? 'modelSettings.peter.types.chat' : 'modelSettings.typeShort.chat'), icon: 'chat' },
+  { value: 'embedding' as const, label: t(isPeterWorkspace ? 'modelSettings.peter.types.embedding' : 'modelSettings.typeShort.embedding'), icon: 'chart-bubble' },
+  { value: 'rerank' as const, label: t(isPeterWorkspace ? 'modelSettings.peter.types.rerank' : 'modelSettings.typeShort.rerank'), icon: 'filter-sort' },
+  { value: 'vllm' as const, label: t(isPeterWorkspace ? 'modelSettings.peter.types.vllm' : 'modelSettings.typeShort.vllm'), icon: 'image' },
+  { value: 'asr' as const, label: t(isPeterWorkspace ? 'modelSettings.peter.types.asr' : 'modelSettings.typeShort.asr'), icon: 'sound' },
 ]))
 
 // API 返回的 Provider 列表
@@ -1041,6 +1058,7 @@ const selectModelType = async (type: EditorModelType) => {
 // 监听 visible 变化，初始化表单
 watch(() => props.visible, (val) => {
   if (val) {
+    showPeterHeaders.value = false
     // 检查Ollama服务状态
     checkOllamaServiceStatus()
 
@@ -1716,6 +1734,25 @@ const handleCancel = () => {
   // .setting-drawer__section's `gap`. That keeps the spacing inside a section
   // tight and the gap between sections visually distinct.
   margin-bottom: 0;
+}
+
+.peter-model-field-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.peter-model-field-heading .form-label { margin-bottom: 0; }
+
+.peter-model-options-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--td-brand-color);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
 }
 
 .form-label {

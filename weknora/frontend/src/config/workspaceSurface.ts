@@ -6,7 +6,7 @@ export const isPeterWorkspace = import.meta.env?.VITE_WORKSPACE_PROFILE === 'pet
 const PETER_SETTINGS = new Set([
   'general', 'userprofile', 'models', 'mymemory', 'memory', 'mcp',
   'integration-im', 'integration-embed',
-  'skills', 'envvars',
+  'skills',
 ])
 
 const PETER_HIDDEN_KB_SECTIONS = new Set([

@@ -3,15 +3,18 @@
     <div class="section-header">
       <div class="section-header__title-row">
         <h2>{{ $t('settings.skills.title') }}</h2>
-        <t-tooltip
-          :content="$t(isPeterWorkspace ? 'settings.skills.peterHelp' : 'settings.skills.helpTooltip')"
+        <PeterTermHelp v-if="isPeterWorkspace"
+          :text="peterCopy('技能（Skill）是一套可复用的工作步骤。添加后，再到智能体的“技能”页开启；需要外部服务密钥的技能可在其管理页填写。', 'A skill is a reusable workflow. After adding it, enable it on an agent’s Skills page. External-service keys can be entered in the skill’s management page.')"
+          :label="peterCopy('了解技能', 'About skills')" />
+        <t-tooltip v-else
+          :content="$t('settings.skills.helpTooltip')"
           placement="right"
           overlay-class-name="skill-settings__help-tooltip"
         >
           <t-icon
             name="help-circle"
             class="section-header__help"
-            :aria-label="$t(isPeterWorkspace ? 'settings.skills.peterHelp' : 'settings.skills.helpTooltip')"
+            :aria-label="$t('settings.skills.helpTooltip')"
           />
         </t-tooltip>
       </div>
@@ -103,7 +106,7 @@
                     :class="installChipClass(item, inst)"
                     :disabled="!recordFor(inst.sandbox_config_id)"
                     :title="installTooltip(item, inst)"
-                    :aria-label="$t('settings.skills.manageOnSandbox', { name: installName(inst) })"
+                    :aria-label="isPeterWorkspace ? peterCopy(`管理 ${item.name} 的安装`, `Manage ${item.name} installation`) : $t('settings.skills.manageOnSandbox', { name: installName(inst) })"
                     @click="openManage(item, inst)"
                   >
                     <span
@@ -214,19 +217,29 @@
 
       <template v-if="addStep === 0">
         <section class="setting-drawer__section">
-          <h4 class="setting-drawer__section-title">{{ $t('settings.sandbox.skillSourceSection') }}</h4>
-          <p class="installer-model-hint">{{ $t('settings.sandbox.skillSourceSectionHint') }}</p>
+          <h4 class="setting-drawer__section-title">
+            {{ isPeterWorkspace ? peterCopy('通过链接添加', 'Add from a link') : $t('settings.sandbox.skillSourceSection') }}
+            <PeterTermHelp v-if="isPeterWorkspace"
+              :text="peterCopy('支持 ClawHub、GitHub、SkillHub 链接和 @owner/slug。系统会读取技能说明文件 SKILL.md，确认后再安装。', 'Accepts ClawHub, GitHub, SkillHub links and @owner/slug. The app reads SKILL.md before you confirm installation.')"
+              :label="peterCopy('支持哪些技能链接', 'Supported skill links')" />
+          </h4>
+          <p class="installer-model-hint">{{ isPeterWorkspace ? peterCopy('粘贴技能页面地址，识别后确认安装。', 'Paste a skill page link, then confirm installation.') : $t('settings.sandbox.skillSourceSectionHint') }}</p>
           <t-input
             v-model="sourceInput"
-            :placeholder="$t('settings.sandbox.skillSourcePlaceholder')"
+            :placeholder="isPeterWorkspace ? peterCopy('粘贴技能链接', 'Paste a skill link') : $t('settings.sandbox.skillSourcePlaceholder')"
             :disabled="addBusy || !!registeredCatalog"
             @enter="handleAddPrimary"
           />
         </section>
 
         <section class="setting-drawer__section">
-          <h4 class="setting-drawer__section-title">{{ $t('settings.sandbox.skillUploadSection') }}</h4>
-          <p class="installer-model-hint">{{ $t('settings.sandbox.skillUploadSectionHint') }}</p>
+          <h4 class="setting-drawer__section-title">
+            {{ isPeterWorkspace ? peterCopy('上传技能文件', 'Upload a skill file') : $t('settings.sandbox.skillUploadSection') }}
+            <PeterTermHelp v-if="isPeterWorkspace"
+              :text="peterCopy('技能文件需要是 ZIP 压缩包，里面必须有 SKILL.md。这是技能的说明书，系统会先读取它。', 'The ZIP must include SKILL.md, the skill instructions that the app reads before installation.')"
+              :label="peterCopy('技能文件格式', 'Skill file format')" />
+          </h4>
+          <p class="installer-model-hint">{{ isPeterWorkspace ? peterCopy('选择或拖入 ZIP 文件，识别后确认安装。', 'Choose or drop a ZIP file, then confirm installation.') : $t('settings.sandbox.skillUploadSectionHint') }}</p>
           <input
             ref="fileInputRef"
             type="file"
@@ -251,8 +264,8 @@
                   {{ t('settings.skills.addFileSelected', { name: pendingFile.name }) }}
                 </span>
                 <template v-else>
-                  <span class="upload-primary-text">{{ $t('settings.sandbox.skillUploadClick') }}</span>
-                  <span class="upload-secondary-text">{{ $t('settings.sandbox.skillUploadDrag') }}</span>
+                  <span class="upload-primary-text">{{ isPeterWorkspace ? peterCopy('点击选择 ZIP 文件', 'Choose a ZIP file') : $t('settings.sandbox.skillUploadClick') }}</span>
+                  <span class="upload-secondary-text">{{ isPeterWorkspace ? peterCopy('也可以拖到这里', 'Or drop it here') : $t('settings.sandbox.skillUploadDrag') }}</span>
                 </template>
               </div>
               <t-progress v-if="uploading" :percentage="uploadPercent" size="small" />
@@ -383,6 +396,7 @@ import SkillFilesDrawer from '@/components/SkillFilesDrawer.vue'
 import SandboxBackendBadge from '@/components/settings/SandboxBackendBadge.vue'
 import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import ModelSelector from '@/components/ModelSelector.vue'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { SKILL_ICON } from '@/types/mention'
@@ -412,7 +426,9 @@ const props = defineProps<{
   initialSandboxId?: string
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const peterCopy = (zh: string, en: string) =>
+  String(locale.value).toLowerCase().startsWith('zh') ? zh : en
 const uiStore = useUIStore()
 const confirmDelete = useConfirmDelete()
 
@@ -459,14 +475,14 @@ const skillConfigs = computed(() =>
 const addBusy = computed(() => uploading.value || addingFromSource.value)
 
 const addSteps = computed(() => [
-  { key: 'register', title: t('settings.skills.addStepRegister') },
-  { key: 'install', title: t('settings.skills.addStepInstall') },
+  { key: 'register', title: isPeterWorkspace ? peterCopy('选择技能', 'Choose skill') : t('settings.skills.addStepRegister') },
+  { key: 'install', title: isPeterWorkspace ? peterCopy('确认安装', 'Confirm install') : t('settings.skills.addStepInstall') },
 ])
 
 const addStepDescription = computed(() =>
   addStep.value === 0
-    ? t(isPeterWorkspace ? 'settings.skills.peterAddSourceHint' : 'settings.skills.addStepRegisterDesc')
-    : t(isPeterWorkspace ? 'settings.skills.peterAddInstallHint' : 'settings.skills.addStepInstallDesc'),
+    ? (isPeterWorkspace ? peterCopy('粘贴技能链接，或上传 ZIP 文件。', 'Paste a skill link or upload a ZIP file.') : t('settings.skills.addStepRegisterDesc'))
+    : (isPeterWorkspace ? peterCopy('确认技能信息，然后安装到当前工作区。', 'Check the skill details, then install it in this workspace.') : t('settings.skills.addStepInstallDesc')),
 )
 
 const addPrimaryLoading = computed(() =>
@@ -621,6 +637,9 @@ function installName(inst: SkillCatalogInstall): string {
 }
 
 function installTooltip(item: SkillCatalogItem, inst: SkillCatalogInstall): string {
+  if (isPeterWorkspace) {
+    return `${t('settings.skills.peterWorkspace')} · ${installChipStatus(item, inst) || installStatusText(inst)}`
+  }
   const parts = [
     inst.sandbox_config_name || inst.sandbox_config_id,
     inst.sandbox_type ? backendLabel(inst.sandbox_type) : '',

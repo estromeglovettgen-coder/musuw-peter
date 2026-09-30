@@ -8,15 +8,25 @@
     @close="handleClose"
   >
     <template #nav>
-      <div class="agent-editor-tabs" data-guide="agent-editor-sidebar" role="tablist" aria-orientation="vertical">
+      <div class="agent-editor-tabs" :class="{ 'is-peter-workspace': isPeterWorkspace }" data-guide="agent-editor-sidebar"
+        :role="isPeterWorkspace ? undefined : 'tablist'"
+        :aria-orientation="isPeterWorkspace ? undefined : 'vertical'">
+        <div v-if="isPeterWorkspace" class="peter-editor-nav-heading">{{ peterCopy('常用', 'Essentials') }}</div>
+        <template v-for="(item, index) in orderedNavItems" :key="item.key">
+        <button v-if="isPeterWorkspace && index === peterPrimaryNavCount"
+          type="button" class="peter-editor-advanced-trigger"
+          :aria-expanded="peterAdvancedOpen" @click="togglePeterAdvancedSettings">
+          <span>{{ peterCopy('详细设置', 'Detailed settings') }}</span>
+          <t-icon :name="peterAdvancedOpen ? 'chevron-up' : 'chevron-down'" size="16px" />
+        </button>
         <button
-          v-for="(item, index) in navItems"
-          :key="index"
+          v-show="!isPeterWorkspace || index < peterPrimaryNavCount || peterAdvancedOpen"
           type="button"
-          role="tab"
+          :role="isPeterWorkspace ? undefined : 'tab'"
           class="visual-settings-nav__item"
           :class="{ 'is-active': currentSection === item.key }"
-          :aria-selected="currentSection === item.key"
+          :aria-selected="isPeterWorkspace ? undefined : currentSection === item.key"
+          :aria-current="isPeterWorkspace && currentSection === item.key ? 'true' : undefined"
           :data-guide="`agent-editor-nav-${item.key}`"
           @click="currentSection = item.key"
           @keydown.enter.prevent="currentSection = item.key"
@@ -27,6 +37,7 @@
             {{ promptNavItems.length }}
           </span>
         </button>
+        </template>
       </div>
     </template>
 
@@ -35,7 +46,7 @@
                 <div v-show="currentSection === 'basic'" class="section">
                   <div class="section-header">
                     <div class="section-header-title">
-                      <h2>{{ $t('agent.editor.basicInfo') }}</h2>
+                      <h2>{{ isPeterWorkspace ? peterCopy('身份与回答方式', 'Identity & response') : $t('agent.editor.basicInfo') }}</h2>
                       <t-tooltip v-if="isBuiltinAgent" :content="$t('agentEditor.builtinHint')" placement="top">
                         <span class="builtin-agent-hint" tabindex="0" role="img"
                           :aria-label="$t('agentEditor.builtinHint')">
@@ -47,8 +58,14 @@
                   </div>
 
                   <div class="settings-group settings-group--basic">
+                    <button v-if="isPeterWorkspace && editorAgent?.id" type="button"
+                      class="peter-editor-inline-disclosure" :aria-expanded="peterBasicTechnicalOpen"
+                      @click="peterBasicTechnicalOpen = !peterBasicTechnicalOpen">
+                      {{ peterCopy('连接信息', 'Connection details') }}
+                      <t-icon :name="peterBasicTechnicalOpen ? 'chevron-up' : 'chevron-down'" size="16px" />
+                    </button>
                     <!-- 智能体 ID（用于 API 集成） -->
-                    <div v-if="!authStore.isLiteMode && editorAgent?.id" data-agent-field="agent-id" class="setting-row">
+                    <div v-if="!authStore.isLiteMode && editorAgent?.id && (!isPeterWorkspace || peterBasicTechnicalOpen)" data-agent-field="agent-id" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.agentId') }}</label>
                         <p class="desc">{{ $t('agent.editor.agentIdDesc') }}</p>
@@ -67,7 +84,7 @@
                     </div>
 
                     <!-- 集成渠道状态（编辑模式，配置在集成中心） -->
-                    <div v-if="!authStore.isLiteMode && editorAgent?.id" data-agent-field="integrations" class="setting-row">
+                    <div v-if="!authStore.isLiteMode && editorAgent?.id && (!isPeterWorkspace || peterBasicTechnicalOpen)" data-agent-field="integrations" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('integrations.agentEditor.label') }}</label>
                         <p class="desc">{{ isPostCreateSession ? $t('agent.editor.postCreateHint.integrationDesc') : $t('integrations.agentEditor.desc') }}</p>
@@ -204,7 +221,7 @@
                   <div class="prompts-panel">
                     <div class="prompts-panel__header">
                       <div class="section-header section-header--compact">
-                        <h2>{{ $t('agent.editor.promptsConfig') }}</h2>
+                        <h2>{{ isPeterWorkspace ? peterCopy('回答规则', 'Response rules') : $t('agent.editor.promptsConfig') }}</h2>
                         <p class="section-description">{{ $t('agent.editor.promptsConfigDesc') }}</p>
                       </div>
 
@@ -229,6 +246,9 @@
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.systemPrompt') }} <span v-if="!isBuiltinAgent"
                             class="required">*</span></label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('系统提示词（Prompt）：写给智能体的长期工作规则，例如它的身份、回答口吻和不能忽略的要求。', 'System prompt: lasting instructions for the agent’s role, tone and rules.')"
+                          :label="peterCopy('什么是系统提示词', 'What is a system prompt')" />
                         <p class="desc">{{ $t('agentEditor.desc.systemPrompt') }}{{ isBuiltinAgent ?
                           $t('agentEditor.desc.leaveEmptyDefault') : '' }}</p>
                         <div class="placeholder-tags">
@@ -686,6 +706,9 @@
                           {{ $t('agent.editor.rerankModel') }}
                           <span v-if="needsRerankModel" class="required">*</span>
                         </label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('重排序模型（Rerank）：把找到的资料再按与问题的相关程度排列，帮助智能体优先看更合适的内容。', 'A rerank model sorts retrieved material by relevance so the agent reads the best matches first.')"
+                          :label="peterCopy('什么是重排序模型', 'What is a rerank model')" />
                         <p class="desc">
                           {{ $t('agent.editor.rerankModelDesc') }}
                           <template v-if="!needsRerankModel">
@@ -1156,7 +1179,11 @@
                 <!-- 工具配置（仅 Agent 模式） -->
                 <div v-show="currentSection === 'tools' && isAgentMode" class="section">
                   <div class="section-header">
-                    <h2>{{ $t('agent.editor.toolsConfig') }}</h2>
+                    <h2>{{ isPeterWorkspace ? peterCopy('可用能力', 'Available capabilities') : $t('agent.editor.toolsConfig') }}
+                      <PeterTermHelp v-if="isPeterWorkspace"
+                        :text="peterCopy('工具调用（Tool Calling）：允许智能体在回答时主动查资料或执行你开启的操作。', 'Tool calling lets the agent look up material or perform enabled actions while answering.')"
+                        :label="peterCopy('什么是工具调用', 'What is tool calling')" />
+                    </h2>
                     <p class="section-description">{{ $t('agent.editor.toolsConfigDesc') }}</p>
                   </div>
 
@@ -1262,7 +1289,11 @@
                 <!-- MCP 服务配置（仅 Agent 模式） -->
                 <div v-show="currentSection === 'mcp' && isAgentMode" class="section">
                   <div class="section-header">
-                    <h2>{{ $t('agentEditor.mcp.label') }}</h2>
+                    <h2>{{ isPeterWorkspace ? peterCopy('外部工具连接', 'External tools') : $t('agentEditor.mcp.label') }}
+                      <PeterTermHelp v-if="isPeterWorkspace"
+                        :text="peterCopy('MCP：连接外部工具的一种标准。只有连接成功并授予权限后，智能体才能使用对应功能。', 'MCP is a standard way to connect external tools. The agent can use them after setup and authorization.')"
+                        :label="peterCopy('什么是 MCP', 'What is MCP')" />
+                    </h2>
                     <p class="section-description">{{ $t('agentEditor.mcp.desc') }}</p>
                   </div>
 
@@ -1314,7 +1345,11 @@
                 <!-- 技能：脚本跑在所选沙箱里，可用列表也来自这份配置 -->
                 <div v-show="currentSection === 'skills' && isAgentMode" class="section">
                   <div class="section-header">
-                    <h2>{{ $t('agent.editor.skillsConfig') }}</h2>
+                    <h2>{{ $t('agent.editor.skillsConfig') }}
+                      <PeterTermHelp v-if="isPeterWorkspace"
+                        :text="peterCopy('技能（Skill）：可复用的处理步骤或脚本。为智能体启用后，它会在合适的任务中调用；需要运行环境。', 'A skill is a reusable workflow or script the agent can call when relevant. Script skills need a runtime.')"
+                        :label="peterCopy('什么是技能', 'What is a skill')" />
+                    </h2>
                     <p class="section-description">{{ $t(isPeterWorkspace ? 'agent.editor.peterSkillsDesc' : 'agent.editor.skillsConfigDesc') }}</p>
                     <a v-if="isPeterWorkspace && canInstallSkills" href="javascript:void(0)" class="go-settings-link" @click.prevent="openSkillSettings">
                       {{ $t('agent.editor.goSkillSettings') }}
@@ -1467,7 +1502,7 @@
                 <!-- 知识库配置 -->
                 <div v-show="currentSection === 'knowledge'" class="section">
                   <div class="section-header">
-                    <h2>{{ $t('agent.editor.knowledgeConfig') }}</h2>
+                    <h2>{{ isPeterWorkspace ? peterCopy('参考资料', 'Reference material') : $t('agent.editor.knowledgeConfig') }}</h2>
                     <p class="section-description">{{ knowledgeConfigDescription }}</p>
                   </div>
 
@@ -1475,7 +1510,10 @@
                     <!-- 关联知识库 -->
                     <div class="setting-row" data-guide="agent-create-knowledge">
                       <div class="setting-info">
-                        <label>{{ $t('agent.editor.knowledgeBases') }}</label>
+                        <label>{{ isPeterWorkspace ? peterCopy('让智能体参考哪些资料', 'Material the agent can reference') : $t('agent.editor.knowledgeBases') }}</label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('知识库：已整理、可检索的资料。选中后，智能体回答问题时会从中查找相关内容。', 'A knowledge base holds searchable material the agent can consult while answering.')"
+                          :label="peterCopy('什么是知识库', 'What is a knowledge base')" />
                         <p class="desc">{{ $t('agentEditor.desc.kbScope') }}</p>
                       </div>
                       <div class="setting-control agent-scope-select-control">
@@ -1645,7 +1683,7 @@
                 <!-- 检索策略（仅在有知识库能力时显示） -->
                 <div v-show="currentSection === 'retrieval' && hasKnowledgeBase" class="section">
                   <div class="section-header">
-                    <h2>{{ $t('agent.editor.retrievalStrategy') }}</h2>
+                    <h2>{{ isPeterWorkspace ? peterCopy('资料检索', 'Material retrieval') : $t('agent.editor.retrievalStrategy') }}</h2>
                     <p class="section-description">{{ $t('agentEditor.desc.retrievalSection') }}</p>
                   </div>
 
@@ -1665,6 +1703,9 @@
                     <div class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.embeddingTopK') }}</label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('向量召回 Top K：每次提问先从资料中取出最多多少段候选内容，供后续筛选。', 'Vector recall Top K: the maximum number of candidate passages retrieved before later filtering.')"
+                          :label="peterCopy('什么是向量召回 Top K', 'What is vector recall Top K')" />
                         <p class="desc">{{ $t('agentEditor.desc.embeddingTopK') }}</p>
                       </div>
                       <div class="setting-control">
@@ -1676,6 +1717,9 @@
                     <div class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.keywordThreshold') }}</label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('关键词阈值：关键词匹配得分的最低要求。调高后结果更严格，可能漏掉有用资料。', 'Keyword threshold: the minimum keyword-match score. Raising it is stricter and may exclude useful material.')"
+                          :label="peterCopy('什么是关键词阈值', 'What is keyword threshold')" />
                         <p class="desc">{{ $t('agentEditor.desc.keywordThreshold') }}</p>
                       </div>
                       <div class="setting-control">
@@ -1690,6 +1734,9 @@
                     <div class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.vectorThreshold') }}</label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('向量阈值：按语义相似度筛选资料的最低要求。调高后结果更严格，可能漏掉相关表达。', 'Vector threshold: the minimum semantic-similarity score. Raising it is stricter and may exclude related wording.')"
+                          :label="peterCopy('什么是向量阈值', 'What is vector threshold')" />
                         <p class="desc">{{ $t('agentEditor.desc.vectorThreshold') }}</p>
                       </div>
                       <div class="setting-control">
@@ -1704,6 +1751,9 @@
                     <div v-if="formData.config.rerank_model_id" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.rerankTopK') }}</label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('重排序 Top K：把候选资料再次按相关性排序后，最多保留多少段供智能体参考。', 'Rerank Top K: the maximum number of passages kept after sorting candidates by relevance.')"
+                          :label="peterCopy('什么是重排序 Top K', 'What is rerank Top K')" />
                         <p class="desc">{{ $t('agentEditor.desc.rerankTopK') }}</p>
                       </div>
                       <div class="setting-control">
@@ -1715,6 +1765,9 @@
                     <div v-if="formData.config.rerank_model_id" class="setting-row">
                       <div class="setting-info">
                         <label>{{ $t('agent.editor.rerankThreshold') }}</label>
+                        <PeterTermHelp v-if="isPeterWorkspace"
+                          :text="peterCopy('重排序阈值：资料经过再次排序后必须达到的相关度。调高可能减少最终参考的段落。', 'Rerank threshold: the relevance score a passage must reach after reranking. Raising it may reduce passages used.')"
+                          :label="peterCopy('什么是重排序阈值', 'What is rerank threshold')" />
                         <p class="desc">{{ $t('agentEditor.desc.rerankThreshold') }}</p>
                       </div>
                       <div class="setting-control">
@@ -1814,6 +1867,7 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router';
 import AgentCreateContextualGuide from '@/components/AgentCreateContextualGuide.vue';
 import VisualSettingsShell from '@/views/settings/components/VisualSettingsShell.vue';
+import PeterTermHelp from '@/components/PeterTermHelp.vue';
 import {
   AGENT_EDITOR_FOCUS_SECTION_EVENT,
   markContextualGuideDone,
@@ -1885,6 +1939,8 @@ const chatResources = useChatResourcesStore();
 const editorResources = useEditorResourcesStore();
 
 const { t, locale: i18nLocale } = useI18n();
+const peterCopy = (zh: string, en: string) =>
+  String(i18nLocale.value).toLowerCase().startsWith('zh') ? zh : en;
 const showConsumerUpgradePrompt = useConsumerUpgradePrompt();
 
 const knowledgeConfigDescription = computed(() => authStore.isLiteMode
@@ -1952,6 +2008,8 @@ function resolveEditorSection(section?: string | null): string {
 
 const normalizeEditorSection = (section?: string): string => resolveEditorSection(section);
 const currentSection = ref(resolveEditorSection(props.initialSection));
+const peterAdvancedOpen = ref(false);
+const peterBasicTechnicalOpen = ref(false);
 const suggestionTab = ref<'starters' | 'followUps'>('starters');
 const contentWrapperRef = ref<HTMLElement | null>(null);
 const highlightedField = ref<AgentNotReadyReasonKey | null>(null);
@@ -2649,7 +2707,7 @@ const navItems = computed(() => {
     if (isAgentMode.value) {
       items.push({ key: 'mcp', icon: 'server', label: t('agentEditor.mcp.label') });
     }
-    return items;
+    return isPeterWorkspace ? items.map(withPeterNavLabel) : items;
   }
 
   items.splice(1, 0, { key: 'model', icon: 'cpu', label: t('agent.editor.modelConfig') });
@@ -2670,8 +2728,44 @@ const navItems = computed(() => {
   if (editorMode.value === 'edit' && editorAgent.value?.id && !editorAgent.value?.is_builtin && !authStore.isLiteMode) {
     items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') });
   }
-  return items;
+  return isPeterWorkspace ? items.map(withPeterNavLabel) : items;
 });
+
+const PETER_PRIMARY_EDITOR_SECTIONS = new Set(['basic', 'prompts', 'knowledge', 'tools', 'skills']);
+const PETER_EDITOR_NAV_LABELS: Record<string, [string, string]> = {
+  basic: ['身份与回答方式', 'Identity & response'],
+  prompts: ['回答规则', 'Response rules'],
+  knowledge: ['参考资料', 'Reference material'],
+  tools: ['可用能力', 'Available capabilities'],
+  skills: ['技能', 'Skills'],
+  model: ['模型与生成', 'Model & generation'],
+  conversation: ['对话记忆', 'Conversation memory'],
+  retrieval: ['资料检索', 'Material retrieval'],
+  websearch: ['联网搜索', 'Web search'],
+  multimodal: ['附件处理', 'Attachment handling'],
+  suggestions: ['推荐问题', 'Suggested questions'],
+  mcp: ['外部工具连接', 'External tools'],
+  share: ['分享与发布', 'Sharing'],
+};
+
+function withPeterNavLabel(item: { key: string; icon: string; label: string }) {
+  const labels = PETER_EDITOR_NAV_LABELS[item.key];
+  return labels ? { ...item, label: peterCopy(...labels) } : item;
+}
+
+const peterPrimaryNavCount = computed(() => navItems.value.filter((item) => PETER_PRIMARY_EDITOR_SECTIONS.has(item.key)).length);
+const orderedNavItems = computed(() => isPeterWorkspace
+  ? [...navItems.value.filter((item) => PETER_PRIMARY_EDITOR_SECTIONS.has(item.key)),
+      ...navItems.value.filter((item) => !PETER_PRIMARY_EDITOR_SECTIONS.has(item.key))]
+  : navItems.value);
+
+function togglePeterAdvancedSettings() {
+  const opening = !peterAdvancedOpen.value;
+  if (!opening && !PETER_PRIMARY_EDITOR_SECTIONS.has(currentSection.value)) {
+    currentSection.value = 'basic';
+  }
+  peterAdvancedOpen.value = opening;
+}
 
 
 // 初始数据
@@ -2982,6 +3076,9 @@ watch(currentSection, (section) => {
   if (resolved !== section || !navItems.value.some((item) => item.key === resolved)) {
     currentSection.value = navItems.value.some((item) => item.key === 'basic') ? 'basic' : resolved;
     return;
+  }
+  if (isPeterWorkspace && !PETER_PRIMARY_EDITOR_SECTIONS.has(section)) {
+    peterAdvancedOpen.value = true;
   }
   if (section === 'prompts') {
     syncActivePromptAnchor();
@@ -3403,6 +3500,8 @@ watch(() => props.visible, async (val) => {
   if (val) {
     savedAgent.value = null;
     currentSection.value = resolveEditorSection(props.initialSection);
+    peterAdvancedOpen.value = isPeterWorkspace && !PETER_PRIMARY_EDITOR_SECTIONS.has(currentSection.value);
+    peterBasicTechnicalOpen.value = false;
     // 先加载依赖数据（包括默认配置）
     await loadDependencies();
 
@@ -6812,6 +6911,60 @@ const handleSave = async () => {
   gap: 4px;
 }
 
+.peter-editor-nav-heading {
+  padding: 8px 14px 2px;
+  color: var(--td-text-color-placeholder);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.peter-editor-advanced-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 0;
+  border-top: 1px solid var(--td-border-level-1-color);
+  background: transparent;
+  color: var(--td-text-color-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.peter-editor-advanced-trigger:hover,
+.peter-editor-inline-disclosure:hover {
+  color: var(--td-text-color-primary);
+}
+
+.peter-editor-advanced-trigger:focus-visible,
+.peter-editor-inline-disclosure:focus-visible {
+  outline: 2px solid var(--td-brand-color);
+  outline-offset: -2px;
+}
+
+.peter-editor-inline-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--td-text-color-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.setting-info :deep(.peter-term-help),
+.section-header :deep(.peter-term-help) {
+  margin-left: 4px;
+}
+
 .content-wrapper {
   width: 100%;
   height: 100%;
@@ -6882,6 +7035,21 @@ const handleSave = async () => {
 
 @media (max-width: 560px) {
   .content-wrapper { padding: 24px; }
+  .agent-editor-tabs.is-peter-workspace {
+    width: max-content;
+    flex-direction: row;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .agent-editor-tabs.is-peter-workspace .peter-editor-nav-heading { display: none; }
+  .agent-editor-tabs.is-peter-workspace .peter-editor-advanced-trigger {
+    width: auto;
+    flex: 0 0 auto;
+    gap: 6px;
+    margin: 0;
+    border-top: 0;
+    border-left: 1px solid var(--td-border-level-1-color);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

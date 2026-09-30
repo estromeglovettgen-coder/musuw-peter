@@ -1,6 +1,6 @@
 <template>
   <div class="agent-list-container" :class="{ 'is-lite': authStore.isLiteMode }">
-    <ListSpaceSidebar v-if="!authStore.isLiteMode" v-model="spaceSelection" :count-all="allAgentsCount"
+    <ListSpaceSidebar v-if="!authStore.isLiteMode && !isPeterWorkspace" v-model="spaceSelection" :count-all="allAgentsCount"
       :count-mine="agents.length" :count-by-org="effectiveSharedCountByOrg" :count-favorites="agentFavoritesCount"
       :count-recents="agentRecentsCount" />
     <div class="agent-list-content">
@@ -736,6 +736,7 @@ import { shouldShowResourceOriginBadge } from '@/utils/card-list-badge'
 import { useAuthStore } from '@/stores/auth'
 import { useListUrlState } from '@/composables/useListUrlState'
 import { useResourcePins } from '@/composables/useResourcePins'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { integrationSectionKey } from '@/config/settingsRoute'
 import { useMarketplaceLibrary } from '@/composables/useMarketplaceLibrary'
 import MarketplaceAgentCards from '@/views/marketplace/MarketplaceAgentCards.vue'
@@ -775,11 +776,14 @@ type DisplayAgent = (AgentWithUI & { isMine: true }) | (CustomAgent & { isMine: 
 // State synced to `?scope=` so links are shareable. The "mine" value is
 // retained for back-compat with existing links; its display label is
 // rebranded to the active tenant name inside ListSpaceSidebar.
-const defaultScope: 'all' | 'mine' = authStore.hasRole('contributor') ? 'mine' : 'all'
+const defaultScope: 'all' | 'mine' = isPeterWorkspace ? 'all' : authStore.hasRole('contributor') ? 'mine' : 'all'
 const { scope: spaceSelection, creator: creatorFilter } = useListUrlState({
   defaultScope,
   defaultCreator: 'all',
 })
+if (isPeterWorkspace) watch(spaceSelection, value => {
+  if (value !== 'all') spaceSelection.value = 'all'
+}, { immediate: true })
 
 // Per-user favorites + recents (localStorage-backed). See useResourcePins.
 const pins = useResourcePins()

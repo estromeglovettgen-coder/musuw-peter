@@ -1995,6 +1995,23 @@ export default {
   modelSettings: {
     title: '模型配置',
     description: '管理不同类型的 AI 模型，支持 Ollama 本地模型和远程 API',
+    peter: {
+      description: '按用途管理智能体和资料整理所用的 AI 服务。',
+      typeTitle: '按用途查看',
+      typeHelp: '模型分工：对话模型负责生成回答；Embedding 帮助从资料中查找相关内容；ReRank 调整查找结果的顺序；视觉模型理解图片；ASR 将语音转成文字。',
+      types: {
+        chat: '对话',
+        embedding: '资料检索',
+        rerank: '结果优化',
+        vllm: '图片理解',
+        asr: '语音转文字'
+      },
+      baseUrlHelp: 'API 地址（Base URL）：模型服务商提供的接口地址。选择服务商后通常会自动填写；只有使用自定义地址时才需要调整。',
+      apiKeyHelp: 'API Key：模型服务商给出的访问凭据。保存后页面不会再次显示原文。',
+      headersHelp: 'HTTP Header：少数服务商要求额外的请求信息。通常留空即可。',
+      connectionOptions: '更多连接选项',
+      hideConnectionOptions: '收起连接选项'
+    },
     sceneModels: {
       navTitle: '场景模型配置',
       title: '按场景选择模型',
@@ -3747,6 +3764,19 @@ export default {
     models: {
       title: '模型配置',
       description: '为知识库选择合适的 AI 模型',
+      peter: {
+        title: 'AI 服务',
+        ready: '已选择所需模型。',
+        missing: '还缺少必要的 AI 服务，请先选择。',
+        adjust: '调整 AI 服务',
+        collapse: '收起设置',
+        answer: '负责整理和回答',
+        answerHelp: 'LLM（大语言模型）：用于总结资料、生成知识页面和回答问题。',
+        search: '负责查找资料',
+        searchHelp: 'Embedding（向量模型）：帮助智能体从资料中找到相关内容；开启资料检索时必须配置。',
+        organize: '负责整理知识页面',
+        organizeHelp: 'Wiki 合成模型：把抽取出的内容整理成知识页面；留空时使用默认的总结模型。'
+      },
       llmLabel: 'LLM 大语言模型',
       llmDesc: '用于总结和摘要的大语言模型',
       llmPlaceholder: '请选择 LLM 模型（可选）',

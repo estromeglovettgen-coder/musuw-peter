@@ -130,8 +130,13 @@
             <li v-for="(line, i) in failedErrorLines(managedSkill)" :key="i">{{ line }}</li>
           </ul>
           <section v-if="skillHasDeclaredEnvs(managedSkill)" class="skill-manage__section">
-            <h4>{{ $t('settings.sandbox.skillEnv.toggle') }}</h4>
-            <p class="skill-envs__hint">{{ $t('settings.sandbox.skillEnv.workspaceHint') }}</p>
+            <h4>
+              {{ isPeterWorkspace ? peterCopy('所需密钥', 'Required keys') : $t('settings.sandbox.skillEnv.toggle') }}
+              <PeterTermHelp v-if="isPeterWorkspace"
+                :text="peterCopy('这里的技术名称是“环境变量”：技能连接外部服务时要用到的密钥。按技能要求填写对应字段并保存。', 'These are environment variables: keys a skill needs to connect to external services. Enter the required values and save them here.')"
+                :label="peterCopy('什么是技能密钥', 'What are skill keys')" />
+            </h4>
+            <p class="skill-envs__hint">{{ isPeterWorkspace ? peterCredentialHint : $t('settings.sandbox.skillEnv.workspaceHint') }}</p>
             <div class="skill-envs__rows">
               <div v-for="(env, envIdx) in managedSkill.envs" :key="env.name" class="skill-envs__row">
                 <div class="skill-envs__meta">
@@ -303,7 +308,7 @@
                             <div class="skill-env-popup__head-text">
                               <div class="skill-env-popup__title">{{ skill.name || skill.id }}</div>
                               <div class="skill-env-popup__meta">
-                                {{ $t('settings.sandbox.skillEnv.workspaceTitle') }}
+                                {{ isPeterWorkspace ? peterCopy('技能密钥', 'Skill keys') : $t('settings.sandbox.skillEnv.workspaceTitle') }}
                               </div>
                             </div>
                             <t-button
@@ -318,7 +323,7 @@
                             </t-button>
                           </header>
                           <div class="skill-env-popup__body">
-                            <p class="skill-envs__hint">{{ $t('settings.sandbox.skillEnv.workspaceHint') }}</p>
+                            <p class="skill-envs__hint">{{ isPeterWorkspace ? peterCredentialHint : $t('settings.sandbox.skillEnv.workspaceHint') }}</p>
                             <div class="skill-envs__rows">
                               <div v-for="(env, envIdx) in skill.envs" :key="env.name" class="skill-envs__row">
                                 <div class="skill-envs__meta">
@@ -571,6 +576,8 @@ import {
 import { getApiBaseUrl } from '@/utils/api-base'
 import { generateRandomString } from '@/utils/index'
 import i18n from '@/i18n'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   MAX_ENV_VALUE_BYTES,
   addSkillEnvSaveInFlight,
@@ -607,7 +614,13 @@ const emit = defineEmits<{
   installed: [skillId: string]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const peterCopy = (zh: string, en: string) =>
+  String(locale.value).toLowerCase().startsWith('zh') ? zh : en
+const peterCredentialHint = computed(() => peterCopy(
+  '需要外部服务密钥时，在对应输入框填写并保存；此处的值供当前工作区使用。',
+  'If a skill needs an external-service key, enter and save it below. This value is shared in the current workspace.',
+))
 
 const loading = ref(false)
 const uploading = ref(false)

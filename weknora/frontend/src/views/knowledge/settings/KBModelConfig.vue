@@ -1,16 +1,22 @@
 <template>
   <div class="kb-model-config">
     <div class="section-header">
-      <h2>{{ $t('knowledgeEditor.models.title') }}</h2>
-      <p class="section-description">{{ $t('knowledgeEditor.models.description') }}</p>
+      <h2>{{ $t(isPeterWorkspace ? 'knowledgeEditor.models.peter.title' : 'knowledgeEditor.models.title') }}</h2>
+      <p class="section-description">{{ $t(isPeterWorkspace
+        ? peterModelsSelected ? 'knowledgeEditor.models.peter.ready' : 'knowledgeEditor.models.peter.missing'
+        : 'knowledgeEditor.models.description') }}</p>
+      <button v-if="isPeterWorkspace && peterModelsSelected" type="button" class="peter-model-toggle"
+        :aria-expanded="showPeterModels" @click="showPeterModels = !showPeterModels">
+        {{ $t(showPeterModels ? 'knowledgeEditor.models.peter.collapse' : 'knowledgeEditor.models.peter.adjust') }}
+      </button>
     </div>
 
-    <div class="settings-group">
+    <div v-if="!isPeterWorkspace || !peterModelsSelected || showPeterModels" class="settings-group">
       <!-- LLM 大语言模型 -->
       <div class="setting-row" data-guide="kb-create-llm">
         <div class="setting-info">
-          <label>{{ $t('knowledgeEditor.models.llmLabel') }} <span class="required">*</span></label>
-          <p class="desc">{{ $t('knowledgeEditor.models.llmDesc') }}</p>
+          <div v-if="isPeterWorkspace" class="peter-model-label"><label>{{ $t('knowledgeEditor.models.peter.answer') }} <span class="required">*</span></label><PeterTermHelp :text="$t('knowledgeEditor.models.peter.answerHelp')" /></div>
+          <template v-else><label>{{ $t('knowledgeEditor.models.llmLabel') }} <span class="required">*</span></label><p class="desc">{{ $t('knowledgeEditor.models.llmDesc') }}</p></template>
         </div>
         <div class="setting-control">
           <ModelSelector
@@ -29,12 +35,9 @@
       <!-- Embedding model is required for RAG and optional for Wiki-only KBs. -->
       <div v-if="ragEnabled !== false || wikiEnabled" class="setting-row" data-guide="kb-create-embedding">
         <div class="setting-info">
-          <label>
-            {{ $t('knowledgeEditor.models.embeddingLabel') }}
-            <span v-if="ragEnabled" class="required">*</span>
-            <span v-else-if="wikiEnabled" class="optional">{{ $t('knowledgeEditor.models.embeddingOptional') }}</span>
-          </label>
-          <p class="desc">
+          <div v-if="isPeterWorkspace" class="peter-model-label"><label>{{ $t('knowledgeEditor.models.peter.search') }} <span v-if="ragEnabled" class="required">*</span><span v-else class="optional">{{ $t('knowledgeEditor.models.embeddingOptional') }}</span></label><PeterTermHelp :text="$t('knowledgeEditor.models.peter.searchHelp')" /></div>
+          <label v-else>{{ $t('knowledgeEditor.models.embeddingLabel') }} <span v-if="ragEnabled" class="required">*</span><span v-else-if="wikiEnabled" class="optional">{{ $t('knowledgeEditor.models.embeddingOptional') }}</span></label>
+          <p v-if="!isPeterWorkspace" class="desc">
             {{ (wikiEnabled && ragEnabled === false)
               ? $t('knowledgeEditor.models.embeddingWikiOptionalDesc')
               : $t('knowledgeEditor.models.embeddingDesc') }}
@@ -60,8 +63,8 @@
       <!-- Wiki 合成模型 (仅当 Wiki 启用时显示) -->
       <div v-if="wikiEnabled" class="setting-row">
         <div class="setting-info">
-          <label>{{ $t('knowledgeEditor.wiki.synthesisModelLabel') }}</label>
-          <p class="desc">{{ $t('knowledgeEditor.wiki.synthesisModelTip') }}</p>
+          <div v-if="isPeterWorkspace" class="peter-model-label"><label>{{ $t('knowledgeEditor.models.peter.organize') }}</label><PeterTermHelp :text="$t('knowledgeEditor.models.peter.organizeHelp')" /></div>
+          <template v-else><label>{{ $t('knowledgeEditor.wiki.synthesisModelLabel') }}</label><p class="desc">{{ $t('knowledgeEditor.wiki.synthesisModelTip') }}</p></template>
         </div>
         <div class="setting-control">
           <ModelSelector
@@ -83,9 +86,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useUIStore } from '@/stores/ui'
 import ModelSelector from '@/components/ModelSelector.vue'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import type { ConsumerSceneOption } from '@/api/model'
 import { useI18n } from 'vue-i18n'
 
@@ -113,6 +118,8 @@ const emit = defineEmits<{
 
 const uiStore = useUIStore()
 const { t } = useI18n()
+const showPeterModels = ref(false)
+const peterModelsSelected = computed(() => !!props.config.llmModelId && (props.ragEnabled !== true || !!props.config.embeddingModelId))
 
 const llmSelectorRef = ref<InstanceType<typeof ModelSelector>>()
 const embeddingSelectorRef = ref<InstanceType<typeof ModelSelector>>()
@@ -164,6 +171,20 @@ const handleAddModel = (subSection: string) => {
     line-height: 1.5;
   }
 }
+
+.peter-model-toggle {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--td-brand-color);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.peter-model-label { display: flex; align-items: center; gap: 4px; }
+.peter-model-label label { margin-bottom: 0; }
 
 .settings-group {
   display: flex;

@@ -32,24 +32,19 @@
       <CustomerInitialSources v-if="isCustomer && currentSection === 'sources'" v-model="initialSources" :created="!!savedCustomerId" :uploading="saving" />
       <template v-if="!savedCustomerId">
       <section v-if="isCustomer && currentSection === 'customer'" class="kb-config-section section">
-        <div class="section-header"><h2>{{ templateMode ? '客户类型模板' : '客户资料' }}</h2></div>
-        <t-loading v-if="customerResourcesLoading" text="正在读取客户设置…" />
+        <div class="section-header"><h2>客户资料</h2></div>
+        <t-loading v-if="customerResourcesLoading" text="正在读取客户资料选项…" />
         <t-alert v-else-if="customerResourcesError" theme="error" :message="customerResourcesError"><template #operation><t-button variant="text" @click="loadCustomerResources">重试</t-button></template></t-alert>
-        <template v-else>
-          <label v-if="!templateMode && editorMode === 'create' && customerConfig.templates.length" class="customer-template-picker">客户类型模板
-            <t-select v-model="selectedTemplateId" aria-label="客户类型模板" filterable :options="customerConfig.templates.map(item => ({ label: item.name, value: item.id }))" placeholder="选择模板，一键套用配置" :disabled="loading || saving" @change="applyCustomerTemplate" />
-          </label>
-          <CustomerProfileFields v-model:name="formData.name" v-model:description="formData.description" v-model:profile="formData.customerProfile" :config="customerConfig" :libraries="customerLibraries" :pages="customerWikiPages" :template-mode="templateMode" :editing="editorMode === 'edit'" />
-        </template>
+        <CustomerProfileFields v-else v-model:name="formData.name" v-model:profile="formData.customerProfile" :config="customerConfig" :libraries="customerLibraries" :pages="customerWikiPages" :editing="editorMode === 'edit'" />
       </section>
       <div v-show="currentSection === 'basic'" class="kb-config-section section">
         <div class="section-header">
-          <h2>{{ isCustomer ? 'Wiki 与检索' : $t('knowledgeEditor.sidebar.basic') }}</h2>
-          <p v-if="!isCustomer" class="section-description">{{ $t('knowledgeEditor.modalDescription') }}</p>
+          <h2>{{ isPeterWorkspace ? (isCustomer ? '客户资料整理' : '资料设置') : isCustomer ? 'Wiki 与检索' : $t('knowledgeEditor.sidebar.basic') }}</h2>
+          <p v-if="!isCustomer && !isPeterWorkspace" class="section-description">{{ $t('knowledgeEditor.modalDescription') }}</p>
         </div>
 
         <div class="settings-group">
-          <section v-if="!isCustomer && editorMode === 'edit' && activeKbId" class="setting-row">
+          <section v-if="!isCustomer && !isPeterWorkspace && editorMode === 'edit' && activeKbId" class="setting-row">
             <div class="setting-info">
               <label>{{ $t('knowledgeEditor.basic.kbId') }}</label>
               <p class="desc">{{ $t('knowledgeEditor.basic.kbIdDesc') }}</p>
@@ -66,8 +61,8 @@
 
           <section v-if="!authStore.isLiteMode && !isCustomer" class="setting-row">
             <div class="setting-info">
-              <label>{{ $t('knowledgeEditor.basic.typeLabel') }} <span class="is-required">*</span></label>
-              <p class="desc">{{ $t('knowledgeEditor.basic.typeDescription') }}</p>
+              <label>{{ isPeterWorkspace ? '资料类型' : $t('knowledgeEditor.basic.typeLabel') }} <span class="is-required">*</span></label>
+              <p v-if="!isPeterWorkspace" class="desc">{{ $t('knowledgeEditor.basic.typeDescription') }}</p>
             </div>
             <div class="setting-control">
               <t-radio-group
@@ -75,16 +70,19 @@
                 :disabled="editorMode === 'edit'"
                 data-guide="kb-create-type"
               >
-                <t-radio-button value="document">{{ $t('knowledgeEditor.basic.typeDocument') }}</t-radio-button>
-                <t-radio-button value="faq">{{ $t('knowledgeEditor.basic.typeFAQ') }}</t-radio-button>
+                <t-radio-button value="document">{{ isPeterWorkspace ? '文档资料' : $t('knowledgeEditor.basic.typeDocument') }}</t-radio-button>
+                <t-radio-button value="faq">{{ isPeterWorkspace ? '问答资料' : $t('knowledgeEditor.basic.typeFAQ') }}</t-radio-button>
               </t-radio-group>
             </div>
           </section>
 
           <section v-if="!isFAQ" class="setting-row" data-guide="kb-create-indexing">
             <div class="setting-info">
-              <label>{{ $t('knowledgeEditor.indexing.searchTitle') }}</label>
-              <p class="desc">{{ $t('knowledgeEditor.indexing.searchDesc') }}</p>
+              <label>
+                {{ isPeterWorkspace ? '回答时查阅资料' : $t('knowledgeEditor.indexing.searchTitle') }}
+                <PeterTermHelp v-if="isPeterWorkspace" text="RAG 检索：先将资料分段并建立检索索引，智能体回答时找到相关原文作为依据。关闭后将不再从这些原文片段检索。" label="了解资料检索" />
+              </label>
+              <p v-if="!isPeterWorkspace" class="desc">{{ $t('knowledgeEditor.indexing.searchDesc') }}</p>
             </div>
             <div class="setting-control">
               <t-switch
@@ -97,8 +95,11 @@
 
           <section v-if="!isFAQ" class="setting-row">
             <div class="setting-info">
-              <label>{{ $t('knowledgeEditor.indexing.wikiTitle') }}</label>
-              <p class="desc">{{ $t('knowledgeEditor.indexing.wikiDesc') }}</p>
+              <label>
+                {{ isPeterWorkspace ? '自动整理资料' : $t('knowledgeEditor.indexing.wikiTitle') }}
+                <PeterTermHelp v-if="isPeterWorkspace" text="Wiki：系统把资料整理成相互关联的主题页面，便于浏览和在问答中引用。关闭后不会继续生成新的整理页面。" label="了解自动整理资料" />
+              </label>
+              <p v-if="!isPeterWorkspace" class="desc">{{ $t('knowledgeEditor.indexing.wikiDesc') }}</p>
               <p v-if="isIndexingLocked" class="kb-config-locked-tip">
                 {{ $t('knowledgeEditor.indexing.lockedTip') }}
               </p>
@@ -113,9 +114,12 @@
 
           <section v-if="!isFAQ && formData.indexingStrategy.wikiEnabled" class="setting-row">
             <div class="setting-info">
-              <label>{{ $t('knowledgeEditor.wiki.extractionGranularityLabel') }}</label>
-              <p class="desc">{{ $t('knowledgeEditor.wiki.extractionGranularityTip') }}</p>
-              <p class="desc kb-settings-hint">{{ granularityHint }}</p>
+              <label>
+                {{ isPeterWorkspace ? '整理详细程度' : $t('knowledgeEditor.wiki.extractionGranularityLabel') }}
+                <PeterTermHelp v-if="isPeterWorkspace" text="Wiki 提取粒度：决定整理时识别多少人物、事件和概念。聚焦只保留重点；标准保留重点和重要关联；详尽尽量覆盖，结果可能更杂。" label="了解整理详细程度" />
+              </label>
+              <p v-if="!isPeterWorkspace" class="desc">{{ $t('knowledgeEditor.wiki.extractionGranularityTip') }}</p>
+              <p v-if="!isPeterWorkspace" class="desc kb-settings-hint">{{ granularityHint }}</p>
             </div>
             <div class="setting-control">
               <t-select v-model="formData.wikiConfig.extractionGranularity" class="visual-scene-select">
@@ -128,13 +132,16 @@
 
           <section v-if="!isFAQ && formData.indexingStrategy.wikiEnabled" class="setting-row setting-row-vertical">
             <div class="setting-info">
-              <label>{{ $t('knowledgeEditor.wiki.contentInstructionsLabel') }}</label>
-              <p class="desc">{{ $t('knowledgeEditor.wiki.contentInstructionsTip') }}</p>
+              <label>
+                {{ isPeterWorkspace ? '整理结果怎么写' : $t('knowledgeEditor.wiki.contentInstructionsLabel') }}
+                <PeterTermHelp v-if="isPeterWorkspace" text="Wiki 内容生成要求：控制摘要、主题页面和首页的表达重点；引用来源与防止编造的规则仍由系统维护。修改后需重新整理，才会影响已有内容。" label="了解整理结果怎么写" />
+              </label>
+              <p v-if="!isPeterWorkspace" class="desc">{{ $t('knowledgeEditor.wiki.contentInstructionsTip') }}</p>
             </div>
             <div class="setting-control setting-control-full kb-settings-textarea">
               <t-textarea
                 v-model="formData.wikiConfig.contentInstructions"
-                :placeholder="$t('knowledgeEditor.wiki.contentInstructionsPlaceholder')"
+                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：先说客户背景、需求和关键顾虑，语气简洁并保留来源。' : '例如：先概括背景和结论，再归纳关键方法与注意事项。') : $t('knowledgeEditor.wiki.contentInstructionsPlaceholder')"
                 :maxlength="4000"
                 :autosize="{ minRows: 3, maxRows: 7 }"
               />
@@ -143,13 +150,16 @@
 
           <section v-if="!isFAQ && formData.indexingStrategy.wikiEnabled" class="setting-row setting-row-vertical">
             <div class="setting-info">
-              <label>{{ $t('knowledgeEditor.wiki.extractionInstructionsLabel') }}</label>
-              <p class="desc">{{ $t('knowledgeEditor.wiki.extractionInstructionsTip') }}</p>
+              <label>
+                {{ isPeterWorkspace ? '重点关注哪些信息' : $t('knowledgeEditor.wiki.extractionInstructionsLabel') }}
+                <PeterTermHelp v-if="isPeterWorkspace" text="Wiki 提取重点：告诉系统优先识别哪些人物、产品、事件或概念；不会改变资料来源和引用规则。" label="了解重点关注哪些信息" />
+              </label>
+              <p v-if="!isPeterWorkspace" class="desc">{{ $t('knowledgeEditor.wiki.extractionInstructionsTip') }}</p>
             </div>
             <div class="setting-control setting-control-full kb-settings-textarea">
               <t-textarea
                 v-model="formData.wikiConfig.extractionInstructions"
-                :placeholder="$t('knowledgeEditor.wiki.extractionInstructionsPlaceholder')"
+                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：重点关注客户目标、预算、异议、已承诺事项和下次跟进。' : '例如：重点关注核心观点、适用场景、关键案例和结论。') : $t('knowledgeEditor.wiki.extractionInstructionsPlaceholder')"
                 :maxlength="4000"
                 :autosize="{ minRows: 3, maxRows: 7 }"
               />
@@ -216,24 +226,30 @@
 
             <div v-if="!authStore.isLiteMode && isFAQ && currentSection === 'faq'" class="kb-config-section">
               <div class="kb-config-field__heading">
-                <label>{{ $t('knowledgeEditor.faq.title') }}</label>
-                <p>{{ $t('knowledgeEditor.faq.description') }}</p>
+                <label>{{ isPeterWorkspace ? '问答匹配方式' : $t('knowledgeEditor.faq.title') }}</label>
+                <p v-if="!isPeterWorkspace">{{ $t('knowledgeEditor.faq.description') }}</p>
               </div>
               <div class="kb-config-field">
-                <label>{{ $t('knowledgeEditor.faq.indexModeLabel') }}</label>
+                <label>
+                  {{ isPeterWorkspace ? '用哪些内容匹配问题' : $t('knowledgeEditor.faq.indexModeLabel') }}
+                  <PeterTermHelp v-if="isPeterWorkspace" text="FAQ 索引方式：只用问题匹配通常更精准；同时用问题和答案匹配，可能找到更多相关结果。" label="了解问答匹配内容" />
+                </label>
                 <t-radio-group v-model="formData.faqConfig.indexMode">
-                  <t-radio-button value="question_only">{{ $t('knowledgeEditor.faq.modes.questionOnly') }}</t-radio-button>
-                  <t-radio-button value="question_answer">{{ $t('knowledgeEditor.faq.modes.questionAnswer') }}</t-radio-button>
+                  <t-radio-button value="question_only">{{ isPeterWorkspace ? '只用问题' : $t('knowledgeEditor.faq.modes.questionOnly') }}</t-radio-button>
+                  <t-radio-button value="question_answer">{{ isPeterWorkspace ? '问题和答案' : $t('knowledgeEditor.faq.modes.questionAnswer') }}</t-radio-button>
                 </t-radio-group>
-                <p class="kb-config-field__hint">{{ $t('knowledgeEditor.faq.indexModeDescription') }}</p>
+                <p v-if="!isPeterWorkspace" class="kb-config-field__hint">{{ $t('knowledgeEditor.faq.indexModeDescription') }}</p>
               </div>
               <div class="kb-config-field">
-                <label>{{ $t('knowledgeEditor.faq.questionIndexModeLabel') }}</label>
+                <label>
+                  {{ isPeterWorkspace ? '相似问怎么处理' : $t('knowledgeEditor.faq.questionIndexModeLabel') }}
+                  <PeterTermHelp v-if="isPeterWorkspace" text="问题索引方式：合并匹配把标准问与相似问放在同一组；分别匹配会单独查找每一种问法，通常更精细，也会占用更多存储。" label="了解相似问处理" />
+                </label>
                 <t-radio-group v-model="formData.faqConfig.questionIndexMode">
-                  <t-radio-button value="combined">{{ $t('knowledgeEditor.faq.modes.combined') }}</t-radio-button>
-                  <t-radio-button value="separate">{{ $t('knowledgeEditor.faq.modes.separate') }}</t-radio-button>
+                  <t-radio-button value="combined">{{ isPeterWorkspace ? '一起匹配' : $t('knowledgeEditor.faq.modes.combined') }}</t-radio-button>
+                  <t-radio-button value="separate">{{ isPeterWorkspace ? '分别匹配' : $t('knowledgeEditor.faq.modes.separate') }}</t-radio-button>
                 </t-radio-group>
-                <p class="kb-config-field__hint">{{ $t('knowledgeEditor.faq.questionIndexModeDescription') }}</p>
+                <p v-if="!isPeterWorkspace" class="kb-config-field__hint">{{ $t('knowledgeEditor.faq.questionIndexModeDescription') }}</p>
               </div>
             </div>
 
@@ -412,14 +428,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import KbCreateContextualGuide from '@/components/KbCreateContextualGuide.vue'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import VisualSettingsShell from '@/views/settings/components/VisualSettingsShell.vue'
 import { KB_EDITOR_FOCUS_SECTION_EVENT, markContextualGuideDone } from '@/config/contextualGuides'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { createKnowledgeBase, getKnowledgeBaseById, listKnowledgeBases, listKnowledgeFiles, updateKnowledgeBase, uploadKnowledgeFile } from '@/api/knowledge-base'
-import { CUSTOMER_CONTENT, CUSTOMER_EXTRACTION, emptyCustomerProfile, getCustomerConfig, customerTemplateConfig, type CustomerConfig, type CustomerTemplate, type CustomerUploadItem } from '@/api/customer'
+import { CUSTOMER_CONTENT, CUSTOMER_EXTRACTION, emptyCustomerProfile, getCustomerConfig, type CustomerConfig, type CustomerUploadItem } from '@/api/customer'
 import { listWikiPages } from '@/api/wiki'
 import CustomerProfileFields from '@/views/customer/CustomerProfileFields.vue'
 import CustomerInitialSources from '@/views/customer/CustomerInitialSources.vue'
+import { customerFieldsForSave, customerLegacyFields, customerVisibleNote, customerVisibleTags } from '@/views/customer/customerPresentation'
 import { updateKBConfig, type KBModelConfigRequest } from '@/api/initialization'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { selectInitialModelId } from '@/utils/modelDefaults'
@@ -471,28 +489,24 @@ const props = defineProps<{
   kbId?: string
   initialType?: 'document' | 'faq'
   customer?: boolean
-  templateMode?: boolean
-  customerTemplate?: CustomerTemplate
-  customerChoices?: CustomerConfig
 }>()
 
 // Emits
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'success', kbId: string): void
-  (e: 'template-save', template: CustomerTemplate): void
 }>()
 
 const editorMode = computed(() => props.mode)
 const activeKbId = computed(() => props.kbId)
-const isCustomer = computed(() => !!props.customer || !!props.templateMode || !!formData.value?.customerProfile)
+const isCustomer = computed(() => !!props.customer || !!formData.value?.customerProfile)
 const editorTitle = computed(() =>
-  props.templateMode ? '客户类型模板' : isCustomer.value ? (editorMode.value === 'create' ? '新建客户' : '编辑客户') : editorMode.value === 'create'
+  isCustomer.value ? (editorMode.value === 'create' ? '新建客户' : '编辑客户') : editorMode.value === 'create'
     ? t('knowledgeEditor.titleCreate')
     : t('knowledgeEditor.titleEdit')
 )
 const saveButtonLabel = computed(() =>
-  props.templateMode ? '完成配置' : savedCustomerId.value ? '重试失败文件' : isCustomer.value ? (editorMode.value === 'create' ? '创建客户' : '保存客户') : editorMode.value === 'create'
+  savedCustomerId.value ? '重试失败文件' : isCustomer.value ? (editorMode.value === 'create' ? '创建客户' : '保存客户') : editorMode.value === 'create'
     ? t('knowledgeEditor.buttons.confirmCreate')
     : t('knowledgeEditor.buttons.save')
 )
@@ -618,8 +632,8 @@ const DEFAULT_CHUNKING_PRESET = {
 const navItems = computed(() => {
   if (savedCustomerId.value) return [{ key: 'sources', icon: 'upload', label: '资料上传' }]
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
-    ...(isCustomer.value ? [{ key: 'customer', icon: 'user', label: props.templateMode ? '模板配置' : '客户资料' }, ...(!props.templateMode ? [{ key: 'sources', icon: 'upload', label: '聊天资料' }] : [])] : []),
-    { key: 'basic', icon: 'info-circle', label: isCustomer.value ? 'Wiki 与检索' : t('knowledgeEditor.sidebar.basic') },
+    ...(isCustomer.value ? [{ key: 'customer', icon: 'user', label: '客户资料' }, { key: 'sources', icon: 'upload', label: '聊天资料' }] : []),
+    { key: 'basic', icon: 'info-circle', label: isPeterWorkspace ? (isCustomer.value ? '客户资料整理' : '资料设置') : isCustomer.value ? 'Wiki 与检索' : t('knowledgeEditor.sidebar.basic') },
   ]
   if (authStore.isLiteMode) {
     const liteItems: { key: string; icon: string; label: string; badge?: number }[] = LITE_KB_EDITOR_SECTIONS.map((item) => ({
@@ -637,7 +651,7 @@ const navItems = computed(() => {
     { key: 'vectorStore', icon: 'data-base', label: t('knowledgeEditor.sidebar.vectorStore') },
   )
   if (formData.value?.type === 'faq') {
-    items.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
+    items.push({ key: 'faq', icon: 'help-circle', label: isPeterWorkspace ? '问答匹配' : t('knowledgeEditor.sidebar.faq') })
   } else {
     items.push(
       { key: 'parser', icon: 'file-search', label: t('settings.parserEngine') },
@@ -709,8 +723,6 @@ const advancedSettingsRef = ref<InstanceType<typeof KBAdvancedSettings>>()
 // 表单数据
 const formData = ref<any>(null)
 const customerConfig = ref<CustomerConfig>({ statuses: [], tags: [], templates: [] })
-const selectedTemplateId = ref('')
-const appliedTemplateNote = ref<string | null>(null)
 const customerLibraries = ref<any[]>([])
 const customerWikiPages = ref<any[]>([])
 const customerResourcesLoading = ref(false)
@@ -724,19 +736,22 @@ async function loadCustomerResources() {
   customerResourcesLoading.value = true
   customerResourcesError.value = ''
   try {
-    const [config, libraries, wiki]: any[] = await Promise.all([
-      props.customerChoices || getCustomerConfig(), listKnowledgeBases(),
+    const [configResult, librariesResult, wikiResult] = await Promise.allSettled([
+      getCustomerConfig(), listKnowledgeBases(),
       activeKbId.value && formData.value?.indexingStrategy.wikiEnabled ? listWikiPages(activeKbId.value, { page_size: 100 }) : Promise.resolve(null),
     ])
     if (version !== loadVersion) return
-    customerConfig.value = config
-    customerLibraries.value = (libraries.data || []).filter((kb: any) => !kb.customer_profile)
-    customerWikiPages.value = wiki?.data?.pages || []
-    if (editorMode.value === 'create' && formData.value?.customerProfile && !formData.value.customerProfile.status) {
-      formData.value.customerProfile.status = config.statuses[0]
+    if (librariesResult.status === 'rejected') throw librariesResult.reason
+    const libraries = (librariesResult.value as any).data || []
+    const savedConfig = configResult.status === 'fulfilled' ? configResult.value as CustomerConfig : { statuses: [], tags: [], templates: [] }
+    customerConfig.value = {
+      ...savedConfig,
+      tags: [...new Set([...savedConfig.tags, ...libraries.filter((kb: any) => kb.customer_profile).flatMap((kb: any) => customerVisibleTags(kb.customer_profile))])],
     }
+    customerLibraries.value = libraries.filter((kb: any) => !kb.customer_profile)
+    customerWikiPages.value = wikiResult.status === 'fulfilled' ? ((wikiResult.value as any)?.data?.pages || []) : []
   } catch (error: any) {
-    if (version === loadVersion) customerResourcesError.value = error.message || '客户设置加载失败，请重试'
+    if (version === loadVersion) customerResourcesError.value = error.message || '客户资料选项加载失败，请重试'
   } finally {
     if (version === loadVersion) customerResourcesLoading.value = false
   }
@@ -857,7 +872,7 @@ const initFormData = (type: 'document' | 'faq' = 'document') => ({
   type: normalizeKnowledgeBaseType(type),
   name: authStore.isLiteMode ? getLiteDefaultKnowledgeBaseName() : '',
   description: '',
-  ...(props.customer || props.templateMode ? { customerProfile: emptyCustomerProfile() } : {}),
+  ...(props.customer ? { customerProfile: emptyCustomerProfile() } : {}),
   faqConfig: { indexMode: 'question_only', questionIndexMode: 'separate' },
   chunkingConfig: {
     ...DEFAULT_CHUNKING_PRESET,
@@ -878,9 +893,9 @@ const initFormData = (type: 'document' | 'faq' = 'document') => ({
   storageProvider: tenantDefaultStorageProvider.value,
   vectorStoreId: '',
   vectorStoreInfo: {},
-  multimodalConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer || !!props.templateMode).multimodalConfig : { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
-  asrConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer || !!props.templateMode).asrConfig : { enabled: false, modelId: '', language: '' },
-  nodeExtractConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer || !!props.templateMode).nodeExtractConfig : { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
+  multimodalConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer).multimodalConfig : { enabled: false, vllmModelId: '', descriptionLanguage: '', customInstructions: '' },
+  asrConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer).asrConfig : { enabled: false, modelId: '', language: '' },
+  nodeExtractConfig: isPeterWorkspace ? createPeterProcessingDefaults(!!props.customer).nodeExtractConfig : { enabled: false, text: '', tags: [], nodes: [], relations: [], customInstructions: '' },
   indexingStrategy: {
     vectorEnabled: !props.customer,
     keywordEnabled: !props.customer,
@@ -956,16 +971,18 @@ const loadSummaryModelOptions = async (force = false) => {
   }
 }
 
-// Shared hydration for saved KBs and detached customer-template snapshots.
+// Existing customer status and description become visible in the single tag and note fields.
 const formFromNative = (kb: any) => {
   const kbType = normalizeKnowledgeBaseType(kb.type)
   return {
     type: kbType,
     name: kb.name || '',
-    description: kb.description || '',
-    ...((kb as any).customer_profile ? { customerProfile: {
+    description: kb.customer_profile ? '' : (kb.description || ''),
+    ...((kb as any).customer_profile ? { customerLegacy: customerLegacyFields((kb as any).customer_profile, kb.description || ''), customerProfile: {
       ...emptyCustomerProfile(), ...(kb as any).customer_profile,
-      tags: (kb as any).customer_profile.tags || [],
+      status: '',
+      note: customerVisibleNote((kb as any).customer_profile.note, kb.description),
+      tags: customerVisibleTags((kb as any).customer_profile),
       shared_knowledge_base_ids: (kb as any).customer_profile.shared_knowledge_base_ids || [],
     } } : {}),
     imageProcessingConfig: kb.image_processing_config,
@@ -1066,40 +1083,6 @@ const formFromNative = (kb: any) => {
       status: kb.vector_store_status,
     },
   }
-}
-
-function applyCustomerTemplate() {
-  const template = customerConfig.value.templates.find(item => item.id === selectedTemplateId.value)
-  if (!template || props.templateMode || editorMode.value !== 'create' || !formData.value) return
-  const current = formData.value
-  const snapshot = JSON.parse(JSON.stringify(template.config))
-  const next = formFromNative({ ...snapshot, type: 'document', name: current.name, description: current.description })
-  next.customerProfile.contact = current.customerProfile.contact
-  // Preserve a note the user wrote; switching templates can replace a previous
-  // template's untouched default note. Source files live outside this snapshot.
-  if (current.customerProfile.note && current.customerProfile.note !== appliedTemplateNote.value) {
-    next.customerProfile.note = current.customerProfile.note
-  }
-  appliedTemplateNote.value = snapshot.customer_profile.note || ''
-  chunkingDirty.value = true
-  if (isPeterWorkspace) {
-    const media = selectPeterMediaModelIds(allModels.value, next.multimodalConfig.vllmModelId, next.asrConfig.modelId)
-    next.multimodalConfig = { ...next.multimodalConfig, enabled: true, vllmModelId: media.visionModelId }
-    next.asrConfig = { ...next.asrConfig, enabled: true, modelId: media.asrModelId }
-    next.imageProcessingConfig = { model_id: media.visionModelId }
-    next.indexingStrategy.graphEnabled = true
-    next.nodeExtractConfig = withPeterGraphExtractionDefaults(next.nodeExtractConfig, true)
-    next.modelConfig.llmModelId = selectInitialModelId(allModels.value, 'KnowledgeQA', next.modelConfig.llmModelId) || ''
-    next.modelConfig.embeddingModelId = selectInitialModelId(allModels.value, 'Embedding', next.modelConfig.embeddingModelId) || ''
-    next.modelConfig.wikiSynthesisModelId = selectInitialModelId(allModels.value, 'KnowledgeQA', next.modelConfig.wikiSynthesisModelId) || ''
-    // Infrastructure bindings are deployment-specific; templates carry customer
-    // rules, while new customers use this server's current storage defaults.
-    next.vectorStoreId = ''
-    next.storageBackendId = ''
-    next.storageProvider = tenantDefaultStorageProvider.value
-  }
-  formData.value = next
-  MessagePlugin.success(`已套用「${template.name}」，存储使用当前默认配置`)
 }
 
 // 加载知识库数据（编辑模式）
@@ -1305,7 +1288,7 @@ const handleNodeExtractUpdate = (config: any) => {
 // 验证表单
 const validateForm = (): boolean => {
   if (!formData.value) return false
-  if (isPeterWorkspace && editorMode.value === 'create' && !props.templateMode && !isFAQ.value && !peterGraphReady.value) {
+  if (isPeterWorkspace && editorMode.value === 'create' && !isFAQ.value && !peterGraphReady.value) {
     MessagePlugin.warning('知识图谱服务暂不可用，请稍后重试')
     currentSection.value = isCustomer.value ? 'customer' : 'basic'
     return false
@@ -1315,8 +1298,14 @@ const validateForm = (): boolean => {
       currentSection.value = 'customer'
       return false
     }
-    if (!formData.value.customerProfile.status || formData.value.customerProfile.tags.length > 30 || formData.value.customerProfile.shared_knowledge_base_ids.length > 30) {
-      MessagePlugin.warning('请选择客户状态，标签和关联知识库各不超过 30 项')
+    const profile = customerFieldsForSave(formData.value.customerProfile, formData.value.customerLegacy).profile
+    if (profile.tags.length > 30 || profile.tags.some((tag: string) => new TextEncoder().encode(tag).length > 100) || profile.shared_knowledge_base_ids.length > 30) {
+      MessagePlugin.warning('客户标签最多 30 个，单个标签请缩短；可参考的资料库最多 30 个')
+      currentSection.value = 'customer'
+      return false
+    }
+    if (new TextEncoder().encode(profile.note || '').length > 12000) {
+      MessagePlugin.warning('客户备注过长，请适当缩短')
       currentSection.value = 'customer'
       return false
     }
@@ -1324,7 +1313,7 @@ const validateForm = (): boolean => {
 
   // 验证基本信息
   if (!formData.value.name || !formData.value.name.trim()) {
-    MessagePlugin.warning(props.templateMode ? '请填写模板名称' : t('knowledgeEditor.messages.nameRequired'))
+    MessagePlugin.warning(isCustomer.value ? '请填写客户名称' : t('knowledgeEditor.messages.nameRequired'))
     currentSection.value = isCustomer.value ? 'customer' : 'basic'
     return false
   }
@@ -1387,11 +1376,15 @@ const validateForm = (): boolean => {
 const buildSubmitData = () => {
   if (!formData.value) return null
 
+  const customerFields = isCustomer.value
+    ? customerFieldsForSave(formData.value.customerProfile, formData.value.customerLegacy)
+    : null
+
   const data: any = {
     name: formData.value.name.trim(),
-    description: formData.value.description.trim(),
+    description: customerFields ? customerFields.description : formData.value.description.trim(),
     type: normalizeKnowledgeBaseType(formData.value.type),
-    ...(isCustomer.value ? { customer_profile: formData.value.customerProfile } : {}),
+    ...(customerFields ? { customer_profile: customerFields.profile } : {}),
     chunking_config: {
       chunk_size: formData.value.chunkingConfig.chunkSize,
       chunk_overlap: formData.value.chunkingConfig.chunkOverlap,
@@ -1546,21 +1539,6 @@ const handleSubmit = async () => {
     return
   }
   if (!validateForm()) {
-    return
-  }
-
-  if (props.templateMode) {
-    const name = formData.value.name.trim()
-    if (customerConfig.value.templates.some(item => item.id !== props.customerTemplate?.id && item.name === name)) {
-      MessagePlugin.warning('此模板名称已存在')
-      currentSection.value = 'customer'
-      return
-    }
-    emit('template-save', {
-      id: props.customerTemplate?.id || crypto.randomUUID(), name,
-      description: formData.value.description.trim(), config: customerTemplateConfig(buildSubmitData()),
-    })
-    emit('update:visible', false)
     return
   }
 
@@ -1787,8 +1765,6 @@ const resetState = () => {
   kbCreatorId.value = ''
   kbTenantId.value = 0
   customerConfig.value = { statuses: [], tags: [], templates: [] }
-  selectedTemplateId.value = ''
-  appliedTemplateNote.value = null
   customerLibraries.value = []
   customerWikiPages.value = []
   customerResourcesLoading.value = false
@@ -1827,24 +1803,11 @@ watch(() => props.visible, async (newVal) => {
       await Promise.all([
         loadSummaryModelOptions(isPeterWorkspace),
         loadTenantDefaultStorageProvider(),
-        ...(isPeterWorkspace && !props.templateMode ? [loadPeterGraphReadiness()] : []),
+        ...(isPeterWorkspace ? [loadPeterGraphReadiness()] : []),
         ...(isCustomer.value ? [loadCustomerResources()] : []),
       ])
       if (version === loadVersion && formData.value && !formData.value.storageBackendId) {
         formData.value.storageProvider = tenantDefaultStorageProvider.value
-      }
-      if (version === loadVersion && props.templateMode && props.customerTemplate) {
-        chunkingDirty.value = true
-        const templateForm = formFromNative(JSON.parse(JSON.stringify({ ...props.customerTemplate.config, type: 'document', name: props.customerTemplate.name, description: props.customerTemplate.description })))
-        if (isPeterWorkspace) {
-          const media = selectPeterMediaModelIds(allModels.value, templateForm.multimodalConfig.vllmModelId, templateForm.asrConfig.modelId)
-          templateForm.multimodalConfig = { ...templateForm.multimodalConfig, enabled: true, vllmModelId: media.visionModelId }
-          templateForm.asrConfig = { ...templateForm.asrConfig, enabled: true, modelId: media.asrModelId }
-          templateForm.imageProcessingConfig = { model_id: media.visionModelId }
-          templateForm.indexingStrategy.graphEnabled = true
-          templateForm.nodeExtractConfig = withPeterGraphExtractionDefaults(templateForm.nodeExtractConfig, true)
-        }
-        formData.value = templateForm
       }
       if (version === loadVersion) loading.value = false
       return
@@ -1900,15 +1863,6 @@ watch(
 </script>
 
 <style scoped lang="less">
-.customer-template-picker {
-  display: block;
-  margin-bottom: 28px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--td-component-border);
-  font-size: 14px;
-  font-weight: 500;
-  :deep(.t-select__wrap) { margin-top: 8px; }
-}
 .kb-config-overlay {
   position: fixed;
   inset: 0;

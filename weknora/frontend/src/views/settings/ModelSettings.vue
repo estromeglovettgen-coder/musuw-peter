@@ -3,7 +3,7 @@
     <header class="visual-settings-page-header visual-model-settings__header">
       <div class="visual-settings-page-header__copy">
         <h2 class="visual-settings-page-header__title">{{ $t(authStore.isLiteMode ? 'modelSettings.sceneModels.navTitle' : 'modelSettings.title') }}</h2>
-        <p class="visual-settings-page-header__description">{{ $t(authStore.isLiteMode ? 'modelSettings.sceneModels.description' : 'modelSettings.description') }}</p>
+        <p class="visual-settings-page-header__description">{{ $t(isPeterWorkspace ? 'modelSettings.peter.description' : authStore.isLiteMode ? 'modelSettings.sceneModels.description' : 'modelSettings.description') }}</p>
       </div>
       <button
         v-if="!authStore.isLiteMode && authStore.hasRole('admin')"
@@ -16,7 +16,7 @@
       </button>
     </header>
 
-    <aside v-if="!authStore.isLiteMode" class="visual-model-settings__hint" role="note">
+    <aside v-if="!authStore.isLiteMode && !isPeterWorkspace" class="visual-model-settings__hint" role="note">
       <div>
         <strong>{{ $t('modelSettings.builtinModels.title') }}</strong>
         <p>
@@ -59,15 +59,19 @@
     </section>
 
     <template v-if="!authStore.isLiteMode">
+      <div v-if="isPeterWorkspace" class="peter-model-types-legend">
+        <span>{{ $t('modelSettings.peter.typeTitle') }}</span>
+        <PeterTermHelp :text="$t('modelSettings.peter.typeHelp')" :label="$t('modelSettings.peter.typeTitle')" />
+      </div>
       <div class="visual-model-tabs" data-guide="settings-models" role="tablist">
       <button
         v-for="tab in ([
           { value: 'all', label: $t('common.all'), count: allLegacyModels.length },
-          { value: 'chat', label: $t('modelSettings.typeShort.chat'), count: countByType('chat') },
-          { value: 'embedding', label: $t('modelSettings.typeShort.embedding'), count: countByType('embedding') },
-          { value: 'rerank', label: $t('modelSettings.typeShort.rerank'), count: countByType('rerank') },
-          { value: 'vllm', label: $t('modelSettings.typeShort.vllm'), count: countByType('vllm') },
-          { value: 'asr', label: $t('modelSettings.typeShort.asr'), count: countByType('asr') },
+          { value: 'chat', label: $t(isPeterWorkspace ? 'modelSettings.peter.types.chat' : 'modelSettings.typeShort.chat'), count: countByType('chat') },
+          { value: 'embedding', label: $t(isPeterWorkspace ? 'modelSettings.peter.types.embedding' : 'modelSettings.typeShort.embedding'), count: countByType('embedding') },
+          { value: 'rerank', label: $t(isPeterWorkspace ? 'modelSettings.peter.types.rerank' : 'modelSettings.typeShort.rerank'), count: countByType('rerank') },
+          { value: 'vllm', label: $t(isPeterWorkspace ? 'modelSettings.peter.types.vllm' : 'modelSettings.typeShort.vllm'), count: countByType('vllm') },
+          { value: 'asr', label: $t(isPeterWorkspace ? 'modelSettings.peter.types.asr' : 'modelSettings.typeShort.asr'), count: countByType('asr') },
         ] as const)"
         :key="tab.value"
         type="button"
@@ -105,7 +109,7 @@
           @click="onModelCardClick($event, model._modelType, model)"
           @keydown.enter="onModelCardClick($event, model._modelType, model)"
         >
-          <span class="visual-model-card__icon" :aria-label="typeLabel(model._modelType)">
+          <span class="visual-model-card__icon" :aria-label="isPeterWorkspace ? $t(`modelSettings.peter.types.${model._modelType}`) : typeLabel(model._modelType)">
             <t-icon :name="typeIcon(model._modelType)" />
           </span>
 
@@ -151,7 +155,7 @@
 
             <p class="visual-model-card__meta">
               <span>{{ vendorLabel(model) }}</span>
-              <template v-if="model._modelType === 'embedding' && model.dimension">
+              <template v-if="!isPeterWorkspace && model._modelType === 'embedding' && model.dimension">
                 <span aria-hidden="true">·</span>
                 <span>{{ $t('model.editor.dimensionLabel') }} {{ model.dimension }}</span>
               </template>
@@ -202,6 +206,8 @@ import { useChatResourcesStore } from '@/stores/chatResources'
 import { useSettingsStore } from '@/stores/settings'
 import { resolveConsumerSceneCandidate } from '@/utils/consumerSceneModels'
 import { useUIStore } from '@/stores/ui'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
 
 const { t, te } = useI18n()
 const authStore = useAuthStore()
@@ -986,6 +992,16 @@ onMounted(() => {
   color: #9ca3af;
   font-size: 10px;
   line-height: 14px;
+}
+
+.peter-model-types-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--td-text-color-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0 0 6px;
 }
 
 .visual-model-tabs {

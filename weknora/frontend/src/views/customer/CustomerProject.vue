@@ -9,9 +9,11 @@ import { getWikiPage, getWikiStats, listWikiPages } from '@/api/wiki'
 import { isBuiltinAgent, listAgents } from '@/api/agent'
 import { useSettingsStore } from '@/stores/settings'
 import { customerSessions, emptyCustomerProfile, newCustomerSession } from '@/api/customer'
+import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import KnowledgeBaseEditorModal from '@/views/knowledge/KnowledgeBaseEditorModal.vue'
 import KnowledgeBase from '@/views/knowledge/KnowledgeBase.vue'
 import { selectCustomerOverview } from './customerOverview'
+import { customerVisibleNote, customerVisibleTags } from './customerPresentation'
 import './customer.css'
 const route = useRoute(), router = useRouter()
 const id = computed(() => String(route.params.kbId))
@@ -27,11 +29,14 @@ const wikiEnabled = computed(() => !!kb.value?.indexing_strategy?.wiki_enabled)
 const processing = computed(() => wikiProcessing.value || files.value.some(file => ['pending','processing','parsing','finalizing','running'].includes(file.parse_status)))
 let sequence = 0, refreshTimer: ReturnType<typeof setTimeout> | undefined
 const name = computed(() => kb.value?.name || '客户')
+const customerTags = computed(() => customerVisibleTags(profile.value))
+const customerNote = computed(() => customerVisibleNote(profile.value?.note, kb.value?.description))
 const base = computed(() => `/platform/customers/${id.value}`)
 const tabs = computed(() => [
-  { name: '概览', key: 'overview' }, { name: '资料', key: 'documents' },
-  { name: 'Wiki', key: 'wiki' }, { name: '图谱', key: 'graph' },
-  { name: 'AI 对话', key: 'conversations' }, { name: '时间线', key: 'timeline' },
+  { name: '概览', key: 'overview', help: '' }, { name: '资料', key: 'documents', help: '' },
+  { name: '客户分析', key: 'wiki', help: 'Wiki：系统把客户资料整理成相互关联的主题页面，方便回看客户背景、需求和沟通进展。' },
+  { name: '关系图', key: 'graph', help: '知识图谱：从客户资料中提取人物、需求、顾虑等信息及其关系。图中的内容仍以原始资料为准。' },
+  { name: '对话记录', key: 'conversations', help: '' }, { name: '时间线', key: 'timeline', help: '' },
 ].map(item => ({ ...item, href: `${base.value}?tab=${item.key}` })))
 const wikiHTML = computed(() => sanitizeHTML(marked.parse((wiki.value?.content || '').replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_: string, slug: string, title: string) => `[${title || slug}](${base.value}?tab=wiki&slug=${encodeURIComponent(slug)})`), {async:false}) as string))
 const sharedNames = computed(() => libraries.value.filter(lib => profile.value.shared_knowledge_base_ids?.includes(lib.id)).map(lib => lib.name))
@@ -55,7 +60,7 @@ async function load() {
     const selected = selectCustomerOverview(pages.value, name.value, profile.value.wiki_slug)
     if (selected) {
       try { const page: any = await getWikiPage(target,selected.slug); if (run === sequence) wiki.value = page.data ?? page }
-      catch { if (run === sequence) { wiki.value=null; detailError.value='画像条目暂时不可用，可在「编辑资料」中重新选择 Wiki 条目。' } }
+      catch { if (run === sequence) { wiki.value=null; detailError.value='客户概况暂时不可用，可在「编辑客户」中重新选择概览内容。' } }
     } else wiki.value = null
     if (run !== sequence) return
     if (processing.value) refreshTimer = setTimeout(load,8000)
@@ -102,12 +107,12 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
     <div v-if="busy" class="customer-empty"><t-loading text="正在读取客户资料…"/></div>
     <div v-else-if="error" class="customer-empty"><p>{{error}}</p><button class="customer-secondary" @click="load">重新加载</button></div>
     <template v-else-if="kb">
-      <header class="customer-heading"><div class="customer-title"><div><h1>{{name}}</h1><span class="customer-status" :data-status="profile.status">{{profile.status}}</span> <span class="customer-muted">{{kb.description}}</span></div></div><div class="customer-actions"><button class="customer-icon" aria-label="客户设置" title="客户设置" @click="showSettings=true"><t-icon name="setting"/></button><button class="customer-secondary" @click="openEdit"><t-icon name="edit"/>编辑资料</button><button class="customer-primary" :disabled="openingChat" @click="chat()"><t-icon name="chat"/>继续分析</button></div></header>
-      <nav class="customer-project-tabs" aria-label="客户项目"><router-link v-for="item in tabs" :key="item.key" :to="item.href" :class="{active:tab===item.key}" :aria-current-value="tab===item.key ? 'page' : 'false'">{{item.name}}</router-link></nav>
+      <header class="customer-heading"><div class="customer-title"><div><h1>{{name}}</h1><div v-if="customerTags.length" class="customer-tags"><span v-for="item in customerTags" :key="item">{{item}}</span></div></div></div><div class="customer-actions"><button class="customer-secondary" @click="openEdit"><t-icon name="edit"/>编辑客户</button><button class="customer-primary" :disabled="openingChat" @click="chat()"><t-icon name="chat"/>继续分析</button></div></header>
+      <nav class="customer-project-tabs" aria-label="客户项目"><span v-for="item in tabs" :key="item.key" class="customer-project-tab"><router-link :to="item.href" :class="{active:tab===item.key}" :aria-current-value="tab===item.key ? 'page' : 'false'">{{item.name}}</router-link><PeterTermHelp v-if="item.help" :text="item.help" :label="`了解${item.name}`" /></span></nav>
       <t-alert v-if="detailError" theme="warning" :message="detailError" style="margin-bottom:16px"><template #operation><button class="customer-icon" @click="load">刷新</button></template></t-alert>
       <t-alert v-if="uploadStatus" :theme="uploading ? 'info' : 'success'" :message="uploadStatus" style="margin-bottom:16px"/>
-      <div v-if="tab==='overview'" class="customer-overview"><section><article class="customer-panel"><div class="customer-panel-head"><h2>客户画像</h2><router-link v-if="wikiEnabled" class="customer-muted" :to="base+'?tab=wiki'+(wiki ? '&slug='+encodeURIComponent(wiki.slug) : '')">查看 Wiki <t-icon name="arrow-up-right"/></router-link></div><p class="customer-muted">{{!wikiEnabled ? '未启用 Wiki 整理' : processing ? '正在整理客户画像…' : wiki ? time(wiki.updated_at)+' 更新' : '等待资料整理'}}</p><div v-if="wiki" class="customer-profile-markdown" v-html="wikiHTML"/><div v-else class="customer-empty"><t-icon name="file" size="28px"/><p>{{!wikiEnabled ? '可在客户设置中开启 Wiki 整理。' : processing ? '整理完成后会自动更新。' : '上传聊天记录后，这里将展示客户 Wiki 的整理内容。'}}</p><button class="customer-secondary" :disabled="uploading" @click="fileInput?.click()">上传资料</button></div></article><article class="customer-panel"><div class="customer-panel-head"><h2>最近记录</h2><button class="customer-secondary" @click="showRecord=true"><t-icon name="add"/>添加记录</button></div><div v-for="entry in timeline.slice(0,5)" :key="entry.id" class="customer-record"><span class="customer-record-icon"><t-icon :name="entry.icon"/></span><div class="customer-record-copy"><router-link :to="entry.href">{{entry.title}}</router-link><p><time>{{time(entry.date)}} · {{entry.kind}}</time></p></div></div><p v-if="!timeline.length" class="customer-muted">沟通、上传和 AI 会话会汇集在这里。</p></article></section>
-        <aside><article class="customer-panel"><h2>客户名片</h2><dl class="customer-metadata"><dt>联系方式</dt><dd>{{profile.contact || '尚未填写'}}</dd><dt>标签</dt><dd class="customer-tags"><span v-for="tag in profile.tags" :key="tag">{{tag}}</span><span v-if="!profile.tags?.length">尚未添加</span></dd><dt>关联公共知识库</dt><dd>{{sharedNames.join('、') || '尚未关联'}}</dd><dt>资料数量</dt><dd>{{kb.knowledge_count || files.length}} 份</dd></dl></article><article class="customer-panel"><div class="customer-panel-head"><h2>置顶备注</h2><button class="customer-icon" aria-label="编辑备注" @click="openEdit"><t-icon name="edit"/></button></div><p class="customer-note">{{profile.note || '暂无备注'}}</p></article><button class="customer-secondary" style="width:100%;margin-bottom:10px" :disabled="uploading" @click="fileInput?.click()"><t-icon name="upload"/>上传聊天资料</button></aside>
+      <div v-if="tab==='overview'" class="customer-overview"><section><article class="customer-panel"><div class="customer-panel-head"><h2>客户概况</h2><router-link v-if="wikiEnabled" class="customer-muted" :to="base+'?tab=wiki'+(wiki ? '&slug='+encodeURIComponent(wiki.slug) : '')">查看完整分析 <t-icon name="arrow-up-right"/></router-link></div><p class="customer-muted">{{!wikiEnabled ? '未开启自动整理' : processing ? '正在整理客户概况…' : wiki ? time(wiki.updated_at)+' 更新' : '等待资料整理'}}</p><div v-if="wiki" class="customer-profile-markdown" v-html="wikiHTML"/><div v-else class="customer-empty"><t-icon name="file" size="28px"/><p>{{!wikiEnabled ? '可在「编辑客户」的资料整理选项中开启自动整理。' : processing ? '整理完成后会自动更新。' : '上传聊天记录后，这里将展示整理出的客户概况。'}}</p><button class="customer-secondary" :disabled="uploading" @click="fileInput?.click()">上传资料</button></div></article><article class="customer-panel"><div class="customer-panel-head"><h2>最近记录</h2><button class="customer-secondary" @click="showRecord=true"><t-icon name="add"/>添加记录</button></div><div v-for="entry in timeline.slice(0,5)" :key="entry.id" class="customer-record"><span class="customer-record-icon"><t-icon :name="entry.icon"/></span><div class="customer-record-copy"><router-link :to="entry.href">{{entry.title}}</router-link><p><time>{{time(entry.date)}} · {{entry.kind}}</time></p></div></div><p v-if="!timeline.length" class="customer-muted">沟通、上传和 AI 会话会汇集在这里。</p></article></section>
+        <aside><article class="customer-panel"><h2>客户名片</h2><dl class="customer-metadata"><dt>联系方式</dt><dd>{{profile.contact || '尚未填写'}}</dd><dt>可参考的资料库<PeterTermHelp text="公共知识库：可让智能体在分析这个客户时参考所选销售案例或课程资料，不会把这些共用资料复制进客户资料。" label="了解可参考的资料库" /></dt><dd>{{sharedNames.join('、') || '尚未关联'}}</dd><dt>资料数量</dt><dd>{{kb.knowledge_count || files.length}} 份</dd></dl></article><article class="customer-panel"><div class="customer-panel-head"><h2>客户备注</h2><button class="customer-icon" aria-label="编辑客户备注" @click="openEdit"><t-icon name="edit"/></button></div><p class="customer-note">{{customerNote || '暂无备注'}}</p></article><button class="customer-secondary" style="width:100%;margin-bottom:10px" :disabled="uploading" @click="fileInput?.click()"><t-icon name="upload"/>上传聊天资料</button></aside>
       </div>
       <div v-else-if="isContentTab" class="customer-content"><KnowledgeBase :key="id" embedded /></div>
       <section v-else-if="tab==='conversations'" class="customer-panel"><div class="customer-panel-head"><h2>这个客户的 AI 对话</h2><button class="customer-primary" :disabled="openingChat" @click="chat(true)"><t-icon name="add"/>新开一条对话</button></div><div v-for="s in sessions" :key="s.id" class="customer-record"><span class="customer-record-icon"><t-icon name="chat"/></span><div class="customer-record-copy"><router-link :to="'/platform/chat/'+s.id">{{s.title || '客户分析'}}</router-link><p><time>{{time(s.updated_at)}}</time></p></div><t-icon name="chevron-right"/></div><p v-if="!sessions.length" class="customer-muted">还没有对话，开始第一次分析。</p></section>

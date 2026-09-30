@@ -47,7 +47,7 @@ test('Lite knowledge-base creation pre-fills a first available localized name an
   assert.match(editor, /knowledgeEditor\.basic\.defaultNameWithIndex/)
   assert.match(editor, /chatResources\.rawKnowledgeBases/)
   assert.match(editor, /name: authStore\.isLiteMode \? getLiteDefaultKnowledgeBaseName\(\) : ''/)
-  assert.match(editor, /<KbCreateContextualGuide\s+:when="visible && editorMode === 'create' && !isCustomer"/)
+  assert.match(editor, /<KbCreateContextualGuide\s+:when="visible && editorMode === 'create' && !isCustomer && !isPeterWorkspace"/)
   assert.match(createGuide, /key: 'nameLite'/)
   assert.match(createGuide, /key: 'submitLite'/)
 })

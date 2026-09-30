@@ -1993,6 +1993,23 @@ export default {
   modelSettings: {
     title: '모델 설정',
     description: '다양한 유형의 AI 모델을 관리합니다. Ollama 로컬 모델과 원격 API를 지원합니다',
+    peter: {
+      description: '에이전트와 자료 정리에 사용할 AI 서비스를 용도별로 관리합니다.',
+      typeTitle: '용도별 보기',
+      typeHelp: '모델 역할: 대화 모델은 답변을 작성하고, Embedding은 관련 자료를 찾으며, ReRank는 검색 결과를 정렬합니다. 비전 모델은 이미지를 이해하고 ASR은 음성을 문자로 변환합니다.',
+      types: {
+        chat: '대화',
+        embedding: '자료 검색',
+        rerank: '결과 개선',
+        vllm: '이미지 이해',
+        asr: '음성 텍스트 변환'
+      },
+      baseUrlHelp: 'API 주소(Base URL): 모델 제공자가 제공하는 접속 주소입니다. 제공자를 선택하면 보통 자동으로 입력됩니다.',
+      apiKeyHelp: 'API Key: 모델 제공자의 접속 키입니다. 저장 후에는 원문이 다시 표시되지 않습니다.',
+      headersHelp: 'HTTP Header: 일부 제공자에게 필요한 추가 요청 정보입니다. 일반적으로 비워 두면 됩니다.',
+      connectionOptions: '추가 연결 옵션',
+      hideConnectionOptions: '연결 옵션 접기'
+    },
     sceneModels: {
       navTitle: '시나리오 모델 설정',
       title: '시나리오별 모델',
@@ -3743,6 +3760,19 @@ export default {
     models: {
       title: '모델 설정',
       description: '지식베이스에 적합한 AI 모델 선택',
+      peter: {
+        title: 'AI 서비스',
+        ready: '필요한 모델을 선택했습니다.',
+        missing: '필요한 AI 서비스가 없습니다. 먼저 선택하세요.',
+        adjust: 'AI 서비스 변경',
+        collapse: '설정 접기',
+        answer: '정리와 답변',
+        answerHelp: 'LLM(대규모 언어 모델): 자료를 요약하고 지식 페이지와 답변을 작성합니다.',
+        search: '관련 자료 찾기',
+        searchHelp: 'Embedding(벡터 모델): 에이전트가 관련 자료를 찾도록 도우며, 자료 검색을 사용할 때 필요합니다.',
+        organize: '지식 페이지 정리',
+        organizeHelp: 'Wiki 합성 모델: 추출한 정보를 지식 페이지로 정리합니다. 비워 두면 기본 요약 모델을 사용합니다.'
+      },
       llmLabel: 'LLM 대규모 언어 모델',
       llmDesc: '요약 및 개요를 위한 대규모 언어 모델',
       llmPlaceholder: 'LLM 모델을 선택해주세요 (선택)',

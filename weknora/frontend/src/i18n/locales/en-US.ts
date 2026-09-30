@@ -3342,6 +3342,19 @@ export default {
     models: {
       title: 'Model Configuration',
       description: 'Select appropriate AI models for the knowledge base',
+      peter: {
+        title: 'AI services',
+        ready: 'Required models have been selected.',
+        missing: 'A required AI service is missing. Choose one to continue.',
+        adjust: 'Adjust AI services',
+        collapse: 'Hide settings',
+        answer: 'Organize and answer',
+        answerHelp: 'LLM (large language model): summarizes sources, creates knowledge pages, and answers questions.',
+        search: 'Find relevant material',
+        searchHelp: 'Embedding model: finds relevant material for the agent; required when document search is enabled.',
+        organize: 'Organize knowledge pages',
+        organizeHelp: 'Wiki synthesis model: turns extracted information into knowledge pages; when empty, the default summary model is used.'
+      },
       llmLabel: 'LLM Model',
       llmDesc: 'Large language model used for summarization and abstract generation (optional)',
       llmPlaceholder: 'Select an LLM model (optional)',
@@ -4969,6 +4982,23 @@ export default {
   modelSettings: {
     title: 'Model Settings',
     description: 'Manage different types of AI models, including local Ollama and remote APIs',
+    peter: {
+      description: 'Manage the AI services used by agents and document processing.',
+      typeTitle: 'Browse by purpose',
+      typeHelp: 'Model roles: LLMs write answers; Embedding finds relevant material; ReRank improves result order; vision models understand images; ASR transcribes speech.',
+      types: {
+        chat: 'Conversation',
+        embedding: 'Find information',
+        rerank: 'Improve results',
+        vllm: 'Understand images',
+        asr: 'Transcribe audio'
+      },
+      baseUrlHelp: 'API address (Base URL): the endpoint provided by the model provider. It is usually filled after you choose a provider.',
+      apiKeyHelp: 'API Key: the access credential from your model provider. The original value is not shown again after saving.',
+      headersHelp: 'HTTP Header: additional request information required by some providers. Usually leave this empty.',
+      connectionOptions: 'More connection options',
+      hideConnectionOptions: 'Hide connection options'
+    },
     sceneModels: {
       navTitle: 'Scenario model settings',
       title: 'Your model by scenario',
