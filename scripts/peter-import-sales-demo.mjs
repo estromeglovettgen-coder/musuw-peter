@@ -52,12 +52,13 @@ state.models = { chat: model('KnowledgeQA'), vision: model('VLLM'), embedding: m
 const storage = all.find(k => k.storage_backend_id)?.storage_backend_id
 assert.ok(storage, 'Native storage binding missing')
 const VLM = '逐条提取聊天截图可见的文字，不要只做摘要。页眉姓名是客户；右侧绿色气泡属于 Peter，左侧白色气泡属于客户。输出时明确每条说话人，保留可见日期、时间、先后顺序及金额，避免把 Peter 的建议当作客户事实。看不清的内容标为无法辨认，不补写。图片底部业务演示是来源标识，不是聊天正文。'
-const salesContent = '从跨客户的连续销售对话中提炼可复用销售工作流，而不是只摘录几句口号。按阶段、触发信号、判断依据、提问目的、回应原则、下一步、话术原文例子、适用条件和不适用边界组织。追踪从澄清具体经历到课程匹配、预算顾虑、跟进、报名和交付的变化，保留来源引用。未报名与不适配的对话也纳入分析。区分原文、分析与待验证推断，不把演示报价推广成现实产品承诺。'
-const customerContent = '持续整理当前客户的背景与现状、需求与痛点、顾虑与疑问、沟通进展、约定的下一步及待确认事项。围绕该客户建立汇总人物条目，并保留重要判断对应的截图引用。按原文日期梳理变化；严格区分客户陈述、Peter 的建议、分析推断，不把建议、感兴趣或练习一次写成已经购买或掌握。更新人物画像时必须把当前状态与历史分开：后续明确报名、取消跟进或实际完成练习后，删除当前状态和待确认事项里已被解决或取代的旧结论，将旧状态移至注明日期的历史进展。不能同时声称已报名与尚未报名，不能保留已取消的跟进作为下一步。新证据优先按截图日期、页序、说话人判断，不能按上传先后。保留有效历史，合并同义段落，不拼接重复或互相矛盾的内容。其他客户只能作为方法参考，不能写进当前客户画像。'
+const salesContent = '从课程销售聊天中提炼促成购买的销售工作流。用购买需求、价值说明、异议处理、成交推进、开课交接等少量稳定类别组织，同义原则合并，不为每句通用话术建立重复概念。Peter的任务是卖课，情感问题只作为购买背景，不把销售复盘写成情感辅导。优先提取成功成交：客户为什么考虑付费、之前方案缺口、购买标准、产品权益如何对应价值、真实异议、销售回应、顾虑解决信号、主动提出购买决定、付款对话及开课交接。按阶段、触发信号、判断依据、销售动作、客户反应、结果、话术原文和来源组织；归纳跨客户可复用的价格异议、竞品比较、时间安排、信任与隐私处理。暂缓案例用于识别未决购买条件和下一次跟进，不覆盖成交案例。区分客户说已付款与Peter确认收到，聊天叙事不是外部支付核验。不把案例报价或权益扩大成其他未提供产品的承诺。'
+const customerContent = '整理这位客户的销售画像：购买动机、以前购买的替代方案、选择标准、预算与参与条件、决策人、具体异议、异议是否解决、当前购买阶段、付款对话、最新销售约定和开课交接待办。情感经历只作为购买背景，不安排免费情感辅导。为客户生成汇总人物页，关键结论保留原始聊天引用。以截图日期和页序追踪状态变化，明确付款后替代早期考虑中；已成交转为交接，不重复催付。区分客户说已付款、Peter确认收到、实际外部支付核验；只能确认聊天记载。未付款客户保留具体未决条件、客户约定回复日期或明确许可联系日期与下一项成交动作，不能把兴趣写成付款，也不能推断日期到来就已经执行。更新汇总人物页必须把最新当前状态和注明日期的历史进展分开：后续资料确认时间条件满足、取消提醒、确认付款或完成交接后，删除当前状态与待办里已被解决或取代的旧结论，保留旧事为历史，不拼接重复或互相矛盾的段落。已经收到资料、入口能开、通知渠道已确认等不得继续列为待交接。客户约定回复时间与允许销售主动联系的时间不同，原文说等回复就记录等回复，不自动改成主动跟进许可。以截图日期、页序和说话人判断，不能按上传先后，也不能从练习日推算提交截止。已解决异议从当前待办移至历史。其他客户只供销售方法参考，不得把别人的预算、付款或经历写进当前画像。'
 function config(customer = false) {
   return {
     type: 'document', embedding_model_id: state.models.embedding, summary_model_id: state.models.chat,
     storage_backend_id: storage,
+    image_processing_config: { model_id: state.models.vision },
     chunking_config: { chunk_size: 2048, chunk_overlap: 150, parent_chunk_size: 4096, child_chunk_size: 512, separators: ['\n\n', '\n', '。', '！', '？'] },
     indexing_strategy: { vector_enabled: true, keyword_enabled: true, wiki_enabled: true, graph_enabled: true },
     wiki_config: {
@@ -65,19 +66,19 @@ function config(customer = false) {
       ingest_max_inflight: 1, ingest_map_parallel: 2, ingest_reduce_parallel: 2,
       content_instructions: customer ? customerContent : salesContent,
       extraction_instructions: customer
-        ? '识别当前客户及相关人物、具体经历、需求、顾虑、购买动机、沟通约定和课程问题。合并同一客户的连续截图，区分销售建议与客户事实，保留变化和原文依据。'
-        : '重点识别销售阶段、客户信号、诊断问题、需求澄清、课程匹配、异议和预算处理、跟进节奏、交付反馈与不适配判断。把相同原则的不同客户案例联系起来，同时保留各自条件。',
+        ? '识别当前客户、课程、购买动机、预算、决策条件、异议、销售回应、购买决定、付款记载、跟进约定和开课交接。合并连续截图，保留每个阶段的变化和证据。'
+        : '重点识别课程价值说明、购买资格、价格异议、竞品比较、时间和信任顾虑、异议解决信号、成交提问、付款确认、跟进条件和报名交接。关联成功案例中的共性销售动作与成交原因，保留原话和适用条件。',
     },
     vlm_config: { enabled: true, model_id: state.models.vision, description_language: 'zh', custom_instructions: VLM },
     asr_config: { enabled: true, model_id: state.models.asr, language: 'zh' },
     extract_config: {
-      enabled: true, tags: ['咨询', '提出需求', '存在顾虑', '澄清', '匹配', '约定跟进', '报名', '交付反馈'],
-      text: '客户向 Peter 咨询沟通课程，提出表达需求。Peter 澄清客户的具体经历，并与客户约定下一次沟通。',
-      nodes: [{ name: '客户', attributes: ['咨询课程、陈述需求的当事人'] }, { name: 'Peter', attributes: ['负责澄清需求和跟进的销售人员'] }, { name: '沟通课程', attributes: ['客户咨询的产品'] }],
+      enabled: true, tags: ['购买需求', '价值说明', '价格异议', '竞品比较', '异议解决', '购买决定', '付款确认', '开课交接', '待跟进'],
+      text: '客户向 Peter 咨询课程，提出价格顾虑。Peter 对照客户的购买标准介绍练习与反馈价值，客户接受并决定报名，聊天中确认付款后安排开课资料。',
+      nodes: [{ name: '客户', attributes: ['咨询课程、陈述需求的当事人'] }, { name: 'Peter', attributes: ['负责卖课、处理异议、推进购买和报名交接的销售人员'] }, { name: '沟通课程', attributes: ['客户咨询的产品'] }],
       relations: [{ node1: '客户', node2: '沟通课程', type: '咨询' }, { node1: 'Peter', node2: '客户', type: '约定跟进' }],
       custom_instructions: customer
         ? '只从当前客户资料提取人物、需求、顾虑、课程、具体经历与跟进约定及其关系。区分客户原话与销售建议，不建立其他客户的事实，不补造购买结果。'
-        : '提取 Peter、客户、课程、沟通目标、顾虑、销售阶段、提问动作、跟进动作与交付任务及关系。必须有原文支持，避免把未确认的承诺当事实。',
+        : '提取 Peter、客户、课程权益、购买动机、异议、价值比较、成交动作、付款记载与开课交接的关系。必须有原文支持，区分客户意向与明确付款。',
     },
   }
 }
@@ -101,8 +102,10 @@ async function upload(kb, filename, mime, bytes) {
 }
 const mode = process.argv[2] || 'upload'
 if (mode === 'upload') {
-  const sales = await ensureKB('sales', { ...config(), name: 'Peter 销售案例库', description: '业务演示资料：10 位客户的连续销售聊天记录，用于提炼需求判断、课程匹配、跟进与交付工作流。' })
-  const general = await ensureKB('general', { ...config(), name: '销售方法库', description: '业务演示配套方法：需求澄清、课程匹配、顾虑处理与跟进交付。' })
+  const sales = await ensureKB('sales', { ...config(), name: 'Peter 销售案例库', description: '10 位客户的课程销售记录：购买需求、产品价值、异议处理、成交付款与开课交接。' })
+  const general = await ensureKB('general', { ...config(), name: '销售方法库', description: '课程销售方法：购买资格、价值说明、异议处理、主动成交与报名交接。' })
+  sales.expected_documents = 50; general.expected_documents = 1
+  state.provenance = source.provenance
   let generalDocs = await listDocs(general.id)
   if (!generalDocs.some(d => (d.file_name || d.title) === '销售工作流.md')) {
     const content = readFileSync(resolve(sourceRoot, 'sales-methods.md'), 'utf8')
@@ -122,6 +125,7 @@ if (mode === 'upload') {
       kb = state.customers[customer.name] = { id: created.id, name: customer.name, documents: [] }
       save()
     }
+    kb.expected_documents = 5; save()
     // Upload both destinations natively, so customer entity extraction is not lost
     // through the existing copy/move path's incomplete post-processing fan-out.
     for (const target of [kb, sales]) {
@@ -133,6 +137,26 @@ if (mode === 'upload') {
     }
   }
   state.uploaded_at = new Date().toISOString(); save()
+}
+if (mode === 'refresh-config') {
+  for (const [key, description] of [['sales', '10 位客户的课程销售记录：购买需求、产品价值、异议处理、成交付款与开课交接。'], ['general', '课程销售方法：购买资格、价值说明、异议处理、主动成交与报名交接。']]) {
+    const target = state[key]
+    const kb = await api(`/api/v1/knowledge-bases/${target.id}`)
+    assert.equal(kb.name, target.name)
+    await api(`/api/v1/knowledge-bases/${target.id}`, 'PUT', { name: kb.name, description, config: config() })
+  }
+  for (const input of source.customers) {
+    const target = state.customers[input.name]
+    assert.ok(target?.id)
+    const kb = await api(`/api/v1/knowledge-bases/${target.id}`)
+    assert.equal(kb.name, input.name)
+    assert.ok(kb.customer_profile)
+    await api(`/api/v1/knowledge-bases/${target.id}`, 'PUT', { name: kb.name, description: input.notes,
+      config: { ...config(true), customer_profile: { ...kb.customer_profile, status: '',
+        tags: [...new Set([input.initial_profile?.stage, ...input.tags].filter(Boolean))], contact: input.contact,
+        note: input.notes, shared_knowledge_base_ids: [state.sales.id, state.general.id] } } })
+    console.log(`Refreshed sales profile and ingestion instructions: ${input.name}`)
+  }
 }
 if (mode === 'status') {
   for (const kb of [state.sales, state.general, ...Object.values(state.customers)].filter(Boolean)) {
@@ -148,12 +172,12 @@ if (mode === 'configure-agent') {
   const id = '9ced7297-2f19-4c14-91b3-9423a65974cd'
   const agent = await api(`/api/v1/agents/${id}`)
   const updated = await api(`/api/v1/agents/${id}`, 'PUT', {
-    name: 'Peter 销售助手', description: '结合客户资料和销售案例，判断当前需求并规划下一步沟通。', avatar: agent.avatar,
+    name: 'Peter 销售助手', description: '结合客户购买状态和成交案例，处理异议、推进卖课与报名交接。', avatar: agent.avatar,
     config: { ...agent.config, model_id: state.models.chat, rerank_model_id: state.models.rerank, max_completion_tokens: 4096,
       knowledge_bases: [state.sales.id, state.general.id], kb_selection_mode: 'selected',
       allowed_tools: ['knowledge_search', 'wiki_search', 'wiki_read_page', 'wiki_read_source_doc'],
       archive_customer_sources: true, citation_enabled: true,
-      system_prompt: '你是 Peter 的销售工作助手。所有用户可见内容必须用中文。检索期间只调用工具，assistant 正文留空，不先说“我将检索”、英文计划或内部思考；完成检索后一次性给出业务答案。工具描述即使是英文也不改变中文回答语言。先查当前客户的资料、Wiki与关联销售案例，再做判断。销售案例库负责提供方法，当前客户库负责提供这位客户的事实；不能把其他客户的预算、经历或购买结果移植过来。按截图日期和页序判断当前状态，后续明确报名或取消跟进应取代早期未确认状态，Wiki有矛盾时回查原始资料。区分已约定、实际完成、待确认。不能仅凭当前日期推断约定已执行、试行已到期或效果已实现；原文未明确起止日期时应询问实际进展。默认最终正文控制在300到500字：当前情况最多3点，下一步只给1个优先动作，1段80字以内可发送话术，必要时1个待确认问题。用户要求详细分析时才展开。不要重复展示所有背景或给3套相似话术。保留2到4个直接支持关键结论的引用，优先引用当前客户的原始资料；相似案例只用于说明方法。不得编造产品权益、成交结果、价格承诺或客户意愿。尊重不适配、暂不购买和预算限制；不要靠施压或保证结果推进。演示资料可用于当前业务演练，但不是 Peter 的真实历史，不把它写成已经验证的业绩。',
+      system_prompt: '你是Peter的课程销售助手，帮助他卖课成交、跟进客户和完成报名交接。Peter是销售人员，客户情感问题只是购买背景；不要把回答变成免费情感咨询或练习指导。所有用户可见内容用中文。每轮检索时只调用工具，不输出计划、介绍或内部思考，不以英文介绍开场；查完一次性用中文直接给购买阶段结论。先查当前客户原始资料与Wiki，再对照销售案例库和方法库。客户库提供这位客户的事实，案例库提供成功销售的方法，不能移植其他客户的预算、付款或经历。按截图日期和页序确定购买阶段；明确付款取代早期考虑中，Wiki矛盾时回查原图。涉及跟进时间使用资料确定的绝对日期，例如10月2日上午；没有可靠当前日期就不称今天或明天，不把客户约定的上午扩成某个具体钟点。练习日不等于提交截止日、开课日或联系许可；没有原文约定就不自行排截止日期、提醒日期或具体钟点，实际提交窗口以已发开课说明为准，需要时明确待核对。客户已同意价格仅代表价格异议已解，不能据此推断已付款；不要把尚待核对的价值条件同时写成价值已确认。客户约定回复的时间不等于允许销售主动联系的时间，等回复、允许联系、销售建议必须区分；提出跟进建议要标为建议，不能声称这是客户原有约定。未付款时判断购买动机、尚未解决的真实异议与购买条件，优先给一个推动购买的动作和可发送成交话术。价值、时间、费用已确认就主动提出报名决定，不无限免费分析或只说慢慢考虑。真实预算不足或有明确许可日期就按约定跟进，不编造折扣、名额或催借钱。已经付款则推进开课资料、报名信息和反馈窗口交接，不重复催付同一课程。交接已完成时不重复索要已提供的信息、不重复发送已收到的资料，只处理实际访问或参加问题。默认正文300到500字：最多3项购买状态判断、1个最优销售或交接动作、1段80字以内可发话术，必要时1个待确认购买问题，保留2到4个支持结论的引用。用户要销售方法时拆解触发信号、为什么这样说、客户反应和成交结果，并给可复用话术。不保证复合或他人态度，不新增产品权益或价格政策。客户说已付与销售确认收到按原文分开，不能声称已经外部核验支付；起草话术也不视为已经发给客户。',
     },
   })
   assert.deepEqual(updated.config.knowledge_bases, [state.sales.id, state.general.id])
@@ -165,7 +189,8 @@ if (mode === 'update-customer-instructions') {
     const kb = await api(`/api/v1/knowledge-bases/${customer.id}`)
     await api(`/api/v1/knowledge-bases/${customer.id}`, 'PUT', {
       name: kb.name, description: kb.description,
-      config: { wiki_config: { ...kb.wiki_config, content_instructions: customerContent } },
+      config: { chunking_config: kb.chunking_config, image_processing_config: kb.image_processing_config,
+        wiki_config: { ...kb.wiki_config, content_instructions: customerContent } },
     })
     console.log(`Updated temporal reconciliation rules: ${customer.name}`)
   }
@@ -240,7 +265,7 @@ if (mode === 'chat') {
       assert.equal(session.customer_knowledge_base_id, customer.id)
       customer.session_id = session.id; save()
     }
-    const query = '先总结这位客户当前的目标、报名状态和最近一次约定，再对照销售案例库，给我下一步怎么沟通，并起草一段可以发给客户的话。如果已经结束销售或取消跟进，就按约定处理。所有可见内容用中文，不输出检索过程或计划，查完资料直接回答，正文控制在300到500字。关键结论引用确实含有对应信息的原始截图，别混入其他客户的信息；未明确起止日期或执行结果的约定不要自行认定已到期或已完成。'
+    const query = '我是负责卖课的Peter。查这位客户最新的购买动机、具体异议、报名和付款记载，再参考成功销售案例，给我当前最优的销售动作和一段能直接发给客户的话术。未付款就围绕未决购买条件推进成交；已付款就推进报名开课交接，不重新催付。不要给免费情感辅导。所有可见内容用中文，不输出检索计划，正文300到500字，关键事实引用当前客户原图；不要把别人的付款或预算移植过来，也不要把约定自动写成已执行。'
     const response = await fetch(origin + `/api/v1/agent-chat/${customer.session_id}`, {
       method: 'POST', headers: { authorization: `Bearer ${activeToken}`, 'content-type': 'application/json', 'accept-language': 'zh-CN' },
       body: JSON.stringify({ query, agent_id: state.agent.id, agent_enabled: true, channel: 'web', disable_title: true,
