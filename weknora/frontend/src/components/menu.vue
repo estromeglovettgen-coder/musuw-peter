@@ -37,7 +37,7 @@ export default defineComponent({
   <aside class="visual-sidebar" :class="{ 'is-collapsed': uiStore.sidebarCollapsed }">
     <template v-if="uiStore.sidebarCollapsed">
       <div class="visual-sidebar__collapsed-main">
-        <button type="button" class="visual-sidebar__collapsed-logo" :title="'Musuw 穆苏瓦'" @click="toggleSidebar"><img src="/musuw-logo.png" alt="Musuw" /></button>
+        <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__collapsed-logo" :title="'Musuw 穆苏瓦'" @click="toggleSidebar"><img src="/musuw-logo.png" alt="Musuw" /></button>
         <button type="button" class="visual-sidebar__collapsed-control" :title="t('menu.expandSidebar')" @click="toggleSidebar"><t-icon name="chevron-right" /></button>
         <div class="visual-sidebar__collapsed-divider" />
         <button type="button" class="visual-sidebar__collapsed-nav is-new" :title="t('menu.newChat')" @click="handleMenuClick('creatChat')"><t-icon name="chat-add" /></button>
@@ -52,7 +52,7 @@ export default defineComponent({
 
     <template v-else>
       <header class="visual-sidebar__header">
-        <button type="button" class="visual-sidebar__brand" aria-label="Musuw" @click="handleMenuClick('creatChat')"><span class="visual-sidebar__mark" aria-hidden="true"><img src="/musuw-logo.png" alt="" /></span></button>
+        <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__brand" aria-label="Musuw" @click="handleMenuClick('creatChat')"><span class="visual-sidebar__mark" aria-hidden="true"><img src="/musuw-logo.png" alt="" /></span></button>
         <div class="visual-sidebar__header-actions">
           <button v-if="!authStore.isLiteMode" type="button" class="visual-sidebar__header-icon" :title="t('menu.search')" :aria-label="t('menu.search')" @click="commandPaletteStore.openPalette('')"><t-icon name="search" /></button>
           <button type="button" class="visual-sidebar__header-icon" :title="t('menu.collapseSidebar')" :aria-label="t('menu.collapseSidebar')" @click="toggleSidebar"><t-icon name="chevron-left" /></button>

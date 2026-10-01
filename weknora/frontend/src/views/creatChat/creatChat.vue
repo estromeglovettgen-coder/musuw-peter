@@ -2,10 +2,10 @@
     <main class="visual-new-chat-view">
         <section class="visual-new-chat-stack" aria-labelledby="visual-new-chat-title">
             <h1 id="visual-new-chat-title" class="visual-new-chat-title" style="--wails-draggable: drag">
-                {{ $t('createChat.title') }}
+                {{ isPeterWorkspace ? "I'm Peter" : $t('createChat.title') }}
             </h1>
 
-            <div ref="sqContainerRef" class="visual-new-chat-suggestions">
+            <div v-if="!isPeterWorkspace" ref="sqContainerRef" class="visual-new-chat-suggestions">
                 <div v-if="sqLoading && suggestedQuestions.length === 0" class="visual-new-chat-suggestions__inner">
                     <div class="visual-new-chat-suggestions__heading">
                         <t-skeleton animation="gradient" :row-col="[{ width: '112px', height: '13px' }]" />
@@ -168,6 +168,11 @@ const onQuestionsEntered = () => {
 };
 
 const fetchSuggestedQuestions = async () => {
+    if (isPeterWorkspace) {
+        suggestedQuestions.value = [];
+        sqLoading.value = false;
+        return;
+    }
     const fetchId = ++suggestedQuestionsFetchId;
     sqLoading.value = true;
     try {
