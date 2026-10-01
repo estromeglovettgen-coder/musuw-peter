@@ -50,7 +50,7 @@ import {
 import { formatLocalizedList } from "@/utils/format-list";
 import { SKILL_ICON, type MentionItem, type MentionItemType, type MentionRequestItem } from "@/types/mention";
 import { resolveChatModelId } from "@/utils/managedChatModels";
-import { modelReasoningEfforts, resolveModelReasoning } from "@/utils/modelReasoning";
+import { modelReasoningDefaultEffort, modelReasoningEfforts, resolveModelReasoning } from "@/utils/modelReasoning";
 import {
   resolveComposerConsumerScene,
   resolveConsumerSceneCandidate,
@@ -870,7 +870,7 @@ const thinkingEnabled = computed({
   get: () => settingsStore.conversationModels.reasoningEffort !== "none",
   set: (val: boolean) => settingsStore.updateConversationModels({
     thinkingEnabled: val,
-    reasoningEffort: val ? modelReasoningEfforts(selectedModel.value)[0] || "none" : "none",
+    reasoningEffort: val ? modelReasoningDefaultEffort(selectedModel.value) : "none",
     reasoningModelId: selectedModelId.value,
   }),
 });

@@ -152,6 +152,40 @@ func TestBuildOutbound_OpenRouterReasoningEffort(t *testing.T) {
 	require.ErrorContains(t, err, "invalid reasoning effort")
 }
 
+func TestBuildOutbound_DeepSeekReasoningEffort(t *testing.T) {
+	c := newOutboundChat(t, string(provider.ProviderDeepSeek), "deepseek-flash",
+		map[string]string{ExtraConfigThinkingControl: "thinking_type"})
+	msgs := []Message{{Role: "user", Content: "compare two options"}}
+
+	t.Run("enabled sends toggle and high effort", func(t *testing.T) {
+		body, _, useRaw, err := c.buildOutbound(msgs, &ChatOptions{Thinking: ptrBool(true)}, true)
+		require.NoError(t, err)
+		require.True(t, useRaw)
+		request := body.(map[string]any)
+		assert.Equal(t, map[string]any{"type": "enabled"}, request["thinking"])
+		assert.Equal(t, "high", request["reasoning_effort"])
+		assert.NotContains(t, request, "chat_template_kwargs")
+	})
+
+	t.Run("explicit effort is preserved", func(t *testing.T) {
+		body, _, useRaw, err := c.buildOutbound(msgs, &ChatOptions{ReasoningEffort: "max"}, true)
+		require.NoError(t, err)
+		require.True(t, useRaw)
+		request := body.(map[string]any)
+		assert.Equal(t, map[string]any{"type": "enabled"}, request["thinking"])
+		assert.Equal(t, "max", request["reasoning_effort"])
+	})
+
+	t.Run("off sends the explicit disable fields", func(t *testing.T) {
+		body, _, useRaw, err := c.buildOutbound(msgs, &ChatOptions{Thinking: ptrBool(false)}, true)
+		require.NoError(t, err)
+		require.True(t, useRaw)
+		request := body.(map[string]any)
+		assert.Equal(t, map[string]any{"type": "disabled"}, request["thinking"])
+		assert.Equal(t, "none", request["reasoning_effort"])
+	})
+}
+
 func TestBuildOutbound_OpenRouterReasoningDetailsRoundTrip(t *testing.T) {
 	c := newOutboundChat(t, string(provider.ProviderOpenRouter), "anthropic/claude-sonnet-5", nil)
 	messages := []Message{{

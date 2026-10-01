@@ -18,7 +18,7 @@ test('defaultThinkingControl matches backend provider adapters', () => {
     ['openai', 'gpt-4o', 'none'],
     ['openai', 'gpt-5', 'none'],
     ['azure_openai', 'gpt-4', 'none'],
-    ['deepseek', 'deepseek-chat', 'none'],
+    ['deepseek', 'deepseek-chat', 'thinking_type'],
     ['zhipu', 'glm-4', 'none'],
     ['gemini', 'gemini-2.0', 'none'],
     ['siliconflow', 'qwen3-8b', 'none'],

@@ -20,12 +20,21 @@ func TestThinkingStrategy_NilThinking(t *testing.T) {
 		enableThinking{}, // not alwaysSend
 		thinkingTypeField{},
 		chatTemplateKwargs{},
+		deepSeekReasoning{},
 	}
 	for _, s := range strategies {
 		custom, raw := s.Apply(&req, nil, true)
 		assert.Nil(t, custom, "%T", s)
 		assert.False(t, raw, "%T", s)
 	}
+}
+
+func TestDeepSeekReasoningAliases(t *testing.T) {
+	assert.Equal(t, "low", normalizeDeepSeekEffort("minimal"))
+	assert.Equal(t, "high", normalizeDeepSeekEffort("medium"))
+	assert.Equal(t, "high", normalizeDeepSeekEffort("xhigh"))
+	assert.Equal(t, "max", normalizeDeepSeekEffort("ultra"))
+	assert.Equal(t, "none", normalizeDeepSeekEffort("none"))
 }
 
 // TestEnableThinking_QwenSemantics pins the Aliyun Qwen behavior: thinking is

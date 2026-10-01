@@ -106,6 +106,20 @@ func NewRemoteAPIChat(chatConfig *ChatConfig) (*RemoteAPIChat, error) {
 	}
 
 	thinkingOverride := parseThinkingOverride(chatConfig.ExtraConfig)
+	if providerName == provider.ProviderDeepSeek {
+		// DeepSeek's direct API uses its own thinking/effort fields. Older model
+		// rows may still carry thinking_type (or none) from the generic editor;
+		// route all direct DeepSeek rows through the real strategy so the UI
+		// switch cannot silently fall back to the API's default thinking mode.
+		defaultEffort, err := NormalizeReasoningEffort(chatConfig.DefaultReasoningEffort)
+		if err != nil {
+			return nil, fmt.Errorf("model default reasoning effort: %w", err)
+		}
+		thinkingOverride = deepSeekReasoning{
+			defaultEffort:    defaultEffort,
+			supportedEfforts: chatConfig.SupportedReasoningEfforts,
+		}
+	}
 	if thinkingOverride == nil && providerName == provider.ProviderOpenRouter {
 		defaultEffort, err := NormalizeReasoningEffort(chatConfig.DefaultReasoningEffort)
 		if err != nil {

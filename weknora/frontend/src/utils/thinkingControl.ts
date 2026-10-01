@@ -50,8 +50,13 @@ export function defaultThinkingControl(
       return 'chat_template_kwargs'
     case 'volcengine':
       return 'thinking_type'
+    case 'deepseek':
+      // Direct DeepSeek uses thinking + reasoning_effort. The backend keeps
+      // the legacy control name for compatibility, while the chat picker
+      // exposes the actual effort levels.
+      return 'thinking_type'
     default:
-      // openai, azure_openai, anthropic, zhipu, deepseek, gemini, siliconflow,
+      // openai, azure_openai, anthropic, zhipu, gemini, siliconflow,
       // hunyuan, moonshot, openrouter, weknoracloud, … → baseProvider / noThinking
       return 'none'
   }

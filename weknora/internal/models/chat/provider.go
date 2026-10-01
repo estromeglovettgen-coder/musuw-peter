@@ -146,6 +146,7 @@ func (lkeapProvider) Thinking() ThinkingStrategy { return thinkingTypeField{} }
 type deepseekProvider struct{ baseProvider }
 
 func (deepseekProvider) Name() provider.ProviderName { return provider.ProviderDeepSeek }
+func (deepseekProvider) Thinking() ThinkingStrategy  { return deepSeekReasoning{} }
 
 // Native DeepSeek cache counters are not represented by go-openai v1.41.2;
 // use the raw path so prompt_cache_hit_tokens/miss_tokens remain observable.

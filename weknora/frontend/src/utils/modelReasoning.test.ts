@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { modelReasoningEfforts, resolveModelReasoning, type ReasoningModel } from './modelReasoning.ts'
+import { isDeepSeekThinkingModel, modelReasoningDefaultEffort, modelReasoningEfforts, resolveModelReasoning, type ReasoningModel } from './modelReasoning.ts'
 
 const model = (id: string, efforts: string[], mandatory = false): ReasoningModel => ({
   id,
@@ -45,6 +45,30 @@ test('models without reasoning have no depth menu and send thinking off', () => 
   const plain = { id: 'plain', parameters: { reasoning: { supported: false } } }
   assert.deepEqual(modelReasoningEfforts(plain), [])
   assert.deepEqual(resolveModelReasoning(plain, 'high', 'grok'), { effort: 'none', modelId: 'plain' })
+})
+
+test('direct DeepSeek models expose real thinking levels and default to high', () => {
+  const deepseek: ReasoningModel = {
+    id: 'deepseek-flash',
+    name: 'deepseek-flash',
+    type: 'KnowledgeQA',
+    parameters: { provider: 'deepseek', reasoning: { supported: false } },
+  }
+  assert.equal(isDeepSeekThinkingModel(deepseek), true)
+  assert.deepEqual(modelReasoningEfforts(deepseek), ['low', 'high', 'max', 'none'])
+  assert.equal(modelReasoningDefaultEffort(deepseek), 'high')
+  assert.deepEqual(resolveModelReasoning(deepseek, 'none', ''), { effort: 'high', modelId: 'deepseek-flash' })
+})
+
+test('a non-chat DeepSeek model does not get the chat reasoning menu', () => {
+  const vlm: ReasoningModel = {
+    id: 'deepseek-vision',
+    name: 'deepseek-flash',
+    type: 'VLLM',
+    parameters: { provider: 'deepseek' },
+  }
+  assert.equal(isDeepSeekThinkingModel(vlm), false)
+  assert.deepEqual(modelReasoningEfforts(vlm), [])
 })
 
 test('scene placeholder rows do not disable reasoning before the real model catalog arrives', () => {

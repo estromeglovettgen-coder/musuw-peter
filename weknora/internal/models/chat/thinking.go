@@ -49,6 +49,16 @@ type openRouterChatCompletionRequest struct {
 	Reasoning *openRouterReasoningConfig `json:"reasoning,omitempty"`
 }
 
+// deepSeekChatCompletionRequest carries DeepSeek's OpenAI-compatible thinking
+// controls. DeepSeek accepts the explicit thinking toggle together with the
+// reasoning_effort level; keeping both fields makes the behavior unambiguous
+// for deepseek-flash and compatible DeepSeek endpoints.
+type deepSeekChatCompletionRequest struct {
+	openai.ChatCompletionRequest
+	Thinking        *ThinkingConfig `json:"thinking,omitempty"`
+	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
+}
+
 // ThinkingStrategy encodes how ChatOptions.Thinking is mapped onto a provider's
 // HTTP request. Apply returns (customBody, useRawHTTP):
 //   - (nil, false) means "send the standard OpenAI request unchanged" (the
@@ -92,6 +102,81 @@ type openRouterReasoning struct {
 	mandatory        bool
 	defaultEffort    string
 	supportedEfforts []string
+}
+
+// deepSeekReasoning maps the shared UI control onto DeepSeek's direct API.
+// The UI keeps the same six-level vocabulary used by OpenRouter, while the
+// direct DeepSeek API exposes low/high/max (plus none to disable thinking).
+// DeepSeek documents these aliases as low/high/max mappings, so old saved
+// sessions remain valid after switching a model from OpenRouter to direct API.
+type deepSeekReasoning struct {
+	defaultEffort    string
+	supportedEfforts []string
+}
+
+func normalizeDeepSeekEffort(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "none":
+		return "none"
+	case "minimal", "low":
+		return "low"
+	case "medium", "high", "xhigh":
+		return "high"
+	case "max", "ultra":
+		return "max"
+	default:
+		return ""
+	}
+}
+
+func (s deepSeekReasoning) Apply(req *openai.ChatCompletionRequest, opts *ChatOptions, _ bool) (any, bool) {
+	if opts == nil {
+		return nil, false
+	}
+
+	effort := normalizeDeepSeekEffort(opts.ReasoningEffort)
+	if effort == "" {
+		if opts.Thinking == nil {
+			return nil, false
+		}
+		if !*opts.Thinking {
+			effort = "none"
+		} else {
+			effort = normalizeDeepSeekEffort(s.defaultEffort)
+			if effort == "" || effort == "none" {
+				effort = "high"
+			}
+		}
+	}
+
+	// A saved model can outlive a catalog update. Honor its current supported
+	// levels when available, while always retaining the off switch.
+	if effort != "none" && len(s.supportedEfforts) > 0 {
+		supported := false
+		for _, value := range s.supportedEfforts {
+			if normalizeDeepSeekEffort(value) == effort {
+				supported = true
+				break
+			}
+		}
+		if !supported {
+			fallback := normalizeDeepSeekEffort(s.defaultEffort)
+			if fallback == "" || fallback == "none" {
+				fallback = "high"
+			}
+			effort = fallback
+		}
+	}
+
+	thinkingType := "enabled"
+	if effort == "none" {
+		thinkingType = "disabled"
+	}
+	return deepSeekChatCompletionRequest{
+		ChatCompletionRequest: *req,
+		Thinking:              &ThinkingConfig{Type: thinkingType},
+		ReasoningEffort:       effort,
+	}, true
 }
 
 func (s openRouterReasoning) Apply(req *openai.ChatCompletionRequest, opts *ChatOptions, _ bool) (any, bool) {
@@ -244,6 +329,8 @@ func thinkingStrategyName(strategy ThinkingStrategy) string {
 	case chatTemplateKwargs:
 		return "chat_template_kwargs"
 	case openRouterReasoning:
+		return "reasoning_effort"
+	case deepSeekReasoning:
 		return "reasoning_effort"
 	default:
 		return "none"
