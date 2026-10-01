@@ -110,3 +110,11 @@ coverage.out
 Thumbs.db
 *.swp
 *.swo
+
+# Reproducible sales-demo images and environment-specific inventory/evidence.
+/artifacts/peter-sales-demo-20261001/screenshots/
+/artifacts/peter-sales-demo-20261001/screenshots.json
+/artifacts/peter-sales-demo-20261001/old-seed-inventory.json
+/artifacts/peter-sales-demo-20261001/*-online.png
+/artifacts/peter-sales-demo-20261001/followup/screenshots/
+/artifacts/peter-sales-demo-20261001/followup/screenshots.json
