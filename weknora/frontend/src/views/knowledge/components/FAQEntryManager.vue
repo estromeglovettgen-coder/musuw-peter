@@ -91,6 +91,10 @@
         <div class="faq-card-area">
           <!-- 搜索栏与标签筛选 -->
           <div class="faq-filter-bar">
+            <div class="faq-path-pill" :aria-label="$t('knowledgeBase.folderTree.rootRow')">
+              <t-icon name="folder" />
+              <span>{{ $t('knowledgeBase.folderTree.rootRow') }}</span>
+            </div>
             <t-input v-model.trim="entrySearchKeyword" :placeholder="$t('knowledgeEditor.faq.searchPlaceholder')"
               clearable class="faq-search-input" @clear="loadEntries()" @enter="loadEntries()">
               <template #prefix-icon>
@@ -2972,9 +2976,17 @@ watch(() => entries.value.map(e => ({
 </style>
 <style scoped lang="less">
 .faq-manager {
+  width: 100%;
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 20px 28px;
+  overflow: hidden;
+  background: rgb(249 250 251 / 30%);
+  color: #374151;
 }
 
 .fade-enter-active,
@@ -3018,16 +3030,53 @@ watch(() => entries.value.map(e => ({
 }
 
 .faq-filter-bar {
-  padding: 0 0 12px 0;
+  padding: 10px;
   flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border: 1px solid rgb(229 231 235 / 90%);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+
+  .faq-path-pill {
+    min-width: 132px;
+    min-height: 28px;
+    box-sizing: border-box;
+    padding: 4px 10px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    overflow: hidden;
+    background: rgb(243 244 246 / 90%);
+    color: #374151;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 700;
+
+    :deep(.t-icon) {
+      flex: 0 0 auto;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
 
   .faq-search-input {
-    flex: 1 1 220px;
+    flex: 1 1 240px;
     min-width: 0;
+    max-width: 520px;
     width: auto;
   }
 
@@ -3063,8 +3112,15 @@ watch(() => entries.value.map(e => ({
   }
 
   @media (max-width: 767px) {
+    flex-wrap: wrap;
+
+    .faq-path-pill {
+      flex: 1 1 100%;
+    }
+
     .faq-search-input {
       flex: 1 1 100%;
+      max-width: none;
     }
 
     &__filters {
@@ -3092,12 +3148,12 @@ watch(() => entries.value.map(e => ({
     align-items: center;
     box-sizing: border-box;
     width: 100%;
-    height: 32px;
-    padding: 0 8px;
-    border: 1px solid transparent;
-    border-radius: var(--td-radius-default);
-    background: var(--td-bg-color-secondarycontainer);
-    color: var(--td-text-color-primary);
+    height: 36px;
+    padding: 8px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    color: #374151;
     font-family: var(--app-font-family);
     font-size: 14px;
     line-height: 1;
@@ -3106,8 +3162,8 @@ watch(() => entries.value.map(e => ({
 
     &:hover,
     &.open {
-      background: var(--td-bg-color-secondarycontainer);
-      border-color: transparent;
+      background: #fff;
+      border-color: #d1d5db;
     }
 
     &.is-placeholder {
@@ -3151,17 +3207,18 @@ watch(() => entries.value.map(e => ({
   }
 
   :deep(.t-input) {
-    font-size: 13px;
-    background-color: var(--td-bg-color-secondarycontainer);
-    border-color: transparent;
-    border-radius: 6px;
+    min-height: 36px;
+    font-size: 12px;
+    background-color: #fff;
+    border-color: #e5e7eb;
+    border-radius: 12px;
     box-shadow: none !important;
 
     &:hover,
     &:focus,
     &.t-is-focused {
-      border-color: var(--td-brand-color);
-      background-color: var(--td-bg-color-container);
+      border-color: #9ca3af;
+      background-color: #fff;
       box-shadow: none !important;
     }
   }
@@ -3216,8 +3273,10 @@ watch(() => entries.value.map(e => ({
   align-items: flex-start;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
   flex-shrink: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgb(229 231 235 / 80%);
+  gap: 16px;
 
   .faq-header-title {
     display: flex;
@@ -3256,18 +3315,19 @@ watch(() => entries.value.map(e => ({
     align-items: center;
     gap: 6px;
     margin: 0;
-    font-size: 20px;
+    font-size: 12px;
+    line-height: 18px;
     font-weight: 600;
-    color: var(--td-text-color-primary);
+    color: #6b7280;
   }
 
   .breadcrumb-link {
     border: none;
     background: transparent;
-    padding: 4px 8px;
-    margin: -4px -8px;
+    padding: 2px 0;
+    margin: 0;
     font: inherit;
-    color: var(--td-text-color-secondary);
+    color: #6b7280;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -3276,8 +3336,8 @@ watch(() => entries.value.map(e => ({
     transition: all 0.12s ease;
 
     &:hover:not(:disabled) {
-      color: var(--td-success-color);
-      background: var(--td-bg-color-container);
+      color: #111827;
+      background: transparent;
     }
 
     &:disabled {
@@ -3307,8 +3367,8 @@ watch(() => entries.value.map(e => ({
   }
 
   .breadcrumb-current {
-    color: var(--td-text-color-primary);
-    font-weight: 600;
+    color: #9ca3af;
+    font-weight: 400;
   }
 
   h2 {
@@ -3322,11 +3382,15 @@ watch(() => entries.value.map(e => ({
 
   .faq-subtitle {
     margin: 0;
-    color: var(--td-text-color-placeholder);
+    max-width: 768px;
+    overflow: hidden;
+    color: #6b7280;
     font-family: var(--app-font-family);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
-    line-height: 20px;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -3551,7 +3615,7 @@ watch(() => entries.value.map(e => ({
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 4px;
+  padding: 4px 4px 0 0;
 
   &.has-batch-bar {
     padding-bottom: 76px;
@@ -3622,14 +3686,14 @@ watch(() => entries.value.map(e => ({
 }
 
 .faq-card {
-  border: 1px solid var(--td-component-stroke);
-  border-radius: 10px;
-  background: var(--td-bg-color-container);
-  padding: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -3643,7 +3707,7 @@ watch(() => entries.value.map(e => ({
 
     &:hover {
       border-color: var(--td-brand-color);
-      box-shadow: 0 2px 8px rgba(7, 192, 95, 0.1);
+      box-shadow: 0 4px 12px rgb(17 24 39 / 8%);
     }
   }
 
@@ -3658,8 +3722,8 @@ watch(() => entries.value.map(e => ({
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--td-component-stroke);
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
   position: relative;
 }
 
@@ -3713,10 +3777,10 @@ watch(() => entries.value.map(e => ({
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  padding: 8px 12px;
-  margin: 0 -10px -10px;
-  background: rgba(48, 50, 54, 0.02);
-  border-top: 1px solid var(--td-component-stroke);
+  padding: 12px 16px;
+  margin: 0 -16px -16px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
   flex-wrap: nowrap;
 }
 
