@@ -3,7 +3,9 @@
 入口：<https://62.234.188.55/>。本机验收凭据保存在忽略版本控制的
 `.runtime/peter/deployment/account.json`，不得提交或粘贴到公开记录。
 主链路与修复版整机重启验收已通过，范围与限制见 [服务器验收记录](PETER_SERVER_ACCEPTANCE.md)。
-当前前端发布目录为 `20260930-11`（源码提交 `b319306`），应用镜像保持 `musuw-peter:20260930-02`。工作区入口 `frontend/index.html` 的 SHA-256 为 `761e506cf3303ed5fb0e32bb45aa594b69a62cb538afb2cfe9541a80dd747abb`，原 Musuw 登录入口 `frontend/auth/index.html` 为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`。本版在 Peter 首页隐藏提示问题卡片和 Musuw 标识，主欢迎语改为 “I'm Peter”；不改动已保存的系统提示词和知识库内容。此前在 Peter 知识库编辑侧栏和直达入口隐藏数据源、共享管理、活动记录及底层处理配置；FAQ 页面复用文档页的面包屑、圆角工具栏、筛选胶囊和卡片视觉。此前隐藏 Peter 智能体的联网搜索和附件处理入口及直接链接，新建智能体默认按用户截图配置：搜索和自动抓取开启，结果及页面数各 5，使用 Platform Web Search；图片上传和 OCR 开启，使用 DeepSeek 图像理解，OCR 页数 0、系统默认图片存储，语音上传关闭。切换新建类型后仍保持这些默认值，已有智能体保存配置保留；模型缺失时跳转可见的模型管理页面。上一版弹窗层级修复及已恢复的配置入口保持。根目录 `app:build` 通过；按用户要求不运行浏览器或业务验收，由用户验收。回退组合为前端目录 `20260930-10` 和应用镜像 `musuw-peter:20260930-02`。历史业务链路证据见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
+当前前端发布目录为 `20260930-12`（源码提交 `cb2e3af`），应用镜像为 `musuw-peter:20260930-03`。工作区入口 `frontend/index.html` 的 SHA-256 为 `2574460b92eea5ea086185d6ab6ff3a5847d16235cc0dcfa23c3af26231bf622`，原 Musuw 登录入口 `frontend/auth/index.html` 为本次构建生成的对应入口。此版将直连 DeepSeek Flash 的推理开关接到官方兼容字段：开启时发送 `thinking=enabled` 与 `reasoning_effort`，关闭时发送 `thinking=disabled` 与 `reasoning_effort=none`；Peter 的界面显示低、高、最高、关闭，首次开启默认为高。其余首页、FAQ、智能体默认配置和底层入口隐藏保持上一版行为；数据库中三个启用的直连 DeepSeek 对话模型已同步标记为支持低/高/最高推理档位。上一版在 Peter 首页隐藏提示问题卡片和 Musuw 标识，主欢迎语改为 “I'm Peter”；不改动已保存的系统提示词和知识库内容。此前在 Peter 知识库编辑侧栏和直达入口隐藏数据源、共享管理、活动记录及底层处理配置；FAQ 页面复用文档页的面包屑、圆角工具栏、筛选胶囊和卡片视觉。此前隐藏 Peter 智能体的联网搜索和附件处理入口及直接链接，新建智能体默认按用户截图配置：搜索和自动抓取开启，结果及页面数各 5，使用 Platform Web Search；图片上传和 OCR 开启，使用 DeepSeek 图像理解，OCR 页数 0、系统默认图片存储，语音上传关闭。切换新建类型后仍保持这些默认值，已有智能体保存配置保留；模型缺失时跳转可见的模型管理页面。上一版弹窗层级修复及已恢复的配置入口保持。根目录 `app:build` 通过；按用户要求不运行浏览器或业务验收，由用户验收。回退组合为前端目录 `20260930-11` 和应用镜像 `musuw-peter:20260930-02`。历史业务链路证据见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
+
+登录入口本次构建校验值保持为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`。
 
 ## 部署边界
 
