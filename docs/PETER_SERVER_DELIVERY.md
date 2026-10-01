@@ -3,7 +3,18 @@
 入口：<https://62.234.188.55/>。本机验收凭据保存在忽略版本控制的
 `.runtime/peter/deployment/account.json`，不得提交或粘贴到公开记录。
 主链路与修复版整机重启验收已通过，范围与限制见 [服务器验收记录](PETER_SERVER_ACCEPTANCE.md)。
-当前前端发布目录为 `20260930-12`（源码提交 `cb2e3af`），应用镜像为 `musuw-peter:20260930-03`。工作区入口 `frontend/index.html` 的 SHA-256 为 `2574460b92eea5ea086185d6ab6ff3a5847d16235cc0dcfa23c3af26231bf622`，原 Musuw 登录入口 `frontend/auth/index.html` 为本次构建生成的对应入口。此版将直连 DeepSeek Flash 的推理开关接到官方兼容字段：开启时发送 `thinking=enabled` 与 `reasoning_effort`，关闭时发送 `thinking=disabled` 与 `reasoning_effort=none`；Peter 的界面显示低、高、最高、关闭，首次开启默认为高。其余首页、FAQ、智能体默认配置和底层入口隐藏保持上一版行为；数据库中三个启用的直连 DeepSeek 对话模型已同步标记为支持低/高/最高推理档位。上一版在 Peter 首页隐藏提示问题卡片和 Musuw 标识，主欢迎语改为 “I'm Peter”；不改动已保存的系统提示词和知识库内容。此前在 Peter 知识库编辑侧栏和直达入口隐藏数据源、共享管理、活动记录及底层处理配置；FAQ 页面复用文档页的面包屑、圆角工具栏、筛选胶囊和卡片视觉。此前隐藏 Peter 智能体的联网搜索和附件处理入口及直接链接，新建智能体默认按用户截图配置：搜索和自动抓取开启，结果及页面数各 5，使用 Platform Web Search；图片上传和 OCR 开启，使用 DeepSeek 图像理解，OCR 页数 0、系统默认图片存储，语音上传关闭。切换新建类型后仍保持这些默认值，已有智能体保存配置保留；模型缺失时跳转可见的模型管理页面。上一版弹窗层级修复及已恢复的配置入口保持。根目录 `app:build` 通过；按用户要求不运行浏览器或业务验收，由用户验收。回退组合为前端目录 `20260930-11` 和应用镜像 `musuw-peter:20260930-02`。历史业务链路证据见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
+当前前端发布目录为 `20261001-01`（FAQ 源码提交 `3ce30a9`），应用镜像保持 `musuw-peter:20260930-03`。本次仅发布 FAQ 前端：知识库返回入口使用与文档库一致的左箭头及库名切换，删除无实际文件夹层级的“根目录”，新增问答与导入分别直达；标签、检索、导出和批量权限继续使用原生功能。库名切换只显示公共知识库，不混入客户。页面只显示用户填写的库说明，不再重复显示操作教学文案。
+
+根目录 `npm run app:build` 通过，构建记录为 `.runtime/peter/deployment/build-faq-product-20261001.log`。FAQ 相关现有测试 5/5 通过，Vue 脚本/模板及 Less 编译通过。发布前保留上一版全部 387 个静态资源条目，原登录目录及运行时配置保留。本次没有重新构建或重启后端，也没有改动业务数据库。发布后 `/health` 返回 `{"status":"ok"}`，应用容器为 `healthy`；公网知识库入口与 FAQ 所在的知识库 JS/CSS、主入口 JS 的 SHA-256 与本机构建一致。未执行本次浏览器交互验收，由用户验收。
+
+| 发布文件 | SHA-256 |
+| --- | --- |
+| `frontend/index.html` | `0b4008d48c81dbfc825f222ea47af2f118672b6dc5431a9277f30b605f51c6ea` |
+| `frontend/assets/KnowledgeBase-Cn0-81oO.js` | `97f410b5f8f67997bf502b3aebe4d109f2a3af1d5ac7799ee292c661056d93f3` |
+| `frontend/assets/KnowledgeBase-1XW92M_N.css` | `c3c5d950d0ff9a23df82cdac5b58767b40f470f154136dcfca224d8f4f60379e` |
+| `frontend/assets/main-BTEJFTLu.js` | `78cecafb8cf75eae044e370d1b7033ac983b5db9af19337c63f633cb36572f1a` |
+
+前一版 `20260930-12` 已接通直连 DeepSeek Flash 思考模式：开启发送 `thinking=enabled` 与 `reasoning_effort`，关闭发送 `thinking=disabled` 与 `reasoning_effort=none`；界面显示低、高、最高、关闭，首次开启默认高。首页欢迎语为 “I'm Peter”，隐藏首页 Musuw 标识与提示问题卡片。此前知识库与智能体入口的简化、截图指定的新建默认配置、弹窗层级修复和已恢复的配置入口均保留。历史业务链路证据见 [全链路验收清单](PETER_FULL_PATH_ACCEPTANCE.md)。
 
 登录入口本次构建校验值保持为 `dcf912704bfa18dfe5fc50f6c07e275b418f0743aa6c6cacf7d63a11c231b0b4`。
 
@@ -76,10 +87,11 @@ curl -fsS https://62.234.188.55/health
 3. 生成新的应用镜像，修改 Peter 的 `PETER_APP_IMAGE`，执行 Compose 的 `up -d app`。
    原生迁移成功、健康检查和最小业务链路通过后，再切换 `current` 到匹配的前端发布目录。
    本次在系统包索引不可用时，使用 `deploy/peter/Dockerfile.incremental` 以已验证的 `musuw-peter-build:20260929-05` 为编译基底，仍重新编译完整应用和沙箱集成测试二进制，再由 `Dockerfile.release` 叠加到原生运行镜像；未改动系统包。
+   若只有兼容的前端更新，保留应用镜像与服务，不执行此后端步骤；检查新目录后仅切换 `current` 并重载 nginx。
 4. 复核浏览器冷启动、已打开页面导航、流式回答、客户和知识库、下载及新旧会话恢复。
 5. 若仅为兼容的代码/界面更新，可回退应用镜像及 `current` 链接；涉及破坏性数据库迁移时，
    必须使用对应的数据恢复方案，不能假设旧二进制能读取新结构。当前可回退的组合为
-   `musuw-peter:20260930-02` 与 `/opt/musuw-peter/releases/20260930-08`；回退后仍须核对登录、客户资料、技能会话和产物下载。
+   `musuw-peter:20260930-03` 与 `/opt/musuw-peter/releases/20260930-12`；本次 FAQ 发布回退只需恢复此前端链接，不回退后端或业务数据。回退后仍须核对登录、客户资料、技能会话和产物下载。
 
 旧业务“不要备份”的授权只用于本次明确的旧数据清理。未来真实客户数据应另行配置备份；
 目前没有离机备份目的地，容器持久化和发布回退不能替代灾难恢复。
