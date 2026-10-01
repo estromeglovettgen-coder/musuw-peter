@@ -5,18 +5,18 @@
       <div class="faq-header">
         <div class="faq-header-title">
           <div class="faq-title-row">
-            <h2 class="faq-breadcrumb">
-              <button type="button" class="breadcrumb-link" @click="handleNavigateToKbList">
-                {{ $t('menu.knowledgeBase') }}
+            <nav class="visual-knowledge-breadcrumb" :aria-label="$t('menu.knowledgeBase')">
+              <button type="button" class="visual-knowledge-breadcrumb__back" @click="handleNavigateToKbList">
+                <t-icon name="chevron-left" /><span>{{ $t('menu.knowledgeBase') }}</span>
               </button>
-              <t-icon name="chevron-right" class="breadcrumb-separator" />
+              <span class="visual-knowledge-breadcrumb__sep">/</span>
               <KBSwitcherDropdown
                 v-if="knowledgeList.length"
                 :kb-list="knowledgeList"
                 :current-kb-id="props.kbId"
                 @select="(id) => handleKnowledgeDropdownSelect({ value: id })"
               >
-                <button type="button" class="breadcrumb-link dropdown" :disabled="!props.kbId">
+                <button type="button" class="visual-knowledge-breadcrumb__current" :disabled="!props.kbId">
                   <template v-if="!kbInfo">
                     <t-skeleton animation="gradient" :row-col="[{ width: '120px', height: '20px' }]" />
                   </template>
@@ -26,7 +26,7 @@
                   </template>
                 </button>
               </KBSwitcherDropdown>
-              <button v-else type="button" class="breadcrumb-link" :disabled="!props.kbId"
+              <button v-else type="button" class="visual-knowledge-breadcrumb__current" :disabled="!props.kbId"
                 @click="handleNavigateToCurrentKB">
                 <template v-if="!kbInfo">
                   <t-skeleton animation="gradient" :row-col="[{ width: '120px', height: '20px' }]" />
@@ -35,9 +35,9 @@
                   {{ kbInfo.name }}
                 </template>
               </button>
-              <t-icon name="chevron-right" class="breadcrumb-separator" />
-              <span class="breadcrumb-current">{{ $t('knowledgeEditor.faq.title') }}</span>
-            </h2>
+              <span class="visual-knowledge-breadcrumb__sep">/</span>
+              <span class="visual-knowledge-breadcrumb__section">{{ $t('knowledgeEditor.faq.title') }}</span>
+            </nav>
             <div class="kb-title-actions">
               <!-- 导入结果：默认仅图标，hover / 点击展开详情 -->
               <div v-if="showImportResultBadge" class="faq-import-host"
@@ -83,7 +83,7 @@
               </div>
             </div>
           </div>
-          <p class="faq-subtitle">{{ $t('knowledgeEditor.faq.subtitle') }}</p>
+          <p v-if="kbInfo?.description" class="faq-subtitle">{{ kbInfo.description }}</p>
         </div>
       </div>
 
@@ -91,10 +91,6 @@
         <div class="faq-card-area">
           <!-- 搜索栏与标签筛选 -->
           <div class="faq-filter-bar">
-            <div class="faq-path-pill" :aria-label="$t('knowledgeBase.folderTree.rootRow')">
-              <t-icon name="folder" />
-              <span>{{ $t('knowledgeBase.folderTree.rootRow') }}</span>
-            </div>
             <t-input v-model.trim="entrySearchKeyword" :placeholder="$t('knowledgeEditor.faq.searchPlaceholder')"
               clearable class="faq-search-input" @clear="loadEntries()" @enter="loadEntries()">
               <template #prefix-icon>
@@ -195,16 +191,15 @@
               </t-popup>
             </div>
             <div class="faq-filter-bar__trailing">
-              <!-- 新建：新建条目 / 导入 -->
-              <template v-if="faqCreateOptions.length">
-                <t-tooltip :content="$t('knowledgeEditor.faq.createGroup')" placement="top">
-                  <t-dropdown :options="faqCreateOptions" trigger="click" placement="bottom-right"
-                    @click="handleFaqAction">
-                    <t-button variant="text" theme="default" class="content-bar-icon-btn" size="small">
-                      <template #icon><t-icon name="add" size="16px" /></template>
-                    </t-button>
-                  </t-dropdown>
-                </t-tooltip>
+              <template v-if="canEdit">
+                <t-button theme="primary" class="faq-create-button" @click="handleFaqAction({ value: 'create' })">
+                  <template #icon><t-icon name="add" size="16px" /></template>
+                  {{ $t('knowledgeEditor.faq.editorCreate') }}
+                </t-button>
+                <t-button variant="outline" theme="default" class="faq-import-button" @click="handleFaqAction({ value: 'import' })">
+                  <template #icon><t-icon name="upload" size="16px" /></template>
+                  {{ $t('knowledgeEditor.faqImport.importButton') }}
+                </t-button>
               </template>
               <!-- 导出 -->
               <t-dropdown :options="faqExportOptions" trigger="click" placement="bottom-right"
@@ -857,13 +852,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, computed, nextTick, onUnmounted, h } from 'vue'
-import { MessagePlugin, DialogPlugin, Icon as TIcon } from 'tdesign-vue-next'
+import { ref, reactive, watch, onMounted, computed, nextTick, onUnmounted } from 'vue'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import type { FormRules, FormInstanceFunctions } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOrganizationStore } from '@/stores/organization'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   listFAQEntries,
   upsertFAQEntries,
@@ -990,15 +986,6 @@ const faqExportOptions = computed(() => [
   { content: t('knowledgeEditor.faqExport.exportCSV'), value: 'export_csv' },
   { content: t('knowledgeEditor.faqExport.exportJSON'), value: 'export_json' },
 ])
-
-// FAQ 操作：新建组（新建条目 + 导入）
-const faqCreateOptions = computed(() => {
-  if (!canEdit.value) return []
-  return [
-    { content: t('knowledgeEditor.faq.editorCreate'), value: 'create', prefixIcon: () => h(TIcon, { name: 'add', size: '16px' }) },
-    { content: t('knowledgeEditor.faqImport.importButton'), value: 'import', prefixIcon: () => h(TIcon, { name: 'upload', size: '16px' }) },
-  ]
-})
 
 // 处理 FAQ 操作
 const handleFaqAction = (data: { value: string }) => {
@@ -1167,15 +1154,17 @@ const loadKnowledgeInfo = async (kbId: string) => {
 const loadKnowledgeList = async () => {
   try {
     const res: any = await listKnowledgeBases()
-    const myKbs: typeof knowledgeList.value = (res?.data || []).map((item: any) => ({
-      id: String(item.id),
-      name: item.name,
-      type: item.type,
-    }))
+    const myKbs: typeof knowledgeList.value = (res?.data || [])
+      .filter((item: any) => !isPeterWorkspace || !item.customer_profile)
+      .map((item: any) => ({
+        id: String(item.id),
+        name: item.name,
+        type: item.type,
+      }))
 
     // Also include shared knowledge bases from orgStore
     const sharedKbs: typeof knowledgeList.value = (orgStore.sharedKnowledgeBases || [])
-      .filter(s => s.knowledge_base != null)
+      .filter(s => s.knowledge_base != null && (!isPeterWorkspace || !(s.knowledge_base as any).customer_profile))
       .map(s => ({
         id: String(s.knowledge_base.id),
         name: s.knowledge_base.name,
@@ -2975,6 +2964,8 @@ watch(() => entries.value.map(e => ({
 }
 </style>
 <style scoped lang="less">
+@import './knowledge-base-layout.less';
+
 .faq-manager {
   width: 100%;
   display: flex;
@@ -3043,36 +3034,6 @@ watch(() => entries.value.map(e => ({
   background: #fff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
 
-  .faq-path-pill {
-    min-width: 132px;
-    min-height: 28px;
-    box-sizing: border-box;
-    padding: 4px 10px;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex: 0 0 auto;
-    overflow: hidden;
-    background: rgb(243 244 246 / 90%);
-    color: #374151;
-    font-size: 12px;
-    line-height: 18px;
-    font-weight: 700;
-
-    :deep(.t-icon) {
-      flex: 0 0 auto;
-      color: #6b7280;
-      font-size: 14px;
-    }
-
-    span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
   .faq-search-input {
     flex: 1 1 240px;
     min-width: 0;
@@ -3096,7 +3057,7 @@ watch(() => entries.value.map(e => ({
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     margin-left: auto;
 
     :deep(.content-bar-icon-btn) {
@@ -3113,10 +3074,6 @@ watch(() => entries.value.map(e => ({
 
   @media (max-width: 767px) {
     flex-wrap: wrap;
-
-    .faq-path-pill {
-      flex: 1 1 100%;
-    }
 
     .faq-search-input {
       flex: 1 1 100%;
@@ -3268,6 +3225,25 @@ watch(() => entries.value.map(e => ({
   }
 }
 
+.faq-create-button,
+.faq-import-button {
+  height: 36px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.faq-create-button {
+  border-color: #111827;
+  background: #111827;
+
+  &:hover {
+    border-color: #374151;
+    background: #374151;
+  }
+}
+
 .faq-header {
   display: flex;
   align-items: flex-start;
@@ -3279,9 +3255,10 @@ watch(() => entries.value.map(e => ({
   gap: 16px;
 
   .faq-header-title {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
 
   .faq-title-row {
@@ -3308,76 +3285,6 @@ watch(() => entries.value.map(e => ({
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-  }
-
-  .faq-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-    font-size: 12px;
-    line-height: 18px;
-    font-weight: 600;
-    color: #6b7280;
-  }
-
-  .breadcrumb-link {
-    border: none;
-    background: transparent;
-    padding: 2px 0;
-    margin: 0;
-    font: inherit;
-    color: #6b7280;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border-radius: 6px;
-    transition: all 0.12s ease;
-
-    &:hover:not(:disabled) {
-      color: #111827;
-      background: transparent;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      color: var(--td-text-color-placeholder);
-    }
-
-    &.dropdown {
-      padding-right: 6px;
-
-      :deep(.t-icon) {
-        font-size: 14px;
-        transition: transform 0.12s ease;
-      }
-
-      &:hover:not(:disabled) {
-        :deep(.t-icon) {
-          transform: translateY(1px);
-        }
-      }
-    }
-  }
-
-  .breadcrumb-separator {
-    font-size: 14px;
-    color: var(--td-text-color-placeholder);
-  }
-
-  .breadcrumb-current {
-    color: #9ca3af;
-    font-weight: 400;
-  }
-
-  h2 {
-    margin: 0;
-    color: var(--td-text-color-primary);
-    font-family: var(--app-font-family);
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 32px;
   }
 
   .faq-subtitle {
