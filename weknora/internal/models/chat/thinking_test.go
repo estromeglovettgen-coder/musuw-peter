@@ -136,6 +136,11 @@ func TestParseThinkingOverride(t *testing.T) {
 }
 
 func TestEffectiveThinkingControl(t *testing.T) {
+	assert.Equal(t, "reasoning_effort", EffectiveThinkingControl(&ChatConfig{
+		Provider:    "deepseek",
+		ModelName:   "deepseek-flash",
+		ExtraConfig: map[string]string{ExtraConfigThinkingControl: "thinking_type"},
+	}))
 	assert.Equal(t, "enable_thinking", EffectiveThinkingControl(&ChatConfig{
 		Provider:  "aliyun",
 		ModelName: "qwen3-32b",

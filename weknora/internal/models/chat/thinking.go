@@ -310,12 +310,19 @@ func EffectiveThinkingControl(config *ChatConfig) string {
 	if config == nil {
 		return "none"
 	}
-	if override := parseThinkingOverride(config.ExtraConfig); override != nil {
-		return thinkingStrategyName(override)
-	}
 	providerName := provider.ProviderName(config.Provider)
 	if providerName == "" {
 		providerName = provider.DetectProvider(config.BaseURL)
+	}
+	// Direct DeepSeek always uses the native thinking/reasoning_effort
+	// payload, even for legacy rows whose extra_config still names one of the
+	// generic thinking controls. Keep diagnostics aligned with the actual wire
+	// strategy selected by NewRemoteAPIChat.
+	if providerName == provider.ProviderDeepSeek {
+		return "reasoning_effort"
+	}
+	if override := parseThinkingOverride(config.ExtraConfig); override != nil {
+		return thinkingStrategyName(override)
 	}
 	return thinkingStrategyName(resolveProvider(providerName, config.ModelName).Thinking())
 }
