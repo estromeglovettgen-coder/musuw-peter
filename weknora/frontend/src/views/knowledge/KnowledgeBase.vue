@@ -6,6 +6,7 @@ import type { ConsumerEntitlement } from '@/api/entitlement'
 import { listKnowledgeFolders, type KnowledgeFolderTree } from '@/api/knowledge-base'
 import { useConsumerUpgradePrompt } from '@/hooks/useConsumerUpgradePrompt'
 import { useAuthStore } from '@/stores/auth'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useCurrentEntitlementStore } from '@/stores/entitlement'
 import {
   exceedsConsumerDocumentLimit,
@@ -168,6 +169,7 @@ export default defineComponent({
 
       return {
         ...state,
+        isPeterWorkspace,
         folderTreeCollapsed,
         handleFolderTreeCollapsedChange,
         handleUploadSourceFiles,
@@ -230,8 +232,8 @@ export default defineComponent({
         </div>
       </header>
 
-      <div v-if="activeKbTab === 'documents' && (unsupportedFileTypes.length || missingStorageEngine)" class="visual-knowledge-alerts">
-        <button v-if="unsupportedFileTypes.length" type="button" :disabled="authStore.isLiteMode" @click="goToParserSettings"><t-icon name="info-circle" /><span>{{ $t('knowledgeBase.unsupportedTypesHint', { types: unsupportedFileTypes.map((t: string) => '.' + t).join('、') }) }}</span><strong v-if="!authStore.isLiteMode">{{ $t('knowledgeBase.goToParserSettings') }} →</strong></button>
+      <div v-if="activeKbTab === 'documents' && ((!isPeterWorkspace && unsupportedFileTypes.length) || missingStorageEngine)" class="visual-knowledge-alerts">
+        <button v-if="!isPeterWorkspace && unsupportedFileTypes.length" type="button" :disabled="authStore.isLiteMode" @click="goToParserSettings"><t-icon name="info-circle" /><span>{{ $t('knowledgeBase.unsupportedTypesHint', { types: unsupportedFileTypes.map((t: string) => '.' + t).join('、') }) }}</span><strong v-if="!authStore.isLiteMode">{{ $t('knowledgeBase.goToParserSettings') }} →</strong></button>
         <button v-if="missingStorageEngine" type="button" :disabled="authStore.isLiteMode" @click="handleOpenKBSettings"><t-icon name="info-circle" /><span>{{ $t('knowledgeBase.missingStorageEngine') }}</span><strong v-if="!authStore.isLiteMode">{{ $t('knowledgeBase.goToStorageSettings') }} →</strong></button>
       </div>
 

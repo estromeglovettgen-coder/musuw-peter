@@ -3410,7 +3410,9 @@ const applyAgentTypePreset = (preset: AgentTypePreset | null) => {
   if (typeof c.temperature === 'number') target.temperature = c.temperature;
   if (typeof c.max_iterations === 'number') target.max_iterations = c.max_iterations;
   if (Array.isArray(c.allowed_tools)) target.allowed_tools = [...c.allowed_tools];
-  if (typeof c.retain_retrieval_history === 'boolean') target.retain_retrieval_history = c.retain_retrieval_history;
+  // Peter seeds conversation defaults once; changing an agent type must keep
+  // the user's retention choice.
+  if (!isPeterWorkspace && typeof c.retain_retrieval_history === 'boolean') target.retain_retrieval_history = c.retain_retrieval_history;
   if (typeof c.faq_priority_enabled === 'boolean') target.faq_priority_enabled = c.faq_priority_enabled;
   if (typeof c.web_search_enabled === 'boolean') target.web_search_enabled = c.web_search_enabled;
   // supported_file_types 采用"强同步"语义：只有 data-analysis 需要限定 csv/xlsx，
@@ -3650,6 +3652,10 @@ watch(() => props.visible, async (val) => {
       // the requested ready-to-use capability set.
       applyNewAgentCapabilityDefaults()
       applyDefaultModelsIfEmpty()
+      if (isPeterWorkspace) {
+        formData.value.config.history_turns = 20;
+        formData.value.config.retain_retrieval_history = true;
+      }
     }
 
     if (!authStore.isLiteMode) await syncInstalledSkills()
