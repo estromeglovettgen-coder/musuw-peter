@@ -14,19 +14,22 @@ test('knowledge-base cards show persisted descriptions and only fall back for bl
   )
 })
 
-test('card actions close the native kb.showMore popup before emitting', () => {
-  assert.match(source, /<t-popup[^>]*v-model="kb\.showMore"[^>]*trigger="click"/)
+test('card actions close the native popup using card-owned reactive visibility before emitting', () => {
+  assert.match(source, /const menuVisible = ref\(false\)/)
+  assert.match(source, /<t-popup[^>]*v-model="menuVisible"[^>]*trigger="click"/)
   assert.match(
     source,
-    /const requestDuplicate = \(\) => \{\s*props\.kb\.showMore = false\s*emit\('duplicate'\)\s*\}/,
+    /const requestDuplicate = \(\) => \{\s*menuVisible\.value = false\s*emit\('duplicate'\)\s*\}/,
   )
   assert.match(
     source,
-    /const requestDelete = \(\) => \{\s*props\.kb\.showMore = false\s*emit\('delete'\)\s*\}/,
+    /const requestDelete = \(\) => \{\s*menuVisible\.value = false\s*emit\('delete'\)\s*\}/,
   )
   assert.match(source, /v-if="canDuplicate"[^>]*@click="requestDuplicate"/)
   assert.match(source, /class="is-danger" @click="requestDelete"/)
-  assert.doesNotMatch(source, /menuVisible|import \{ ref \} from 'vue'/)
+  assert.match(source, /const requestPin = \(\) => \{\s*menuVisible\.value = false\s*emit\('pin'\)\s*\}/)
+  assert.match(source, /v-if="!shared"[^>]*@click="requestPin"/)
+  assert.doesNotMatch(source, /props\.kb\.showMore/)
 })
 
 test('document cards render persisted RAG and Wiki strategy badges and flag legacy invalid rows', () => {
@@ -55,7 +58,7 @@ test('duplicate copy and invalid-strategy messages state the native asynchronous
 test('the native three-dot menu opens the existing knowledge-base editor', () => {
   assert.match(
     source,
-    /const requestEdit = \(\) => \{\s*props\.kb\.showMore = false\s*emit\('edit'\)\s*\}/,
+    /const requestEdit = \(\) => \{\s*menuVisible\.value = false\s*emit\('edit'\)\s*\}/,
   )
   assert.match(
     source,

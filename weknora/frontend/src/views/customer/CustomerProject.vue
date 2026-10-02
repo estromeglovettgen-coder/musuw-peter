@@ -8,7 +8,8 @@ import { createManualKnowledge, getKnowledgeBaseById, listKnowledgeBases, listKn
 import { getWikiPage, getWikiStats, listWikiPages } from '@/api/wiki'
 import { isBuiltinAgent, listAgents } from '@/api/agent'
 import { useSettingsStore } from '@/stores/settings'
-import { customerSessions, emptyCustomerProfile, newCustomerSession } from '@/api/customer'
+import { customerSessions, deleteCustomer, emptyCustomerProfile, newCustomerSession } from '@/api/customer'
+import { useAuthStore } from '@/stores/auth'
 import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import KnowledgeBaseEditorModal from '@/views/knowledge/KnowledgeBaseEditorModal.vue'
 import KnowledgeBase from '@/views/knowledge/KnowledgeBase.vue'
@@ -16,13 +17,15 @@ import CustomerTags from './CustomerTags.vue'
 import { selectCustomerOverview } from './customerOverview'
 import { customerVisibleNote, customerVisibleTags } from './customerPresentation'
 import './customer.css'
-const route = useRoute(), router = useRouter()
+const route = useRoute(), router = useRouter(), authStore = useAuthStore()
 const id = computed(() => String(route.params.kbId))
 const tabKeys = ['overview', 'documents', 'wiki', 'graph', 'conversations', 'timeline']
 const tab = computed(() => tabKeys.includes(String(route.query.tab)) ? String(route.query.tab) : 'overview')
 const isContentTab = computed(() => ['documents', 'wiki', 'graph'].includes(tab.value))
 const kb = ref<any>(null), profile = ref<any>(emptyCustomerProfile()), pages = ref<any[]>([]), wiki = ref<any>(null), files = ref<any[]>([]), sessions = ref<any[]>([]), libraries = ref<any[]>([])
 const busy = ref(true), error = ref(''), detailError = ref(''), showSettings = ref(false), showRecord = ref(false), saving = ref(false), uploading = ref(false), openingChat = ref(false)
+const showDelete = ref(false), deleting = ref(false)
+const deleteTarget = ref<{id:string;name:string} | null>(null)
 const record = ref({ kind: '沟通记录', title: '', content: '' })
 const fileInput = ref<HTMLInputElement>(), uploadStatus = ref('')
 const wikiProcessing = ref(false)
@@ -30,6 +33,8 @@ const wikiEnabled = computed(() => !!kb.value?.indexing_strategy?.wiki_enabled)
 const processing = computed(() => wikiProcessing.value || files.value.some(file => ['pending','processing','parsing','finalizing','running'].includes(file.parse_status)))
 let sequence = 0, refreshTimer: ReturnType<typeof setTimeout> | undefined
 const name = computed(() => kb.value?.name || '客户')
+const canManage = computed(() => authStore.hasRole('contributor') && String(kb.value?.tenant_id) === String(authStore.effectiveTenantId)
+  && (authStore.hasRole('admin') || (!!kb.value?.creator_id && kb.value.creator_id === authStore.user?.id)))
 const customerTags = computed(() => customerVisibleTags(profile.value))
 const customerNote = computed(() => customerVisibleNote(profile.value?.note, kb.value?.description))
 const base = computed(() => `/platform/customers/${id.value}`)
@@ -69,6 +74,26 @@ async function load() {
   finally { if (run===sequence) busy.value=false }
 }
 function openEdit() { showSettings.value = true }
+function requestDelete() {
+  if (!canManage.value || uploading.value || saving.value || deleting.value) return
+  deleteTarget.value = {id:id.value,name:name.value}; showDelete.value = true
+}
+async function confirmDelete() {
+  if (deleting.value || !deleteTarget.value) return
+  const target = {...deleteTarget.value}
+  deleting.value = true
+  try {
+    await deleteCustomer(target.id)
+    showDelete.value = false
+    MessagePlugin.success(`已删除客户 ${target.name}`)
+    if (id.value === target.id) {
+      sequence++
+      if (refreshTimer) clearTimeout(refreshTimer)
+      await router.push('/platform/customers')
+    }
+  } catch(e:any) { MessagePlugin.error(e.message || '删除客户失败') }
+  finally { deleting.value = false }
+}
 async function chat(fresh=false) {
   if (openingChat.value) return
   openingChat.value=true
@@ -108,7 +133,7 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
     <div v-if="busy" class="customer-empty"><t-loading text="正在读取客户资料…"/></div>
     <div v-else-if="error" class="customer-empty"><p>{{error}}</p><button class="customer-secondary" @click="load">重新加载</button></div>
     <template v-else-if="kb">
-      <header class="customer-heading"><div class="customer-title"><div><h1>{{name}}</h1><CustomerTags v-if="customerTags.length" :tags="customerTags" /></div></div><div class="customer-actions"><button class="customer-secondary" @click="openEdit"><t-icon name="edit"/>编辑客户</button><button class="customer-primary" :disabled="openingChat" @click="chat()"><t-icon name="chat"/>继续分析</button></div></header>
+      <header class="customer-heading"><div class="customer-title"><div><h1>{{name}}</h1><CustomerTags v-if="customerTags.length" :tags="customerTags" /></div></div><div class="customer-actions"><button v-if="canManage" class="customer-icon customer-delete" aria-label="删除客户" title="删除客户" :disabled="deleting || uploading || saving || openingChat" @click="requestDelete"><t-icon name="delete"/></button><button v-if="canManage" class="customer-secondary" :disabled="deleting" @click="openEdit"><t-icon name="edit"/>编辑客户</button><button class="customer-primary" :disabled="openingChat || deleting" @click="chat()"><t-icon name="chat"/>继续分析</button></div></header>
       <nav class="customer-project-tabs" aria-label="客户项目"><span v-for="item in tabs" :key="item.key" class="customer-project-tab"><router-link :to="item.href" :class="{active:tab===item.key}" :aria-current-value="tab===item.key ? 'page' : 'false'">{{item.name}}</router-link><PeterTermHelp v-if="item.help" :text="item.help" :label="`了解${item.name}`" /></span></nav>
       <t-alert v-if="detailError" theme="warning" :message="detailError" style="margin-bottom:16px"><template #operation><button class="customer-icon" @click="load">刷新</button></template></t-alert>
       <t-alert v-if="uploadStatus" :theme="uploading ? 'info' : 'success'" :message="uploadStatus" style="margin-bottom:16px"/>
@@ -122,6 +147,10 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
     <input ref="fileInput" type="file" multiple hidden @change="upload"/>
 
     <t-dialog v-model:visible="showRecord" header="添加客户记录" :confirm-btn="{content:'保存并整理',loading:saving}" @confirm="addRecord"><div class="customer-form"><label>记录类型<t-select v-model="record.kind" :options="['沟通记录','跟进记录','补充备注'].map(value=>({label:value,value}))"/></label><label>标题<t-input v-model="record.title" placeholder="例如：9 月 28 日课程咨询" :maxlength="100"/></label><label>内容<t-textarea v-model="record.content" :autosize="{minRows:8,maxRows:16}" placeholder="粘贴聊天原文或记录实际发生的情况，可注明沟通时间与说话人。"/></label></div></t-dialog>
+    <t-dialog v-model:visible="showDelete" header="删除客户" theme="warning" :confirm-btn="{content:'确认删除',theme:'danger',loading:deleting}" :cancel-btn="{disabled:deleting}" :close-btn="!deleting" :close-on-overlay-click="!deleting" :close-on-esc-keydown="!deleting" @confirm="confirmDelete"><p>将删除客户「{{deleteTarget?.name}}」。</p><p class="customer-muted">删除后客户将从列表移除，客户资料会由系统清理。此操作不可撤回。</p></t-dialog>
     <KnowledgeBaseEditorModal v-if="kb" v-model:visible="showSettings" mode="edit" customer :kb-id="kb.id" @success="load"/>
   </main>
 </template>
+<style scoped>
+.customer-delete{color:var(--td-error-color,#d54941)}
+</style>

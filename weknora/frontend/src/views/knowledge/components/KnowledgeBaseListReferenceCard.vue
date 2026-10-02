@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ResourceOriginBadge from '@/components/ResourceOriginBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -36,6 +36,8 @@ const props = withDefaults(defineProps<{
   showFooter: true,
 })
 const authStore = useAuthStore()
+// List entries can be plain snapshots; their nested fields cannot drive the popup.
+const menuVisible = ref(false)
 
 const emit = defineEmits<{
   open: []
@@ -56,17 +58,22 @@ const isVisibleStrategyMissing = computed(() => (
 ))
 
 const requestEdit = () => {
-  props.kb.showMore = false
+  menuVisible.value = false
   emit('edit')
 }
 
+const requestPin = () => {
+  menuVisible.value = false
+  emit('pin')
+}
+
 const requestDuplicate = () => {
-  props.kb.showMore = false
+  menuVisible.value = false
   emit('duplicate')
 }
 
 const requestDelete = () => {
-  props.kb.showMore = false
+  menuVisible.value = false
   emit('delete')
 }
 </script>
@@ -103,12 +110,12 @@ const requestDelete = () => {
         </button>
       </t-tooltip>
 
-      <t-popup v-else-if="canDuplicate || canManage || !shared" v-model="kb.showMore" trigger="click" destroy-on-close placement="bottom-right">
+      <t-popup v-else-if="canDuplicate || canManage || !shared" v-model="menuVisible" trigger="click" destroy-on-close placement="bottom-right">
         <button type="button" class="visual-reference-kb-card__more" :aria-label="$t('common.more')" @click.stop><t-icon name="ellipsis" /></button>
         <template #content>
           <div class="visual-reference-kb-card-menu" @click.stop>
             <button v-if="canManage" type="button" @click="requestEdit"><t-icon name="setting" /><span>{{ $t('knowledgeList.menu.editConfig') }}</span></button>
-            <button v-if="!shared" type="button" @click="emit('pin')"><t-icon :name="kb.is_pinned ? 'pin-filled' : 'pin'" /><span>{{ kb.is_pinned ? $t('knowledgeList.pin.unpin') : $t('knowledgeList.pin.pin') }}</span></button>
+            <button v-if="!shared" type="button" @click="requestPin"><t-icon :name="kb.is_pinned ? 'pin-filled' : 'pin'" /><span>{{ kb.is_pinned ? $t('knowledgeList.pin.unpin') : $t('knowledgeList.pin.pin') }}</span></button>
             <button v-if="canDuplicate" type="button" @click="requestDuplicate"><t-icon name="file-copy" /><span>{{ $t('knowledgeList.menu.duplicate') }}</span></button>
             <span v-if="canManage" class="visual-reference-kb-card-menu__separator" aria-hidden="true" />
             <button v-if="canManage" type="button" class="is-danger" @click="requestDelete"><t-icon name="delete" /><span>{{ $t('common.delete') }}</span></button>

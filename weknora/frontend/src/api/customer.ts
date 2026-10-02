@@ -1,5 +1,5 @@
 import { get, put } from '@/utils/request'
-import { getKnowledgeBaseById, uploadKnowledgeFile } from './knowledge-base'
+import { deleteKnowledgeBase, getKnowledgeBaseById, updateKnowledgeBase, uploadKnowledgeFile } from './knowledge-base'
 import type { createKnowledgeBase } from './knowledge-base'
 import { createSessions } from './chat'
 
@@ -15,6 +15,46 @@ export interface CustomerProfile {
 export const CUSTOMER_EXTRACTION = '重点识别这位客户及关联人物、重要经历、需求、顾虑、购买动机和课程疑问。同一客户的不同称呼应结合原文谨慎归并。保留资料依据，不能把销售人员或 AI 的建议当成客户事实。'
 export const CUSTOMER_CONTENT = '围绕当前客户整理内容：背景与现状、需求与痛点、顾虑与疑问、沟通进展、待确认事项。客户人物条目应持续汇总相关来源。区分原文事实与分析推断，重要判断保留引用，信息不足时写明待确认。按真实沟通时间呈现变化，不编造姓名、预算或购买意愿。'
 export const emptyCustomerProfile = (): CustomerProfile => ({ status: '', tags: [], contact: '', note: '', shared_knowledge_base_ids: [], wiki_slug: '' })
+
+/** Apply only the requested labels, including labels stored in the old status field. */
+export function changedCustomerTags(profile: CustomerProfile, mode: 'add' | 'remove', labels: string[]): string[] {
+  const changes = new Set(labels.map(label => label.trim()).filter(Boolean))
+  const existing = [...new Set([profile.status, ...(profile.tags || [])].map(label => label?.trim()).filter((label): label is string => !!label))]
+  const tags = mode === 'add' ? [...new Set([...existing, ...changes])] : existing.filter(label => !changes.has(label))
+  if (tags.length > 30 || tags.some(label => new TextEncoder().encode(label).length > 100)) {
+    throw new Error('客户标签最多 30 个，单个标签请缩短')
+  }
+  return tags
+}
+
+export async function changeCustomerTags(id: string, mode: 'add' | 'remove', labels: string[]) {
+  const response: any = await getKnowledgeBaseById(id)
+  const customer = response.data
+  if (!customer?.customer_profile) throw new Error('未找到客户项目')
+  if (!customer.chunking_config || !customer.image_processing_config) throw new Error('客户处理配置未能完整读取，请刷新后重试')
+  const profile = { ...emptyCustomerProfile(), ...customer.customer_profile }
+  // Read the latest profile before changing labels; never replace notes or contacts with the list snapshot.
+  const result: any = await updateKnowledgeBase(id, {
+    name: customer.name,
+    description: customer.description || '',
+    config: {
+      // The native update contract replaces these two value structs even when omitted.
+      chunking_config: customer.chunking_config,
+      image_processing_config: customer.image_processing_config,
+      customer_profile: { ...profile, status: '', tags: changedCustomerTags(profile, mode, labels) },
+    },
+  })
+  if (result?.success === false) throw new Error(result.message || '客户标签保存失败')
+  return result
+}
+
+export async function deleteCustomer(id: string) {
+  const response: any = await getKnowledgeBaseById(id)
+  if (!response.data?.customer_profile) throw new Error('未找到客户项目')
+  const result: any = await deleteKnowledgeBase(id)
+  if (result?.success === false) throw new Error(result.message || '删除客户失败')
+  return result
+}
 
 // Keep the saved snapshot on the native create contract, not editor-only state.
 const templateSettingKeys = [
