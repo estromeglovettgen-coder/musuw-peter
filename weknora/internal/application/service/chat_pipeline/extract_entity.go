@@ -244,12 +244,15 @@ func NewQAPromptGenerator(formater *Formater, template *types.PromptTemplateStru
 func (qa *QAPromptGenerator) System(ctx context.Context) string {
 	promptLines := []string{}
 
-	if len(qa.Template.Tags) == 0 {
-		promptLines = append(promptLines, qa.Template.Description)
-	} else {
-		tags, _ := json.Marshal(qa.Template.Tags)
-		promptLines = append(promptLines, fmt.Sprintf(qa.Template.Description, string(tags)))
+	tags, _ := json.Marshal(qa.Template.Tags)
+	description := types.RenderPromptPlaceholders(qa.Template.Description,
+		types.PlaceholderValues{"relation_types": string(tags)})
+	if len(qa.Template.Tags) > 0 {
+		// Legacy config uses %s. Replace that token only; user-authored literal
+		// percentages must not become fmt directives or EXTRA diagnostics.
+		description = strings.ReplaceAll(description, "%s", string(tags))
 	}
+	promptLines = append(promptLines, description)
 	if len(qa.Template.Examples) > 0 {
 		promptLines = append(promptLines, qa.ExamplesHeading)
 		for _, example := range qa.Template.Examples {

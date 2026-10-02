@@ -95,16 +95,15 @@ const (
 )
 
 const videoUnderstandingPrompt = `<system_prompt>
-You are a factual video understanding assistant. Convert the video into searchable Markdown in the requested language.
+你是注重事实的视频理解助手，请使用指定语言将视频转换成可检索的 Markdown。
 </system_prompt>
 
 <instructions>
-1. The first line must be a level-1 Markdown heading containing a concise title: # <title>.
-   Follow it with a concise summary.
-2. Record important visual events in chronological order with timestamps when they can be determined.
-3. Transcribe spoken content and visible on-screen text as accurately as possible.
-4. Identify people, objects, actions, locations, and relationships only when supported by the video.
-5. Do not invent missing details or output reasoning. Output Markdown only.
+1. 第一行必须是包含简洁标题的一级 Markdown 标题：# <title>。随后给出简洁摘要。
+2. 按时间顺序记录重要画面事件，能确定时间时附时间戳。
+3. 尽可能准确转录口述内容和画面可见文字。
+4. 只有视频直接支持时才描述人物、物体、动作、地点和关系。
+5. 不得创造缺失细节，不输出推理过程。只输出 Markdown。
 </instructions>`
 
 func buildVideoUnderstandingPrompt(ctx context.Context, cfg types.VLMConfig) string {
@@ -112,7 +111,7 @@ func buildVideoUnderstandingPrompt(ctx context.Context, cfg types.VLMConfig) str
 	if language == "" {
 		language = types.LanguageNameFromContext(ctx)
 	}
-	prompt := fmt.Sprintf("%s\n\n<output_language>%s</output_language>", videoUnderstandingPrompt, language)
+	prompt := fmt.Sprintf("%s\n\n<output_language>%s</output_language>", types.ResolveSystemPrompt(ctx, "video.understanding", videoUnderstandingPrompt), language)
 	return types.AppendCustomPromptInstructions(prompt, cfg.CustomInstructions, "video_understanding")
 }
 

@@ -28,28 +28,27 @@ func NewWikiReadSourceDocTool(
 	tool := &wikiReadSourceDocTool{
 		BaseTool: NewBaseTool(
 			ToolWikiReadSourceDoc,
-			`Read or search within a specific source document to drill down for details omitted from the wiki.
-Provide the knowledge_id from the <sources> block.
-You can EITHER search using a regex query OR fetch a specific contiguous range of chunks using start_chunk_index and end_chunk_index (useful for expanding context around a known chunk).
-If neither query nor range is provided, it returns the beginning of the document.`,
+			`读取或搜索 Wiki 来源文档，补充 Wiki 省略的细节。
+knowledge_id 使用 <sources> 中的短 dN 文档 ID。可用 query 正则搜索，或 start_chunk_index / end_chunk_index 读取连续分块范围，以扩展已知分块上下文。
+未提供查询或范围时，返回文档开头。`,
 			json.RawMessage(`{
   "type": "object",
   "properties": {
     "knowledge_id": {
       "type": "string",
-      "description": "The short dN source document ID from the <sources> block"
+      "description": "<sources> 中的来源文档短 dN ID。"
     },
     "query": {
       "type": "string",
-      "description": "Optional: A regex query to filter the document chunks. Use this to find specific quotes or details efficiently. Remember to double-escape backslashes for JSON: write \"C\\\\+\\\\+\" (NOT \"C\\+\\+\") and \"\\\\d+\" (NOT \"\\d+\")."
+      "description": "可选：筛选分块的正则，用于找精确引文或细节。JSON 中反斜杠需要双重转义：C++ 写为 C\\\\+\\\\+，数字模式写为 \\\\d+，不要使用无效单反斜杠转义。"
     },
     "start_chunk_index": {
       "type": "integer",
-      "description": "Optional: The starting chunk index (1-based) to read a specific range."
+      "description": "可选：读取范围的起始分块序号，从 1 开始。"
     },
     "end_chunk_index": {
       "type": "integer",
-      "description": "Optional: The ending chunk index (1-based) to read a specific range. Must be >= start_chunk_index."
+      "description": "可选：结束分块序号，从 1 开始，必须 >= start_chunk_index。"
     }
   },
   "required": ["knowledge_id"]
@@ -339,7 +338,7 @@ func (t *wikiReadSourceDocTool) Execute(ctx context.Context, args json.RawMessag
 	}
 
 	if reachedMax {
-		sb.WriteString("<message>Reached maximum limit for fetching chunks in a single call. Please refine your query or range if needed.</message>\n")
+		sb.WriteString("<message>已达到单次获取片段的数量上限。必要时请缩小查询或范围。</message>\n")
 	} else if matchCount == 0 {
 		if hasRange {
 			sb.WriteString("<message>No chunks found in the specified range.</message>\n")

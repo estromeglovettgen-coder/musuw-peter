@@ -107,7 +107,7 @@ func TestWikiChunkCitationPrompt_StablePrefixAcrossBatches(t *testing.T) {
 
 	// The static rules and per-document candidate-slug block must live inside
 	// that shared prefix, not after the varying chunks.
-	for _, must := range []string{"### Primary task", "### JSON Formatting Rules", "\n<candidate_slugs>\n"} {
+	for _, must := range []string{"### 主要任务", "### JSON 格式规则", "\n<candidate_slugs>\n"} {
 		if idx := strings.Index(a, must); idx < 0 || idx > ia {
 			t.Errorf("%q must appear before <chunks> to be part of the cached prefix (idx=%d, chunks=%d)", must, idx, ia)
 		}
@@ -127,9 +127,9 @@ func TestWikiChunkCitationPrompt_PreservesPlaceholders(t *testing.T) {
 func TestWikiPageModifyUserPrompt_HidesInternalChunkHandles(t *testing.T) {
 	combined := WikiPageModifySystemPrompt + "\n" + WikiPageModifyUserPrompt
 	for _, guidance := range []string{
-		"NEVER output them in the page body or summary",
-		"Source associations are stored separately by the system",
-		"clean Markdown without inline chunk IDs",
+		"绝不能出现在正文或摘要中",
+		"来源关联由系统单独保存",
+		"无内联片段 ID 的干净 Markdown",
 	} {
 		if !strings.Contains(combined, guidance) {
 			t.Errorf("WikiPageModifyUserPrompt missing chunk-handle guidance %q", guidance)

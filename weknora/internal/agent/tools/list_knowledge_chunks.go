@@ -13,45 +13,45 @@ import (
 
 var listKnowledgeChunksTool = BaseTool{
 	name: ToolListKnowledgeChunks,
-	description: `Retrieve full chunk content for a document or a single FAQ entry.
+	description: `读取普通文档或单个 FAQ 的完整分块。
 
-## Use After grep_chunks or knowledge_search:
-- **FAQ hit** (type faq): list_knowledge_chunks(faq_id="cN") — reads that one FAQ chunk with answers from metadata.
-- **Document hit**: list_knowledge_chunks(knowledge_id="dN") — pages through all chunks.
+## 在 grep_chunks 或 knowledge_search 后使用
+- FAQ 命中：list_knowledge_chunks(faq_id="cN")，读取该 FAQ 分块和元数据中的答案。
+- 文档命中：list_knowledge_chunks(knowledge_id="dN")，分页读取全部分块。
 
-## Parameters (provide exactly one id target):
-- faq_id (optional): Short cN ID for an FAQ chunk from grep_chunks / knowledge_search.
-- chunk_id (optional): Short cN ID for a single non-FAQ chunk.
-- knowledge_id (optional): Short dN document ID to page through all chunks.
-- limit / offset: Only for knowledge_id paging (default limit 20, max 100).
+## 参数：三个目标 ID 只能提供一个
+- faq_id：检索返回的 FAQ 短 cN ID。
+- chunk_id：单个非 FAQ 分块的短 cN ID。
+- knowledge_id：普通文档短 dN ID，用于分页读取全部分块。
+- limit / offset：仅 knowledge_id 分页使用，默认每页 20，最多 100。
 
-## Output:
-Full chunk content. FAQ entries include <faq> with <answer> from metadata.`,
+## 输出
+完整分块正文。FAQ 包含 <faq>，其中 <answer> 来自元数据。`,
 	schema: json.RawMessage(`{
   "type": "object",
   "properties": {
     "faq_id": {
       "type": "string",
-      "description": "Short cN FAQ chunk ID. Use for FAQ hits instead of the parent dN document ID."
+      "description": "FAQ 分块短 cN ID，FAQ 命中使用它，不使用父 dN 文档 ID。"
     },
     "chunk_id": {
       "type": "string",
-      "description": "Short cN ID for one non-FAQ chunk"
+      "description": "单个非 FAQ 分块的短 cN ID。"
     },
     "knowledge_id": {
       "type": "string",
-      "description": "Short dN document ID to list all chunks"
+      "description": "文档短 dN ID，用于列出全部分块。"
     },
     "limit": {
       "type": "integer",
-      "description": "Chunks per page when using knowledge_id (default 20, max 100)",
+      "description": "knowledge_id 分页时的每页分块数，默认 20，最多 100。",
       "default": 20,
       "minimum": 1,
       "maximum": 100
     },
     "offset": {
       "type": "integer",
-      "description": "Start position when using knowledge_id (default 0)",
+      "description": "knowledge_id 分页起始位置，默认 0。",
       "default": 0,
       "minimum": 0
     }

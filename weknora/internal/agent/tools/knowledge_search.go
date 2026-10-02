@@ -19,67 +19,27 @@ import (
 
 var knowledgeSearchTool = BaseTool{
 	name: ToolKnowledgeSearch,
-	description: `Semantic/vector search tool for retrieving knowledge by meaning, intent, and conceptual relevance.
+	description: `通过语义和向量检索，依据含义、意图及概念相关性找到知识。使用向量表示理解问题，找出表达不同但含义相近的知识库分块。
 
-This tool uses embeddings to understand the user's query and find semantically similar content across knowledge base chunks.
+## 用途
+用于概念解释、主题概览、需要推理的信息、上下文与意图检索，以及字面关键词无法解决的问题。
+不用于精确关键词、具名实体、原样字符串或错误码查找；这些应使用关键词检索工具。不要传入长篇原文或未处理的用户消息。
 
-## Purpose
-Designed for high-level understanding tasks, such as:
-- conceptual explanations
-- topic overviews
-- reasoning-based information needs
-- contextual or intent-driven retrieval
-- queries that cannot be answered with literal keyword matching
+## 输入
+queries 必须是 1–5 个简短、完整的语义问题或概念陈述，表达概念、观点、主题、解释或意图，例如定义、机制、最佳实践、比较、如何或为什么。
+避免关键词列表、原始消息、整段正文和未处理输入。
+有效形式：“……的核心思想是什么”“X 通常如何工作”“解释……的用途”“……背后的关键原则”“……概览”。
+- queries（必填）：1–5 个语义问题或概念陈述，反映希望向量检索捕获的主题。
+- knowledge_base_ids（可选）：限定检索范围。
 
-The tool searches by MEANING rather than exact text. It identifies chunks that are conceptually relevant even when the wording differs.
-
-## What the Tool Does NOT Do
-- Does NOT perform exact keyword matching
-- Does NOT search for specific named entities
-- Should NOT be used for literal lookup tasks
-- Should NOT receive long raw text or user messages as queries
-- Should NOT be used to locate specific strings or error codes
-
-For literal/keyword/entity search, another tool should be used.
-
-## Required Input Behavior
-"queries" must contain **1–5 short, well-formed semantic questions or conceptual statements** that clearly express the meaning the model is trying to retrieve.
-
-Each query should represent a **concept, idea, topic, explanation, or intent**, such as:
-- abstract topics
-- definitions
-- mechanisms
-- best practices
-- comparisons
-- how/why questions
-
-Avoid:
-- keyword lists
-- raw text from user messages
-- full paragraphs
-- unprocessed input
-
-## Examples of valid query shapes (not content):
-- "What is the main idea of..."
-- "How does X work in general?"
-- "Explain the purpose of..."
-- "What are the key principles behind..."
-- "Overview of ..."
-
-## Parameters
-- queries (required): 1–5 semantic questions or conceptual statements.
-  These should reflect the meaning or topic you want embeddings to capture.
-- knowledge_base_ids (optional): limit the search scope.
-
-## Output
-Returns chunks ranked by semantic similarity, reranked when applicable.  
-Each chunk has a short cN source ID and belongs to a dN document ID. Results represent conceptual relevance, not literal keyword overlap. Use dN for document-level follow-up tool calls.`,
+## 输出
+按语义相似度排列的分块，适用时重排序。每个分块带短 cN 来源 ID，归属短 dN 文档 ID。结果代表概念相关性，不保证字面关键词匹配。文档级后续调用使用 dN。`,
 	schema: json.RawMessage(`{
   "type": "object",
   "properties": {
     "queries": {
       "type": "array",
-      "description": "REQUIRED: 1-5 semantic questions/topics (e.g., ['What is RAG?', 'RAG benefits'])",
+      "description": "必填：1–5 个语义问题或主题，例如“什么是 RAG”“RAG 的优势”。",
       "items": {
         "type": "string"
       },
@@ -88,7 +48,7 @@ Each chunk has a short cN source ID and belongs to a dN document ID. Results rep
     },
     "knowledge_base_ids": {
       "type": "array",
-      "description": "Optional: bound knowledge-base IDs (the short bN values shown in runtime context)",
+      "description": "可选：已绑定知识库 ID，使用运行上下文中的短 bN。",
       "items": {
         "type": "string"
       },
@@ -881,12 +841,12 @@ func (t *KnowledgeSearchTool) formatOutput(
 		if len(queries) > 0 {
 			data["queries"] = queries
 		}
-		output := fmt.Sprintf("No relevant content found in %d knowledge base(s).\n\n", len(kbsToSearch))
-		output += "=== ⚠️ CRITICAL - Next Steps ===\n"
-		output += "- ❌ DO NOT use training data or general knowledge to answer\n"
-		output += "- ✅ If web_search is enabled: You MUST use web_search to find information\n"
-		output += "- ✅ If web_search is disabled: State 'I couldn't find relevant information in the knowledge base'\n"
-		output += "- NEVER fabricate or infer answers - ONLY use retrieved content\n"
+		output := fmt.Sprintf("在 %d 个知识库中未找到相关内容。\n\n", len(kbsToSearch))
+		output += "=== ⚠️ 重要：下一步 ===\n"
+		output += "- ❌ 不得使用训练数据或通用知识作答\n"
+		output += "- ✅ 如果启用了 web_search，必须用 web_search 查找信息\n"
+		output += "- ✅ 如果未启用 web_search，请说明『知识库中没有找到相关信息』\n"
+		output += "- 不得编造或推测答案，只能使用检索到的内容\n"
 
 		return &types.ToolResult{
 			Success: true,

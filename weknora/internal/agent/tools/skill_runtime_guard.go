@@ -28,13 +28,12 @@ func frozenSkillTreeGuidance(skillName string) string {
 	if skillName != "" {
 		skillArg = "skill_name=" + strconv.Quote(skillName)
 	}
-	return "the skill tree under " + sandbox.SkillsImageRoot +
-		" is frozen after install (read-only, root-owned; uv venv often has no pip). " +
-		"Do not chown, chmod, ensurepip, or pip/npm install into it. " +
-		"On-demand extras (python-docx, python-pptx, …) go in the session overlay: " +
+	return sandbox.SkillsImageRoot + " 下的技能目录在安装后被固定为只读，归 root 所有；uv 虚拟环境通常没有 pip。" +
+		"不要对其执行 chown、chmod、ensurepip，也不要向其内部 pip/npm install。" +
+		"按需依赖（python-docx、python-pptx 等）应安装到会话的可写目录：" +
 		"`python3 -m pip install --target " + pkgDir + " <package>` " +
-		"(system python3, not the skill venv), then execute_skill_script(" + skillArg + "). " +
-		"Or ask the user to reinstall the skill so extras are baked into the image."
+		"（使用系统 python3，而非技能虚拟环境），然后调用 execute_skill_script(" + skillArg + ")。" +
+		"也可以让用户重新安装技能，将额外依赖预装进镜像。"
 }
 
 func isFrozenSkillVenvFailure(stderr string) bool {
@@ -62,9 +61,9 @@ func skillOnDemandInstallHint(skillName, scriptPath, stdout, stderr string) stri
 	if !failedInstaller && !isFrozenSkillVenvFailure(stderr) {
 		return ""
 	}
-	msg := "Hint: " + frozenSkillTreeGuidance(skillName)
+	msg := "提示：" + frozenSkillTreeGuidance(skillName)
 	if installer {
-		msg += " Skip this installer and run the skill's real script."
+		msg += "跳过此安装脚本，执行技能的实际业务脚本。"
 	}
 	return msg
 }
@@ -73,6 +72,6 @@ func skillMissingPackageHint(skillName, stderr string) string {
 	if !isMissingInterpreterModule(stderr) {
 		return ""
 	}
-	return "Hint: this skill's frozen venv does not have that package. " +
+	return "提示：该技能的只读虚拟环境中没有此依赖包。" +
 		frozenSkillTreeGuidance(skillName)
 }

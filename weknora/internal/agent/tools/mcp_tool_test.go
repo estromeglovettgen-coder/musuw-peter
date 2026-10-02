@@ -169,7 +169,7 @@ func TestMCPToolDescription(t *testing.T) {
 			mcpTool: &types.MCPTool{Name: "getCompound", Description: "Get chemical compound info"},
 		}
 		desc := tool.Description()
-		assert.Contains(t, desc, "[MCP Service: ChemDB (external)]")
+		assert.Contains(t, desc, "[MCP 服务：ChemDB（外部）]")
 		assert.Contains(t, desc, "Get chemical compound info")
 	})
 
@@ -179,7 +179,7 @@ func TestMCPToolDescription(t *testing.T) {
 			mcpTool: &types.MCPTool{Name: "getCompound"},
 		}
 		desc := tool.Description()
-		assert.Contains(t, desc, "[MCP Service: ChemDB (external)]")
+		assert.Contains(t, desc, "[MCP 服务：ChemDB（外部）]")
 		assert.Contains(t, desc, "getCompound")
 	})
 }

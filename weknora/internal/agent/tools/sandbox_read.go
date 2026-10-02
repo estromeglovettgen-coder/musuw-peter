@@ -43,49 +43,14 @@ const (
 
 var readSandboxFileTool = BaseTool{
 	name: ToolReadSandboxFile,
-	description: `Read the contents of a file in the current session's inspectable sandbox directories.
+	description: `读取当前会话允许查看的沙箱文件。
+先用 list_sandbox_files 找到文件，再读取检查。用于查看报告内容、引用技能产物、确认实际生成内容、选择后续技能或参数、总结或修改先前产物；shell_exec 不可用时也可读取 <sandbox_attachments> 的附件。
+技能目录 /opt/weknora/tenant/skills 应用 read_skill 的 skill_name / file_path，不能用本工具。
 
-## Usage
-- Use in tandem with ` + "`list_sandbox_files`" + `: first list to find the file,
-  then read to inspect its content.
-- Handy when the user asks "what did that report say?" or you want to
-  quote a section of a skill-generated artifact.
-- Also use this to inspect a staged chat attachment under
-  ` + "`/workspace/input`" + ` when ` + "`shell_exec`" + ` is not available.
-
-## When to Use
-- After a skill claims it wrote something and you want to confirm the
-  content matches expectations.
-- Before invoking a follow-up skill that consumes a file — you may want
-  to inspect a snippet to decide which skill to invoke or what arguments
-  to pass.
-- When the user asks you to summarise or edit a previously generated
-  artifact.
-- When ` + "`<sandbox_attachments>`" + ` lists a user-uploaded file you need to
-  read without running a shell command.
-
-## When NOT to Use
-- Skill files under ` + "`/opt/weknora/tenant/skills`" + `. Use ` + "`read_skill`" + `
-  with ` + "`skill_name`" + ` / ` + "`file_path`" + `.
-
-## Path Rules
-- ` + "`path`" + ` MUST be an absolute path returned by ` + "`list_sandbox_files`" + `
-  or listed in the current ` + "`<sandbox_attachments>`" + ` block.
-- ` + "`path`" + ` MUST sit underneath the session's artifact output directory
-  (` + "`$WEKNORA_SKILL_OUTPUT_DIR`" + `, typically ` + "`/workspace/output`" + `) or the
-  session input directory (` + "`/workspace/input`" + `). Reads outside those
-  directories are rejected.
-
-## Size Handling
-- Files larger than 64 KiB are NOT downloaded or returned.
-- For large text, use ` + "`shell_exec`" + ` with ` + "`sed -n`" + `, ` + "`head`" + `,
-  ` + "`tail`" + `, ` + "`grep`" + `, or ` + "`awk`" + ` to inspect a targeted section.
-- ` + "`max_bytes`" + ` may lower the refusal threshold but cannot exceed 65536.
-
-## Binary Files
-- Binary bytes are never returned to the model or embedded as base64.
-- Use the ArtifactCollector download attachment for PDFs, PPTX files, images,
-  archives, and other binary artifacts.`,
+## 路径与大小
+path 必须是 list_sandbox_files 返回或当前 <sandbox_attachments> 列出的绝对路径，位于 $WEKNORA_SKILL_OUTPUT_DIR（通常 /workspace/output）或 /workspace/input 下，其他路径拒绝读取。
+超过 64 KiB 不下载或返回。大文本用 shell_exec 配合 sed -n、head、tail、grep、awk 定向查看。max_bytes 可降低阈值，不能超过 65536。
+不向模型返回二进制或 base64；PDF、PPTX、图片、压缩包等通过 ArtifactCollector 下载附件展示。`,
 	schema: utils.GenerateSchema[ReadSandboxFileInput](),
 }
 
@@ -93,10 +58,10 @@ var readSandboxFileTool = BaseTool{
 type ReadSandboxFileInput struct {
 	// Path is the absolute path inside the sandbox to read. Required.
 	// Must sit underneath the artifact output directory or /workspace/input.
-	Path string `json:"path" jsonschema:"Absolute path inside the sandbox. Must sit under the session's artifact output directory (typically /workspace/output) or /workspace/input. Get valid paths from list_sandbox_files or the current sandbox_attachments block."`
+	Path string `json:"path" jsonschema:"允许目录内的绝对路径：会话产物目录（通常 /workspace/output）或 /workspace/input。有效路径来自 list_sandbox_files 或当前 sandbox_attachments。"`
 	// MaxBytes is the largest file the tool may download. Zero uses 64 KiB;
 	// callers may lower but never raise the hard 64 KiB ceiling.
-	MaxBytes int64 `json:"max_bytes,omitempty" jsonschema:"Optional maximum file size to read. Defaults to 65536 bytes and is hard-capped at 65536. Larger files are not downloaded; use shell_exec with sed/head/tail/grep/awk."`
+	MaxBytes int64 `json:"max_bytes,omitempty" jsonschema:"可选最大读取大小，默认且最多 65536 字节；大文件不下载，请用 shell_exec 配合 sed/head/tail/grep/awk 查看。"`
 }
 
 // ReadSandboxFileTool exposes SandboxFileSource.ReadSessionFile as a
@@ -281,8 +246,8 @@ func oversizedSandboxFileResult(sessionID, filePath, rootDir string, size, limit
 	output := fmt.Sprintf(
 		"=== Sandbox file too large to read: %s ===\n\n"+
 			"size=%d bytes, limit=%d bytes, returned=0 bytes\n\n"+
-			"The file was not downloaded. Use shell_exec with sed -n, head, tail, grep, or awk "+
-			"to inspect only the relevant text section. Binary files remain available through the artifact attachment.\n",
+			"文件未被下载。请使用 shell_exec 配合 sed -n、head、tail、grep 或 awk "+
+			"只查看相关文本片段。二进制文件仍可通过文件附件访问。\n",
 		filePath, size, limit,
 	)
 	return &types.ToolResult{

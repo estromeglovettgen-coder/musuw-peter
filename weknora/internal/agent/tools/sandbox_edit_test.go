@@ -225,7 +225,7 @@ func TestEditSandboxFileRegistryHintsWhenPathMissing(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.Success)
 	assert.Contains(t, result.Error, "path")
-	assert.Contains(t, result.Error, "put `path` first")
+	assert.Contains(t, result.Error, "先写 `path`")
 }
 
 func mustEditSandboxArgs(path, oldString, newString string, replaceAll bool) json.RawMessage {

@@ -27,10 +27,10 @@ const (
 
 const resourceHandleProtocolPrompt = `
 
-## Resource handle protocol (system-owned)
-Some durable resources and high-entropy Wiki slugs are represented by request-local res://NNNN handles. Wiki issues may use iN handles.
-- Copy only handles that appeared in supplied context or tool results, preserving them exactly in links, images, and tool arguments.
-- Never invent, edit, or expand any handle. The system restores it after generation.`
+## 资源标识协议（系统规则）
+部分持久资源和较长的 Wiki slug 会表示为本次请求内的 res://NNNN 标识，Wiki 问题可能使用 iN 标识。
+- 只能复制上下文或工具结果里出现过的标识，在链接、图片和工具参数中保持原样。
+- 不要编造、修改或展开任何标识，系统会在生成后还原。`
 
 // Registry is the single request-scoped boundary between durable application
 // identities and temporary model handles.

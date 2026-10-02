@@ -18,11 +18,9 @@ import (
 )
 
 var dataAnalysisTool = BaseTool{
-	name: ToolDataAnalysis,
-	description: "Use this tool when the knowledge is CSV or Excel files. It loads the data into memory and executes SQL for data analysis. " +
-		"For Excel files with multiple sheets, every sheet is loaded into the same table and the source sheet name is exposed as a '__sheet_name' column so you can filter/aggregate per sheet. " +
-		"If the user's question requires data statistics, convert the question into SQL and execute it.",
-	schema: utils.GenerateSchema[DataAnalysisInput](),
+	name:        ToolDataAnalysis,
+	description: `分析 CSV 或 Excel 数据，加载到内存后执行 SQL。Excel 多个工作表会载入同一张表，并通过 __sheet_name 列表示来源工作表，便于按表筛选或汇总。问题需要统计时，先将问题转成 SQL 再执行。`,
+	schema:      utils.GenerateSchema[DataAnalysisInput](),
 }
 
 // excelSheetNameColumn is the name of the synthetic column that identifies
@@ -95,7 +93,7 @@ func buildMissingColumnSuggestion(sqlErr error, schema *TableSchema) string {
 
 	for _, col := range schema.Columns {
 		if normalizeIdentifierForMatch(col.Name) == normalizedMissing {
-			return fmt.Sprintf("Column %q does not exist. Did you mean %q? Please use the exact column name from schema.", missing, col.Name)
+			return fmt.Sprintf("列 %q 不存在。是否指 %q？请使用表结构中准确的列名。", missing, col.Name)
 		}
 	}
 
@@ -103,8 +101,8 @@ func buildMissingColumnSuggestion(sqlErr error, schema *TableSchema) string {
 }
 
 type DataAnalysisInput struct {
-	KnowledgeID string `json:"knowledge_id" jsonschema:"short dN document ID to query"`
-	Sql         string `json:"sql" jsonschema:"SQL to be executed on knowledge"`
+	KnowledgeID string `json:"knowledge_id" jsonschema:"要查询的短 dN 文档 ID。"`
+	Sql         string `json:"sql" jsonschema:"针对该资料执行的 SQL。"`
 }
 
 type DataAnalysisTool struct {

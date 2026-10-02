@@ -20,13 +20,15 @@ import (
 type fakeVLM struct {
 	response string
 
-	mu    sync.Mutex
-	calls int
+	mu      sync.Mutex
+	calls   int
+	prompts []string
 }
 
-func (f *fakeVLM) Predict(context.Context, [][]byte, string) (string, error) {
+func (f *fakeVLM) Predict(_ context.Context, _ [][]byte, prompt string) (string, error) {
 	f.mu.Lock()
 	f.calls++
+	f.prompts = append(f.prompts, prompt)
 	f.mu.Unlock()
 	if f.response == "" {
 		return "extracted document text from image", nil
@@ -39,8 +41,7 @@ func (f *fakeVLM) GetModelID() string   { return "fake" }
 
 // promptAwareVLM distinguishes OCR calls from caption calls by inspecting the
 // prompt, so tests can assert the OCR-first cascade (caption only fires as a
-// fallback). The caption prompt is the only one mentioning a "description of
-// the main content" of the image.
+// fallback). The caption prompt is the only one mentioning "描述图片的主要内容".
 type promptAwareVLM struct {
 	ocrResponse     string
 	captionResponse string
@@ -57,7 +58,7 @@ func (f *promptAwareVLM) Predict(_ context.Context, images [][]byte, prompt stri
 	if len(images) > 0 {
 		f.seenImages = append(f.seenImages, append([]byte(nil), images[0]...))
 	}
-	if strings.Contains(prompt, "description of the main content") {
+	if strings.Contains(prompt, "描述图片的主要内容") {
 		f.captionCalls++
 		return f.captionResponse, nil
 	}
@@ -160,6 +161,28 @@ func TestApplyImageUnderstandingImageFileRunsVLM(t *testing.T) {
 	}
 	if fv.calls == 0 {
 		t.Fatal("VLM should have been invoked for an image file")
+	}
+}
+
+func TestTemporaryDocumentOCRUsesSavedWorkspacePrompt(t *testing.T) {
+	for _, scanned := range []bool{false, true} {
+		key := "image.ocr"
+		if scanned {
+			key = "image.scanned_pdf"
+		}
+		t.Run(key, func(t *testing.T) {
+			const instruction = "仅提取客户姓名，保留原文，输出纯文本。"
+			ctx := context.WithValue(context.Background(), types.TenantIDContextKey, uint64(7))
+			ctx = context.WithValue(ctx, types.TenantInfoContextKey, &types.Tenant{
+				ID: 7, SystemPromptConfig: types.SystemPromptConfig{key: instruction},
+			})
+			model := &fakeVLM{response: "Peter"}
+			svc := &temporaryDocumentService{modelService: &fakeVLMModelService{model: model}}
+			got := svc.understandImagesWithVLM(ctx, "fake", [][]byte{[]byte("image bytes")}, scanned, false)
+			if got != "Peter" || model.calls != 1 || len(model.prompts) != 1 || model.prompts[0] != instruction {
+				t.Fatalf("saved OCR prompt did not reach the model: got=%q, calls=%d, prompts=%#v", got, model.calls, model.prompts)
+			}
+		})
 	}
 }
 

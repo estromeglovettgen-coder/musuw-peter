@@ -56,7 +56,7 @@ func TestRegistrySuppressesSourceCitationsWhenDisabled(t *testing.T) {
 	registry.RegisterChunk(ChunkReference{ChunkID: "chunk-1", DocumentTitle: "Doc"})
 	registry.RegisterWeb("https://example.com", "Example")
 
-	require.Contains(t, sourceProtocolPrompt(false), "Source citations are disabled")
+	require.Contains(t, sourceProtocolPrompt(false), "本次回答已关闭来源引用")
 	require.NotContains(t, sourceProtocolPrompt(false), `Cite a knowledge chunk with exactly`)
 	require.Equal(t, "knowledge  web ", registry.ExpandText(
 		`knowledge <ref id="c1"/> web <ref id="w1"/>`,

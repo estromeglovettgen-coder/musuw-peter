@@ -11,117 +11,67 @@ import (
 
 var sequentialThinkingTool = BaseTool{
 	name: ToolThinking,
-	description: `A detailed tool for dynamic and reflective problem-solving through thoughts.
+	description: `通过动态、可调整的分析帮助解决复杂问题。每一步可以建立在、质疑或修正之前的判断，也可以分支和回溯。
+适合拆解复杂问题、可修订规划、需要纠正方向、初始范围不明、多步骤解决、保持上下文以及过滤无关信息。
 
-This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+## 参数
+- thought：当前分析，包括正常分析、修订、质疑先前决定、发现需补充分析、调整方法、提出和核验假设。
+- next_thought_needed：是否还需下一步分析。
+- thought_number：当前序号，可超过最初估计。
+- total_thoughts：当前预计总步骤，可增减。
+- is_revision：是否修订先前分析。
+- revises_thought：被修订的序号。
+- branch_from_thought / branch_id：分支起点和标识。
+- needs_more_thoughts：原以为结束但发现仍需分析。
 
-Each thought can build on, question, or revise previous insights as understanding deepens.
+## 面向用户的表达
+thought 使用自然、易懂的语言，不提 grep_chunks、knowledge_search、web_search 等内部工具名。说“我先在知识库查找关键术语，再探索相关概念”，不要说“我要用 grep_chunks”；说“找到相关文档后，再查找语义相关内容”，不要介绍工具步骤。重点解释寻找什么、为什么寻找，而非使用何种工具。
 
-## When to Use This Tool
-
-- Breaking down complex problems into steps
-- Planning and design with room for revision
-- Analysis that might need course correction
-- Problems where the full scope might not be clear initially
-- Problems that require a multi-step solution
-- Tasks that need to maintain context over multiple steps
-- Situations where irrelevant information needs to be filtered out
-
-## Key Features
-
-- You can adjust total_thoughts up or down as you progress
-- You can question or revise previous thoughts
-- You can add more thoughts even after reaching what seemed like the end
-- You can express uncertainty and explore alternative approaches
-- Not every thought needs to build linearly - you can branch or backtrack
-- Generates a solution hypothesis
-- Verifies the hypothesis based on the Chain of Thought steps
-- Repeats the process until satisfied
-- When your thinking is complete, deliver your answer by writing it as your plain reply and stopping (no further tool calls). NEVER include the final answer directly in a thought.
-
-## Parameters Explained
-
-- **thought**: Your current thinking step, which can include:
-  * Regular analytical steps
-  * Revisions of previous thoughts
-  * Questions about previous decisions
-  * Realizations about needing more analysis
-  * Changes in approach
-  * Hypothesis generation
-  * Hypothesis verification
-  
-  **CRITICAL - User-Friendly Thinking**: Write your thoughts in natural, user-friendly language. NEVER mention tool names (like "grep_chunks", "knowledge_search", "web_search", etc.) in your thinking process. Instead, describe your actions in plain language:
-  - ❌ BAD: "I'll use grep_chunks to search for keywords, then knowledge_search for semantic understanding"
-  - ✅ GOOD: "I'll start by searching for key terms in the knowledge base, then explore related concepts"
-  - ❌ BAD: "After grep_chunks returns results, I'll use knowledge_search"
-  - ✅ GOOD: "After finding relevant documents, I'll search for semantically related content"
-  
-  Write thinking as if explaining your reasoning to a user, not documenting technical steps. Focus on WHAT you're trying to find and WHY, not HOW (which tools you'll use).
-
-- **next_thought_needed**: True if you need more thinking, even if at what seemed like the end
-- **thought_number**: Current number in sequence (can go beyond initial total if needed)
-- **total_thoughts**: Current estimate of thoughts needed (can be adjusted up/down)
-- **is_revision**: A boolean indicating if this thought revises previous thinking
-- **revises_thought**: If is_revision is true, which thought number is being reconsidered
-- **branch_from_thought**: If branching, which thought number is the branching point
-- **branch_id**: Identifier for the current branch (if any)
-- **needs_more_thoughts**: If reaching end but realizing more thoughts needed
-
-## Best Practices
-
-1. Start with an initial estimate of needed thoughts, but be ready to adjust
-2. Feel free to question or revise previous thoughts
-3. Don't hesitate to add more thoughts if needed, even at the "end"
-4. Express uncertainty when present
-5. Mark thoughts that revise previous thinking or branch into new paths
-6. Ignore information that is irrelevant to the current step
-7. Generate a solution hypothesis when appropriate
-8. Verify the hypothesis based on the Chain of Thought steps
-9. Repeat the process until satisfied with the solution
-10. Only set next_thought_needed to false when truly done and a satisfactory answer is reached
-11. NEVER include the final answer in the thought content. When thinking is complete, deliver the final answer by writing it as your plain reply and stopping (no further tool calls)`,
+## 用法
+先估计步数，随进展调整；可以质疑、修订并追加步骤，表达不确定性，标记修订和分支，过滤无关内容。适当提出解决假设，用分析证据核验，必要时重复。
+只有分析确实完成且答案充分时，next_thought_needed 才设为 false。不要把最终答案放在 thought 中；分析完成后输出完整用户回答并停止，不再调用工具。`,
 	schema: json.RawMessage(`{
   "type": "object",
   "properties": {
     "thought": {
       "type": "string",
-      "description": "Your current thinking step. Write in natural, user-friendly language. NEVER mention tool names (like \"grep_chunks\", \"knowledge_search\", \"web_search\", etc.). Instead, describe actions in plain language (e.g., \"I'll search for key terms\" instead of \"I'll use grep_chunks\"). Focus on WHAT you're trying to find and WHY, not HOW (which tools you'll use)."
+      "description": "当前分析步骤。使用自然、易懂的语言，不提内部工具名；描述要查找什么及原因，而非工具实现。"
     },
     "next_thought_needed": {
       "type": "boolean",
-      "description": "Whether another thought step is needed"
+      "description": "是否还需要下一步分析。"
     },
     "thought_number": {
       "type": "integer",
-      "description": "Current thought number (numeric value, e.g., 1, 2, 3)",
+      "description": "当前分析步骤序号，如 1、2、3。",
       "minimum": 1
     },
     "total_thoughts": {
       "type": "integer",
-      "description": "Estimated total thoughts needed (numeric value, e.g., 5, 10)",
+      "description": "预计总分析步数，如 5、10。",
       "minimum": 1
     },
     "is_revision": {
       "type": "boolean",
-      "description": "Whether this revises previous thinking"
+      "description": "是否修订先前的分析。"
     },
     "revises_thought": {
       "type": "integer",
-      "description": "Which thought is being reconsidered",
+      "description": "需要重新考虑的步骤序号。",
       "minimum": 1
     },
     "branch_from_thought": {
       "type": "integer",
-      "description": "Branching point thought number",
+      "description": "分支起点的步骤序号。",
       "minimum": 1
     },
     "branch_id": {
       "type": "string",
-      "description": "Branch identifier"
+      "description": "当前分支标识。"
     },
     "needs_more_thoughts": {
       "type": "boolean",
-      "description": "If more thoughts are needed"
+      "description": "是否发现还需要更多分析。"
     }
   },
   "required": ["thought", "next_thought_needed", "thought_number", "total_thoughts"]
@@ -226,9 +176,9 @@ func (t *SequentialThinkingTool) Execute(ctx context.Context, args json.RawMessa
 		input.TotalThoughts,
 	)
 
-	outputMsg := "Thought process recorded"
+	outputMsg := "已记录思考过程"
 	if incomplete {
-		outputMsg = "Thought process recorded - unfinished steps remain, continue exploring and calling tools"
+		outputMsg = "已记录思考过程，仍有未完成步骤，请继续探索并调用工具"
 	}
 
 	return &types.ToolResult{

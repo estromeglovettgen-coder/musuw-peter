@@ -906,28 +906,18 @@ func buildRepairPrompt(skillDir string, gate *skillVerificationError) string {
 		findings.WriteString(problem)
 		findings.WriteString("\n")
 	}
-	return fmt.Sprintf(`Verification of the skill you just installed failed. Fix only this and stop.
+	return fmt.Sprintf(`刚安装的技能未通过检查。只修复此问题，然后结束。
 
-The %s check reported:
+%s 检查报告：
 %s
-Every line above is a dependency this image cannot resolve. The names were read
-from the imports the skill's own files execute when they load, which is why some
-of them appear nowhere in SKILL.md — install them anyway.
+以上每行都是当前镜像无法解析的依赖。名称来自技能文件加载时实际执行的导入，因此部分未写在 SKILL.md 中，但仍须安装。
 
-- Python packages go into %s/.venv (`+"`uv pip install`"+`, or
-  %s/.venv/bin/python -m pip install). Node packages go under %s/node_modules.
-- The name in each line is an IMPORT name; install the distribution that
-  provides it. Common cases where they differ: PIL -> pillow, yaml -> pyyaml,
-  docx -> python-docx, pptx -> python-pptx, cv2 -> opencv-python-headless,
-  bs4 -> beautifulsoup4, sklearn -> scikit-learn, fitz -> pymupdf.
-- Do NOT edit, move or delete any of the skill's own files, and do NOT edit
-  SKILL.md or requirements.txt to make the check pass. The uploaded archive is
-  what read_skill serves, so a source edit here makes the installed skill differ
-  from what everyone else sees.
-- If a package genuinely cannot be installed in this image, say so plainly in
-  your summary rather than working around it.
+- Python 包安装到 %s/.venv，使用 `+"`uv pip install`"+` 或 %s/.venv/bin/python -m pip install；Node 包安装到 %s/node_modules。
+- 每行给出的是导入名称，应安装提供该名称的发行包。常见差异：PIL -> pillow、yaml -> pyyaml、docx -> python-docx、pptx -> python-pptx、cv2 -> opencv-python-headless、bs4 -> beautifulsoup4、sklearn -> scikit-learn、fitz -> pymupdf。
+- 不得编辑、移动或删除技能自身文件，不得修改 SKILL.md 或 requirements.txt 来绕过检查。read_skill 提供上传归档的内容，修改来源会导致实际安装内容与他人看到的不一致。
+- 某个包确实无法在镜像中安装时，在总结中如实说明，不要绕过。
 
-The same verification runs again as soon as you finish.
+完成后会立即再次运行相同检查。
 `, gate.Language, findings.String(), skillDir, skillDir, skillDir)
 }
 
@@ -1664,61 +1654,36 @@ func buildInstallPrompt(skillDir string, bundle *SkillBundle, uvAvailable bool) 
 		skillMD = string(bundle.Files["SKILL.md"])
 		requirementsPath = sandbox.SkillRequirementsPath(bundle.Name)
 	}
-	return fmt.Sprintf(`Install this WeKnora skill into the sandbox image.
+	return fmt.Sprintf(`将该技能安装到沙箱镜像。
 
-Skill directory: %s
-uv available: %t
+技能目录：%s
+uv 是否可用：%t
 
-Hard requirements:
-- Install dependencies for exactly this one skill.
-- Python dependencies must go into %s/.venv. Do not install into system Python.
-- Node dependencies must go under %s/node_modules. Do not install global packages unless no local alternative exists.
-- Use shell_exec only (write_sandbox_file is not available and cannot write
-  this tree). You may set work_dir to %s. Write .weknora/requirements.json
-  with a short shell redirect after mkdir -p.
-- Each command has a 10-minute budget; you do not need to set timeout_sec.
-- When finished, report what you installed and any global/system packages you changed.
-- Declare the environment variables this skill reads AT RUN TIME. Read its scripts to decide;
-  ignore anything only the installation itself needed. Run mkdir -p on the directory first, then
-  write the declaration to %s as JSON of this exact shape:
-  {"env":[{"name":"TAVILY_API_KEY","description":"what the skill uses it for","required":true}]}
-  Each name must be UPPER_SNAKE_CASE and must appear literally somewhere in the skill's own files.
-  Never write any value, placeholder or example credential: this file declares what is needed, and
-  a value you invent would be stored as this workspace's real credential. If one environment
-  variable is required, set required to true; if it is optional, set required to false. If the
-  skill needs no environment variables, write {"env":[]}.
-  Do not declare WEKNORA_SKILL_DIR, WEKNORA_SKILL_OUTPUT_DIR, WEKNORA_SKILL_HISTORY_ROOT or
-  WEKNORA_SESSION_INPUT_DIR: the sandbox injects those. Other WEKNORA_* names the skill reads
-  (WEKNORA_API_KEY, WEKNORA_BASE_URL, WEKNORA_HOST, WEKNORA_TOKEN, WEKNORA_KB_ID) MUST be declared.
+必须遵守：
+- 仅为这一个技能安装依赖。
+- Python 依赖必须放在 %s/.venv，不得安装到系统 Python。
+- Node 依赖必须放在 %s/node_modules；只有没有本地替代时才安装全局包。
+- 只使用 shell_exec。write_sandbox_file 不可用，也不能写入该目录。work_dir 可设为 %s。先执行 mkdir -p，再通过简短 shell 重定向写入 .weknora/requirements.json。
+- 每条命令有 10 分钟预算，不需要设置 timeout_sec。
+- 完成后说明安装了哪些依赖，以及修改的全局或系统包。
+- 声明技能运行时读取的环境变量。阅读脚本确认，忽略仅安装过程需要的变量。先 mkdir -p 创建目录，再将声明写入 %s，JSON 格式必须为：
+  {"env":[{"name":"TAVILY_API_KEY","description":"该技能使用它的用途","required":true}]}
+  名称必须为 UPPER_SNAKE_CASE，且必须逐字出现在技能自身文件中。
+  绝不能写入任何值、占位值或示例凭据：这个文件只声明需求，自行创造的值会成为该工作区的实际凭据。必需变量的 required 为 true，可选变量为 false，不需要环境变量时写 {"env":[]}。
+  不要声明 WEKNORA_SKILL_DIR、WEKNORA_SKILL_OUTPUT_DIR、WEKNORA_SKILL_HISTORY_ROOT 或 WEKNORA_SESSION_INPUT_DIR，这些由沙箱注入。技能读取的其他 WEKNORA_* 变量（WEKNORA_API_KEY、WEKNORA_BASE_URL、WEKNORA_HOST、WEKNORA_TOKEN、WEKNORA_KB_ID）必须声明。
 
-On-demand / optional extras MUST be installed now. After you finish, this
-tree is made read-only and session agents cannot pip/npm into it (uv venv also
-has no pip). Skills that ship scripts/install_deps.py or say "pip install when
-the user needs Word/PPT" will fail at chat time unless those packages are
-already in the venv.
-- Create the venv with pip present: `+"`uv venv --seed %s/.venv`"+` (or `+"`python3 -m venv`"+`).
-- Install requirements.txt / pyproject.toml with `+"`uv pip install`"+`.
-- Read SKILL.md and any on-demand installer for extra packages (python-docx,
-  python-pptx, …) and `+"`uv pip install`"+` every extra, not only the default set.
+按需或可选依赖必须现在安装。完成后目录只读，会话智能体不能向其中安装 pip/npm 包，uv venv 也没有 pip。附带 scripts/install_deps.py 或建议“需要 Word/PPT 时再 pip install”的技能，如果依赖没有预先安装，聊天时会失败。
+- 创建含 pip 的虚拟环境：`+"`uv venv --seed %s/.venv`"+`，或 `+"`python3 -m venv`"+`。
+- 使用 `+"`uv pip install`"+` 安装 requirements.txt / pyproject.toml。
+- 阅读 SKILL.md 和按需安装器，找出 python-docx、python-pptx 等附加包，用 `+"`uv pip install`"+` 安装所有额外依赖，而非仅默认集合。
 %s
-- If an installer script needs --yes / --all / every extra flag, pass them.
+- 安装脚本需要 --yes / --all 或其他启用附加项的参数时，提供这些参数。
 %s
-The server verifies the result itself before the image is kept, so report what
-you did rather than whether it passed. Verification parses every script with
-the interpreter that would run it, resolves the imports each one executes on
-load, and checks every distribution named in requirements.txt is present in the
-venv. It never runs the skill's code, so nothing is expected to answer --help.
-Lazy imports and install_deps.py extras are invisible to that check — you still
-have to install them.
+服务器在保留镜像前自行检查结果，所以报告实际操作，不要自行宣称检查通过。检查会使用实际运行的解释器解析每个脚本，确认加载时导入可解析，并确认 requirements.txt 中声明的每个发行包存在于虚拟环境。检查不运行技能代码，因此不要求脚本响应 --help。延迟导入及 install_deps.py 的附加包不在检查范围内，但仍必须安装。
 
-SKILL.md is not the dependency list. What the check resolves is the set of
-top-level imports the skill's files actually execute, and a library module
-routinely imports something the documentation never mentions. Read every .py in
-the tree (grep '^import\|^from' over it) and install what those lines need, not
-only what the Dependencies section names. If verification does fail on a missing
-package, you get its exact findings back and one round to install them.
+SKILL.md 不是完整依赖列表。检查依据是技能文件实际执行的顶层导入，库模块经常导入文档未提及的包。阅读目录中每个 .py 文件，可用 grep '^import\|^from' 查看导入；安装这些代码需要的包，而不是仅安装 Dependencies 一节列出的包。缺包导致检查失败时，会收到具体结果并有一轮修复机会。
 
-SKILL.md:
+SKILL.md：
 %s
 `, skillDir, uvAvailable, skillDir, skillDir, skillDir,
 		requirementsPath, skillDir, formatOnDemandInstallers(bundle),
@@ -1730,14 +1695,14 @@ SKILL.md:
 func formatOnDemandInstallers(bundle *SkillBundle) string {
 	names := bundleOnDemandInstallers(bundle)
 	if len(names) == 0 {
-		return "- Look for scripts named install_deps.py (or similar) even if they are not listed here."
+		return "- 查找 install_deps.py 或类似安装脚本，即使没有列在这里。"
 	}
 	quoted := make([]string, len(names))
 	for i, name := range names {
 		quoted[i] = "`" + name + "`"
 	}
-	return "- This archive ships on-demand installer(s): " + strings.Join(quoted, ", ") +
-		". Run each one now with non-interactive flags covering every extra."
+	return "- 本归档包含按需安装器：" + strings.Join(quoted, ", ") +
+		"。现在使用非交互参数运行每个安装器，覆盖全部附加项。"
 }
 
 func bundleOnDemandInstallers(bundle *SkillBundle) []string {
@@ -1758,10 +1723,10 @@ func formatFrontmatterRepairNote(bundle *SkillBundle) string {
 	if bundle == nil || !bundle.FrontmatterRepaired {
 		return ""
 	}
-	return "\nThe SKILL.md YAML frontmatter was automatically repaired " +
-		"(keys nested under name, or an unquoted colon). Extra or still-broken " +
-		"keys were not reconstructed. Mention this in your summary so the user " +
-		"can fix the file.\n"
+	return "\nSKILL.md 的 YAML 元信息已自动修复" +
+		"（name 下嵌套字段或未加引号的冒号）。多余或仍无效的" +
+		"字段没有重建。请在总结中说明，方便用户" +
+		"修复文件。\n"
 }
 
 func (s *TenantSkillService) probeUv(ctx context.Context, mgr sandbox.Manager, sessionID string) bool {

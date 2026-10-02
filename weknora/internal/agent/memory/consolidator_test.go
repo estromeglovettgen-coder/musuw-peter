@@ -93,10 +93,10 @@ func TestRawArchive(t *testing.T) {
 	}
 
 	result := c.rawArchive(messages)
-	assert.Contains(t, result, "Raw conversation archive")
-	assert.Contains(t, result, "User: search for X")
+	assert.Contains(t, result, "会话原始存档")
+	assert.Contains(t, result, "用户： search for X")
 	assert.Contains(t, result, "knowledge_search")
-	assert.Contains(t, result, "Tool[knowledge_search]: result data")
+	assert.Contains(t, result, "工具[knowledge_search]： result data")
 }
 
 func TestBuildConsolidationPrompt(t *testing.T) {
@@ -113,9 +113,9 @@ func TestBuildConsolidationPrompt(t *testing.T) {
 	}
 
 	prompt := c.buildConsolidationPrompt(messages)
-	assert.Contains(t, prompt, "**User**: find info about AI")
+	assert.Contains(t, prompt, "**用户**: find info about AI")
 	assert.Contains(t, prompt, "web_search")
-	assert.Contains(t, prompt, "**Tool [web_search]**: results here")
+	assert.Contains(t, prompt, "**工具 [web_search]**: results here")
 }
 
 // ---------- Consolidate() 核心流程测试 ----------
@@ -166,7 +166,7 @@ func TestConsolidate_Round1_UserQueryAtEnd(t *testing.T) {
 
 	// A summary message must have been inserted.
 	assert.Equal(t, "system", result[1].Role)
-	assert.Contains(t, result[1].Content, "Memory Summary")
+	assert.Contains(t, result[1].Content, "会话摘要")
 
 	// Total message count should be fewer than original.
 	assert.Less(t, len(result), len(msgs))
@@ -230,7 +230,7 @@ func TestConsolidate_Round2Plus_UserQueryNotAtEnd(t *testing.T) {
 	// Summary message exists.
 	hasSummary := false
 	for _, m := range result {
-		if m.Role == "system" && strings.Contains(m.Content, "Memory Summary") {
+		if m.Role == "system" && strings.Contains(m.Content, "会话摘要") {
 			hasSummary = true
 			break
 		}
@@ -332,9 +332,9 @@ func TestConsolidate_LLMFailure_FallsBackToRawArchive(t *testing.T) {
 	// Should still have a summary (raw archive fallback).
 	hasSummary := false
 	for _, m := range result {
-		if m.Role == "system" && strings.Contains(m.Content, "Memory Summary") {
+		if m.Role == "system" && strings.Contains(m.Content, "会话摘要") {
 			hasSummary = true
-			assert.Contains(t, m.Content, "Raw conversation archive",
+			assert.Contains(t, m.Content, "会话原始存档",
 				"should be a raw archive when LLM fails")
 		}
 	}

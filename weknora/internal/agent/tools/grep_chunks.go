@@ -18,26 +18,22 @@ import (
 
 var grepChunksTool = BaseTool{
 	name: ToolGrepChunks,
-	description: `Search knowledge base chunk content with a single POSIX regular expression, applied directly in the database (PostgreSQL ~* / MySQL/SQLite REGEXP, case-insensitive). Behaves like ` + "`grep -E -i`" + `.
-Pack multiple concepts into ONE regex using ` + "`|`" + ` alternation — do not call this tool repeatedly for synonyms.
-Returns matching chunks with a short cN chunk source ID, a parent dN document ID, and a <match> snippet around the first match.
-Examples:
-- Alternation (RECOMMENDED): "stardust|skyvault|psionic" (matches any of the words)
-- Multiple terms in order: "psionic.*engine" (matches both words in order)
-- Word boundary / anchor: "\\brag\\b" or "^chapter\\s+\\d+"
-- Plain text: "engine" (matches literal substring anywhere in chunk content)
-IMPORTANT — JSON escaping: every backslash in a regex MUST be written as \\ inside the JSON tool arguments (e.g. to search for literal "C++" write "C\\+\\+", NOT "C\+\+"; for "\d+" write "\\d+"). Plain "\+" / "\d" etc. are invalid JSON escapes and will fail to parse.
-Use this to locate candidate chunks by exact identifiers, error codes, product names, or recurring terms.
+	description: `用一个 POSIX 正则直接检索知识库分块正文，PostgreSQL 使用 ~*，MySQL/SQLite 使用 REGEXP，不区分大小写，行为类似 grep -E -i。
+同义词或多概念合成一条带 | 的选择正则，不要重复调用。
+返回匹配分块的短 cN 来源 ID、父文档短 dN ID，以及首个匹配附近的 <match> 片段。
+示例：选择正则 stardust|skyvault|psionic；顺序匹配 psionic.*engine；词边界或锚点 \\brag\\b、^chapter\\s+\\d+；字面量 engine 匹配任意位置的子串。
+JSON 转义：正则中的每个反斜杠在 JSON 参数中必须写为 \\。查找字面量 C++ 时写 C\\+\\+，不要写 C\+\+；\d+ 写为 \\d+。单个 \+ 或 \d 不是有效 JSON 转义，会导致解析失败。
+适合定位精确标识符、错误码、产品名或重复术语。
 
-## Deep read after grep:
-- **FAQ hit** (chunk type faq): call list_knowledge_chunks with **faq_id=cN** from the grep result (NOT the parent dN document ID).
-- **Document hit**: call list_knowledge_chunks with **knowledge_id=dN**, or get_document_info with **knowledge_ids=[dN]**.`,
+## 搜索后深读
+- FAQ 命中（类型 faq）：从结果取 faq_id=cN 调用 list_knowledge_chunks，不能使用父 dN 文档 ID。
+- 文档命中：用 knowledge_id=dN 调用 list_knowledge_chunks，或用 knowledge_ids=[dN] 调用 get_document_info。`,
 	schema: json.RawMessage(`{
   "type": "object",
   "properties": {
     "query": {
       "type": "string",
-      "description": "A single POSIX regex applied directly to chunk content (case-insensitive). Combine multiple concepts with \"|\" alternation in ONE regex (e.g. \"stardust|skyvault|psionic\") — do not split into multiple calls.",
+      "description": "对分块正文使用一个 POSIX 正则，不区分大小写。多个概念用 | 合成一条选择正则，如 stardust|skyvault|psionic，不拆成多次调用。",
       "minLength": 1
     }
   },

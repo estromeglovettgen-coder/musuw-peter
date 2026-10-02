@@ -20,41 +20,21 @@ const searchConversationsSnippetRunes = 400
 
 var searchConversationsTool = BaseTool{
 	name: ToolSearchConversations,
-	description: `Search this user's own past conversations with the assistant.
-
-## When to Use
-
-Use this tool when the user refers to something that was discussed before but is
-not in the current conversation:
-- "上次你给我的那个配置" / "we talked about this last month"
-- "我之前问过的那个报错" — the error and its answer are in an older session
-- The user assumes shared context that this session does not contain
-
-Do not use when:
-- The answer is in documents (use knowledge_search — that is the knowledge base)
-- The information is in the current conversation already
-- The user is asking a general question with no reference to the past
-
-## What It Returns
-
-Matching exchanges from the user's own previous sessions, each with the session
-title, the date, the user's question and the assistant's answer.
-
-## Notes
-
-- Only this user's own conversations are searched, never a colleague's.
-- Past answers may be outdated. Prefer current documents when they disagree,
-  and say so rather than repeating a stale answer as fact.`,
+	description: `搜索当前用户与助手的历史会话。
+用户提到当前对话没有的旧内容时使用，例如“上次你给我的那个配置”“我们上个月聊过这个”“我之前问过的那个报错”。
+答案在文档时用 knowledge_search；当前对话已有信息或没有提到过去的一般问题不使用。
+返回匹配交流，含会话标题、日期、用户问题和助手回答。
+只搜索当前用户自己的会话，不搜索同事会话。旧答案可能过时，与当前文档冲突时优先当前文档并说明，不将旧答案重复当成事实。`,
 	schema: json.RawMessage(`{
   "type": "object",
   "properties": {
     "query": {
       "type": "string",
-      "description": "What to look for in past conversations, in the user's own words"
+      "description": "按用户原话描述要在历史会话中查找什么。"
     },
     "limit": {
       "type": "integer",
-      "description": "Maximum number of past exchanges to return (default 5, max 8)"
+      "description": "最多返回的历史交流数，默认 5，最多 8。"
     }
   },
   "required": ["query"]
@@ -174,8 +154,7 @@ func (t *SearchConversationsTool) Execute(
 		return &types.ToolResult{
 			Success: true,
 			Output: "<past_conversations />\n" +
-				"Nothing in this user's past conversations matches. " +
-				"Do not assume it was discussed before.",
+				"该用户的历史对话中没有匹配内容。不要假定此前讨论过。",
 			Data: map[string]interface{}{"query": query, "matches": 0},
 		}, nil
 	}

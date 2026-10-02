@@ -15,6 +15,7 @@ test('workspace settings visibility matches the WeKnora main 81142df role matrix
     ollama: 'admin',
     weknoracloud: 'admin',
     models: 'viewer',
+    'system-prompts': 'admin',
     websearch: 'admin',
     chathistory: 'admin',
     vectorstore: 'admin',
@@ -43,6 +44,11 @@ test('management shortcuts remain stricter than read-only settings pages where r
 test('the skill catalog is admin-only like the sandbox it installs into', () => {
   assert.equal(SETTINGS_SECTION_MIN_ROLE.skills, 'admin')
   assert.equal(SETTINGS_SECTION_MIN_ROLE.skills, SETTINGS_SECTION_MIN_ROLE.sandbox)
+})
+
+test('workspace system prompt editing remains admin-only', () => {
+  assert.equal(SETTINGS_SECTION_MIN_ROLE['system-prompts'], 'admin')
+  assert.equal(SYSTEM_ADMIN_SETTINGS_SECTIONS.has('system-prompts'), false)
 })
 
 test('personal skill environment variables are visible to every member', () => {

@@ -250,6 +250,13 @@ func (s *wikiIngestService) ProcessWikiIngest(ctx context.Context, t *asynq.Task
 
 	// Inject context
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	if s.tenantRepo != nil {
+		tenant, err := s.tenantRepo.GetTenantByID(ctx, payload.TenantID)
+		if err != nil {
+			return fmt.Errorf("load wiki workspace prompt configuration: %w", err)
+		}
+		ctx = context.WithValue(ctx, types.TenantInfoContextKey, tenant)
+	}
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -914,6 +921,13 @@ func (s *wikiIngestService) ProcessWikiFinalize(ctx context.Context, t *asynq.Ta
 		return fmt.Errorf("wiki finalize: unmarshal payload: %w", err)
 	}
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	if s.tenantRepo != nil {
+		tenant, err := s.tenantRepo.GetTenantByID(ctx, payload.TenantID)
+		if err != nil {
+			return fmt.Errorf("load wiki workspace prompt configuration: %w", err)
+		}
+		ctx = context.WithValue(ctx, types.TenantInfoContextKey, tenant)
+	}
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -1620,7 +1634,7 @@ func (s *wikiIngestService) extractEntitiesAndConceptsNoUpsert(
 		"Content":            content,
 		"Language":           lang,
 		"PreviousSlugs":      prevSlugsText,
-		"CustomInstructions": batchCtx.ExtractionInstructions,
+		"CustomInstructions": wikiExtractionScope(batchCtx),
 		"InstructionScope":   "wiki_extraction",
 	})
 	if err != nil {

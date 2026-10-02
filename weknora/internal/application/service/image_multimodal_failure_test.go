@@ -37,7 +37,7 @@ func (m *multimodalFailureVLM) Predict(_ context.Context, images [][]byte, promp
 	if len(images) > 0 {
 		m.seenImages = append(m.seenImages, append([]byte(nil), images[0]...))
 	}
-	if strings.Contains(prompt, "OCR assistant") || strings.Contains(prompt, "OCR and document layout") {
+	if strings.Contains(prompt, "文字识别助手") || strings.Contains(prompt, "文字识别和文档版式提取助手") {
 		return m.ocrText, m.ocrErr
 	}
 	return m.captionText, m.captionErr
@@ -126,10 +126,11 @@ func (s multimodalFailureKBService) GetKnowledgeBaseByIDOnly(context.Context, st
 type multimodalFailureTenantRepo struct {
 	interfaces.TenantRepository
 	tenant *types.Tenant
+	err    error
 }
 
 func (r multimodalFailureTenantRepo) GetTenantByID(context.Context, uint64) (*types.Tenant, error) {
-	return r.tenant, nil
+	return r.tenant, r.err
 }
 
 type multimodalFailureFileService struct {

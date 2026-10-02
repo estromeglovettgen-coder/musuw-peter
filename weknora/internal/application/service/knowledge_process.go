@@ -859,11 +859,11 @@ const summaryFallbackMaxRunes = 500
 
 const automaticURLSummaryTitleInstruction = `
 
-## Automatic knowledge title
-This URL knowledge has no user-authored title. In the same response, generate a concise title from the document content.
-- The first line must be exactly one level-1 Markdown heading: # <title>
-- The title must be 4-10 words, plain text, and contain no URL, citation, quote, or explanation.
-- Start the summary on the next non-empty line. Do not repeat the title in the summary.`
+## 自动生成资料标题
+此网页资料没有用户填写的标题。在同一回复中，根据文档内容生成简洁标题。
+- 第一行必须且只能是一个一级 Markdown 标题：# <标题>
+- 标题长度为 4—10 个词，使用纯文本，不得含网址、引用、引语或解释。
+- 从下一个非空行开始输出摘要，不要在摘要中重复标题。`
 
 // validateSummaryOutput rejects successful model responses that contain no
 // user-visible text. Treating whitespace-only output as an error lets Asynq
@@ -1090,9 +1090,18 @@ func (s *knowledgeService) getSummary(ctx context.Context,
 	}
 
 	// Generate summary using AI model
-	summaryPrompt := types.RenderPromptPlaceholders(s.config.Conversation.GenerateSummaryPrompt, types.PlaceholderValues{
+	summaryPrompt := types.RenderPromptPlaceholders(types.ResolveSystemPrompt(ctx, "conversation.document_summary", s.config.Conversation.GenerateSummaryPrompt), types.PlaceholderValues{
 		"language": types.LanguageNameFromContext(ctx),
 	})
+	if s.kbService != nil && knowledge.KnowledgeBaseID != "" {
+		kb, scopeErr := s.kbService.GetKnowledgeBaseByID(ctx, knowledge.KnowledgeBaseID)
+		if scopeErr != nil {
+			return "", "", fmt.Errorf("load summary content requirements: %w", scopeErr)
+		}
+		if kb != nil && kb.WikiConfig != nil {
+			summaryPrompt = types.AppendCustomPromptInstructions(summaryPrompt, kb.WikiConfig.ContentInstructions, "wiki_content")
+		}
+	}
 	wantsGeneratedTitle := automaticURLKnowledgeTitle(knowledge)
 	if wantsGeneratedTitle {
 		summaryPrompt += automaticURLSummaryTitleInstruction
@@ -1225,6 +1234,13 @@ func (s *knowledgeService) ProcessSummaryGeneration(ctx context.Context, t *asyn
 		logger.Infof(ctx, "summary: attempt %d superseded for %s, skipping stale enrichment",
 			payload.Attempt, payload.KnowledgeID)
 		return nil
+	}
+	if !payload.Refresh && s.tenantRepo != nil {
+		var err error
+		ctx, err = restoreSummaryRefreshTenantInfo(ctx, s.tenantRepo, payload.TenantID)
+		if err != nil {
+			return err
+		}
 	}
 	if payload.Refresh {
 		var err error
@@ -1760,7 +1776,7 @@ func (s *knowledgeService) processQuestionGenerationForKnowledge(ctx context.Con
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
 
-	if strings.TrimSpace(s.config.Conversation.GenerateQuestionsPrompt) == "" {
+	if strings.TrimSpace(types.ResolveSystemPrompt(ctx, "conversation.questions", s.config.Conversation.GenerateQuestionsPrompt)) == "" {
 		exitStatus = "prompt_not_configured"
 		logger.Errorf(ctx, "GenerateQuestionsPrompt is empty: configure conversation.generate_questions_prompt_id")
 		qErr = fmt.Errorf("generate questions prompt not configured")
@@ -2101,7 +2117,7 @@ func (s *knowledgeService) processQuestionGenerationForChunks(ctx context.Contex
 			"language":       payload.Language,
 		})
 
-	if strings.TrimSpace(s.config.Conversation.GenerateQuestionsPrompt) == "" {
+	if strings.TrimSpace(types.ResolveSystemPrompt(ctx, "conversation.questions", s.config.Conversation.GenerateQuestionsPrompt)) == "" {
 		exitStatus = "prompt_not_configured"
 		logger.Errorf(ctx, "GenerateQuestionsPrompt is empty: configure conversation.generate_questions_prompt_id")
 		qErr = fmt.Errorf("generate questions prompt not configured")
@@ -2322,7 +2338,7 @@ func (s *knowledgeService) generateQuestionsWithContext(ctx context.Context,
 		return nil, nil
 	}
 
-	prompt := strings.TrimSpace(s.config.Conversation.GenerateQuestionsPrompt)
+	prompt := strings.TrimSpace(types.ResolveSystemPrompt(ctx, "conversation.questions", s.config.Conversation.GenerateQuestionsPrompt))
 	if prompt == "" {
 		return nil, fmt.Errorf("generate questions prompt not configured")
 	}

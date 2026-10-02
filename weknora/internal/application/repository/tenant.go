@@ -120,7 +120,27 @@ func (r *tenantRepository) SearchTenants(ctx context.Context, keyword string, te
 
 // UpdateTenant updates tenant.
 func (r *tenantRepository) UpdateTenant(ctx context.Context, tenant *types.Tenant) error {
-	return r.db.WithContext(ctx).Model(&types.Tenant{}).Where("id = ?", tenant.ID).Updates(tenant).Error
+	return r.db.WithContext(ctx).Model(&types.Tenant{}).Where("id = ?", tenant.ID).Omit("system_prompt_config").Updates(tenant).Error
+}
+
+// Patch one key under a row lock so concurrent editors cannot lose each other's prompts.
+func (r *tenantRepository) UpdateSystemPrompt(ctx context.Context, tenantID uint64, id, content string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var tenant types.Tenant
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&tenant, tenantID).Error; err != nil {
+			return err
+		}
+		cfg := tenant.SystemPromptConfig
+		if cfg == nil {
+			cfg = types.SystemPromptConfig{}
+		}
+		if content == "" {
+			delete(cfg, id)
+		} else {
+			cfg[id] = content
+		}
+		return tx.Model(&tenant).Update("system_prompt_config", cfg).Error
+	})
 }
 
 // DeleteTenant soft-deletes the tenant and every active membership row

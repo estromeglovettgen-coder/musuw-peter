@@ -86,12 +86,12 @@ func (f *fakeInstallShellExecutor) ExecShellCommandWithOptions(
 func TestInstallShellExecDescriptionDoesNotPointAtWriteSandboxFile(t *testing.T) {
 	description := NewInstallShellExecTool(&fakeInstallShellExecutor{}).Description()
 
-	assert.Contains(t, description, "only tool")
+	assert.Contains(t, description, "唯一工具")
 	assert.Contains(t, description, "requirements.json")
 	assert.Contains(t, description, sandbox.SkillsImageRoot)
-	assert.NotContains(t, description, "Do NOT dump large files through")
+	assert.NotContains(t, description, "不要用 shell_exec 的 cat")
 	assert.NotContains(t, NewShellExecTool(&fakeShellExecutor{}, nil).Description(),
-		"write_sandbox_file is not available")
+		"write_sandbox_file / edit_sandbox_file / list_sandbox_files / read_sandbox_file 均不可用")
 }
 
 func TestInstallShellExecDefaultsToTheTenMinuteBudget(t *testing.T) {
@@ -164,16 +164,16 @@ func TestShellExecDescriptionSupportsGeneralExploration(t *testing.T) {
 	for _, command := range []string{"find", "ls", "cat", "head", "tail", "sed", "grep", "awk"} {
 		assert.Contains(t, description, command)
 	}
-	assert.Contains(t, description, "Use freely to explore")
-	assert.Contains(t, description, "Binary output is never returned")
+	assert.Contains(t, description, "可以查看文件、搜索")
+	assert.Contains(t, description, "二进制不返回模型")
 	assert.Contains(t, description, "write_sandbox_file")
 	assert.Contains(t, description, "edit_sandbox_file")
 	assert.Contains(t, description, "/opt/weknora/tenant/skills")
 	assert.Contains(t, description, "python3 -c")
 	assert.Contains(t, description, "execute_skill_script")
 	assert.Contains(t, description, ".skill-packages")
-	assert.Contains(t, description, "Do not `apt-get install` inspection utilities")
-	assert.NotContains(t, description, "If a 'command not found' error occurs, attempt to resolve it")
+	assert.Contains(t, description, "不为 tree 或编辑器等检查工具 apt-get install")
+	assert.NotContains(t, description, "命令不存在时尝试自动安装")
 }
 
 func TestShellExecBoundsStdoutStderrErrorAndTotal(t *testing.T) {
@@ -396,9 +396,9 @@ func TestShellExecHintsWhenTreeCommandIsMissing(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, result.Success)
 	assert.Equal(t, 127, result.Data["exit_code"])
-	assert.Contains(t, result.Output, "not in the default sandbox image")
-	assert.Contains(t, result.Output, "Use find/ls")
-	assert.Contains(t, result.Output, "Do not apt-get install")
+	assert.Contains(t, result.Output, "默认沙箱镜像中没有")
+	assert.Contains(t, result.Output, "请使用 find/ls")
+	assert.Contains(t, result.Output, "不要用 apt-get install")
 }
 
 func TestInferredMissingCommandFromBashStderr(t *testing.T) {
@@ -425,7 +425,7 @@ print(len(doc.paragraphs))
 	result, err := tool.Execute(shellExecTestContext(), raw)
 	require.NoError(t, err)
 	require.True(t, result.Success)
-	assert.Contains(t, result.Output, "Do not pip install")
+	assert.Contains(t, result.Output, "不要在本会话中用 pip install")
 	assert.Contains(t, result.Output, "write_sandbox_file")
 	assert.Contains(t, result.Output, "execute_skill_script")
 	assert.Contains(t, result.Output, ".venv/bin/python -c")
@@ -475,7 +475,7 @@ func TestShellExecHintsWhenVenvHasNoPip(t *testing.T) {
 	))
 	require.NoError(t, err)
 	require.True(t, result.Success)
-	assert.Contains(t, result.Output, "frozen")
+	assert.Contains(t, result.Output, "只读")
 	assert.Contains(t, result.Output, "/workspace/.skill-packages/律师助手")
 	assert.NotContains(t, result.Output, "write_sandbox_file")
 }

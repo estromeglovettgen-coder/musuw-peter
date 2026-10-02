@@ -13,7 +13,7 @@ import (
 )
 
 // toolErrorHint is appended to tool error messages to guide the LLM to retry with a different approach.
-const toolErrorHint = "\n\n[Analyze the error above and try a different approach.]"
+const toolErrorHint = "\n\n[分析上述错误并尝试其他方法。]"
 
 // ToolRegistry manages the registration and retrieval of tools
 type ToolRegistry struct {

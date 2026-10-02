@@ -131,12 +131,12 @@ func TestBuildSuggestionEvidenceUsesTopReferencesAndDeduplicatesKnowledge(t *tes
 func TestBuildSuggestionSystemPromptAllowsGroundedExploration(t *testing.T) {
 	prompt := buildSuggestionSystemPrompt(3, "Chinese", "clarify, deepen, action")
 	for _, expected := range []string{
-		"Fresh retrieval is allowed",
-		"self-contained",
-		"concrete entity names or keywords",
-		"at most roughly one third",
-		"Do not assume unsupported facts",
-		"must not override these grounding and capability rules",
+		"允许重新检索",
+		"独立可理解",
+		"具体实体名称或关键词",
+		"最多约三分之一",
+		"不得假设没有依据的事实",
+		"不能覆盖以上来源依据和能力边界规则",
 	} {
 		if !strings.Contains(prompt, expected) {
 			t.Fatalf("Prompt does not contain %q: %q", expected, prompt)
@@ -144,6 +144,13 @@ func TestBuildSuggestionSystemPromptAllowsGroundedExploration(t *testing.T) {
 	}
 	if strings.Contains(prompt, "enabled knowledge sources or tools") {
 		t.Fatalf("Prompt still promises per-turn capabilities: %q", prompt)
+	}
+}
+
+func TestSuggestionPromptNamedVariablesPreserveLiteralPercent(t *testing.T) {
+	prompt := renderSuggestionSystemPrompt("{{count}} 个 {{language}} 问题，分类 {{categories}}，100% 根据证据。", 3, "Chinese", "clarify, action")
+	if prompt != "3 个 Chinese 问题，分类 clarify, action，100% 根据证据。" {
+		t.Fatalf("unexpected rendered prompt: %s", prompt)
 	}
 }
 

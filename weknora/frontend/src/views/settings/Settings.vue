@@ -36,6 +36,7 @@
       <OllamaSettings v-else-if="currentSection === 'ollama'" />
       <WeKnoraCloudSettings v-else-if="currentSection === 'weknoracloud'" />
       <ModelSettings v-else-if="currentSection === 'models'" :initial-type="currentModelType" />
+      <SystemPromptSettings v-else-if="currentSection === 'system-prompts'" ref="systemPromptSettings" />
       <WebSearchSettings v-else-if="currentSection === 'websearch'" />
       <ChatHistorySettings v-else-if="currentSection === 'chathistory'" />
       <MemoryWorkspaceSettings v-else-if="currentSection === 'memory'" />
@@ -81,6 +82,7 @@ import UserProfile from './UserProfile.vue'
 import GeneralSettings from './GeneralSettings.vue'
 import UsageBillingSettings from './UsageBillingSettings.vue'
 import ModelSettings from './ModelSettings.vue'
+import SystemPromptSettings from './SystemPromptSettings.vue'
 import OllamaSettings from './OllamaSettings.vue'
 import McpSettings from './McpSettings.vue'
 import WebSearchSettings from './WebSearchSettings.vue'
@@ -136,6 +138,13 @@ const { t } = useI18n()
 const currentSection = ref<string>('general')
 const currentSubSection = ref<string>('')
 const settingsSearchQuery = ref('')
+const systemPromptSettings = ref<InstanceType<typeof SystemPromptSettings> | null>(null)
+
+const canLeaveCurrentSection = async (nextSection?: string) => (
+  nextSection === currentSection.value || !systemPromptSettings.value
+    ? true
+    : systemPromptSettings.value.confirmLeave()
+)
 
 type NavItem = {
   key: string
@@ -171,6 +180,7 @@ const normalizeSettingsSection = (section: string) => {
     || normalized === 'mymemory'
     || normalized === 'memory'
     || normalized === 'mcp'
+    || normalized === 'system-prompts'
   ) {
     return normalized
   }
@@ -214,6 +224,7 @@ const canSeeSection = (key: string): boolean => {
     return authStore.hasRole(min)
   }
   if (authStore.isLiteMode) {
+    if (key === 'system-prompts') return canManageSettingsNavigation.value
     if (key === 'mcp') return authStore.canAccessAllTenants || authStore.hasRole('admin')
     return key === 'general'
       || key === 'usage'
@@ -246,6 +257,9 @@ const navItems = computed<NavItem[]>(() => {
       { key: 'general', icon: 'setting', label: t('general.title') },
       { key: 'userprofile', icon: 'user', label: t('userProfile.title') },
       { key: 'models', icon: 'cpu', label: t('modelSettings.sceneModels.navTitle') },
+      ...(canManageSettingsNavigation.value
+        ? [{ key: 'system-prompts', icon: 'edit', label: '系统提示词' }]
+        : []),
       { key: 'mymemory', icon: 'bookmark', label: t('memorySettings.title') },
       { key: 'memory', icon: 'bulletpoint', label: t('memoryWorkspaceSettings.title') },
       ...(authStore.canAccessAllTenants || authStore.hasRole('admin')
@@ -269,6 +283,7 @@ const navItems = computed<NavItem[]>(() => {
     { key: 'members', icon: 'usergroup', label: t('tenantMember.title') },
     { key: 'chathistory', icon: 'chat', label: t('chatHistorySettings.title') },
     { key: 'models', icon: 'cpu', label: t('settings.modelManagement') },
+    { key: 'system-prompts', icon: 'edit', label: '系统提示词' },
     { key: 'ollama', icon: 'server', label: 'Ollama' },
     { key: 'weknoracloud', icon: 'cloud', label: 'Musuw Cloud' },
     { key: 'memory', icon: 'bulletpoint', label: t('memoryWorkspaceSettings.title') },
@@ -305,13 +320,15 @@ const currentModelType = computed(() => {
   return uiStore.settingsInitialSubSection || null
 })
 
-const handleNavClick = (item: NavItem) => {
+const handleNavClick = async (item: NavItem) => {
+  if (!(await canLeaveCurrentSection(item.key))) return
   currentSection.value = item.key
   currentSubSection.value = ''
   syncSettingsRoute(item.key)
 }
 
-const handleClose = () => {
+const handleClose = async () => {
+  if (!(await canLeaveCurrentSection())) return
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
   uiStore.closeSettings()
   if (route.path === '/platform/settings') {
@@ -335,9 +352,10 @@ const handleClose = () => {
   }
 }
 
-watch(() => uiStore.settingsInitialSection, (section) => {
+watch(() => uiStore.settingsInitialSection, async (section) => {
   if (!section || !visible.value) return
   const normalizedSection = normalizeSettingsSection(section)
+  if (!(await canLeaveCurrentSection(normalizedSection))) return
   if (deploymentCapabilities.loaded && !isSectionSupported(normalizedSection)) {
     MessagePlugin.warning(t('settings.capabilityUnavailable'))
     const fallback = navItems.value[0]?.key || 'general'
@@ -394,10 +412,11 @@ watch(navItems, (items) => {
   }
 }, { immediate: true })
 
-const handleSettingsNav = (event: Event) => {
+const handleSettingsNav = async (event: Event) => {
   const detail = event instanceof CustomEvent ? event.detail : null
   if (!detail?.section) return
   const normalizedSection = normalizeSettingsSection(String(detail.section))
+  if (!(await canLeaveCurrentSection(normalizedSection))) return
   if (deploymentCapabilities.loaded && !isSectionSupported(normalizedSection)) {
     MessagePlugin.warning(t('settings.capabilityUnavailable'))
     currentSection.value = navItems.value[0]?.key || 'general'
@@ -409,8 +428,14 @@ const handleSettingsNav = (event: Event) => {
   syncSettingsRoute(normalizedSection)
 }
 
+let removePromptNavigationGuard: (() => void) | undefined
 onMounted(() => {
   window.addEventListener('settings-nav', handleSettingsNav as EventListener)
+  removePromptNavigationGuard = router.beforeEach((to) => {
+    if (!visible.value || !systemPromptSettings.value) return true
+    if (to.path === route.path && to.query.section === route.query.section) return true
+    return canLeaveCurrentSection(to.path === '/platform/settings' ? String(to.query.section || '') : undefined)
+  })
 })
 
 watch(currentSection, () => {
@@ -419,5 +444,6 @@ watch(currentSection, () => {
 
 onUnmounted(() => {
   window.removeEventListener('settings-nav', handleSettingsNav as EventListener)
+  removePromptNavigationGuard?.()
 })
 </script>

@@ -99,7 +99,7 @@ func (s *wikiIngestService) extractCandidateSlugs(
 		"PreviousSlugs":       prevSlugsText,
 		"Granularity":         string(granularity),
 		"GranularityGuidance": agent.WikiGranularityGuidance(string(granularity)),
-		"CustomInstructions":  batchCtx.ExtractionInstructions,
+		"CustomInstructions":  wikiExtractionScope(batchCtx),
 		"InstructionScope":    "wiki_extraction",
 	})
 	if err != nil {

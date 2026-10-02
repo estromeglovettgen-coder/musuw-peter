@@ -480,7 +480,7 @@ func (s *Service) callConsolidationModel(
 	// nothing, which here would silently skip every merge.
 	thinking := false
 	response, err := chatModel.Chat(ctx, []chat.Message{
-		{Role: "system", Content: consolidationSystemPrompt},
+		{Role: "system", Content: types.ResolveSystemPrompt(ctx, "memory.consolidate", consolidationSystemPrompt)},
 		{Role: "user", Content: b.String()},
 	}, &chat.ChatOptions{
 		Temperature:         0,

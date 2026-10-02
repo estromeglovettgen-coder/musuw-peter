@@ -103,8 +103,8 @@ func (s *sessionService) KnowledgeQA(
 
 	// Initialize ChatManage defaults from config.yaml
 	summaryConfig := types.SummaryConfig{
-		Prompt:              s.cfg.Conversation.Summary.Prompt,
-		ContextTemplate:     s.cfg.Conversation.Summary.ContextTemplate,
+		Prompt:              types.ResolveSystemPrompt(ctx, "conversation.system", s.cfg.Conversation.Summary.Prompt),
+		ContextTemplate:     types.ResolveSystemPrompt(ctx, "conversation.context", s.cfg.Conversation.Summary.ContextTemplate),
 		Temperature:         s.cfg.Conversation.Summary.Temperature,
 		NoMatchPrefix:       s.cfg.Conversation.Summary.NoMatchPrefix,
 		MaxCompletionTokens: s.cfg.Conversation.Summary.MaxCompletionTokens,
@@ -164,11 +164,11 @@ func (s *sessionService) KnowledgeQA(
 			SummaryConfig:           summaryConfig,
 			FallbackStrategy:        fallbackStrategy,
 			FallbackResponse:        s.cfg.Conversation.FallbackResponse,
-			FallbackPrompt:          s.cfg.Conversation.FallbackPrompt,
+			FallbackPrompt:          types.ResolveSystemPrompt(ctx, "conversation.fallback", s.cfg.Conversation.FallbackPrompt),
 			EnableRewrite:           s.cfg.Conversation.EnableRewrite,
 			EnableQueryExpansion:    s.cfg.Conversation.EnableQueryExpansion,
-			RewritePromptSystem:     s.cfg.Conversation.RewritePromptSystem,
-			RewritePromptUser:       s.cfg.Conversation.RewritePromptUser,
+			RewritePromptSystem:     types.ResolveSystemPrompt(ctx, "conversation.rewrite_system", s.cfg.Conversation.RewritePromptSystem),
+			RewritePromptUser:       types.ResolveSystemPrompt(ctx, "conversation.rewrite_user", s.cfg.Conversation.RewritePromptUser),
 			WebSearchEnabled:        req.WebSearchEnabled,
 			WebSearchProviderID:     s.resolveWebSearchProviderID(ctx, req, retrievalTenantID),
 			WebSearchMaxResults:     s.resolveWebSearchMaxResults(ctx, req),

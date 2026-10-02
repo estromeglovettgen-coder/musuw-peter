@@ -890,7 +890,7 @@ func (s *sessionService) GenerateTitle(ctx context.Context,
 	}
 
 	// Prepare messages for title generation
-	titlePrompt := types.RenderPromptPlaceholders(s.cfg.Conversation.GenerateSessionTitlePrompt, types.PlaceholderValues{
+	titlePrompt := types.RenderPromptPlaceholders(types.ResolveSystemPrompt(ctx, "conversation.session_title", s.cfg.Conversation.GenerateSessionTitlePrompt), types.PlaceholderValues{
 		"language": types.LanguageNameFromContext(ctx),
 	})
 	var chatMessages []chat.Message
@@ -1051,6 +1051,7 @@ func (s *sessionService) GenerateTitleAsync(
 	// Use context tenant (effective tenant when using shared agent) so ListModels/GetChatModel find the agent's model.
 	// The session row itself is still updated by its persisted tenant/user owner scope.
 	tenantID := ctx.Value(types.TenantIDContextKey)
+	tenantInfo := ctx.Value(types.TenantInfoContextKey)
 	requestID := ctx.Value(types.RequestIDContextKey)
 	language := ctx.Value(types.LanguageContextKey)
 	// Keep the Langfuse trace handle so the async title generation shows up
@@ -1060,6 +1061,9 @@ func (s *sessionService) GenerateTitleAsync(
 		bgCtx := context.Background()
 		if tenantID != nil {
 			bgCtx = context.WithValue(bgCtx, types.TenantIDContextKey, tenantID)
+		}
+		if tenantInfo != nil {
+			bgCtx = context.WithValue(bgCtx, types.TenantInfoContextKey, tenantInfo)
 		}
 		if requestID != nil {
 			bgCtx = context.WithValue(bgCtx, types.RequestIDContextKey, requestID)

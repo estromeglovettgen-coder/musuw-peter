@@ -193,7 +193,7 @@ func TestAlreadyReadMessagesAreNotReread(t *testing.T) {
 	require.Contains(t, transcript, "新的一句")
 	require.NotContains(t, transcript, "旧的一句",
 		"a message already behind the watermark must not be extracted from twice")
-	require.Contains(t, models.lastPrompt, "context only",
+	require.Contains(t, models.lastPrompt, "仅供理解",
 		"the earlier turn should still be visible as context")
 }
 

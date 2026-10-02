@@ -30,9 +30,9 @@ func TestSkillRelativeFilePathNormalizesCopiedImagePaths(t *testing.T) {
 
 	_, err = skillRelativeFilePath("ppt-generator", sandbox.SkillsImageRoot+"/other/scripts/x.py")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `skill "other"`)
+	assert.Contains(t, err.Error(), `技能 "other"`)
 
 	_, err = skillRelativeFilePath("ppt-generator", "/workspace/output/x.py")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "relative")
+	assert.Contains(t, err.Error(), "相对路径")
 }

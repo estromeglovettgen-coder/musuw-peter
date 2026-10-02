@@ -245,9 +245,8 @@ func (e *AgentEngine) executeToolCalls(
 // the completion-token cap. It stays tool-neutral: any tool can be the one that
 // got truncated, and naming another tool's fields would send the model chasing
 // arguments the failing call does not have.
-const truncatedOutputHint = "\n\nThe previous model output was cut off at the completion-token limit " +
-	"(finish_reason=length), so these arguments are incomplete rather than wrong. " +
-	"Retry with a complete JSON object and a smaller payload."
+const truncatedOutputHint = "\n\n上一轮模型输出达到长度上限而被截断（finish_reason=length），" +
+	"这些参数因此不完整。请缩小提交内容，并使用完整 JSON 对象重试。"
 
 // annotateLengthTruncatedToolErrors appends that explanation to every failed
 // result in the round. Results carry a pointer, so mutating through the slice
@@ -406,10 +405,10 @@ func (e *AgentEngine) runToolCall(
 				Result: &types.ToolResult{
 					Success: false,
 					Error: fmt.Sprintf(
-						"Failed to parse tool arguments: %v", err,
-					) + "\n\nIf the JSON looks cut off, the previous round likely hit the output token cap. " +
-						"Retry with complete JSON (required fields first) and a smaller payload.\n\n" +
-						"[Analyze the error above and try a different approach.]",
+						"无法解析工具参数：%v", err,
+					) + "\n\n如果 JSON 看起来被截断，上一轮可能达到输出长度上限。" +
+						"请优先填写必需字段，缩小本次提交内容，并使用完整 JSON 重试。\n\n" +
+						"[分析上述错误并尝试另一种做法。]",
 				},
 			}
 		}

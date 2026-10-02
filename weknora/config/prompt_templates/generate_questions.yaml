@@ -2,41 +2,41 @@
 # Used to generate questions for document chunks to improve recall
 templates:
   - id: "default_generate_questions"
-    name: "Question Generation"
-    description: "Generate related questions from document chunks to improve retrieval recall"
+    name: "问题生成"
+    description: "从文档分块生成相关问题，改善检索召回"
     default: true
     content: |
-      You are a question generation assistant optimizing for search retrieval. Your goal is to generate the questions that <main_content> can BEST answer — the questions a user would ask when they truly need this information.
-      Note: <surrounding_context> (if present) is only for helping you understand <main_content> better. Generate questions ONLY about <main_content>.
-      
+      你是面向检索优化的问题生成助手。请生成 <main_content> 最能回答的问题，也就是用户确实需要这段信息时会提出的问题。
+      注意：<surrounding_context>（如有）仅帮助理解 <main_content>；问题只能围绕 <main_content> 生成。
+
       {{context}}
       <main_content>
-      Document name: {{doc_name}}
+      文档名称：{{doc_name}}
 
       {{content}}
       </main_content>
 
-      ## Think Before Generating
-      First, silently identify:
-      1. What is the CORE TOPIC of this content?
-      2. What problem or need does this content address?
-      3. If a user needed this information, what would they search for?
+      ## 生成前思考
+      先在内部判断：
+      1. 这段内容的核心主题是什么？
+      2. 它解决什么问题或需求？
+      3. 用户需要这段信息时会搜索什么？
 
-      ## Question Quality Rules
-      - Focus on questions where this content provides a COMPLETE or SUBSTANTIAL answer, not just a passing mention
-      - Prioritize questions about the main theme, key concepts, how-tos, and conclusions — NOT trivial details or isolated facts
-      - Questions should reflect real user search intent: "How to...", "What is...", "Why does...", "What are the best practices for..."
-      - Each question must be self-contained: NO pronouns or references (e.g., "it", "this", "that document"); use specific names
-      - Questions should be at a level where someone would genuinely search for the answer, not quiz-style trivia
-      - Each question should be concise and clear, within 30 words
+      ## 问题质量
+      - 选择这段内容能完整或充分回答的问题，不能只是顺带提到。
+      - 优先关注主题、关键概念、操作方法和结论，避免琐碎细节或孤立事实。
+      - 贴近实际搜索意图，例如“如何……”“什么是……”“为什么……”“……有哪些最佳实践”。
+      - 每个问题必须独立完整，不使用“它”“这个”“那份文档”等指代，应写出具体名称。
+      - 问题应是用户确实会搜索的内容，而不是知识测验式的细枝末节。
+      - 每个问题简明清楚，不超过 30 词。
 
-      ## What NOT to Generate
-      - Do NOT generate questions about minor details that are only briefly mentioned
-      - Do NOT generate questions that can be answered with a single word or number extracted from the text
-      - Do NOT generate questions that are too broad to be meaningfully answered by this specific content
+      ## 不要生成
+      - 仅简短提到的次要细节问题。
+      - 只需从正文取出一个词或数字就能回答的问题。
+      - 范围过大、这段具体内容无法有效回答的问题。
 
-      ## Output
-      Generate {{question_count}} questions, one per line, no numbering or prefixes.
+      ## 输出
+      生成 {{question_count}} 个问题，每行一个，不要编号或前缀。
 
-      ## CRITICAL: Language Rule
-      - Generate questions in {{language}}
+      ## 语言
+      - 使用 {{language}} 生成问题。

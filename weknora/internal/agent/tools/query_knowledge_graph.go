@@ -19,49 +19,25 @@ type graphConfigSummary struct {
 
 var queryKnowledgeGraphTool = BaseTool{
 	name: ToolQueryKnowledgeGraph,
-	description: `Query knowledge graph to explore entity relationships and knowledge networks.
+	description: `查询已启用实体关系提取的知识库中的真实存储图谱，探索实体关系和知识网络。
+适用于实体关系（例如 Docker 与 Kubernetes）、概念关联、特定实体相关信息、架构和系统关系。
+普通文本搜索或精确正文使用 knowledge_search；没有配置图谱提取的库不适用。
 
-## Core Function
-Explores relationships between entities in knowledge bases that have graph extraction configured.
+## 参数
+- knowledge_base_ids（必填）：1–10 个短 bN 知识库 ID，仅启用图谱提取的库有效。
+- query（必填）：实体名、关系问题或概念。
+知识库需提前配置节点类型（例如 Technology、Tool、Concept）和关系（例如 depends_on、uses、contains）并启用提取。
 
-## When to Use
-✅ **Use for**:
-- Understanding relationships between entities (e.g., "relationship between Docker and Kubernetes")
-- Exploring knowledge networks and concept associations
-- Finding related information about specific entities
-- Understanding technical architecture and system relationships
-
-❌ **Don't use for**:
-- General text search → use knowledge_search
-- Knowledge base without graph extraction configured
-- Need exact document content → use knowledge_search
-
-## Parameters
-- **knowledge_base_ids** (required): Array of short bN knowledge base IDs (1-10). Only KBs with graph extraction configured will be effective.
-- **query** (required): Query content - can be entity name, relationship query, or concept search.
-
-## Graph Configuration
-Knowledge graph must be pre-configured in knowledge bases:
-- **Entity types** (Nodes): e.g., "Technology", "Tool", "Concept"
-- **Relationship types** (Relations): e.g., "depends_on", "uses", "contains"
-
-The KB must have graph extraction enabled. This tool reads actual stored entities and relationships.
-
-## Workflow
-1. **Relationship exploration**: query_knowledge_graph → list_knowledge_chunks (for detailed content)
-2. **Network analysis**: query_knowledge_graph → knowledge_search (for comprehensive understanding)
-3. **Topic research**: knowledge_search → query_knowledge_graph (for deep entity relationships)
-
-## Notes
-- Results indicate graph configuration status
-- Results stay within the Agent's KB, document, and tag scope`,
+## 流程
+关系探索后用 list_knowledge_chunks 查看细节；网络分析后用 knowledge_search 补全理解；主题研究可先语义检索，再查图谱。
+输出会说明图谱配置状态，结果严格保持在智能体的知识库、文档和标签范围内。`,
 	schema: utils.GenerateSchema[QueryKnowledgeGraphInput](),
 }
 
 // QueryKnowledgeGraphInput defines the input parameters for query knowledge graph tool
 type QueryKnowledgeGraphInput struct {
-	KnowledgeBaseIDs []string `json:"knowledge_base_ids" jsonschema:"Array of short bN knowledge base IDs to query"`
-	Query            string   `json:"query" jsonschema:"Query content (entity name or query text)"`
+	KnowledgeBaseIDs []string `json:"knowledge_base_ids" jsonschema:"要查询的短 bN 知识库 ID 数组。"`
+	Query            string   `json:"query" jsonschema:"查询内容，实体名称或关系问题。"`
 }
 
 // QueryKnowledgeGraphTool queries the knowledge graph for entities and relationships

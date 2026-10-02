@@ -102,7 +102,7 @@ func TestBuiltinQuickAnswerUsesUpstreamModeNameWithManagedModelDefaults(t *testi
 	assert.True(t, *cfg.CitationEnabled)
 }
 
-func TestBuiltinSmartReasoningPromptUsesMusuwAsItsPublicIdentity(t *testing.T) {
+func TestBuiltinSmartReasoningPromptUsesPeterAsItsPublicIdentity(t *testing.T) {
 	promptPath := filepath.Join("..", "..", "config", "prompt_templates", "agent_system_prompt.yaml")
 	data, err := os.ReadFile(promptPath)
 	require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestBuiltinSmartReasoningPromptUsesMusuwAsItsPublicIdentity(t *testing.T) {
 		}
 		assert.Equal(t, "smart-reasoning", template.Mode)
 		assert.Equal(t, "Wiki + RAG 混合智能体", template.I18n["zh-CN"].Name)
-		assert.Contains(t, template.Content, "<role>\nYou are Musuw. For identity questions, reply exactly: “我是 Musuw。”")
+		assert.Contains(t, template.Content, "<role>\n你是 Peter。身份提问时回答：“我是 Peter。”")
 		assert.NotContains(t, template.Content, "You are Musuw Hybrid Researcher")
 		return
 	}

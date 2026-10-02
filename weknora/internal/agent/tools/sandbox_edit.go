@@ -29,8 +29,8 @@ import (
 
 // editSandboxMissingFieldHint is appended when schema validation fails
 // (typically a truncated call that omitted path or old_string).
-const editSandboxMissingFieldHint = "\nIf the previous call was truncated, retry with a complete JSON object: " +
-	"put `path` first, then `old_string` and `new_string`. Do not send the whole file — this tool replaces a snippet."
+const editSandboxMissingFieldHint = "\n如果上一次调用被截断，请用完整的 JSON 对象重试：" +
+	"先写 `path`，再写 `old_string` 和 `new_string`。不要发送整个文件，此工具只替换指定片段。"
 
 // SandboxFileEditor reads then writes a session workspace file. Production
 // uses *sandbox.SessionBoundManager via SessionFileStore.
@@ -42,50 +42,23 @@ type SandboxFileEditor interface {
 
 var editSandboxFileTool = BaseTool{
 	name: ToolEditSandboxFile,
-	description: `Replace exact text in an existing sandbox file without rewriting the whole file.
-
-## Usage
-- Use this after ` + "`write_sandbox_file`" + ` (or a previous edit) when only a
-  few lines need to change — a wrong output path, a typo, a constant.
-- ` + "`old_string`" + ` must match the file exactly, including whitespace and
-  quotes. Include a few surrounding lines so the match is unique.
-- Default: the snippet must occur exactly once. Set ` + "`replace_all=true`" + `
-  only when you intentionally want every occurrence changed.
-- Do NOT call ` + "`write_sandbox_file`" + ` with the full file to fix one line.
-- ` + pythonQuoteGuidance + `
-
-## When to Use
-- A script failed because one path, import, or constant is wrong.
-- Renaming a variable or output filename that appears once (or everywhere
-  with ` + "`replace_all`" + `).
-- Deleting a short block by setting ` + "`new_string`" + ` to empty.
-
-## When NOT to Use
-- Creating a new file — use ` + "`write_sandbox_file`" + `.
-- Replacing most of the file — rewrite with ` + "`write_sandbox_file`" + `.
-- Editing under ` + "`/workspace/input`" + ` (attachments are read-only).
-- Binary files.
-
-## Path Rules
-- ` + "`path`" + ` MUST be an absolute path under ` + "`/workspace`" + `, not under
-  ` + "`/workspace/input`" + `, and not ` + "`/workspace`" + ` or ` + "`/workspace/output`" + `
-  themselves.
-
-## Size Handling
-- The file (and the result) must stay within 262144 bytes.
-
-## Returns
-- The path, how many replacements were made, and the new byte count.
-  File contents are not echoed back.`,
+	description: `对已有沙箱文本文件进行精确替换，避免重传整份文件。
+先 write_sandbox_file 或编辑后，仅需要改少数行（路径、拼写、常量）时使用。
+old_string 必须含完全匹配的空格和引号；加入前后文保证唯一。默认必须只匹配一次，确实要改全部出现位置时才设 replace_all=true。不要为了改一行重写全文。
+可修正脚本路径、导入或常量，重命名变量或产物，将 new_string 置空删除短块。
+新建文件或替换多数内容用 write_sandbox_file；不修改只读 /workspace/input，不编辑二进制。
+path 必须是 /workspace 下已有文件的绝对路径，不能在 /workspace/input，也不能是 /workspace 或 /workspace/output 本身。
+原文件和编辑结果均不得超过 262144 字节。返回路径、替换次数、新字节数，不回显文件内容。
+` + pythonQuoteGuidance + ``,
 	schema: utils.GenerateSchema[EditSandboxFileInput](),
 }
 
 // EditSandboxFileInput defines the input parameters for edit_sandbox_file.
 type EditSandboxFileInput struct {
-	Path       string `json:"path" jsonschema:"Absolute sandbox path of an existing text file under /workspace (not /workspace/input)."`
-	OldString  string `json:"old_string" jsonschema:"Exact text to find. Include enough surrounding lines so the match is unique unless replace_all is true."`
-	NewString  string `json:"new_string" jsonschema:"Replacement text. Use an empty string to delete the matched text."`
-	ReplaceAll bool   `json:"replace_all,omitempty" jsonschema:"If true, replace every occurrence. If false (default), old_string must match exactly once."`
+	Path       string `json:"path" jsonschema:"/workspace 下已有文本文件的绝对路径，不得在 /workspace/input。"`
+	OldString  string `json:"old_string" jsonschema:"要查找的精确文本，除 replace_all=true 外，应提供足够上下文保证只匹配一次。"`
+	NewString  string `json:"new_string" jsonschema:"替换文本，空字符串表示删除匹配内容。"`
+	ReplaceAll bool   `json:"replace_all,omitempty" jsonschema:"true 替换全部出现位置；默认 false，old_string 必须只匹配一次。"`
 }
 
 // EditSandboxFileTool applies an exact string replacement to a sandbox file.

@@ -465,16 +465,16 @@ func NewWikiReadPageTool(
 	return &wikiReadPageTool{
 		BaseTool: NewBaseTool(
 			ToolWikiReadPage,
-			`Read one or more wiki pages by their slugs. Returns the full markdown content, metadata, and links.
-Use this to read specific wiki pages when you know their slug (e.g. "entity/acme-corp", "concept/rag").
-Knowledge-base routing is automatic. Known link/search provenance is preferred; otherwise every wiki knowledge base in scope is checked and ambiguous matches are returned.`,
+			`根据 slug 读取一页或多页 Wiki，返回完整 Markdown、元数据和链接。
+已知 slug 时使用，例如 entity/acme-corp、concept/rag。
+知识库自动路由，优先已知链接或搜索来源；否则检查授权范围所有 Wiki 库，返回可能的歧义匹配。`,
 			json.RawMessage(`{
   "type": "object",
   "properties": {
     "slugs": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "List of wiki page slugs to read (e.g. ['entity/acme-corp', 'index'])"
+      "description": "要读取的 Wiki 页面 slug 数组，例如 entity/acme-corp、index。"
     }
   },
   "required": ["slugs"]
@@ -777,31 +777,26 @@ func NewWikiSearchTool(
 	return &wikiSearchTool{
 		BaseTool: NewBaseTool(
 			ToolWikiSearch,
-			`Search wiki pages using PostgreSQL POSIX regular expressions (~* operator, case-insensitive).
-STRONGLY PREFER using regex to search for multiple concepts at once rather than simple plain text queries.
-Returns matching pages with titles, slugs, and summaries (each tagged with its short bN knowledge_base_id).
-Examples:
-- Alternation (RECOMMENDED): "stardust|skyvault" (matches either word)
-- Multiple terms (RECOMMENDED): "psionic.*engine" (matches both words in order)
-- Prefix matching: "^entity/.*" (finds all entities)
-- Plain text: "engine" (matches anywhere in title/content/slug/summary)
-IMPORTANT — JSON escaping: every backslash in a regex MUST be written as \\ inside the JSON tool arguments (e.g. to search for literal "C++" write "C\\+\\+", NOT "C\+\+"; for "\d+" write "\\d+"). Plain "\+" / "\d" etc. are invalid JSON escapes and will fail to parse.
-Use this to find relevant wiki pages when you don't know the exact slug.`,
+			`使用 PostgreSQL POSIX 正则（~*，不区分大小写）搜索 Wiki。
+多概念优先正则而非简单字面量。返回标题、slug、摘要和短 bN knowledge_base_id。
+示例：选择 stardust|skyvault；顺序 psionic.*engine；实体前缀 ^entity/.*；字面量 engine 可匹配标题、正文、slug、摘要。
+JSON 转义：反斜杠必须写为 \\，例如 C++ 写 C\\+\\+，不要写 C\+\+；\d+ 写 \\d+。单个 \+ 或 \d 不是有效 JSON 转义。
+不知道确切 slug 时，用本工具寻找相关页面。`,
 			json.RawMessage(`{
   "type": "object",
   "properties": {
     "queries": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "List of regex search queries to run"
+      "description": "要执行的正则查询数组。"
     },
     "limit": {
       "type": "integer",
-      "description": "Max results to return per query (default 10)"
+      "description": "每个查询最多返回结果数，默认 10。"
     },
     "knowledge_base_id": {
       "type": "string",
-      "description": "Optional: restrict search to a single short bN knowledge base ID in scope."
+      "description": "可选：限定授权范围中的单个短 bN 知识库 ID。"
     }
   },
   "required": ["queries"]

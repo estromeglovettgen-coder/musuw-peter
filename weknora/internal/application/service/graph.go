@@ -110,7 +110,7 @@ func (b *graphBuilder) extractEntities(ctx context.Context, chunk *types.Chunk) 
 	messages := []chat.Message{
 		{
 			Role:    "system",
-			Content: b.renderGraphExtractionPrompt(ctx, b.config.Conversation.ExtractEntitiesPrompt),
+			Content: b.renderGraphExtractionPrompt(ctx, types.ResolveSystemPrompt(ctx, "conversation.graph_entities", b.config.Conversation.ExtractEntitiesPrompt)),
 		},
 		{
 			Role:    "user",
@@ -221,11 +221,11 @@ func (b *graphBuilder) extractRelationships(ctx context.Context,
 	messages := []chat.Message{
 		{
 			Role:    "system",
-			Content: b.renderGraphExtractionPrompt(ctx, b.config.Conversation.ExtractRelationshipsPrompt),
+			Content: b.renderGraphExtractionPrompt(ctx, types.ResolveSystemPrompt(ctx, "conversation.graph_relations", b.config.Conversation.ExtractRelationshipsPrompt)),
 		},
 		{
 			Role:    "user",
-			Content: fmt.Sprintf("Entities: %s\n\nText: %s", string(entitiesJSON), content),
+			Content: fmt.Sprintf("实体：%s\n\n文本：%s", string(entitiesJSON), content),
 		},
 	}
 

@@ -18,36 +18,19 @@ import (
 
 var readSkillTool = BaseTool{
 	name: ToolReadSkill,
-	description: `Read skill content on demand to learn specialized capabilities.
-
-## Usage
-- Call ` + "`read_skill(skill_name=...)`" + ` with no ` + "`file_path`" + ` to load
-  SKILL.md **and** the skill's file list (scripts, docs, references).
-  That listing is how you discover ` + "`scripts/generate_ppt.py`" + ` and similar.
-- Then call ` + "`read_skill(skill_name=..., file_path=\"scripts/...\")`" + ` to
-  read one file. ` + "`file_path`" + ` is relative inside the skill, not an
-  absolute ` + "`/opt/weknora/tenant/skills/...`" + ` path.
-- Do NOT use ` + "`list_sandbox_files`" + `, ` + "`read_sandbox_file`" + `, or
-  ` + "`ls`" + ` on the skill install directory. Those tools only see
-  ` + "`/workspace/output`" + ` and ` + "`/workspace/input`" + `; the skill tree also
-  contains ` + "`.venv`" + ` / ` + "`node_modules`" + `.
-
-## When to Use
-- When the system prompt shows an available skill that matches the user's request
-- Before performing tasks that match a skill's description
-- To list or read documentation, templates, or scripts shipped with a skill
-
-## Returns
-- Skill instructions, the available file list, and (for installed skills)
-  how to reach that skill's interpreter
-- File content if file_path is specified`,
+	description: `按需读取技能规则及专门能力。
+- 调用 read_skill(skill_name=...)，不传 file_path，读取 SKILL.md 和脚本、文档、参考资料的文件列表，据此发现 scripts/generate_ppt.py 等文件。
+- 随后可用 read_skill(skill_name=..., file_path="scripts/...") 读取单个文件。file_path 是技能内相对路径，不是 /opt/weknora/tenant/skills/... 绝对路径。
+- 不用 list_sandbox_files、read_sandbox_file 或 ls 探查技能安装目录；沙箱文件工具只读 /workspace/output 和 /workspace/input，技能目录还含 .venv / node_modules。
+系统显示匹配技能、执行技能描述对应任务前，或需要查技能文档、模板、脚本时使用。
+返回技能规则、可用文件列表及已安装技能的解释器位置；提供 file_path 时返回文件内容。`,
 	schema: utils.GenerateSchema[ReadSkillInput](),
 }
 
 // ReadSkillInput defines the input parameters for the read_skill tool
 type ReadSkillInput struct {
-	SkillName string `json:"skill_name" jsonschema:"Name of the skill to read"`
-	FilePath  string `json:"file_path,omitempty" jsonschema:"Optional relative path inside the skill (e.g. scripts/generate_ppt.py). Omit to load SKILL.md and list files. Do not pass /opt/weknora/tenant/skills/... or /workspace paths."`
+	SkillName string `json:"skill_name" jsonschema:"要读取的技能名称。"`
+	FilePath  string `json:"file_path,omitempty" jsonschema:"可选：技能内相对路径，如 scripts/generate_ppt.py；不传则读取 SKILL.md 并列出文件。不要传 /opt/weknora/tenant/skills/... 或 /workspace 路径。"`
 }
 
 // ReadSkillTool allows the agent to read skill content on demand
@@ -158,7 +141,7 @@ func (t *ReadSkillTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 		// Add available files section
 		if len(files) > 1 { // More than just SKILL.md
 			builder.WriteString("\n\n## Available Files\n\n")
-			builder.WriteString("The following files are available in this skill directory. Use `read_skill` with `file_path` to read them (relative paths, e.g. scripts/foo.py). Do not list the skill directory with `list_sandbox_files` or `ls`:\n\n")
+			builder.WriteString("以下文件位于此技能目录中。使用 `read_skill` 的 `file_path` 读取文件（相对路径，例如 scripts/foo.py）。不要使用 `list_sandbox_files` 或 `ls` 列出技能目录：\n\n")
 			for _, file := range files {
 				if file != skills.SkillFileName { // Don't list SKILL.md again
 					if skills.IsScript(file) {
@@ -259,12 +242,12 @@ func skillRelativeFilePath(skillName, filePath string) (string, error) {
 		}
 		if other, inImage := sandbox.SkillNameFromImagePath(clean); inImage && other != "" && other != skillName {
 			return "", fmt.Errorf(
-				"file_path belongs to skill %q; call read_skill(skill_name=%q, file_path=...)",
+				"file_path 属于技能 %q，请调用 read_skill(skill_name=%q, file_path=...)",
 				other, other,
 			)
 		}
 		return "", fmt.Errorf(
-			"file_path must be relative inside the skill (e.g. scripts/generate_ppt.py), not %s",
+			"file_path 必须为技能内的相对路径（例如 scripts/generate_ppt.py），不能为 %s",
 			filePath,
 		)
 	}

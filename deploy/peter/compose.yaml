@@ -14,6 +14,8 @@ services:
     environment:
       # TEI grants one permit per input; keep each request below its four-permit limit.
       BATCH_EMBED_SIZE: '1'
+      # The runtime ships the dictionary; do not depend on the build source path.
+      JIEBA_DICT_DIR: /go/pkg/mod/github.com/yanyiwu/gojieba@v1.4.7/deps/cppjieba/dict
       NEO4J_ENABLE: 'true'
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USERNAME: neo4j

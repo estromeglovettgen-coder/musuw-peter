@@ -11,127 +11,28 @@ import (
 
 var todoWriteTool = BaseTool{
 	name: ToolTodoWrite,
-	description: `Use this tool to create and manage a structured task list for retrieval and research tasks. This helps you track progress, organize complex retrieval operations, and demonstrate thoroughness to the user.
+	description: `创建并管理检索和研究任务的结构化清单，用于组织复杂任务、跟踪进度。
 
-**CRITICAL - Focus on Retrieval Tasks Only**:
-- This tool is for tracking RETRIEVAL and RESEARCH tasks (e.g., searching knowledge bases, retrieving documents, gathering information)
-- DO NOT include summary or synthesis tasks in todo_write - those are handled by the thinking tool
-- Examples of appropriate tasks: "Search for X in knowledge base", "Retrieve information about Y", "Compare A and B"
-- Examples of tasks to EXCLUDE: "Summarize findings", "Generate final answer", "Synthesize results" - these are for thinking tool
+## 仅跟踪检索与研究
+包括查知识库、读文档、收集资料、比较对象。不要加入“总结发现”“生成最终回答”“综合结果”，这些由 thinking 处理。
 
-## When to Use This Tool
-Use this tool proactively in these scenarios:
+## 使用场景
+任务需要至少 3 个步骤、需要规划或多次操作、用户明确要求清单、提出多个任务，或有新指令需要记录时使用。开始工作前标记 in_progress；完成后立即标记 completed，再加入新发现的后续任务。
+单个简单任务、无组织收益的琐事、纯对话或一般说明不需要清单。
 
-1. Complex multi-step tasks - When a task requires 3 or more distinct steps or actions
-2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations
-3. User explicitly requests todo list - When the user directly asks you to use the todo list
-4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
-5. After receiving new instructions - Immediately capture user requirements as todos
-6. When you start working on a task - Mark it as in_progress BEFORE beginning work. Ideally you should only have one todo as in_progress at a time
-7. After completing a task - Mark it as completed and add any new follow-up tasks discovered during implementation
+## 示例
+- 比较 Peter 与 LangChain、LlamaIndex：分别检索 Peter 特性与架构、另两个框架的文档，再取得具体比较依据；全部检索完后由 thinking 综合。
+- 研究 RAG 向量数据库：检索知识库、最新技术、性能比较和集成方法，清单只跟踪检索。
+- Python 输出 Hello World 或解释 git status：一步能完成，不建清单。
 
-## When NOT to Use This Tool
-
-Skip using this tool when:
-1. There is only a single, straightforward task
-2. The task is trivial and tracking it provides no organizational benefit
-3. The task is purely conversational or informational
-
-NOTE that you should not use this tool if there is only one trivial task to do. In this case you are better off just doing the task directly.
-
-## Examples of When to Use the Todo List
-
-<example>
-User: Compare Musuw with other RAG frameworks like LangChain and LlamaIndex.
-Assistant: I'll help you compare Musuw with other RAG frameworks. Let me create a retrieval plan to gather information about each framework.
-*Creates a todo list with retrieval tasks: 1) Search knowledge base for Musuw features and architecture, 2) Use web_search to find LangChain documentation and features, 3) Use web_search to find LlamaIndex documentation and features, 4) Retrieve detailed comparison points for each framework*
-*Note: Summary and synthesis will be handled by thinking tool after all retrieval tasks are completed*
-Assistant: Let me start by searching the knowledge base for detailed Musuw information.
-
-<reasoning>
-The assistant used todo_write tool correctly because:
-1. The task requires multiple retrieval operations (searching KB for Musuw, web search for LangChain and LlamaIndex)
-2. Each retrieval task is specific and actionable
-3. The todo list focuses on WHAT to retrieve, not HOW to summarize
-4. Summary and synthesis will be handled separately by thinking tool after all retrieval is complete
-5. This separation ensures clear task boundaries and avoids duplication
-</reasoning>
-</example>
-
-<example>
-User: I need to research the latest developments in vector databases for RAG applications.
-Assistant: I'll help you research vector databases for RAG. Let me create a retrieval plan to gather comprehensive information.
-*Creates todo list with retrieval tasks: 1) Search knowledge base for vector database information, 2) Use web_search to find latest vector database technologies, 3) Retrieve information about performance comparisons, 4) Gather information about integration approaches*
-*Note: After completing all retrieval tasks, thinking tool will synthesize the findings into a comprehensive answer*
-Assistant: Let me start by searching the knowledge base for vector database information.
-
-<reasoning>
-The assistant used todo_write tool correctly because:
-1. The research task requires multiple retrieval operations (KB search, web search for latest info)
-2. Each task focuses on retrieving specific information
-3. The todo list tracks retrieval progress, not synthesis
-4. Summary and analysis will be handled by thinking tool after retrieval is complete
-5. This approach separates retrieval (todo_write) from synthesis (thinking tool)
-</reasoning>
-</example>
-
-## Examples of When NOT to Use the Todo List
-
-<example>
-User: How do I print 'Hello World' in Python?
-Assistant: In Python, you can print "Hello World" with this simple code:
-
-print("Hello World")
-
-This will output the text "Hello World" to the console when executed.</assistant>
-
-<reasoning>
-The assistant did not use the todo list because this is a single, trivial task that can be completed in one step. There's no need to track multiple tasks or steps for such a straightforward request.
-</reasoning>
-</example>
-
-<example>
-User: What does the git status command do?
-Assistant: The git status command shows the current state of your working directory and staging area. It displays which changes have been staged, which haven't, and which files aren't being tracked by Git. This is a fundamental command for understanding the current state of your repository before making commits.
-
-<reasoning>
-The assistant did not use the todo list because this is an informational request with no actual coding task to complete. The user is simply asking for an explanation, not for the assistant to perform multiple steps or tasks.
-</reasoning>
-</example>
-
-## Task States and Management
-
-1. **Task States**: Use these states to track progress:
-  - pending: Task not yet started
-  - in_progress: Currently working on (limit to ONE task at a time)
-  - completed: Task finished successfully
-
-2. **Task Management**:
-  - Update task status in real-time as you work
-  - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
-  - Only have ONE task in_progress at any time
-  - Complete current tasks before starting new ones
-  - Remove tasks that are no longer relevant from the list entirely
-
-3. **Task Completion Requirements**:
-  - ONLY mark a task as completed when you have FULLY accomplished it
-  - If you encounter errors, blockers, or cannot finish, keep the task as in_progress
-  - When blocked, create a new task describing what needs to be resolved
-  - Never mark a task as completed if:
-    - Tests are failing
-    - Implementation is partial
-    - You encountered unresolved errors
-    - You couldn't find necessary files or dependencies
-
-4. **Task Breakdown**:
-  - Create specific, actionable RETRIEVAL tasks
-  - Break complex retrieval needs into smaller, manageable steps
-  - Use clear, descriptive task names focused on what to retrieve or research
-  - **DO NOT include summary/synthesis tasks** - those are handled separately by the thinking tool
-
-**Important**: After completing all retrieval tasks in todo_write, use the thinking tool to synthesize findings and generate the final answer. The todo_write tool tracks WHAT to retrieve, while thinking tool handles HOW to synthesize and present the information.
-
-When in doubt, use this tool. Being proactive with task management demonstrates attentiveness and ensures you complete all retrieval requirements successfully.`,
+## 状态和管理
+- pending：尚未开始。
+- in_progress：正在执行，同一时间最多一个。
+- completed：已经完整完成。
+工作中及时更新，完成后立即标记，不集中补标。完成当前任务再开始下一项，无关任务直接移除。
+存在失败、部分完成、未解决错误、缺失文件或依赖时不能标记完成；保留 in_progress，并增加解决阻塞的任务。
+任务要具体、可执行，以要检索什么为中心；复杂检索拆成可管理步骤。清单跟踪检索，thinking 负责综合与呈现。
+不确定复杂任务是否需清单时，优先使用，确保检索要求完整完成。`,
 	schema: utils.GenerateSchema[TodoWriteInput](),
 }
 
@@ -143,15 +44,15 @@ type TodoWriteTool struct {
 
 // TodoWriteInput defines the input parameters for todo_write tool
 type TodoWriteInput struct {
-	Task  string     `json:"task,omitempty" jsonschema:"The complex task or question you need to create a plan for"`
-	Steps []PlanStep `json:"steps" jsonschema:"Array of research plan steps with status tracking"`
+	Task  string     `json:"task,omitempty" jsonschema:"需要规划的复杂任务或问题。"`
+	Steps []PlanStep `json:"steps" jsonschema:"带状态跟踪的研究步骤数组。"`
 }
 
 // PlanStep represents a single step in the research plan
 type PlanStep struct {
-	ID          string `json:"id" jsonschema:"Unique identifier for this step (e.g., 'step1', 'step2')"`
-	Description string `json:"description" jsonschema:"Clear description of what to investigate or accomplish in this step"`
-	Status      string `json:"status" jsonschema:"Current status: pending (not started), in_progress (executing), completed (finished)"`
+	ID          string `json:"id" jsonschema:"步骤唯一标识，例如 step1、step2。"`
+	Description string `json:"description" jsonschema:"明确描述本步骤要调查或完成什么。"`
+	Status      string `json:"status" jsonschema:"当前状态：pending（未开始）、in_progress（执行中）、completed（已完成）。"`
 }
 
 // NewTodoWriteTool creates a new todo_write tool instance
@@ -227,17 +128,17 @@ func getStringArrayField(m map[string]interface{}, key string) []string {
 
 // generatePlanOutput generates a formatted plan output
 func generatePlanOutput(task string, steps []PlanStep) string {
-	output := "Plan created\n\n"
-	output += fmt.Sprintf("**Task**: %s\n\n", task)
+	output := "已创建计划\n\n"
+	output += fmt.Sprintf("**任务**： %s\n\n", task)
 
 	if len(steps) == 0 {
-		output += "Note: No specific steps provided. It is recommended to create 3-7 retrieval tasks for systematic research.\n\n"
-		output += "Suggested retrieval workflow (focused on retrieval tasks, excluding summarization):\n"
-		output += "1. Use grep_chunks to search keywords and locate relevant documents\n"
-		output += "2. Use knowledge_search for semantic search to retrieve relevant content\n"
-		output += "3. Use list_knowledge_chunks to get the full content of key documents\n"
-		output += "4. Use web_search to get supplementary information (if needed)\n"
-		output += "\nNote: Summarization and synthesis are handled by the thinking tool. Do not add summarization tasks here.\n"
+		output += "提示：尚未提供具体步骤。建议创建 3–7 个检索任务，进行系统研究。\n\n"
+		output += "建议的检索流程（只包含检索任务，不包括总结）：\n"
+		output += "1. 使用 grep_chunks 搜索关键词并定位相关文档\n"
+		output += "2. 使用 knowledge_search 进行语义检索，获取相关内容\n"
+		output += "3. 使用 list_knowledge_chunks 获取关键文档的完整内容\n"
+		output += "4. 必要时使用 web_search 获取补充信息\n"
+		output += "\n提示：归纳与综合由思考工具完成。不要在此添加总结任务。\n"
 		return output
 	}
 
@@ -258,7 +159,7 @@ func generatePlanOutput(task string, steps []PlanStep) string {
 	totalCount := len(steps)
 	remainingCount := pendingCount + inProgressCount
 
-	output += "**Plan Steps**:\n\n"
+	output += "**计划步骤**：\n\n"
 
 	// Display all steps in order
 	for i, step := range steps {
@@ -266,32 +167,32 @@ func generatePlanOutput(task string, steps []PlanStep) string {
 	}
 
 	// Add summary and emphasis on remaining tasks
-	output += "\n=== Task Progress ===\n"
-	output += fmt.Sprintf("Total: %d tasks\n", totalCount)
-	output += fmt.Sprintf("✅ Completed: %d\n", completedCount)
-	output += fmt.Sprintf("🔄 In Progress: %d\n", inProgressCount)
-	output += fmt.Sprintf("⏳ Pending: %d\n", pendingCount)
+	output += "\n=== 任务进度 ===\n"
+	output += fmt.Sprintf("共 %d 个任务\n", totalCount)
+	output += fmt.Sprintf("✅ 已完成：%d\n", completedCount)
+	output += fmt.Sprintf("🔄 进行中：%d\n", inProgressCount)
+	output += fmt.Sprintf("⏳ 待处理：%d\n", pendingCount)
 
-	output += "\n=== ⚠️ Important Reminder ===\n"
+	output += "\n=== ⚠️ 重要提醒 ===\n"
 	if remainingCount > 0 {
-		output += fmt.Sprintf("**%d tasks remaining!**\n\n", remainingCount)
-		output += "**All tasks must be completed before summarizing or drawing conclusions.**\n\n"
-		output += "Next steps:\n"
+		output += fmt.Sprintf("**还有 %d 个任务未完成！**\n\n", remainingCount)
+		output += "**完成所有任务后才能总结或下结论。**\n\n"
+		output += "接下来：\n"
 		if inProgressCount > 0 {
-			output += "- Continue completing tasks currently in progress\n"
+			output += "- 继续完成进行中的任务\n"
 		}
 		if pendingCount > 0 {
-			output += fmt.Sprintf("- Start processing %d pending tasks\n", pendingCount)
-			output += "- Complete each task in order, do not skip\n"
+			output += fmt.Sprintf("- 开始处理 %d 个待处理任务\n", pendingCount)
+			output += "- 按顺序完成每个任务，不要跳过\n"
 		}
-		output += "- After completing each task, update todo_write to mark it as completed\n"
-		output += "- Only generate the final summary after all tasks are completed\n"
+		output += "- 每完成一个任务，使用 todo_write 将其标记为 completed\n"
+		output += "- 所有任务完成后再生成最终总结\n"
 	} else {
-		output += "✅ **All tasks completed!**\n\n"
-		output += "You can now:\n"
-		output += "- Synthesize findings from all tasks\n"
-		output += "- Generate a complete final answer or report\n"
-		output += "- Ensure all aspects have been thoroughly researched\n"
+		output += "✅ **所有任务已完成！**\n\n"
+		output += "现在可以：\n"
+		output += "- 综合所有任务的发现\n"
+		output += "- 生成完整的最终回答或报告\n"
+		output += "- 确认各方面都已充分研究\n"
 	}
 
 	return output

@@ -398,3 +398,7 @@ func TestEmbedAuthSessionTokenMismatch(t *testing.T) {
 		t.Fatalf("status = %d, want %d, body = %s", w.Code, http.StatusUnauthorized, w.Body.String())
 	}
 }
+
+func (f *fakeTenantService) UpdateSystemPrompt(context.Context, uint64, string, string) error {
+	panic("unexpected prompt update")
+}

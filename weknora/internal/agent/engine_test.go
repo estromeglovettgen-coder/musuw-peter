@@ -255,12 +255,12 @@ func withMaxCompletionTokens(n int) testEngineOption {
 func TestBuildSystemPromptUsesInternalCitationSetting(t *testing.T) {
 	model := &mockChat{}
 	enabledEngine := newTestEngine(t, model)
-	require.Contains(t, enabledEngine.buildSystemPrompt(context.Background()), "Source citations are enabled")
+	require.Contains(t, enabledEngine.buildSystemPrompt(context.Background()), "本次回答已启用来源引用")
 
 	disabledEngine := newTestEngine(t, model, withCitationsEnabled(false))
 	prompt := disabledEngine.buildSystemPrompt(context.Background())
-	require.Contains(t, prompt, "Source citations are disabled")
-	require.NotContains(t, prompt, "Source citations are enabled")
+	require.Contains(t, prompt, "本次回答已关闭来源引用")
+	require.NotContains(t, prompt, "本次回答已启用来源引用")
 }
 
 func newTestEngine(t *testing.T, chatModel chat.Chat, opts ...testEngineOption) *AgentEngine {

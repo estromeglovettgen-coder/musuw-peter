@@ -20,7 +20,7 @@
           </label>
           <t-tooltip v-if="authStore.hasRole('contributor')" :content="$t('agent.newAgent')" placement="bottom">
             <t-button theme="default" size="small" class="header-action-btn agent-create-header-btn"
-              data-guide="agent-list-create" style="--wails-draggable: no-drag" @click="handleCreateAgent">
+              data-guide="agent-list-create" style="--wails-draggable: no-drag" :loading="modelsReadyLoading" @click="handleCreateAgent">
                 <template #icon>
                   <span class="btn-icon-wrapper">
                     <t-icon name="add" size="16px" aria-hidden="true" />
@@ -569,7 +569,7 @@
           <span class="empty-txt">{{ $t('agent.empty.title') }}</span>
           <span class="empty-desc">{{ $t('agent.empty.description') }}</span>
           <t-button v-if="authStore.hasRole('contributor')" class="agent-create-btn empty-state-btn"
-            data-guide="agent-list-create" @click="handleCreateAgent">
+            data-guide="agent-list-create" :loading="modelsReadyLoading" @click="handleCreateAgent">
             <template #icon>
               <span class="btn-icon-wrapper"><t-icon name="add" size="16px" aria-hidden="true" /></span>
             </template>
@@ -594,7 +594,7 @@
           <span class="empty-txt">{{ $t('agent.empty.title') }}</span>
           <span class="empty-desc">{{ $t('agent.empty.description') }}</span>
           <t-button v-if="authStore.hasRole('contributor')" class="agent-create-btn empty-state-btn"
-            @click="handleCreateAgent">
+            :loading="modelsReadyLoading" @click="handleCreateAgent">
             <template #icon>
               <span class="btn-icon-wrapper"><t-icon name="add" size="16px" aria-hidden="true" /></span>
             </template>
@@ -748,7 +748,12 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const orgStore = useOrganizationStore()
 const chatResources = useChatResourcesStore()
-const { loaded: modelsReadyLoaded, isReadyForAgent } = useTenantModelReadiness()
+const {
+  loaded: modelsReadyLoaded,
+  loading: modelsReadyLoading,
+  refresh: refreshModelReadiness,
+  isReadyForAgent,
+} = useTenantModelReadiness()
 const { entries: marketplaceEntries, loading: marketplaceLoading, failed: marketplaceFailed, load: loadMarketplaceLibrary } = useMarketplaceLibrary()
 const liteSources = [
   { value: 'all', label: 'creatorMarketplace.libraryFilterAll' },
@@ -1098,7 +1103,7 @@ watch(
 // 监听菜单创建智能体事件
 const handleOpenAgentEditor = (event: CustomEvent) => {
   if (event.detail?.mode === 'create') {
-    openCreateModal()
+    void handleCreateAgent()
   }
 }
 
@@ -1435,7 +1440,13 @@ const openCreateModal = () => {
 }
 
 // 创建智能体
-const handleCreateAgent = () => {
+const handleCreateAgent = async () => {
+  try {
+    await refreshModelReadiness()
+  } catch {
+    MessagePlugin.error(t('model.loadFailed'))
+    return
+  }
   if (!isReadyForAgent.value) {
     MessagePlugin.warning(t('contextualGuide.tenantModels.needChatModelFirst'))
     uiStore.openSettings('models')

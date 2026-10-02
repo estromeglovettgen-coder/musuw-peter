@@ -251,7 +251,7 @@ func (s *Service) adjudicateTopics(
 	// getting nothing back here would send every rephrasing to its own row.
 	thinking := false
 	response, err := chatModel.Chat(ctx, []chat.Message{
-		{Role: "system", Content: topicAdjudicationPrompt},
+		{Role: "system", Content: types.ResolveSystemPrompt(ctx, "memory.topic_adjudication", topicAdjudicationPrompt)},
 		{Role: "user", Content: b.String()},
 	}, &chat.ChatOptions{
 		Temperature:         0,

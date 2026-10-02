@@ -12,12 +12,12 @@ import (
 
 var dataSchemaTool = BaseTool{
 	name:        ToolDataSchema,
-	description: "Use this tool to get the schema information of a CSV or Excel file loaded into DuckDB. It returns the table name, columns, and row count.",
+	description: `读取已载入 DuckDB 的 CSV 或 Excel 文件结构，返回表名、列名和行数。`,
 	schema:      utils.GenerateSchema[DataSchemaInput](),
 }
 
 type DataSchemaInput struct {
-	KnowledgeID string `json:"knowledge_id" jsonschema:"short dN document ID to query"`
+	KnowledgeID string `json:"knowledge_id" jsonschema:"要查询的短 dN 文档 ID。"`
 }
 
 type DataSchemaTool struct {

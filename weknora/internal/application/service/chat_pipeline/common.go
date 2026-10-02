@@ -20,14 +20,14 @@ var regThinkTags = regexp.MustCompile(`(?s)<think>.*?</think>`)
 
 const retrievedImageOutputRequirement = `
 
-## Retrieved Image Output Requirement
-The retrieved context for this turn contains Markdown images. Images attached to retrieved passages should be treated as relevant by default.
-- Unless the user explicitly requests text-only output, or every retrieved image is clearly unrelated to the answer, the final answer MUST include at least one relevant Markdown image copied from the retrieved context.
-- Copy the complete Markdown image syntax and its URL verbatim. Never invent, shorten, normalize, or replace the URL.
-- Use ASCII half-width parentheses in image Markdown exactly as ![alt](url). Never use full-width （ or ）.
-- Place each image immediately after the paragraph it supports, rather than collecting images at the end.
-- When multiple retrieved images support different sections of a multi-section answer, include them in their corresponding sections instead of stopping after the first image.
-- Before finishing, silently verify that the answer contains a Markdown image whenever this requirement applies.`
+## 检索图片展示要求
+本轮检索上下文包含 Markdown 图片。检索片段附带的图片默认视为相关资料。
+- 除非用户明确要求只输出文字，或所有检索图片都明显与答案无关，最终回答必须至少展示一张从检索上下文复制的相关 Markdown 图片。
+- 完整复制图片的 Markdown 语法及原 URL，不得编造、缩短、规范化或替换 URL。
+- 图片语法必须使用 ASCII 半角括号，例如 ![alt](url)，不得使用全角（或）。
+- 将每张图片放在它所支持的段落之后。
+- 多张图片分别支持答案的不同章节时，应在各自对应的章节展示，不要只展示第一张。
+- 完成回答前自行检查：适用上述要求时，答案是否包含 Markdown 图片。`
 
 func appendRetrievedImageOutputRequirement(systemPrompt, renderedContexts string) string {
 	if !searchutil.MarkdownImageRegex.MatchString(renderedContexts) {

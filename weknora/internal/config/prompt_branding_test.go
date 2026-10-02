@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestPromptTemplatesUseMusuwBranding(t *testing.T) {
+func TestPromptTemplatesUsePeterBranding(t *testing.T) {
 	templates, err := loadPromptTemplates(filepath.Join("..", "..", "config"))
 	if err != nil {
 		t.Fatalf("load prompt templates: %v", err)
@@ -26,7 +26,7 @@ func TestPromptTemplatesUseMusuwBranding(t *testing.T) {
 		templates.IntentPrompts,
 	}
 
-	foundMusuw, foundDidiRen := false, false
+	foundPeter := false
 	for _, group := range groups {
 		for _, template := range group {
 			// `.weknora/requirements.json` is a stable sandbox wire path, not
@@ -36,12 +36,14 @@ func TestPromptTemplatesUseMusuwBranding(t *testing.T) {
 			if strings.Contains(brandingText, "weknora") || strings.Contains(brandingText, "tencent") || strings.Contains(template.Content, "腾讯") {
 				t.Fatalf("template %q still contains legacy branding", template.ID)
 			}
-			foundMusuw = foundMusuw || strings.Contains(template.Content, "Musuw")
-			foundDidiRen = foundDidiRen || strings.Contains(template.Content, "地底人")
+			if strings.Contains(template.Content, "Musuw") || strings.Contains(template.Content, "地底人") {
+				t.Fatalf("template %q still contains the original product identity", template.ID)
+			}
+			foundPeter = foundPeter || strings.Contains(template.Content, "Peter")
 		}
 	}
-	if !foundMusuw || !foundDidiRen {
-		t.Fatalf("prompt templates must identify the product as Musuw by 地底人; foundMusuw=%v foundDidiRen=%v", foundMusuw, foundDidiRen)
+	if !foundPeter {
+		t.Fatal("prompt templates must identify the product as Peter")
 	}
 }
 
@@ -56,8 +58,8 @@ func TestSessionTitlePromptRequiresPlainTextWithoutLinks(t *testing.T) {
 		t.Fatal("default_session_title prompt is missing")
 	}
 	for _, requirement := range []string{
-		"one line of plain text",
-		"Do not include Markdown, URLs, citations",
+		"一行纯文本",
+		"不要包含 Markdown、URL、引用",
 	} {
 		if !strings.Contains(template.Content, requirement) {
 			t.Fatalf("default_session_title prompt must contain %q", requirement)

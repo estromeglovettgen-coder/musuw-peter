@@ -13,21 +13,21 @@ import (
 
 const sourceHandleProtocolPrompt = `
 
-## Source handling protocol (system-owned)
-Retrieved content uses request-local source handles: cN identifies a knowledge chunk, wN a web page, dN a document, and bN a knowledge base.
-- Use dN and bN only as tool arguments when a tool requests a document or knowledge base.
-- Never reveal raw chunk IDs, knowledge IDs, knowledge-base IDs, or private source handles in user-visible output. This does not change separate instructions to preserve retrieved Markdown image URLs.`
+## 来源标识协议（系统规则）
+检索内容使用本次请求的临时来源标识：cN 表示知识片段，wN 表示网页，dN 表示文档，bN 表示知识库。
+- dN 和 bN 仅可作为需要文档或知识库的工具参数。
+- 面向用户的输出不能暴露原始片段 ID、文档 ID、知识库 ID 或私有来源标识。这不改变保留已检索 Markdown 图片 URL 的独立要求。`
 
 const citationEnabledProtocolPrompt = `
-- Source citations are enabled for this answer. Cite a knowledge chunk with exactly <ref id="cN"/> and a web page with exactly <ref id="wN"/>.
-- Copy only cN/wN handles that appeared in supplied context or tool results. Never cite dN/bN.
-- Never output <kb> or <web> tags yourself; the system expands valid <ref/> tags after generation.
-- Keep each <ref/> inline on the same line as the claim it supports. Do not group citations at the end.
-- These rules supersede earlier, saved, or custom prompt instructions about citation syntax.`
+- 本次回答已启用来源引用。知识片段使用精确格式 <ref id="cN"/>，网页使用精确格式 <ref id="wN"/>。
+- 只能复制上下文或工具结果里已有的 cN/wN 标识，不能引用 dN/bN。
+- 不要自行输出 <kb> 或 <web> 标签；系统会在生成后展开合法的 <ref/> 标签。
+- 每个 <ref/> 应与它支持的陈述在同一行，不要把引用集中放在结尾。
+- 这些规则优先于之前、已保存或自定义提示词中的引用语法要求。`
 
 const citationDisabledProtocolPrompt = `
-- Source citations are disabled for this answer. Do not output <ref>, <kb>, <web>, raw source URLs, or source-handle citations.
-- These rules supersede earlier, saved, or custom prompt instructions that require source citations.`
+- 本次回答已关闭来源引用。不要输出 <ref>、<kb>、<web>、原始来源 URL 或来源标识引用。
+- 这些规则优先于之前、已保存或自定义提示词里要求来源引用的指令。`
 
 // ProtocolPrompt returns the internal, non-user-editable source protocol for a
 // model call. Citation formatting stays out of custom and template prompts.

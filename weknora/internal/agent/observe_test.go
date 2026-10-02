@@ -55,8 +55,8 @@ func TestTrimCurrentTurnToolResultsKeepsNewestAndPairing(t *testing.T) {
 
 	require.True(t, changed)
 	assert.Equal(t, messages[1].Content, trimmed[1].Content, "historical results are handled separately")
-	assert.Contains(t, trimmed[5].Content, "Tool result compacted")
-	assert.Contains(t, trimmed[6].Content, "Tool result compacted")
+	assert.Contains(t, trimmed[5].Content, "工具结果已压缩")
+	assert.Contains(t, trimmed[6].Content, "工具结果已压缩")
 	assert.Equal(t, messages[7].Content, trimmed[7].Content, "newest result should be kept in full")
 	assert.Equal(t, messages[4].ToolCalls, trimmed[4].ToolCalls, "assistant tool-call pairing must remain intact")
 	assert.Equal(t, strings.Repeat("alpha beta gamma ", 1000), messages[5].Content, "input messages must not be mutated")
@@ -238,8 +238,8 @@ func TestAppendToolResults_AddsDynamicImageRequirementToCustomSystemPrompt(t *te
 	require.Len(t, out, 4)
 	assert.Contains(t, out[0].Content, "Custom agent prompt.")
 	assert.Contains(t, out[0].Content, agentRetrievedImageRequirementMarker)
-	assert.Contains(t, out[0].Content, "MUST include at least one relevant Markdown image")
-	assert.Contains(t, out[0].Content, "ASCII half-width parentheses")
+	assert.Contains(t, out[0].Content, "必须包含至少一张从工具结果逐字复制的相关 Markdown 图片")
+	assert.Contains(t, out[0].Content, "ASCII 半角括号")
 	assert.Equal(t, "tool", out[3].Role)
 	assert.Contains(t, out[3].Content, "![流程图](resource://AbCdEfGhIjKlMnOpQrStUv)")
 
@@ -282,9 +282,9 @@ func TestBuildMustUseBlock_MCPAndSkills(t *testing.T) {
 	assert.Contains(t, block, "<must_use>")
 	assert.NotContains(t, block, "<runtime_context")
 	assert.NotContains(t, block, "<instruction>")
-	assert.Contains(t, block, "Must use MCP tools whose names start with mcp_chemdb_")
+	assert.Contains(t, block, "必须使用名称以 mcp_chemdb_ 开头的 MCP 工具")
 	assert.Contains(t, block, "@ChemDB")
-	assert.Contains(t, block, `Must call read_skill(skill_name="data-analysis")`)
+	assert.Contains(t, block, `调用 read_skill(skill_name="data-analysis")`)
 	assert.Contains(t, block, `@Skill "data-analysis"`)
 }
 
@@ -310,7 +310,7 @@ func TestBuildMustUseBlock_SkipsMCPWithoutTools(t *testing.T) {
 		}},
 		[]*PinnedSkillInfo{{Name: "data-analysis"}},
 	)
-	assert.Contains(t, block, `Must call read_skill(skill_name="data-analysis")`)
+	assert.Contains(t, block, `调用 read_skill(skill_name="data-analysis")`)
 	assert.NotContains(t, block, "DisabledMCP")
 }
 
@@ -408,7 +408,7 @@ func TestAnnotateLengthTruncatedToolErrors(t *testing.T) {
 	}
 	annotateLengthTruncatedToolErrors("length", step.ToolCalls)
 	assert.Contains(t, step.ToolCalls[0].Result.Error, "finish_reason=length")
-	assert.Contains(t, step.ToolCalls[0].Result.Error, "smaller payload")
+	assert.Contains(t, step.ToolCalls[0].Result.Error, "缩小提交内容")
 	assert.NotContains(t, step.ToolCalls[0].Result.Error, "`path`")
 	assert.Equal(t, "wrote", step.ToolCalls[1].Result.Output)
 

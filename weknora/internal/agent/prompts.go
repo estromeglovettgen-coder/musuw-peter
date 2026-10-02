@@ -217,9 +217,9 @@ func renderPromptPlaceholders(template string, knowledgeBases []*KnowledgeBaseIn
 	if strings.Contains(result, "{{knowledge_bases}}") {
 		var replacement string
 		if len(knowledgeBases) == 0 {
-			replacement = "(no knowledge bases bound to this session)"
+			replacement = "（本会话未关联知识库）"
 		} else {
-			replacement = "(see `<bound_knowledge_bases>` inside the user message's `<runtime_context>` for the current bound KB list and their capabilities)"
+			replacement = "（当前关联知识库及其能力见用户消息 <runtime_context> 中的 <bound_knowledge_bases>）"
 		}
 		result = strings.ReplaceAll(result, "{{knowledge_bases}}", replacement)
 	}
@@ -235,53 +235,53 @@ func formatSkillsMetadata(skillsMetadata []*skills.SkillMetadata, shellExecEnabl
 	}
 
 	var builder strings.Builder
-	builder.WriteString("\n### Available Skills (IMPORTANT - READ CAREFULLY)\n\n")
-	builder.WriteString("**You MUST actively consider using these skills for EVERY user request.**\n\n")
+	builder.WriteString("\n### 可用技能（重要，请仔细阅读）\n\n")
+	builder.WriteString("**每次处理用户请求时，都必须主动判断是否应使用这些技能。**\n\n")
 
-	builder.WriteString("#### Skill Matching Protocol (MANDATORY)\n\n")
-	builder.WriteString("Before responding to ANY user query, follow this checklist:\n\n")
-	builder.WriteString("1. **SCAN**: Read each skill's description and trigger conditions below\n")
-	builder.WriteString("2. **MATCH**: Check if the user's intent matches ANY skill's triggers (keywords, scenarios, or task types)\n")
-	builder.WriteString("3. **LOAD**: If a match is found, call `read_skill(skill_name=\"...\")` BEFORE generating your response\n")
-	builder.WriteString("4. **APPLY**: Follow the skill's instructions to provide a higher-quality, structured response\n\n")
+	builder.WriteString("#### 技能匹配流程（必须遵守）\n\n")
+	builder.WriteString("回答任何用户问题前，执行以下检查：\n\n")
+	builder.WriteString("1. **浏览**：阅读下面每个技能的说明和触发条件\n")
+	builder.WriteString("2. **匹配**：检查用户意图是否符合任一技能的关键词、场景或任务类型\n")
+	builder.WriteString("3. **加载**：匹配时，必须先调用 `read_skill(skill_name=\"...\")` 再生成回答\n")
+	builder.WriteString("4. **应用**：遵循技能要求，提供更好的结构化回答\n\n")
 
-	builder.WriteString("**⚠️ CRITICAL**: Skill usage is MANDATORY when applicable. Do NOT skip skills to save time or tokens.\n\n")
+	builder.WriteString("**⚠️ 关键**：适用时必须使用技能，不能为了节省时间或 token 而跳过。\n\n")
 
-	builder.WriteString("#### Available Skills\n\n")
+	builder.WriteString("#### 可用技能\n\n")
 	for i, skill := range skillsMetadata {
 		builder.WriteString(fmt.Sprintf("%d. **%s**\n", i+1, skill.Name))
 		builder.WriteString(fmt.Sprintf("   %s\n\n", skill.Description))
 	}
 
-	builder.WriteString("#### Tool Reference\n\n")
-	builder.WriteString("- `read_skill(skill_name)`: Load SKILL.md **and** list the skill's files. This is how you discover scripts — do not `list_sandbox_files` or `ls` `/opt/weknora/tenant/skills/...`\n")
-	builder.WriteString("- `read_skill(skill_name, file_path)`: Read one file inside the skill (`file_path` is relative, e.g. `scripts/generate_ppt.py`)\n")
-	builder.WriteString("- `execute_skill_script(skill_name, script_path, args, input)`: Run a skill script with that skill's interpreter and packages\n")
-	builder.WriteString("  - `script_path`: relative inside the skill (`scripts/foo.py`), or an absolute `/workspace/...` file from `write_sandbox_file` / `edit_sandbox_file` (not `/workspace/input`)\n")
-	builder.WriteString("  - `input`: Pass data directly via stdin (use this when you have data in memory, e.g. JSON string)\n")
-	builder.WriteString("  - `args`: Command-line arguments; pass absolute `/workspace/input/...` paths from `<sandbox_attachments>` for user-uploaded files\n")
-	builder.WriteString("  - Treat `/workspace/input` as read-only and write generated files only to `$WEKNORA_SKILL_OUTPUT_DIR`\n")
+	builder.WriteString("#### 工具参考\n\n")
+	builder.WriteString("- `read_skill(skill_name)`：加载 SKILL.md 并列出技能文件。通过它发现脚本，不要用 `list_sandbox_files` 或 `ls` 查看 `/opt/weknora/tenant/skills/...`\n")
+	builder.WriteString("- `read_skill(skill_name, file_path)`：读取技能中的文件，`file_path` 是相对路径，例如 `scripts/generate_ppt.py`\n")
+	builder.WriteString("- `execute_skill_script(skill_name, script_path, args, input)`：使用该技能自己的解释器和依赖运行脚本\n")
+	builder.WriteString("  - `script_path`：技能内的相对路径（`scripts/foo.py`），或由 `write_sandbox_file` / `edit_sandbox_file` 创建的 `/workspace/...` 绝对路径（不能是 `/workspace/input`）\n")
+	builder.WriteString("  - `input`：通过标准输入直接传递数据，适用于已有内存数据，例如 JSON 字符串\n")
+	builder.WriteString("  - `args`：命令行参数；用户上传文件使用 <sandbox_attachments> 中的 `/workspace/input/...` 绝对路径\n")
+	builder.WriteString("  - `/workspace/input` 必须只读，生成文件只能写入 `$WEKNORA_SKILL_OUTPUT_DIR`\n")
 	builder.WriteString(sandboxArtifactReferenceGuidance())
-	builder.WriteString("  - Each skill keeps its dependencies to itself (virtualenv or node_modules); ")
-	builder.WriteString("this tool already runs scripts the right way. A bare `python3 -c` / `node -e` ")
-	builder.WriteString("sees none of them, so never conclude from that that a skill cannot run. ")
-	builder.WriteString("The skill tree is frozen after install — do not run install_deps.py, ")
-	builder.WriteString("chown, ensurepip, or pip into `/opt/weknora/tenant/skills`. ")
-	builder.WriteString("On-demand extras: `python3 -m pip install --target /workspace/.skill-packages/<skill> <package>`, ")
-	builder.WriteString("then execute_skill_script; or ask the user to reinstall the skill so extras are baked in\n")
+	builder.WriteString("  - 每个技能有独立依赖（virtualenv 或 node_modules）；")
+	builder.WriteString("本工具已使用正确环境运行脚本。裸用 `python3 -c` / `node -e` ")
+	builder.WriteString("看不到这些依赖，不能据此判断技能无法运行。")
+	builder.WriteString("技能安装后目录只读，不得运行 install_deps.py、")
+	builder.WriteString("chown、ensurepip，或在 `/opt/weknora/tenant/skills` 中执行 pip。")
+	builder.WriteString("需要额外依赖时：执行 `python3 -m pip install --target /workspace/.skill-packages/<skill> <package>`，")
+	builder.WriteString("然后使用 execute_skill_script；也可请用户重新安装技能，使额外依赖随安装包含\n")
 	if shellExecEnabled {
-		builder.WriteString("- `shell_exec(command, work_dir, timeout_sec, max_output_bytes, max_stderr_bytes, env)`: Freely execute shell commands and explore the current session's isolated Cube sandbox\n")
-		builder.WriteString("  - User-uploaded files are restored under `/workspace/input` and listed in `<sandbox_attachments>`\n")
-		builder.WriteString("  - Use `find` and `ls` to discover files; use `cat`, `head`, `tail`, and `sed` to inspect text; use `grep` and `awk` to search and process content; use `file` for an unknown type\n")
-		builder.WriteString("  - Do not `ls` / `find` / `cat` / `file` a skill under `/opt/weknora/tenant/skills` to discover scripts. `read_skill(skill_name)` already lists them; that tree also contains `.venv` / `node_modules`\n")
-		builder.WriteString("  - Use shell pipelines, redirects, scripts, package managers, compilers, and other installed commands whenever they are the most direct way to complete the task\n")
-		builder.WriteString("  - Do not inspect skill-generated office files with `python3 -c` (system Python has no python-docx/pptx). Write a short script with `write_sandbox_file` and run it with `execute_skill_script`; do not paste the same code into `.venv/bin/python -c`\n")
-		builder.WriteString("  - To change a few lines of a file you already wrote, call `edit_sandbox_file` instead of rewriting the whole file\n")
-		builder.WriteString("  - Python strings: never nest ASCII `\"` inside `\"...\"` (or `'` inside `'...'`). Use the other quote, and 「」 for Chinese quotation\n")
-		builder.WriteString("  - Increase `max_output_bytes` up to 65536 per stream for large text output, or use `sed`/`head`/`tail` for targeted sections\n")
-		builder.WriteString("  - Binary output is suppressed; write binary results under `/workspace/output` so ArtifactCollector attaches them for download\n")
-		builder.WriteString("  - Session state persists across later `shell_exec` and `execute_skill_script` calls\n")
-		builder.WriteString("  - Non-zero exit codes are normal results, not tool errors — inspect stderr and decide what to do next\n")
+		builder.WriteString("- `shell_exec(command, work_dir, timeout_sec, max_output_bytes, max_stderr_bytes, env)`：自由执行 shell 命令，探索当前会话隔离的 Cube 沙箱\n")
+		builder.WriteString("  - 用户上传文件恢复到 `/workspace/input`，在 <sandbox_attachments> 中列出\n")
+		builder.WriteString("  - 使用 `find`、`ls` 查找文件；`cat`、`head`、`tail`、`sed` 查看文字；`grep`、`awk` 搜索和处理内容；未知类型用 `file` 判断\n")
+		builder.WriteString("  - 不要用 `ls` / `find` / `cat` / `file` 扫描 `/opt/weknora/tenant/skills` 寻找脚本。`read_skill(skill_name)` 已列出文件，该目录还包含 `.venv` / `node_modules`\n")
+		builder.WriteString("  - shell 管道、重定向、脚本、包管理器、编译器或其他已安装命令是最直接的方法时，可以使用\n")
+		builder.WriteString("  - 不要用 `python3 -c` 检查技能生成的 Office 文件，系统 Python 没有 python-docx/pptx。用 `write_sandbox_file` 写短脚本，再用 `execute_skill_script` 运行；不要将相同代码粘贴到 `.venv/bin/python -c`\n")
+		builder.WriteString("  - 修改已写文件的几行时使用 `edit_sandbox_file`，不要重写整个文件\n")
+		builder.WriteString("  - Python 字符串：绝不能在 `\"...\"` 中嵌套未转义的 ASCII `\"`（或在 `'...'` 中嵌套 `'`）；使用另一种引号，中文引用使用「」\n")
+		builder.WriteString("  - 大段文字可将每个流的 `max_output_bytes` 提高至 65536，或用 `sed`/`head`/`tail` 查看特定部分\n")
+		builder.WriteString("  - 二进制输出会被隐藏；将结果写入 `/workspace/output`，让 ArtifactCollector 收集为可下载附件\n")
+		builder.WriteString("  - 会话状态在后续 `shell_exec` 和 `execute_skill_script` 调用间持续保留\n")
+		builder.WriteString("  - 非零退出码是正常结果而非工具错误；检查 stderr 后决定下一步\n")
 	}
 
 	return builder.String()
@@ -296,21 +296,21 @@ func formatSkillsMetadata(skillsMetadata []*skills.SkillMetadata, shellExecEnabl
 // so the server can bind the name to the artifact index it hands the client.
 func sandboxArtifactReferenceGuidance() string {
 	var builder strings.Builder
-	builder.WriteString("  - To show a generated file inside your answer, reference it as ")
-	builder.WriteString("`![description](sandbox:<file name>)` using the exact file name and no directory path\n")
-	builder.WriteString("    - Images render inline; charts, tables, and documents ")
-	builder.WriteString("render as a card the user clicks to preview\n")
-	builder.WriteString("    - Never reference a sandbox path (`/workspace/output/...`) ")
-	builder.WriteString("or a bare file name directly — neither resolves in the browser\n")
-	builder.WriteString("    - Prefer output file names without spaces or parentheses; ")
-	builder.WriteString("they keep the reference unambiguous\n")
+	builder.WriteString("  - 要在回答中展示生成文件，使用 ")
+	builder.WriteString("`![说明](sandbox:<文件名>)`，文件名必须准确且不带目录路径\n")
+	builder.WriteString("    - 图片直接显示；图表、表格和文档")
+	builder.WriteString("显示为可点击预览的卡片\n")
+	builder.WriteString("    - 不得直接引用沙箱路径（`/workspace/output/...`）")
+	builder.WriteString("或裸文件名，浏览器无法解析它们\n")
+	builder.WriteString("    - 输出文件名尽量不含空格或括号，")
+	builder.WriteString("避免引用歧义\n")
 	return builder.String()
 }
 
 // renderPromptPlaceholdersWithStatus renders placeholders including web search status
 // Supported placeholders:
 //   - {{knowledge_bases}}
-//   - {{web_search_status}} -> "Enabled" or "Disabled"
+//   - {{web_search_status}} -> "已启用" or "未启用"
 //   - {{current_time}} -> current time string
 //   - {{language}} -> user language name (e.g. "Chinese (Simplified)", "English")
 //   - {{skills}} -> formatted skills metadata (if any)
@@ -324,9 +324,9 @@ func renderPromptPlaceholdersWithStatus(
 	// Knowledge bases need special formatting, so handle it first
 	result := renderPromptPlaceholders(template, knowledgeBases)
 
-	status := "Disabled"
+	status := "未启用"
 	if webSearchEnabled {
-		status = "Enabled"
+		status = "已启用"
 	}
 
 	result = types.RenderPromptPlaceholders(result, types.PlaceholderValues{

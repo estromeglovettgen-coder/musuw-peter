@@ -25,59 +25,59 @@ import (
 
 const (
 	// tableDescriptionPromptTemplate is the prompt template for generating table descriptions
-	tableDescriptionPromptTemplate = `You are a data analysis expert. Based on the following table structure information and data samples, generate a concise table metadata description (200-300 words).
+	tableDescriptionPromptTemplate = `你是数据分析专家。根据下面的表结构和数据样本，生成简洁的表元数据说明（200—300 词）。
 
-Table name: %s
+表名：{{table_name}}
 
-%s
+{{schema}}
 
-%s
+{{samples}}
 
-Please describe the table from the following dimensions:
-1. **Data Subject**: What type of data does this table record? (e.g., user information, sales records, log data, etc.)
-2. **Core Fields**: List 3-5 most important fields and their meanings
-3. **Data Scale**: Total number of rows and columns
-4. **Business Scenarios**: What business analysis or application scenarios might this table be used for?
-5. **Key Characteristics**: What notable features does the data have? (e.g., contains geographic locations, has category labels, has hierarchical relationships, etc.)
+请说明：
+1. **数据主题**：本表记录什么类型的数据，例如用户信息、销售记录或日志。
+2. **核心字段**：列出 3—5 个最重要字段及其含义。
+3. **数据规模**：总行数和列数。
+4. **业务场景**：可能用于哪些业务分析或应用。
+5. **关键特征**：数据有哪些显著特点，例如地理位置、分类标签或层级关系。
 
-**Important Notes**:
-- Do not output specific data values or sample content
-- Use general descriptions so users can quickly determine if this table contains the information they need
-- Use concise and professional language for easy retrieval and understanding
-- Write the description in the same language as the data content`
+**重要要求**：
+- 不输出具体数据值或样本内容。
+- 使用概括性描述，让用户迅速判断表中是否有需要的信息。
+- 使用简洁、专业的语言，便于检索和理解。
+- 说明使用与数据内容相同的语言。`
 
 	// columnDescriptionsPromptTemplate is the prompt template for generating column descriptions
-	columnDescriptionsPromptTemplate = `You are a data analysis expert. Based on the following table structure information and data samples, generate structured description information for each column.
+	columnDescriptionsPromptTemplate = `你是数据分析专家。根据下面的表结构和数据样本，为每一列生成结构化说明。
 
-Table name: %s
+表名：{{table_name}}
 
-%s
+{{schema}}
 
-%s
+{{samples}}
 
-Please generate a detailed description for each column, including the following information:
-1. **Field Meaning**: What information does this column store? (e.g., user ID, order amount, creation time, etc.)
-2. **Data Type**: The type and format of the data (e.g., integer, string, datetime, boolean, etc.)
-3. **Business Purpose**: The role of this field in business (e.g., for user identification, amount calculation, time sorting, etc.)
-4. **Data Characteristics**: Notable features of the data (e.g., unique identifier, nullable, has enum values, has units, etc.)
+每列的详细说明包括：
+1. **字段含义**：存储什么信息，例如用户 ID、订单金额或创建时间。
+2. **数据类型**：类型和格式，例如整数、字符串、日期时间或布尔值。
+3. **业务用途**：业务中的作用，例如识别用户、计算金额或按时间排序。
+4. **数据特征**：显著特点，例如唯一标识、可为空、枚举值或单位。
 
-Please output in the following format (one paragraph per column):
+按下面格式输出，每列一段：
 
-**Column1** (data type)
-- Field Meaning: xxx
-- Business Purpose: xxx
-- Data Characteristics: xxx
+**列1**（数据类型）
+- 字段含义：xxx
+- 业务用途：xxx
+- 数据特征：xxx
 
-**Column2** (data type)
-- Field Meaning: xxx
-- Business Purpose: xxx
-- Data Characteristics: xxx
+**列2**（数据类型）
+- 字段含义：xxx
+- 业务用途：xxx
+- 数据特征：xxx
 
-**Important Notes**:
-- Do not output specific data values, only describe the field metadata
-- Use clear business terms for easy user understanding and search
-- If enum value ranges can be inferred from sample data, provide a summary (e.g., status field contains pending/in-progress/completed states)
-- Write descriptions in the same language as the data content`
+**重要要求**：
+- 不输出具体数据值，只说明字段元数据。
+- 使用清楚的业务用语，便于理解和检索。
+- 若能从样本推断枚举范围，可概括，例如状态包含待处理、处理中、已完成。
+- 说明使用与数据内容相同的语言。`
 )
 
 // NewChunkExtractTask creates a new chunk extract task. It returns
@@ -180,6 +180,7 @@ func enqueueDataTableSummaryIfNeeded(
 // ChunkExtractService is a service for extracting chunks
 type ChunkExtractService struct {
 	template          *types.PromptTemplateStructured
+	tenantRepo        interfaces.TenantRepository
 	modelService      interfaces.ModelService
 	knowledgeBaseRepo interfaces.KnowledgeBaseRepository
 	knowledgeRepo     interfaces.KnowledgeRepository
@@ -194,6 +195,7 @@ type ChunkExtractService struct {
 // NewChunkExtractService creates a new chunk extract service
 func NewChunkExtractService(
 	config *config.Config,
+	tenantRepo interfaces.TenantRepository,
 	modelService interfaces.ModelService,
 	knowledgeBaseRepo interfaces.KnowledgeBaseRepository,
 	knowledgeRepo interfaces.KnowledgeRepository,
@@ -203,6 +205,7 @@ func NewChunkExtractService(
 ) interfaces.TaskHandler {
 	return &ChunkExtractService{
 		template:          config.ExtractManager.ExtractGraph,
+		tenantRepo:        tenantRepo,
 		modelService:      modelService,
 		knowledgeBaseRepo: knowledgeBaseRepo,
 		knowledgeRepo:     knowledgeRepo,
@@ -293,6 +296,20 @@ func (s *ChunkExtractService) Handle(ctx context.Context, t *asynq.Task) error {
 		}
 	}
 
+	// Queue payloads carry only the workspace ID. Restore one current snapshot
+	// for the whole extraction task so edited defaults reach the model without
+	// reusing a request's stale or unrelated workspace configuration.
+	tenant, err := s.tenantRepo.GetTenantByID(ctx, p.TenantID)
+	if err != nil {
+		handleErr = fmt.Errorf("load graph extraction workspace: %w", err)
+		return handleErr
+	}
+	if tenant == nil || tenant.ID != p.TenantID {
+		handleErr = fmt.Errorf("graph extraction workspace %d not found", p.TenantID)
+		return handleErr
+	}
+	ctx = context.WithValue(ctx, types.TenantInfoContextKey, tenant)
+
 	chunk, err := s.chunkRepo.GetChunkByID(ctx, p.TenantID, p.ChunkID)
 	if err != nil {
 		logger.Errorf(ctx, "failed to get chunk: %v", err)
@@ -339,7 +356,8 @@ func (s *ChunkExtractService) Handle(ctx context.Context, t *asynq.Task) error {
 
 	template := &types.PromptTemplateStructured{
 		Description: types.AppendCustomPromptInstructions(
-			s.template.Description, extractCfg.CustomInstructions, "graph_extraction"),
+			types.ResolveSystemPrompt(ctx, "graph.extraction", s.template.Description),
+			extractCfg.CustomInstructions, "graph_extraction"),
 		Tags: extractCfg.Tags,
 		Examples: []types.GraphData{
 			{
@@ -476,6 +494,9 @@ func (s *DataTableSummaryService) Handle(ctx context.Context, t *asynq.Task) err
 	if err != nil {
 		return err
 	}
+	// prepareResources uses its own child context for retrieval. Keep the
+	// loaded workspace snapshot on the generation path as well.
+	ctx = context.WithValue(ctx, types.TenantInfoContextKey, resources.tenant)
 
 	// 3. 加载表格数据并生成摘要
 	chunks, err := s.processTableData(ctx, resources)
@@ -814,7 +835,11 @@ func (s *DataTableSummaryService) cleanupOnFailure(ctx context.Context, resource
 func (s *DataTableSummaryService) generateTableDescription(ctx context.Context, chatModel chat.Chat,
 	tableName, schemaDesc, sampleDesc, customInstructions string,
 ) (string, error) {
-	prompt := fmt.Sprintf(tableDescriptionPromptTemplate, tableName, schemaDesc, sampleDesc)
+	prompt := types.RenderPromptPlaceholders(types.ResolveSystemPrompt(ctx, "table.description", tableDescriptionPromptTemplate), types.PlaceholderValues{
+		"table_name": tableName,
+		"schema":     schemaDesc,
+		"samples":    sampleDesc,
+	})
 	prompt = types.AppendCustomPromptInstructions(prompt, customInstructions, "table_metadata")
 	// logger.Debugf(ctx, "generateTableDescription prompt: %s", prompt)
 
@@ -830,7 +855,7 @@ func (s *DataTableSummaryService) generateTableDescription(ctx context.Context, 
 		return "", fmt.Errorf("failed to generate table description: %w", err)
 	}
 
-	return fmt.Sprintf("# Table Summary\n\nTable name: %s\n\n%s", tableName, response.Content), nil
+	return fmt.Sprintf("# 表格摘要\n\n表名：%s\n\n%s", tableName, response.Content), nil
 }
 
 // generateColumnDescriptions generates descriptions for each column in batch
@@ -838,7 +863,11 @@ func (s *DataTableSummaryService) generateColumnDescriptions(ctx context.Context
 	tableName, schemaDesc, sampleDesc, customInstructions string,
 ) (string, error) {
 	// Build batch prompt for all columns
-	prompt := fmt.Sprintf(columnDescriptionsPromptTemplate, tableName, schemaDesc, sampleDesc)
+	prompt := types.RenderPromptPlaceholders(types.ResolveSystemPrompt(ctx, "table.columns", columnDescriptionsPromptTemplate), types.PlaceholderValues{
+		"table_name": tableName,
+		"schema":     schemaDesc,
+		"samples":    sampleDesc,
+	})
 	prompt = types.AppendCustomPromptInstructions(prompt, customInstructions, "table_metadata")
 	// logger.Debugf(ctx, "generateColumnDescriptions prompt: %s", prompt)
 
@@ -855,13 +884,13 @@ func (s *DataTableSummaryService) generateColumnDescriptions(ctx context.Context
 		return "", fmt.Errorf("failed to generate column descriptions: %w", err)
 	}
 
-	return fmt.Sprintf("# Table Column Information\n\nTable name: %s\n\n%s", tableName, response.Content), nil
+	return fmt.Sprintf("# 表格字段说明\n\n表名：%s\n\n%s", tableName, response.Content), nil
 }
 
 // buildSampleDataDescription builds a formatted sample data description
 func (s *DataTableSummaryService) buildSampleDataDescription(ctx context.Context, sampleData *types.ToolResult, maxRows int) string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("Sample data (first %d rows):\n", maxRows))
+	builder.WriteString(fmt.Sprintf("数据样本（前 %d 行）：\n", maxRows))
 
 	if sampleData == nil || sampleData.Data == nil {
 		return builder.String()

@@ -114,7 +114,7 @@ func TestGetSummaryUsesSameModelCallForAutomaticURLTitle(t *testing.T) {
 	if summary != "视频展示了一道适合减脂期的肉丝汤面，并说明了主要食材和步骤。" {
 		t.Fatalf("summary = %q", summary)
 	}
-	if len(model.messages) != 2 || !strings.Contains(model.messages[0].Content, "level-1 Markdown heading") {
+	if len(model.messages) != 2 || !strings.Contains(model.messages[0].Content, "一级 Markdown 标题") {
 		t.Fatalf("summary prompt did not request the shared title contract: %#v", model.messages)
 	}
 }

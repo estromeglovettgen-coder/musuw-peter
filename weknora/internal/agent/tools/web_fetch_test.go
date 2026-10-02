@@ -91,7 +91,7 @@ func TestWebFetchToolAllFailuresReturnStructuredFallback(t *testing.T) {
 	require.False(t, result.Success, "all-failed batches should not report tool success")
 	assert.Equal(t, true, result.Data["all_failed"])
 	assert.Equal(t, 0, result.Data["successful_count"])
-	assert.Contains(t, result.Output, "answer from existing web_search titles, URLs, and snippets")
+	assert.Contains(t, result.Output, "根据已有 web_search 的标题、链接及摘要回答")
 }
 
 func TestWebFetchToolDeduplicatesURLsWithinBatch(t *testing.T) {

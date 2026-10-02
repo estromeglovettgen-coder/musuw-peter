@@ -60,7 +60,7 @@ func TestWriteSandboxFileFlagsNestedPythonQuotes(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.Success)
 	assert.Equal(t, 1, sink.calls, "the file is still written so edit_sandbox_file can fix it")
-	assert.Contains(t, result.Error, "line 1")
+	assert.Contains(t, result.Error, "第 1 行")
 	assert.Contains(t, result.Error, "edit_sandbox_file")
 	assert.Equal(t, true, result.Data["syntax_error"])
 }
@@ -138,7 +138,7 @@ func TestWriteSandboxFileRegistryHintsWhenPathMissing(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.Success)
 	assert.Contains(t, result.Error, "path")
-	assert.Contains(t, result.Error, "put `path` first")
+	assert.Contains(t, result.Error, "先写 `path`")
 }
 
 func mustWriteSandboxArgs(path, content string) json.RawMessage {

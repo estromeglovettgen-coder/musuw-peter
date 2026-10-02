@@ -29,6 +29,7 @@ const LITE_SETTINGS_ROUTE_SECTIONS = new Set([
   'general',
   'usage',
   'models',
+  'system-prompts',
   'userprofile',
   'mymemory',
   'memory',

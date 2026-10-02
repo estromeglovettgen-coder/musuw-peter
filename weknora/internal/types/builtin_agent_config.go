@@ -117,12 +117,46 @@ func GetBuiltinAgentWithContext(ctx context.Context, id string, tenantID uint64)
 	if !ok || entry == nil {
 		// No YAML entry — fall back to hard-coded factory.
 		if factory, exists := BuiltinAgentRegistry[id]; exists {
-			return factory(tenantID)
+			a := factory(tenantID)
+			ApplyBuiltinAgentSystemPrompts(ctx, a)
+			return a
 		}
 		return nil
 	}
 
-	return buildAgentFromEntry(id, tenantID, locale)
+	a := buildAgentFromEntry(id, tenantID, locale)
+	ApplyBuiltinAgentSystemPrompts(ctx, a)
+	return a
+}
+
+// ApplyBuiltinAgentSystemPrompts applies workspace defaults only to unchanged
+// built-in rules. An agent's explicitly edited rules remain authoritative.
+func ApplyBuiltinAgentSystemPrompts(ctx context.Context, a *CustomAgent) {
+	if a == nil || (a.ID != BuiltinQuickAnswerID && a.ID != BuiltinSmartReasoningID) {
+		return
+	}
+	base := GetBuiltinAgent(a.ID, a.TenantID)
+	if base == nil {
+		return
+	}
+	systemID := "conversation.system"
+	if a.ID == BuiltinSmartReasoningID {
+		systemID = "agent.smart"
+	}
+	for _, rule := range []struct {
+		id    string
+		value *string
+		base  string
+	}{
+		{systemID, &a.Config.SystemPrompt, base.Config.SystemPrompt},
+		{"conversation.context", &a.Config.ContextTemplate, base.Config.ContextTemplate},
+		{"conversation.rewrite_system", &a.Config.RewritePromptSystem, base.Config.RewritePromptSystem},
+		{"conversation.rewrite_user", &a.Config.RewritePromptUser, base.Config.RewritePromptUser},
+	} {
+		if *rule.value == rule.base {
+			*rule.value = ResolveSystemPrompt(ctx, rule.id, rule.base)
+		}
+	}
 }
 
 // ApplyBuiltinAgentLocalization overlays the locale-specific name, description,
@@ -149,6 +183,7 @@ func ApplyBuiltinAgentLocalization(ctx context.Context, agent *CustomAgent) {
 		agent.Description = localized.Description
 	}
 	agent.Avatar = localized.Avatar
+	ApplyBuiltinAgentSystemPrompts(ctx, agent)
 }
 
 var builtinAgentEntriesTestMu sync.Mutex

@@ -30,36 +30,38 @@ const (
 	// original image is still available for the existing reparse action.
 	ImageParseFailedPublicMessage = "图片内容解析失败，原图已保存，可以重新解析"
 	vlmOCRPrompt                  = "<system_prompt>\n" +
-		"You are an OCR assistant. Your task is to extract all body text content from this document image and output in pure Markdown format.\n" +
+		"你是文字识别助手。请提取该文档图片的全部正文文字，输出纯 Markdown。\n" +
 		"</system_prompt>\n\n" +
 		"<instructions>\n" +
-		"1. Ignore headers and footers.\n" +
-		"2. Use Markdown table syntax for tables.\n" +
-		"3. Use LaTeX format for formulas (wrapped with $ or $$).\n" +
-		"4. Organize content in the original reading order.\n" +
-		"5. Output ONLY the extracted text content. Do NOT include any HTML tags, reasoning, or unrelated comments.\n" +
-		"6. If there is absolutely no recognizable text content in the image, reply ONLY with: No text content.\n" +
+		"1. 忽略页眉和页脚。\n" +
+		"2. 表格使用 Markdown 表格语法。\n" +
+		"3. 公式使用 LaTeX，以 $ 或 $$ 包裹。\n" +
+		"4. 按原始阅读顺序组织内容。\n" +
+		"5. 只输出提取文字，不包含 HTML 标签、推理过程或无关评论。\n" +
+		"6. 完全没有可识别文字时，只回复机器约定标识：No text content.\n" +
 		"</instructions>"
 	vlmOCRScannedPDFPrompt = "<system_prompt>\n" +
-		"You are an OCR and document layout extraction assistant. The input image is a page from a scanned PDF document.\n" +
-		"Your task is to carefully extract all text and layout structure from the image, and output the result in pure Markdown format.\n" +
+		"你是文字识别和文档版式提取助手，输入图片是扫描 PDF 的一页。\n" +
+		"仔细提取图片中的全部文字和版式结构，输出纯 Markdown。\n" +
 		"</system_prompt>\n\n" +
 		"<instructions>\n" +
-		"1. Ignore headers, footers, and page numbers.\n" +
-		"2. Preserve the original document's paragraph and hierarchical structure as much as possible.\n" +
-		"3. If there are tables, use Markdown table syntax to represent them.\n" +
-		"4. If there are mathematical formulas, use LaTeX format wrapped in $ or $$.\n" +
-		"5. Output ONLY the extracted text content. Do NOT include any HTML tags, reasoning, or unrelated comments.\n" +
-		"6. If there is absolutely no recognizable text content in the image, reply ONLY with: No text content.\n" +
+		"1. 忽略页眉、页脚和页码。\n" +
+		"2. 尽可能保留原文段落和层级结构。\n" +
+		"3. 有表格时使用 Markdown 表格语法。\n" +
+		"4. 数学公式使用 LaTeX，以 $ 或 $$ 包裹。\n" +
+		"5. 只输出提取文字，不包含 HTML 标签、推理过程或无关评论。\n" +
+		"6. 完全没有可识别文字时，只回复机器约定标识：No text content.\n" +
 		"</instructions>"
 )
+
+const vlmCaptionPrompt = "请使用 {{language}} 简洁描述图片的主要内容。"
 
 func buildVLMCaptionPrompt(ctx context.Context, cfg types.VLMConfig) string {
 	language := strings.TrimSpace(cfg.DescriptionLanguage)
 	if language == "" {
 		language = types.LanguageNameFromContext(ctx)
 	}
-	prompt := fmt.Sprintf("Provide a brief and concise description of the main content of the image in %s.", language)
+	prompt := types.RenderPromptPlaceholders(types.ResolveSystemPrompt(ctx, "image.caption", vlmCaptionPrompt), types.PlaceholderValues{"language": language})
 	return types.AppendCustomPromptInstructions(prompt, cfg.CustomInstructions, "image_description")
 }
 
@@ -225,6 +227,19 @@ func (s *ImageMultimodalService) Handle(ctx context.Context, task *asynq.Task) e
 		}
 	}()
 
+	// The worker receives a bare task context. Load workspace prompt overrides
+	// before OCR/caption generation, within the existing failure/fan-in guard.
+	tenant, err := s.tenantRepo.GetTenantByID(ctx, payload.TenantID)
+	if err != nil {
+		handleErr = fmt.Errorf("load image workspace configuration: %w", err)
+		return handleErr
+	}
+	if tenant == nil {
+		handleErr = fmt.Errorf("load image workspace configuration: tenant %d not found", payload.TenantID)
+		return handleErr
+	}
+	ctx = context.WithValue(ctx, types.TenantInfoContextKey, tenant)
+
 	vlmModel, vlmCfg, err := s.resolveVLM(ctx, payload.KnowledgeBaseID, payload.KnowledgeID)
 	if err != nil {
 		handleErr = fmt.Errorf("resolve VLM: %w", err)
@@ -274,9 +289,9 @@ func (s *ImageMultimodalService) Handle(ctx context.Context, task *asynq.Task) e
 
 	var ocrErr error
 	if payload.EnableOCR {
-		prompt := vlmOCRPrompt
+		prompt := types.ResolveSystemPrompt(ctx, "image.ocr", vlmOCRPrompt)
 		if payload.ImageSourceType == "scanned_pdf" {
-			prompt = vlmOCRScannedPDFPrompt
+			prompt = types.ResolveSystemPrompt(ctx, "image.scanned_pdf", vlmOCRScannedPDFPrompt)
 			logger.Infof(ctx, "[ImageMultimodal] Using scanned PDF prompt for OCR: %s", payload.ImageURL)
 			imgOut["ocr_prompt"] = "scanned_pdf"
 		} else {

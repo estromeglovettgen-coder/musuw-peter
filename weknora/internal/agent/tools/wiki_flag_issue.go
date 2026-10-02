@@ -28,29 +28,27 @@ func NewWikiFlagIssueTool(
 	return &wikiFlagIssueTool{
 		BaseTool: NewBaseTool(
 			ToolWikiFlagIssue,
-			`Flag a wiki page that contains errors, mixed entities, or outdated information.
-Use this tool when you or the user identifies that a wiki page is factually incorrect or wrongly merged (e.g., a page contains information about two different products).
-This will log an issue for human review or automated maintenance.`,
+			`发现或被用户指出 Wiki 页有事实错误、混合实体或过时信息时提交问题，供人工复核或自动维护。例如一页错误混入两个不同产品。`,
 			json.RawMessage(`{
   "type": "object",
   "properties": {
     "slug": {
       "type": "string",
-      "description": "The slug of the wiki page that has an issue (e.g. 'entity/hunyuan-damoxing')"
+      "description": "存在问题的 Wiki 页面 slug，例如 entity/hunyuan-damoxing。"
     },
     "issue_type": {
       "type": "string",
       "enum": ["mixed_entities", "contradictory_facts", "out_of_date", "other"],
-      "description": "The category of the issue"
+      "description": "问题类别。"
     },
     "description": {
       "type": "string",
-      "description": "A detailed explanation of what is wrong with the page and what should be fixed."
+      "description": "详细说明页面哪里有问题，以及应当修复什么。"
     },
     "suspected_knowledge_ids": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Optional list of short dN document IDs from the <sources> block that you suspect are causing the pollution or error."
+      "description": "可选：疑似造成污染或错误的 <sources> 来源文档短 dN ID 数组。"
     }
   },
   "required": ["slug", "issue_type", "description"]

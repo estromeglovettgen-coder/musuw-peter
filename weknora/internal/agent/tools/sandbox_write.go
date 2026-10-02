@@ -31,8 +31,8 @@ const maxWriteSandboxBytes = 256 * 1024
 
 // writeSandboxMissingFieldHint is appended when schema validation fails
 // (typically a truncated call that only sent `content`).
-const writeSandboxMissingFieldHint = "\nIf the previous call was truncated, retry with a complete JSON object: " +
-	"put `path` first (e.g. /workspace/output/script.py), then `content`. Split large files."
+const writeSandboxMissingFieldHint = "\n如果上一次调用被截断，请用完整的 JSON 对象重试：" +
+	"先写 `path`（例如 /workspace/output/script.py），再写 `content`。大文件请分段处理。"
 
 // SandboxFileSink is the write-side counterpart of SandboxFileSource.
 // Production uses *sandbox.SessionBoundManager via SessionFileStore.
@@ -42,55 +42,22 @@ type SandboxFileSink interface {
 
 var writeSandboxFileTool = BaseTool{
 	name: ToolWriteSandboxFile,
-	description: `Write a text file into the current session's sandbox.
-
-## Usage
-- This is the way to create or overwrite a script, report, or other text
-  file. Do NOT dump large files through ` + "`shell_exec`" + ` with ` + "`cat`" + `,
-  heredocs, or ` + "`python -c`" + ` — those hit a small command-length cap.
-- After writing a script that needs a skill's packages, run it with
-  ` + "`execute_skill_script(skill_name=..., script_path=<this path>)`" + `
-  so the skill's virtualenv is used. Independent scripts: ` + "`shell_exec`" + `,
-  e.g. ` + "`python3 /workspace/output/generate_ppt.py`" + `.
-- Put user-facing artifacts (pptx, pdf, png, html) under
-  ` + "`/workspace/output`" + ` so they can be collected for download. Scratch
-  scripts may live anywhere under ` + "`/workspace`" + ` except
-  ` + "`/workspace/input`" + `.
-- JSON arguments MUST include both ` + "`path`" + ` and ` + "`content`" + `.
-  Emit ` + "`path`" + ` first. If a write would be huge, split it across
-  multiple files instead of one giant ` + "`content`" + ` string.
-- ` + pythonQuoteGuidance + `
-
-## When to Use
-- Generating a Python/JS/HTML file the sandbox will execute next.
-- Saving a long report or config that does not fit in a shell command.
-- Overwriting a file you previously wrote in this session.
-
-## When NOT to Use
-- To change a few lines of a file you already wrote, call
-  ` + "`edit_sandbox_file`" + ` instead of sending the whole file again.
-- Do not write under ` + "`/workspace/input`" + `: that tree is reserved for
-  user-uploaded attachments and is read-only.
-- Do not write binary bytes. Have a script produce binary artifacts under
-  ` + "`/workspace/output`" + `.
-
-## Path Rules
-- ` + "`path`" + ` MUST be an absolute path under ` + "`/workspace`" + `.
-- ` + "`/workspace`" + `, ` + "`/workspace/output`" + `, and ` + "`/workspace/input`" + `
-  themselves are directories and cannot be used as the file path.
-
-## Size Handling
-- Content is capped at 262144 bytes per call.
-
-## Returns
-- The absolute path and byte count. File contents are not echoed back.`,
+	description: `在当前会话沙箱创建或覆盖脚本、报告及其他文本文件。
+不要用 shell_exec 的 cat、heredoc、python -c 发送大文件，这些会超过命令长度限制。
+需要技能依赖的脚本随后用 execute_skill_script(skill_name=..., script_path=<该路径>) 执行；独立脚本可用 shell_exec，例如 python3 /workspace/output/generate_ppt.py。
+用户产物（pptx、pdf、png、html）放 /workspace/output 供下载；临时脚本可在 /workspace 内，不能在只读附件 /workspace/input。
+JSON 参数必须同时包含 path 和 content，先输出 path。大文件拆成多个文件，不用单个超长 content。
+适用于新建代码、保存较长报告或配置、覆盖当前会话文件；仅改几行用 edit_sandbox_file。不要写二进制，由脚本在 /workspace/output 生成。
+path 必须是 /workspace 下的绝对文件路径，不能是 /workspace、/workspace/output、/workspace/input 这些目录本身。
+每次 content 最多 262144 字节，返回绝对路径和字节数，不回显文件内容。
+` + pythonQuoteGuidance + ``,
 	schema: utils.GenerateSchema[WriteSandboxFileInput](),
 }
 
 // WriteSandboxFileInput defines the input parameters for write_sandbox_file.
 type WriteSandboxFileInput struct {
-	Path    string `json:"path" jsonschema:"Absolute sandbox path to write. Must sit under /workspace and must not sit under /workspace/input. Prefer /workspace/output for downloadable artifacts."`
-	Content string `json:"content" jsonschema:"Full text contents of the file. Overwrites any existing file at path. Maximum 262144 bytes. Do not send binary bytes."`
+	Path    string `json:"path" jsonschema:"要写入的绝对沙箱路径，位于 /workspace 下且不能位于 /workspace/input；可下载产物优先放 /workspace/output。"`
+	Content string `json:"content" jsonschema:"文件完整文本，将覆盖现有文件；最多 262144 字节，不发送二进制。"`
 }
 
 // WriteSandboxFileTool writes a text file into the session sandbox.
@@ -199,11 +166,11 @@ func (t *WriteSandboxFileTool) Execute(ctx context.Context, args json.RawMessage
 
 	output := fmt.Sprintf(
 		"=== Wrote sandbox file: %s ===\n\nbytes=%d\n\n"+
-			"If this script needs a skill's packages, run it with\n"+
+			"如果此脚本需要技能的依赖包，请使用\n"+
 			"execute_skill_script(skill_name=<skill>, script_path=%s)\n"+
-			"so the skill's virtualenv is used. Independent scripts:\n"+
+			"以使用技能的虚拟环境。独立脚本可使用：\n"+
 			"shell_exec python3 %s\n\n"+
-			"User-facing artifacts should land under %s.\n",
+			"交付给用户的文件应保存到 %s。\n",
 		clean, len(content), clean, clean, sandbox.SessionOutputRoot,
 	)
 	return &types.ToolResult{

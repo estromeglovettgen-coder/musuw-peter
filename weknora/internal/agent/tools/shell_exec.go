@@ -126,127 +126,64 @@ var shellExecBlacklist = []struct {
 
 var shellExecTool = BaseTool{
 	name: ToolShellExec,
-	description: `Run a shell command inside the current session's isolated remote sandbox.
+	description: `在当前会话隔离的远程沙箱内执行 Shell 命令。
 
-## Usage
-- Use freely to explore and operate inside the sandbox: inspect files, search
-  content, transform data, run programs, manage dependencies, install system packages and verify outputs.
-- Prefer tools that already ship: ` + "`find`" + ` / ` + "`ls`" + ` to discover files;
-  ` + "`cat`" + ` / ` + "`head`" + ` / ` + "`tail`" + ` / ` + "`sed`" + ` to inspect text;
-  ` + "`grep`" + ` / ` + "`awk`" + ` to search; ` + "`file`" + ` for an unknown type.
-  Do not ` + "`apt-get install`" + ` inspection utilities (` + "`tree`" + `, editors)
-  after a 127 — those packages vanish with the session.
-- User-uploaded files listed in ` + "`<sandbox_attachments>`" + ` are restored under
-  ` + "`/workspace/input`" + `. Treat them as read-only inputs; write generated files
-  under ` + "`/workspace/output`" + `.
-- Install extra Python packages into the session overlay
-  (` + "`python3 -m pip install --target /workspace/.skill-packages/<skill> ...`" + `),
-  never into ` + "`/opt/weknora/tenant/skills`" + `. The skill venv is frozen after
-  install. ` + "`apt-get`" + ` is only for a system library this task actually needs,
-  not to recover from probing with a missing inspection command.
+## 用法
+可以查看文件、搜索、变换数据、运行程序、管理依赖、安装必要系统库并检查产物。
+优先已有 find/ls、cat/head/tail/sed、grep/awk、file。遇到 127 不为 tree 或编辑器等检查工具 apt-get install，包随会话消失。
+<sandbox_attachments> 的附件恢复到 /workspace/input，按只读处理，生成文件写 /workspace/output。
+额外 Python 包用 python3 -m pip install --target /workspace/.skill-packages/<skill> ...，不修改安装后只读的 /opt/weknora/tenant/skills。apt-get 仅用于当前任务确实需要的系统库。
+适用于直接执行命令、查看包括系统路径在内的沙箱目录或文本、管道、解压、编译运行以及准备后续技能输入。
 
-## When to Use
-- Whenever executing a command is the most direct way to complete the task.
-- To inspect any text file or directory in the sandbox, including system paths.
-- To chain shell pipelines, unpack archives, compile or run code, and prepare
-  intermediate files for later commands or skills.
+## 不适用
+- 不用裸 python3 -c / node -e 判断技能依赖或检查技能生成的 docx/pptx/xlsx；系统 Python 没有 docx、pptx、pandas 等技能包。不要在系统装这些包或改成 .venv/bin/python -c 重复相同代码；用 write_sandbox_file 写脚本，再 execute_skill_script。read_skill 可查技能环境。
+- 不对 /opt/weknora/tenant/skills 执行 chown/chmod/ensurepip/pip install。uv venv 常没有 pip；可选包装入会话 .skill-packages，再执行技能，或请用户重新安装技能。
+- 不用 & 或 nohup 后台运行，执行是同步的。
+- 大文件通过 write_sandbox_file，不用 cat、heredoc、python -c；小修改用 edit_sandbox_file。
+- 不用 ls/find/cat/file 探查技能脚本；read_skill(skill_name) 已列出。技能目录含 .venv/node_modules；已有 .cjs/.js/.py 路径就是脚本，可直接执行技能。
 
-## When NOT to Use
-- DO NOT judge a skill's dependencies with a bare ` + "`python3 -c`" + ` or
-  ` + "`node -e`" + `, and do NOT inspect a skill-generated docx/pptx/xlsx that way
-  either: system ` + "`python3`" + ` has none of the skill's packages (` + "`docx`" + `,
-  ` + "`pptx`" + `, pandas, …). Do not ` + "`pip install`" + ` them here, and do not
-  paste the same program into ` + "`.venv/bin/python -c`" + `. Write the script
-  with ` + "`write_sandbox_file`" + ` and run it with
-  ` + "`execute_skill_script(skill_name=..., script_path=/workspace/output/... )`" + `.
-  ` + "`read_skill`" + ` names the skill and how to reach its environment.
-- DO NOT ` + "`chown`" + ` / ` + "`chmod`" + ` / ` + "`ensurepip`" + ` / ` + "`pip install`" + ` a skill
-  under ` + "`/opt/weknora/tenant/skills`" + `. That tree is read-only after install
-  and ` + "`uv venv`" + ` often has no pip. On-demand extras go to
-  ` + "`python3 -m pip install --target /workspace/.skill-packages/<skill> <package>`" + `
-  (system python3), then ` + "`execute_skill_script`" + `. Or ask the user to
-  reinstall the skill so extras are baked in.
-- DO NOT try to background processes (` + "`&`" + ` at the end, ` + "`nohup`" + `). Sandbox
-  execution is synchronous.
-- DO NOT write large files with ` + "`cat`" + `, heredocs, or ` + "`python -c`" + `. Use
-  ` + "`write_sandbox_file`" + ` for the file, then run it from here. To change a
-  few lines of an existing file, use ` + "`edit_sandbox_file`" + ` instead of
-  rewriting it.
-- DO NOT ` + "`ls`" + ` / ` + "`find`" + ` / ` + "`cat`" + ` / ` + "`file`" + ` a skill under
-  ` + "`/opt/weknora/tenant/skills`" + ` to discover or read its scripts.
-  ` + "`read_skill(skill_name)`" + ` already lists them; that tree also contains
-  ` + "`.venv`" + ` / ` + "`node_modules`" + `. A ` + "`.cjs`" + ` / ` + "`.js`" + ` / ` + "`.py`" + `
-  path is already a script — call ` + "`execute_skill_script`" + `.
+## 参数
+- command（必填）：/bin/bash -l -c 执行的单行命令，支持管道、重定向、&& / ||。保持短小，长脚本用写文件工具。
+- work_dir：默认 /workspace，不存在时创建。
+- timeout_sec：默认 120 秒，最多 600；较大安装可能需最大值。
+- max_output_bytes：stdout 默认 16384，最多 65536。stderr 默认 8192，通过 max_stderr_bytes 最多 16384；总可见输出最多 65536。
+- env：附加环境变量，如 {"PIP_INDEX_URL":"https://mirrors.example.com/pypi/simple"}。
+- skill_name：可选，将当前调用者对应技能环境变量仅注入本命令进程，不持久保存；手工执行需要技能凭据的命令时用，普通命令省略。
 
-## Parameters
-- ` + "`command`" + ` (required): the shell one-liner to run under ` + "`/bin/bash -l -c`" + `.
-  Supports pipes, redirects, ` + "`&&`" + ` / ` + "`||`" + ` chaining. Keep this short;
-  large scripts go through ` + "`write_sandbox_file`" + `; small edits go through
-  ` + "`edit_sandbox_file`" + `.
-- ` + "`work_dir`" + ` (optional): working directory, defaults to ` + "`/workspace`" + `.
-  Created on demand if it doesn't exist.
-- ` + "`timeout_sec`" + ` (optional): per-call timeout in seconds. Defaults to 120,
-  capped at 600. Large installs (LibreOffice, TensorFlow) may need the cap.
-- ` + "`max_output_bytes`" + ` (optional): maximum bytes returned from stdout.
-  Defaults to 16384, capped at 65536. Stderr is independently limited to 8192
-  bytes by default; ` + "`max_stderr_bytes`" + ` may raise it to at most 16384.
-  The complete visible result is always capped at 65536 bytes.
-- ` + "`env`" + ` (optional): extra environment variables merged on top of the
-  sandbox's base env, e.g. ` + "`{\"PIP_INDEX_URL\": \"https://mirrors.tencent.com/pypi/simple\"}`" + `.
-- ` + "`skill_name`" + ` (optional): name of a skill whose environment variables should
-  be injected into this command's process only. Use when running a skill's
-  command by hand that needs its credentials; values are scoped to the current
-  caller and do not persist. Omit for ordinary commands.
+## 输出
+- exit_code 为 0 成功，非 0 是程序失败而非工具失败；检查 stderr 再决定调整、重试或说明。
+- stdout / stderr 会截断，保留末尾以显示关键错误；二进制不返回模型，放 /workspace/output 供 ArtifactCollector 收集。
+- 向用户展示文件使用 ![description](sandbox:<file name>)，只填精确文件名，不含目录；图片行内展示，图表、表格、文档显示预览卡片。裸文件名和 /workspace/output/... 不会解析。
+- duration_ms 为实际耗时。
 
-## Returns
-- ` + "`exit_code`" + `: 0 on success, non-zero on failure. Non-zero is NOT a tool
-  error — the tool call succeeds; you should read stderr and decide what to
-  do next (retry, adjust arguments, tell the user).
-- ` + "`stdout`" + ` / ` + "`stderr`" + `: captured output, truncated to preserve context
-  budget. The tail is preserved when truncation happens, since the final
-  lines usually carry the crucial error message.
-- Binary output is never returned to the model. Store binary files under
-  ` + "`/workspace/output`" + ` so ArtifactCollector can expose them for download.
-- To show one of those files in your answer, reference it as
-  ` + "`![description](sandbox:<file name>)`" + ` with the exact file name and no
-  directory path. Images render inline; charts, tables, and documents render as
-  a card the user clicks to preview. A bare file name or a
-  ` + "`/workspace/output/...`" + ` path does not resolve in the browser.
-- ` + "`duration_ms`" + `: wall-clock execution time.
-
-## Safety
-- The command runs inside a session-scoped MicroVM: destructive commands
-  only affect this session's sandbox, never the host or other sessions.
-- Obviously destructive patterns (` + "`rm -rf /`" + `, fork bombs, ` + "`mkfs`" + `, ` + "`shutdown`" + `)
-  are refused up-front. Cleaning up your own scratch dir (e.g.
-  ` + "`rm -rf /workspace/tmp`" + `) is fine.
-- Only available when the session sandbox advertises a command executor
-  (Cube, E2B, Docker). The command never runs on the WeKnora host.`,
+## 隔离
+命令在会话 MicroVM 中，仅影响本会话，不影响主机或其他会话。rm -rf /、fork bomb、mkfs、shutdown 等明显破坏操作预先拒绝；清理自身临时目录如 rm -rf /workspace/tmp 可行。
+只有沙箱提供 Cube、E2B 或 Docker 命令执行器时可用，命令不在产品主机运行。`,
 	schema: utils.GenerateSchema[ShellExecInput](),
 }
 
 // ShellExecInput defines the input parameters for shell_exec.
 type ShellExecInput struct {
 	// Command is the shell command to execute. Runs under `/bin/bash -l -c`.
-	Command string `json:"command" jsonschema:"Shell command to execute (single line, supports pipes and && chaining). Runs under /bin/bash -l -c."`
+	Command string `json:"command" jsonschema:"单行 Shell 命令，支持管道和 &&，使用 /bin/bash -l -c 执行。"`
 	// WorkDir is the working directory for the command; defaults to /workspace.
-	WorkDir string `json:"work_dir,omitempty" jsonschema:"Working directory for the command. Defaults to /workspace. Created on demand if missing."`
+	WorkDir string `json:"work_dir,omitempty" jsonschema:"工作目录，默认 /workspace，不存在时创建。"`
 	// TimeoutSec caps execution time. Zero uses the default (120s); the
 	// value is hard-capped at 600s regardless of what the LLM requests.
-	TimeoutSec int `json:"timeout_sec,omitempty" jsonschema:"Per-call timeout in seconds. Defaults to 120, hard-capped at 600."`
+	TimeoutSec int `json:"timeout_sec,omitempty" jsonschema:"单次超时秒数，默认 120，最多 600。"`
 	// MaxOutputBytes caps returned stdout. Stderr has an independent smaller
 	// fixed budget, and the complete model-visible output is capped at 64 KiB.
-	MaxOutputBytes int `json:"max_output_bytes,omitempty" jsonschema:"Maximum bytes returned from stdout. Defaults to 16384, hard-capped at 65536. Stderr defaults to 8192 and is hard-capped at 16384; total visible output is hard-capped at 65536."`
+	MaxOutputBytes int `json:"max_output_bytes,omitempty" jsonschema:"stdout 返回字节数，默认 16384，最多 65536；stderr 默认 8192，最多 16384；总可见输出最多 65536。"`
 	// MaxStderrBytes caps returned stderr independently from stdout.
-	MaxStderrBytes int `json:"max_stderr_bytes,omitempty" jsonschema:"Maximum bytes returned from stderr. Defaults to 8192, hard-capped at 16384."`
+	MaxStderrBytes int `json:"max_stderr_bytes,omitempty" jsonschema:"stderr 返回字节数，默认 8192，最多 16384。"`
 	// Env carries extra environment variables merged into the shell's env.
-	Env map[string]string `json:"env,omitempty" jsonschema:"Optional extra environment variables, e.g. {\"PIP_INDEX_URL\":\"https://mirrors.example.com/pypi/simple\"}."`
+	Env map[string]string `json:"env,omitempty" jsonschema:"可选附加环境变量，例如 {\"PIP_INDEX_URL\":\"https://mirrors.example.com/pypi/simple\"}。"`
 	// SkillName, when set, pulls that skill's scoped environment variables
 	// (API keys) into this one command's process only. Resolution
 	// reuses the same SkillEnvResolver path as execute_skill_script, so values
 	// are per-caller (taken from ctx) and never persist. Omitting it leaves
 	// shell_exec's behaviour unchanged.
-	SkillName string `json:"skill_name,omitempty" jsonschema:"Optional skill name. When set, that skill's environment variables are injected into this command's process only (same resolution as execute_skill_script). Omit for ordinary commands."`
+	SkillName string `json:"skill_name,omitempty" jsonschema:"可选技能名称，仅向本命令进程注入该技能环境变量，与 execute_skill_script 使用相同解析；普通命令省略。"`
 }
 
 // SandboxInstallCommandExecutor is the privileged counterpart of
@@ -345,28 +282,16 @@ func NewInstallShellExecTool(executor SandboxInstallCommandExecutor) *ShellExecT
 // agent must write sit under the skills image root, which write_sandbox_file
 // cannot accept.
 func installShellExecDescription() string {
-	return `Run a shell command as root inside the skill-install sandbox.
-
-## Usage
-- This is your only tool. write_sandbox_file / edit_sandbox_file /
-  list_sandbox_files / read_sandbox_file are not available.
-- work_dir may be the skill directory under ` + "`/opt/weknora/tenant/skills`" + `.
-- Write small files (including ` + "`.weknora/requirements.json`" + `) with a
-  short redirect: ` + "`mkdir -p .weknora && cat > .weknora/requirements.json <<'EOF'`" + `.
-  Do not try write_sandbox_file — it only accepts ` + "`/workspace`" + `, which
-  is wiped before the snapshot.
-- Install Python extras into the skill's ` + "`.venv`" + `, Node extras into
-  ` + "`node_modules`" + `. Prefer ` + "`uv pip install`" + ` / ` + "`python3 -m venv`" + `.
-
-## Parameters
-- ` + "`command`" + ` (required): the shell one-liner under ` + "`/bin/bash -l -c`" + `.
-- ` + "`work_dir`" + ` (optional): defaults to ` + "`/workspace`" + `; the skill
-  directory is allowed.
-- ` + "`timeout_sec`" + ` (optional): defaults to 600 seconds.
-
-## Returns
-- ` + "`exit_code`" + `, ` + "`stdout`" + `, ` + "`stderr`" + `. Non-zero is not a
-  tool error — read stderr and adapt.`
+	return `以 root 身份在技能安装沙箱执行 Shell 命令。
+这是唯一工具，write_sandbox_file / edit_sandbox_file / list_sandbox_files / read_sandbox_file 均不可用。
+work_dir 允许设置为 /opt/weknora/tenant/skills 下的技能目录。
+用短重定向写小文件，包括 .weknora/requirements.json，例如 mkdir -p .weknora && cat > .weknora/requirements.json <<'EOF'。
+不要调用 write_sandbox_file，它只支持快照前会被清空的 /workspace。
+Python 可选依赖安装到技能 .venv，Node 安装到 node_modules，优先 uv pip install / python3 -m venv。
+- command：必填，/bin/bash -l -c 执行的单行命令。
+- work_dir：可选，默认 /workspace，也允许技能目录。
+- timeout_sec：可选，默认 600 秒。
+返回 exit_code、stdout、stderr，非 0 不代表工具失败；阅读 stderr 后调整。`
 }
 
 // WithEnvCapture attaches an optional capture hook. A nil hook is a no-op so
@@ -488,9 +413,9 @@ func (t *ShellExecTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 			return &types.ToolResult{
 				Success: false,
 				Error: fmt.Sprintf(
-					"skill %q needs the environment variable(s) %s, which nobody has set yet. "+
-						"Ask the user for them and pass them in this call's env, "+
-						"or have them set the values under Settings → Sandbox secrets.",
+					"技能 %q 需要尚未设置的环境变量 %s。"+
+						"请用户提供这些值并通过本次调用的 env 传入，"+
+						"或让用户在设置 → 沙箱密钥中填写。",
 					input.SkillName, strings.Join(missing, ", ")),
 			}, nil
 		}
@@ -701,7 +626,7 @@ func shellExecRecoveryHint(exitCode int, command, stderr string) string {
 		parts = append(parts, h)
 	}
 	if isFrozenSkillVenvFailure(stderr) {
-		parts = append(parts, "Hint: "+frozenSkillTreeGuidance(skillNameFromShellCommand(command)))
+		parts = append(parts, "提示："+frozenSkillTreeGuidance(skillNameFromShellCommand(command)))
 		return strings.Join(parts, "\n")
 	}
 	if h := shellMissingModuleHint(command, stderr); h != "" {
@@ -717,13 +642,13 @@ func shellMissingModuleHint(command, stderr string) string {
 		return ""
 	}
 	skill := skillNameFromShellCommand(command)
-	skillArg := "skill_name=<the skill that owns those packages>"
+	skillArg := "skill_name=<提供这些依赖包的技能名>"
 	if skill != "" {
 		skillArg = fmt.Sprintf("skill_name=%q", skill)
 	}
-	return "Hint: system python3 / node do not see skill packages (docx, pptx, pandas, …). " +
-		"Do not pip install them into this session, and do not paste the same program into " +
-		"`.venv/bin/python -c`. Write it with write_sandbox_file, then " +
+	return "提示：系统 python3 / node 无法访问技能依赖包（docx、pptx、pandas 等）。" +
+		"不要在本会话中用 pip install 安装这些包，也不要将同一程序粘贴到 " +
+		"`.venv/bin/python -c`。请使用 write_sandbox_file 写入脚本，然后调用 " +
 		"execute_skill_script(" + skillArg + ", script_path=/workspace/output/inspect.py)."
 }
 
@@ -746,8 +671,8 @@ func shellInlineEvalHint(command string) string {
 	if skill != "" {
 		skillArg = fmt.Sprintf("skill_name=%q", skill)
 	}
-	return "Hint: do not pass a multi-line program through python -c / node -e " +
-		"(including a skill venv). Write it with write_sandbox_file, then " +
+	return "提示：不要通过 python -c / node -e 传入多行程序（包括技能的虚拟环境）。" +
+		"请使用 write_sandbox_file 写入脚本，然后调用 " +
 		"execute_skill_script(" + skillArg + ", script_path=/workspace/output/inspect.py)."
 }
 
@@ -792,9 +717,9 @@ func shellCommandNotFoundHint(exitCode int, command, stderr string) string {
 	missing := inferredMissingCommand(command, stderr)
 	switch missing {
 	case "tree", "less", "more", "nano", "vim", "vi":
-		return "Hint: `" + missing + "` is not in the default sandbox image. Use find/ls, head, sed, and `file`. Skill scripts: `read_skill` / `execute_skill_script`. Do not apt-get install inspection tools — session packages are discarded."
+		return "提示：默认沙箱镜像中没有 `" + missing + "`。请使用 find/ls、head、sed 和 `file`。技能脚本请用 `read_skill` / `execute_skill_script`。不要用 apt-get install 安装检查工具，会话结束后安装的包会被丢弃。"
 	default:
-		return "Hint: that command is not installed. Prefer find, ls, head, tail, cat, sed, grep, awk, file. apt-get install only for a package this task actually needs — session installs are discarded."
+		return "提示：该命令尚未安装。优先使用 find、ls、head、tail、cat、sed、grep、awk、file。只有本任务确实需要某个依赖包时才使用 apt-get install，会话结束后安装的包会被丢弃。"
 	}
 }
 

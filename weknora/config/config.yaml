@@ -50,17 +50,17 @@ knowledge_base:
 extract:
   extract_graph:
     description: |
-      Based on the given text, complete the information extraction task following these steps, ensuring clear logic and complete, accurate information:
+      根据给定文本，按以下步骤提取信息，确保逻辑清楚、内容完整准确：
 
-      ## Step 1: Entity Extraction and Attribute Enrichment
-      1. **Extract core entities**: Read through the text and extract all core entities relevant to the task in logical order (such as narrative order or entity association closeness).
-      2. **Enrich entity attributes**: For each extracted entity, comprehensively supplement its detailed attributes explicitly mentioned in the text, ensuring no key attributes are omitted.
+      ## 第一步：提取实体与补充属性
+      1. **提取核心实体**：通读文本，按叙述顺序或关联程度提取与任务相关的全部核心实体。
+      2. **补充实体属性**：为每个实体整理文本明确提到的详细属性，不遗漏关键属性，不补充文本之外的事实。
 
-      ## Step 2: Relationship Extraction and Verification
-      1. **Identify relationship types**: Select corresponding types only from the specified relationship list. Allowed relationship types are: %s.
-      2. **Extract valid relationships**: Based on the extracted entities and attributes, identify relationships that genuinely exist in the text, ensuring relationships are factually accurate with no false associations.
-      3. **Clarify relationship subjects**: For each extracted relationship, clearly annotate the two associated entities to avoid subject confusion.
-      4. **Supplement related attributes**: If the text contains supplementary information directly related to a relationship, include it as a related attribute of the relationship.
+      ## 第二步：提取与核实关系
+      1. **识别关系类型**：只能使用指定列表中的关系类型。允许的关系类型为：%s。
+      2. **提取有效关系**：根据提取的实体与属性识别文本中确实存在的关系，不建立没有事实依据的关联。
+      3. **明确关系主体**：对每条关系准确注明关联的两个实体，避免主体混淆。
+      4. **补充相关属性**：如果文本包含与关系直接相关的补充信息，将其纳入关系相关属性。
     tags:
       - "Author"
       - "Alias"
@@ -91,10 +91,10 @@ extract:
             type: "Alias"
   extract_entity:
     description: |
-      Based on the user's question, process the key information extraction task following these steps:
-      1. Analyze logical connections: First, fully analyze the text content, identify its core logical relationships, and briefly annotate the core logic type;
-      2. Extract key entities: Based on the identified logical relationships, precisely extract key information from the text and classify it into clear entities, ensuring no core information is omitted and no redundant content is added;
-      3. Prioritize entities: Sort by the closeness of each entity's association with the core topic of the text, presenting the most important entities for understanding the main idea first;
+      根据用户的问题，按以下步骤提取关键信息：
+      1. 分析逻辑关联：完整分析文本，识别核心逻辑关系，并简要标注其逻辑类型；
+      2. 提取关键实体：根据识别的逻辑关系，准确提取文本中的关键信息并归为清晰的实体，不遗漏核心信息，不添加冗余内容；
+      3. 确定实体顺序：按实体与文本核心主题的关联程度排序，优先呈现最有助于理解主旨的实体；
     examples:
       - text: "'Romeo and Juliet' is a tragedy written by William Shakespeare early in his career, and is one of the most frequently performed plays in world literature."
         node:
@@ -103,9 +103,9 @@ extract:
           - name: "world literature"
   fabri_text:
     with_tag: |
-      Please randomly generate a text related to %s, with a word count between [50-200], and try to include some professional terms or typical elements related to these tags to make the text more targeted and relevant.
+      请随机生成一段与 %s 相关的文本，篇幅为 [50-200] 字，尽量包含这些标签对应的专业术语或典型要素，使内容更有针对性和相关性。
     with_no_tag: |
-      Please randomly generate a text with freely chosen content, with a word count between [50-200].
+      请随机生成一段自由选题的文本，篇幅为 [50-200] 字。
 
 
 # Tenant configuration

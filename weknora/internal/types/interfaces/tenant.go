@@ -21,6 +21,7 @@ type TenantService interface {
 	ListTenants(ctx context.Context) ([]*types.Tenant, error)
 	// UpdateTenant updates a tenant
 	UpdateTenant(ctx context.Context, tenant *types.Tenant) (*types.Tenant, error)
+	UpdateSystemPrompt(ctx context.Context, tenantID uint64, id, content string) error
 	// DeleteTenant deletes a tenant
 	DeleteTenant(ctx context.Context, id uint64) error
 	// ListAllTenants lists all tenants (for users with cross-tenant access permission)
@@ -54,6 +55,7 @@ type TenantRepository interface {
 	SearchTenants(ctx context.Context, keyword string, tenantID uint64, page, pageSize int) ([]*types.Tenant, int64, error)
 	// UpdateTenant updates tenant
 	UpdateTenant(ctx context.Context, tenant *types.Tenant) error
+	UpdateSystemPrompt(ctx context.Context, tenantID uint64, id, content string) error
 	// DeleteTenant deletes tenant
 	DeleteTenant(ctx context.Context, id uint64) error
 	// AdjustStorageUsed adjusts the storage used for a tenant

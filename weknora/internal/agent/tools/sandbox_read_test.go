@@ -257,7 +257,7 @@ func TestListSandboxFilesRedirectsSkillImagePaths(t *testing.T) {
 	require.False(t, result.Success)
 	assert.Contains(t, result.Error, "outside that scope")
 	assert.Contains(t, result.Error, `read_skill(skill_name="ppt-generator")`)
-	assert.Contains(t, result.Error, "Do not ls")
+	assert.Contains(t, result.Error, "不要 ls")
 	assert.Empty(t, source.listedDir)
 }
 

@@ -65,49 +65,16 @@ const (
 
 var listSandboxFilesTool = BaseTool{
 	name: ToolListSandboxFiles,
-	description: `List files in the current session's inspectable sandbox directories.
+	description: `列出当前会话允许查看的沙箱文件。
+串联技能、后一个技能需要前一个技能产物前，必须先列出文件，不猜路径。也用于确认技能实际产出文件，再告知用户已完成。
+path 可取 /workspace/input 或当前 <sandbox_attachments> 中的附件路径，查看上传资料。
+适用于追问此前报告或图表、串联技能、检查附件及列出当前全部产物。
+不查看技能安装目录 /opt/weknora/tenant/skills/...，应使用 read_skill(skill_name=...) 获取 SKILL.md 和文件列表（技能还含 .venv / node_modules）。不列 /workspace 本身、/etc 等系统位置。
 
-## Usage
-- Call this tool BEFORE invoking a follow-up skill that consumes a file
-  produced by an earlier skill in this session. Without this tool you are
-  guessing paths; with it you can see exactly what is available.
-- Also useful to confirm a skill actually produced the files it claims to
-  have generated (e.g. before telling the user "your report is ready").
-- Pass ` + "`/workspace/input`" + ` (or a path from the current
-  ` + "`<sandbox_attachments>`" + ` block) to list staged chat attachments.
-
-## When to Use
-- The user asks a follow-up question that references a file from a prior
-  turn ("summarize the report you generated", "improve the chart").
-- You are about to chain two skills where the second consumes an output
-  of the first.
-- You want to inspect a user-uploaded attachment staged under
-  ` + "`/workspace/input`" + `.
-- You want to give the user a listing of everything the current session
-  has produced.
-
-## When NOT to Use
-- Do NOT list skill install directories (` + "`/opt/weknora/tenant/skills/...`" + `).
-  Call ` + "`read_skill(skill_name=...)`" + ` instead: that returns SKILL.md and
-  the skill's file list (scripts, docs). Those trees also contain
-  ` + "`.venv`" + ` / ` + "`node_modules`" + `.
-- Do not list ` + "`/workspace`" + ` itself, ` + "`/etc`" + `, or other system paths.
-
-## Path Rules
-- ` + "`path`" + ` is optional. When omitted, the tool lists the default artifact
-  output directory (` + "`$WEKNORA_SKILL_OUTPUT_DIR`" + `, typically ` + "`/workspace/output`" + `).
-- When provided, ` + "`path`" + ` MUST sit under the artifact output directory or
-  the session input directory (` + "`/workspace/input`" + `). Attempts to list
-  arbitrary sandbox paths (e.g. ` + "`/etc`" + `, ` + "`/home`" + `, skill image dirs) are rejected.
-- Listing is recursive: sub-directories are traversed automatically and
-  only files are returned in the flat listing.
-
-## Returns
-- A list of entries with ` + "`path`" + ` (absolute, ready to pass to
-  ` + "`read_sandbox_file`" + `), ` + "`size`" + `, and ` + "`modified_at`" + ` timestamps.
-- When the session has never invoked a skill (no live sandbox yet), the
-  tool returns an empty listing with a clear "no sandbox" note — this is
-  not an error.`,
+## 路径与输出
+不传 path 时使用 $WEKNORA_SKILL_OUTPUT_DIR，通常 /workspace/output。传入路径必须位于产物目录或 /workspace/input 下，任意系统目录如 /etc、/home 或技能目录会被拒绝。
+递归遍历子目录，以平面列表返回文件，含可直接传给 read_sandbox_file 的绝对 path、size、modified_at。
+还未调用技能、无运行中沙箱时，返回空列表及清楚说明，不是错误。`,
 	schema: utils.GenerateSchema[ListSandboxFilesInput](),
 }
 
@@ -116,10 +83,10 @@ type ListSandboxFilesInput struct {
 	// Path is the absolute path inside the sandbox to list. When empty
 	// the tool falls back to skills.ArtifactOutputDir(). Must sit under
 	// the artifact output directory or /workspace/input.
-	Path string `json:"path,omitempty" jsonschema:"Optional absolute sandbox path to list. Defaults to the session's artifact output directory. Must sit under that directory or /workspace/input."`
+	Path string `json:"path,omitempty" jsonschema:"可选：要列出的绝对沙箱路径，默认会话产物目录。必须位于产物目录或 /workspace/input 下。"`
 	// MaxEntries caps the listing size to protect the LLM context.
 	// Zero uses defaultListSandboxMaxEntries.
-	MaxEntries int `json:"max_entries,omitempty" jsonschema:"Optional cap on the number of entries returned. Defaults to 200, hard-capped at 500. Use a smaller value when you only need to check whether a specific file exists."`
+	MaxEntries int `json:"max_entries,omitempty" jsonschema:"可选：最多返回文件数，默认 200，最多 500。只检查某文件是否存在时可用较小值。"`
 }
 
 // ListSandboxFilesTool exposes SandboxFileSource.ListSessionFiles to the
@@ -315,23 +282,23 @@ func inspectablePathError(requested string) string {
 	clean := path.Clean(strings.TrimSpace(requested))
 	name, inImage := sandbox.SkillNameFromImagePath(clean)
 	if !inImage {
-		return base + ". Those tools only see session artifacts and attachments. Skill files: read_skill(skill_name=..., file_path=...)."
+		return base + ". 这些工具只能访问会话文件和附件。技能文件请用 read_skill(skill_name=..., file_path=...)。"
 	}
 	if name == "" {
 		return base + fmt.Sprintf(
-			". That path is the skill install root. Call read_skill(skill_name=...) for a listed skill instead of listing %s.",
+			". 该路径是技能安装根目录。请用 read_skill(skill_name=...) 读取已列出的技能，不要列出 %s。",
 			sandbox.SkillsImageRoot,
 		)
 	}
 	hint := fmt.Sprintf(
-		". That path belongs to skill %q. Call read_skill(skill_name=%q) to load SKILL.md and list files",
+		". 该路径属于技能 %q。请用 read_skill(skill_name=%q) 加载 SKILL.md 并查看文件列表",
 		name, name,
 	)
 	if rel := relativeSkillFileFromImagePath(clean, name); rel != "" {
-		hint += fmt.Sprintf(", or read_skill(skill_name=%q, file_path=%q) to read it", name, rel)
+		hint += fmt.Sprintf(", 或使用 read_skill(skill_name=%q, file_path=%q) 读取该文件", name, rel)
 	}
 	return base + hint + fmt.Sprintf(
-		". Do not ls %s (it includes .venv / node_modules).",
+		". 不要 ls %s（其中包含 .venv / node_modules）。",
 		sandbox.SkillsImageRoot,
 	)
 }

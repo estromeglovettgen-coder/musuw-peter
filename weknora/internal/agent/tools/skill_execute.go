@@ -18,61 +18,32 @@ import (
 
 var executeSkillScriptTool = BaseTool{
 	name: ToolExecuteSkillScript,
-	description: `Execute a script with a skill's own interpreter and dependencies.
+	description: `使用技能自己的解释器和依赖执行脚本。
 
-## Usage
-- ` + "`script_path`" + ` is either:
-  - a path **inside the skill** (` + "`scripts/analyze.py`" + `), or
-  - an absolute session file you just wrote with ` + "`write_sandbox_file`" + `
-    (` + "`/workspace/output/generate_ppt.py`" + `). That file still runs with
-    this skill's virtualenv / node_modules.
-- Do NOT pass ` + "`/workspace/input`" + ` paths as ` + "`script_path`" + `
-  (attachments are inputs via ` + "`args`" + `).
-- User-uploaded files are listed in the current ` + "`<sandbox_attachments>`" + `
-  block. Pass their absolute ` + "`/workspace/input/...`" + ` paths through
-  ` + "`args`" + ` when a script accepts an input file.
-- Treat ` + "`/workspace/input`" + ` as read-only. Write generated files only to
-  ` + "`$WEKNORA_SKILL_OUTPUT_DIR`" + ` so they can be collected for download.
-- Scripts reach the dependencies their install put beside them: Python runs
-  with the skill's own virtualenv interpreter, Node resolves the skill's
-  node_modules from the script's location. A failed import under a bare
-  ` + "`python3 -c`" + ` or ` + "`node -e`" + ` says nothing about whether this
-  tool can run the script.
-- The skill tree is frozen after install. Do not run ` + "`install_deps.py`" + `
-  (or ` + "`python -m pip`" + ` / ` + "`ensurepip`" + ` inside the skill ` + "`.venv`" + `) to
-  fetch extras at chat time. If a package is missing, install it into
-  ` + "`/workspace/.skill-packages/<skill_name>`" + ` with system ` + "`python3 -m pip install --target`" + `
-  and call this tool again — PYTHONPATH already includes that directory.
+## 用法
+- script_path 为技能内路径（如 scripts/analyze.py），或刚用 write_sandbox_file 写入的绝对会话路径（如 /workspace/output/generate_ppt.py），后者仍使用技能虚拟环境和 node_modules。
+- 不把 /workspace/input 作为 script_path；附件通过 args 作为输入。
+- 从当前 <sandbox_attachments> 取得用户附件的绝对 /workspace/input/... 路径，经 args 传入接受文件的脚本。
+- /workspace/input 只读；生成文件只写 $WEKNORA_SKILL_OUTPUT_DIR，方便收集下载。
+- Python 使用技能虚拟环境，Node 根据脚本位置解析 node_modules。系统 python3 -c 或 node -e 导入失败，不能证明该工具不能运行。
+- 技能目录安装后冻结；会话中不运行 install_deps.py、python -m pip、ensurepip 修改 .venv。缺包时用系统 python3 -m pip install --target 安装到 /workspace/.skill-packages/<skill_name>，再调用本工具，PYTHONPATH 已包含该目录。
 
-## When to Use
-- When a skill's instructions reference a utility script (e.g., "Run scripts/analyze_form.py")
-- After ` + "`write_sandbox_file`" + ` / ` + "`edit_sandbox_file`" + ` customizes a skill
-  script and you still need that skill's packages (python-pptx, pandas, …)
-- When automation or data processing is needed as part of skill workflow
-- For deterministic operations where script execution is more reliable than generating code
+## 使用场景
+技能要求运行脚本；write_sandbox_file / edit_sandbox_file 定制了脚本且仍需要 python-pptx、pandas 等技能依赖；需要自动化、数据处理，或执行比临时生成代码更可靠的确定性操作。
+不需要技能依赖的独立 /workspace 脚本使用 shell_exec。
 
-## When NOT to Use
-- Do not use this for a standalone ` + "`/workspace`" + ` script that does not need a
-  skill's packages — call ` + "`shell_exec`" + ` instead.
-
-## Security
-- Scripts run in a sandboxed environment with limited permissions
-- Network access is disabled by default
-- Bundled scripts stay inside the skill directory; session files must sit
-  under ` + "`/workspace`" + ` and not under ` + "`/workspace/input`" + `
-
-## Returns
-- Script stdout and stderr output
-- Exit code indicating success (0) or failure (non-zero)`,
+## 环境与输出
+脚本在权限有限沙箱执行，网络默认关闭。内置脚本在技能目录，会话脚本在 /workspace 内但不能在 /workspace/input。
+返回 stdout、stderr 和 exit_code；0 成功，非 0 失败。`,
 	schema: utils.GenerateSchema[ExecuteSkillScriptInput](),
 }
 
 // ExecuteSkillScriptInput defines the input parameters for the execute_skill_script tool
 type ExecuteSkillScriptInput struct {
-	SkillName  string   `json:"skill_name" jsonschema:"Name of the skill containing the script"`
-	ScriptPath string   `json:"script_path" jsonschema:"Relative path inside the skill (e.g. scripts/analyze.py), or an absolute /workspace/... file written with write_sandbox_file. Do not pass /workspace/input paths."`
-	Args       []string `json:"args,omitempty" jsonschema:"Optional command-line arguments. For file flags, pass an absolute path from the current <sandbox_attachments> block (/workspace/input/...). For in-memory data, use input instead."`
-	Input      string   `json:"input,omitempty" jsonschema:"Optional input data to pass to the script via stdin. Use this when you have data in memory (e.g. JSON string) that the script should process. This is equivalent to piping data: echo 'data' | python script.py"`
+	SkillName  string   `json:"skill_name" jsonschema:"脚本所属技能名称。"`
+	ScriptPath string   `json:"script_path" jsonschema:"技能内相对路径（如 scripts/analyze.py）或 write_sandbox_file 创建的绝对 /workspace/... 路径，不使用 /workspace/input。"`
+	Args       []string `json:"args,omitempty" jsonschema:"可选命令行参数。文件参数使用当前 <sandbox_attachments> 中的绝对 /workspace/input/... 路径；内存数据用 input。"`
+	Input      string   `json:"input,omitempty" jsonschema:"可选：通过 stdin 传入脚本的数据，例如内存中的 JSON，等价于将数据管道传入脚本。"`
 }
 
 // UnmarshalJSON accepts args as either the documented string array or a single

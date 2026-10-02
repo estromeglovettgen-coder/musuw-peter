@@ -27,13 +27,13 @@ func NewWikiDeletePageTool(
 	return &wikiDeletePageTool{
 		BaseTool: NewBaseTool(
 			ToolWikiDeletePage,
-			"Delete a Wiki page. Automatically cleans up incoming links on other pages to prevent dead links.",
+			`删除 Wiki 页面，自动清理其他页面的入链，避免无效链接。`,
 			json.RawMessage(`{
 				"type": "object",
 				"properties": {
 					"slug": {
 						"type": "string",
-						"description": "The slug of the Wiki page to delete"
+						"description": "要删除的 Wiki 页面 slug。"
 					}
 				},
 				"required": ["slug"]

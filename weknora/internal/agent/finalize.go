@@ -19,8 +19,8 @@ func finalAnswerImageRequirement(hasRetrievedImage bool) string {
 		return ""
 	}
 	return `
-5. Retrieved tool results contain Markdown images. Unless the user explicitly requested text-only output or every image is clearly unrelated, the final answer MUST include at least one relevant Markdown image copied verbatim from the tool results. Preserve its complete URL exactly. Use ASCII half-width parentheses exactly as ![alt](url) and never use full-width （ or ）. Place the image immediately after the paragraph it supports. When multiple images support different sections, distribute them across those sections instead of stopping after the first image.
-6. Before finishing, silently verify that the answer contains a Markdown image when requirement 5 applies.`
+5. 检索结果包含 Markdown 图片。除非用户明确要求纯文字，或全部图片显然无关，最终回答必须包含至少一张从工具结果逐字复制的相关 Markdown 图片。完整保留 URL，必须使用 ASCII 半角括号 ![alt](url)，不得用全角（或）。图片紧接其支持的段落，多张图片支持不同章节时分布在相应章节，不要只使用第一张。
+6. 结束前自行检查：第 5 项适用时，回答确实含有 Markdown 图片。`
 }
 
 // streamFinalAnswerToEventBus streams the final answer generation through EventBus
@@ -61,7 +61,7 @@ func (e *AgentEngine) streamFinalAnswerToEventBus(
 			modelOutput := e.modelContext.ModelToolResultForTool(toolCall.Name, toolCall.Result)
 			messages = append(messages, chat.Message{
 				Role:    "user",
-				Content: fmt.Sprintf("Tool %s returned: %s", toolCall.Name, modelOutput),
+				Content: fmt.Sprintf("工具 %s 返回：%s", toolCall.Name, modelOutput),
 			})
 			logger.Debugf(ctx, "[Agent][FinalAnswer] Added tool result [Step-%d][Tool-%d]: %s (output: %d chars)",
 				stepIdx+1, toolIdx+1, toolCall.Name, len(toolCall.Result.Output))
@@ -74,18 +74,18 @@ func (e *AgentEngine) streamFinalAnswerToEventBus(
 	imageRequirement := finalAnswerImageRequirement(hasRetrievedImage)
 
 	// Add final answer prompt
-	finalPrompt := fmt.Sprintf(`Based on the above tool call results, generate a complete answer for the user's question.
+	finalPrompt := fmt.Sprintf(`根据上述工具结果，完整回答用户问题。
 
-User question: %s
+用户问题：%s
 
-Requirements:
-1. Answer based on the actually retrieved content
-2. Organize the answer in a structured format
-3. If information is insufficient, honestly state so
-4. IMPORTANT: Respond in the same language as the user's question
+要求：
+1. 依据实际检索到的内容回答
+2. 使用结构清楚的形式
+3. 信息不足时如实说明
+4. 重要：使用用户问题相同的语言回答
 %s
 
-Now generate the final answer:`, query, imageRequirement)
+现在生成最终回答：`, query, imageRequirement)
 
 	messages = append(messages, chat.Message{
 		Role:    "user",
@@ -183,7 +183,7 @@ func (e *AgentEngine) handleMaxIterations(
 		common.PipelineError(ctx, "Agent", "final_answer_failed", map[string]interface{}{
 			"error": err.Error(),
 		})
-		state.FinalAnswer = "Sorry, I was unable to generate a complete answer."
+		state.FinalAnswer = "抱歉，未能生成完整回答。"
 	}
 	state.IsComplete = true
 }

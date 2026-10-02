@@ -150,7 +150,8 @@ type Tenant struct {
 	// Memory config: workspace switch for cross-session long-term memory
 	MemoryConfig *MemoryConfig `yaml:"memory_config" json:"memory_config" gorm:"type:jsonb"`
 	// Customer workspace choices, shared by customer creation and filtering.
-	CustomerConfig *CustomerConfig `yaml:"customer_config" json:"customer_config" gorm:"type:jsonb"`
+	CustomerConfig     *CustomerConfig    `yaml:"customer_config" json:"customer_config" gorm:"type:jsonb"`
+	SystemPromptConfig SystemPromptConfig `yaml:"system_prompt_config" json:"-" gorm:"type:jsonb"`
 	// API principal config: controls how X-API-Key requests map to terminal principals.
 	APIPrincipalConfig *APIPrincipalConfig `yaml:"api_principal_config" json:"-" gorm:"type:jsonb"`
 	// Creation time

@@ -17,30 +17,25 @@ import (
 
 var webFetchTool = BaseTool{
 	name: ToolWebFetch,
-	description: `Fetch detailed content from web pages returned by web_search and analyze it with an LLM.
-
-## Usage
-- Receive one or more {url: "wN", prompt} combinations; the field name stays url, but its value is the short page ID
-- Fetch each page independently and return a structured status for every URL
-- Successful pages remain usable when other pages fail
-
-## When to Use
-- Use when a search snippet is insufficient or a claim needs full-page verification
-- web_search titles, URLs, and snippets remain usable evidence if fetching fails
-- Do not repeatedly fetch a non-retryable URL or expand searches after all fetches fail
-- When page verification is unavailable, answer from search summaries, disclose that limitation, and lower confidence for dynamic facts`,
+	description: `获取 web_search 返回网页的详细正文，再用模型分析。
+- 接受一个或多个 {url:"wN", prompt}。字段仍叫 url，值必须是短网页 ID。
+- 每页独立抓取并返回结构化状态；部分失败不影响其他成功页。
+- 搜索片段不足或事实需要全文核验时使用。
+- 抓取失败时，搜索标题、URL、片段仍可作为证据。
+- 不重复抓取不可重试的 URL，不在全部抓取失败后无止境扩大搜索。
+- 无法核验网页时，依据搜索摘要作答并说明限制，对动态事实降低确定性。`,
 	schema: utils.GenerateSchema[WebFetchInput](),
 }
 
 // WebFetchInput defines the input parameters for web fetch tool.
 type WebFetchInput struct {
-	Items []WebFetchItem `json:"items" jsonschema:"Batch fetch tasks, each containing a short wN web page ID and prompt"`
+	Items []WebFetchItem `json:"items" jsonschema:"批量抓取任务，每项包含短 wN 网页 ID 和分析提示。"`
 }
 
 // WebFetchItem represents a single web fetch task.
 type WebFetchItem struct {
-	URL    string `json:"url" jsonschema:"Short wN web page ID from web_search results"`
-	Prompt string `json:"prompt" jsonschema:"Prompt for analyzing the fetched web page content"`
+	URL    string `json:"url" jsonschema:"web_search 返回的短 wN 网页 ID。"`
+	Prompt string `json:"prompt" jsonschema:"用于分析抓取正文的提示词。"`
 }
 
 type webContentFetcher interface {
@@ -200,16 +195,16 @@ func buildWebFetchToolResult(ctx context.Context, results []*webFetchItemResult)
 	}
 
 	allFailed := successCount == 0 && failedCount > 0
-	builder.WriteString("=== Next Steps ===\n")
+	builder.WriteString("=== 下一步 ===\n")
 	switch {
 	case allFailed:
-		builder.WriteString("- All page fetches failed. Stop expanding web searches and answer from existing web_search titles, URLs, and snippets.\n")
-		builder.WriteString("- Explicitly state that page content was not verified. Treat prices, inventory, and other dynamic facts as uncertain.\n")
+		builder.WriteString("- 所有网页抓取均失败。停止继续扩大搜索，根据已有 web_search 的标题、链接及摘要回答。\n")
+		builder.WriteString("- 明确说明网页正文未被核实。价格、库存等动态信息应视为不确定。\n")
 	case failedCount > 0:
-		builder.WriteString("- Use successful page content together with existing search snippets; failed URLs do not invalidate successful evidence.\n")
-		builder.WriteString("- Do not retry non-retryable failures. If evidence is sufficient, answer now.\n")
+		builder.WriteString("- 结合抓取成功的正文与已有搜索摘要回答；个别链接失败不会使成功的证据失效。\n")
+		builder.WriteString("- 不要重试不可重试的错误。证据充分时直接回答。\n")
 	default:
-		builder.WriteString("- Synthesize the fetched evidence and answer when it is sufficient.\n")
+		builder.WriteString("- 综合抓取到的证据，在充分时作答。\n")
 	}
 
 	logger.Infof(ctx, "[Tool][WebFetch] completed success=%d failed=%d skipped=%d", successCount, failedCount, skippedCount)
@@ -239,11 +234,11 @@ func (t *WebFetchTool) processWithLLM(ctx context.Context, item WebFetchItem, co
 	messages := []chat.Message{
 		{
 			Role:    "system",
-			Content: "Answer the request from the supplied web page text. Never fabricate information that is absent from the page.",
+			Content: "根据提供的网页正文回答用户需求，不得编造页面中不存在的信息。",
 		},
 		{
 			Role:    "user",
-			Content: fmt.Sprintf("User request:\n%s\n\nWeb page content:\n%s", item.Prompt, content),
+			Content: fmt.Sprintf("用户需求：\n%s\n\n网页正文：\n%s", item.Prompt, content),
 		},
 	}
 	modelCtx := types.WithLLMCallMetadata(ctx, "web_fetch_summary", "")

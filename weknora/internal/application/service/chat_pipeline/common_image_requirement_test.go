@@ -13,10 +13,10 @@ func TestAppendRetrievedImageOutputRequirement(t *testing.T) {
 	)
 	for _, required := range []string{
 		base,
-		"MUST include at least one relevant Markdown image",
-		"Copy the complete Markdown image syntax and its URL verbatim",
-		"ASCII half-width parentheses",
-		"immediately after the paragraph it supports",
+		"必须至少展示一张从检索上下文复制的相关 Markdown 图片",
+		"完整复制图片的 Markdown 语法及原 URL",
+		"ASCII 半角括号",
+		"放在它所支持的段落之后",
 	} {
 		if !strings.Contains(withImage, required) {
 			t.Fatalf("expected %q in dynamic image requirement:\n%s", required, withImage)

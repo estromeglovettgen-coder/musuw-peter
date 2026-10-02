@@ -247,7 +247,7 @@ func TestPrepareTikHubArtifactAnalyzesYouTubeDirectlyAndPersistsMarkdown(t *test
 	require.Equal(t, 1, model.calls)
 	require.Equal(t, "https://www.youtube.com/watch?v=Es0JCkbUGSI", model.url)
 	require.Equal(t, "video/mp4", model.mimeType)
-	require.Contains(t, model.prompt, "searchable Markdown")
+	require.Contains(t, model.prompt, "可检索的 Markdown")
 	require.Equal(t, markdown, string(files.savedData))
 	require.Equal(t, "youtube-Es0JCkbUGSI.md", files.savedFileName)
 	require.Empty(t, payload.URL)

@@ -735,7 +735,7 @@ func TestInterestIsPresentRegardlessOfTheQuestion(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Contains(t, svc.Recall(ctx, "我关注哪些事情？").Prompt, "小微SDK设备接入")
-	require.Contains(t, svc.Recall(ctx, "我关注哪些事情？").Prompt, "Long-term focus")
+	require.Contains(t, svc.Recall(ctx, "我关注哪些事情？").Prompt, "长期关注")
 	require.Contains(t, svc.Recall(ctx, "今天天气怎么样").Prompt, "小微SDK设备接入")
 }
 

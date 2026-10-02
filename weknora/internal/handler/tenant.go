@@ -1338,6 +1338,9 @@ func (h *TenantHandler) GetTenantKV(c *gin.Context) {
 	case "memory-config":
 		h.GetTenantMemoryConfig(c)
 		return
+	case "system-prompts":
+		h.getSystemPrompts(c)
+		return
 	case "customer-config":
 		h.getCustomerConfig(c)
 		return
@@ -1391,6 +1394,9 @@ func (h *TenantHandler) UpdateTenantKV(c *gin.Context) {
 		return
 	case "memory-config":
 		h.updateTenantMemoryConfigInternal(c)
+		return
+	case "system-prompts":
+		h.updateSystemPrompt(c)
 		return
 	case "customer-config":
 		h.updateCustomerConfig(c)
@@ -1627,11 +1633,43 @@ func (h *TenantHandler) GetPromptTemplates(c *gin.Context) {
 		ContextTemplate:      config.LocalizeTemplates(templates.ContextTemplate, lang),
 		Rewrite:              config.LocalizeTemplates(templates.Rewrite, lang),
 		Fallback:             config.LocalizeTemplates(templates.Fallback, lang),
-		GenerateSessionTitle: templates.GenerateSessionTitle,
-		GenerateSummary:      templates.GenerateSummary,
-		KeywordsExtraction:   templates.KeywordsExtraction,
+		GenerateSessionTitle: append([]config.PromptTemplate(nil), templates.GenerateSessionTitle...),
+		GenerateSummary:      append([]config.PromptTemplate(nil), templates.GenerateSummary...),
+		KeywordsExtraction:   append([]config.PromptTemplate(nil), templates.KeywordsExtraction...),
+		GraphExtraction:      append([]config.PromptTemplate(nil), templates.GraphExtraction...),
+		GenerateQuestions:    append([]config.PromptTemplate(nil), templates.GenerateQuestions...),
 		AgentSystemPrompt:    config.LocalizeTemplates(templates.AgentSystemPrompt, lang),
 		IntentPrompts:        config.LocalizeTemplates(templates.IntentPrompts, lang),
+	}
+
+	// Return tenant-resolved defaults without changing process-wide templates.
+	apply := func(templates []config.PromptTemplate, id, fallback string, user bool) {
+		for i := range templates {
+			value := &templates[i].Content
+			if user {
+				value = &templates[i].User
+			}
+			if *value == fallback {
+				*value = types.ResolveSystemPrompt(c.Request.Context(), id, fallback)
+			}
+		}
+	}
+	if conversation := h.config.Conversation; conversation != nil {
+		if conversation.Summary != nil {
+			apply(localized.SystemPrompt, "conversation.system", conversation.Summary.Prompt, false)
+			apply(localized.ContextTemplate, "conversation.context", conversation.Summary.ContextTemplate, false)
+		}
+		apply(localized.Rewrite, "conversation.rewrite_system", conversation.RewritePromptSystem, false)
+		apply(localized.Rewrite, "conversation.rewrite_user", conversation.RewritePromptUser, true)
+		apply(localized.Fallback, "conversation.fallback", conversation.FallbackPrompt, false)
+		apply(localized.GenerateSessionTitle, "conversation.session_title", conversation.GenerateSessionTitlePrompt, false)
+		apply(localized.GenerateSummary, "conversation.document_summary", conversation.GenerateSummaryPrompt, false)
+		apply(localized.GenerateQuestions, "conversation.questions", conversation.GenerateQuestionsPrompt, false)
+		apply(localized.GraphExtraction, "conversation.graph_entities", conversation.ExtractEntitiesPrompt, false)
+		apply(localized.GraphExtraction, "conversation.graph_relations", conversation.ExtractRelationshipsPrompt, false)
+	}
+	if smart := types.GetBuiltinAgent(types.BuiltinSmartReasoningID, 0); smart != nil {
+		apply(localized.AgentSystemPrompt, "agent.smart", smart.Config.SystemPrompt, false)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

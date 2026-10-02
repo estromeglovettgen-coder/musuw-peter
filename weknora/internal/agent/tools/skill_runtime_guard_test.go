@@ -19,7 +19,7 @@ func TestSkillOnDemandInstallHintSkipInstallerOnFrozenVenv(t *testing.T) {
 	require.NotEmpty(t, hint)
 	assert.Contains(t, hint, "/workspace/.skill-packages/律师助手")
 	assert.Contains(t, hint, "python3 -m pip install --target")
-	assert.Contains(t, hint, "Skip this installer")
+	assert.Contains(t, hint, "跳过此安装脚本")
 }
 
 func TestSkillMissingPackageHint(t *testing.T) {
@@ -27,7 +27,7 @@ func TestSkillMissingPackageHint(t *testing.T) {
 
 	hint := skillMissingPackageHint("律师助手", "ModuleNotFoundError: No module named 'docx'\n")
 	require.NotEmpty(t, hint)
-	assert.Contains(t, hint, "frozen venv")
+	assert.Contains(t, hint, "只读虚拟环境")
 	assert.Contains(t, hint, "/workspace/.skill-packages/律师助手")
 }
 

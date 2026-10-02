@@ -751,7 +751,8 @@ async function loadCustomerResources() {
       tags: [...new Set([...savedConfig.tags, ...libraries.filter((kb: any) => kb.customer_profile).flatMap((kb: any) => customerVisibleTags(kb.customer_profile))])],
     }
     customerLibraries.value = libraries.filter((kb: any) => !kb.customer_profile)
-    customerWikiPages.value = wikiResult.status === 'fulfilled' ? ((wikiResult.value as any)?.data?.pages || []) : []
+    const wikiPages = wikiResult.status === 'fulfilled' ? wikiResult.value as any : null
+    customerWikiPages.value = wikiPages?.pages || wikiPages?.data?.pages || []
   } catch (error: any) {
     if (version === loadVersion) customerResourcesError.value = error.message || '客户资料选项加载失败，请重试'
   } finally {

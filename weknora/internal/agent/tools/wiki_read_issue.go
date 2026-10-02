@@ -19,20 +19,20 @@ func NewWikiReadIssueTool(wikiService interfaces.WikiPageService, kbIDs []string
 	return &wikiReadIssueTool{
 		BaseTool: NewBaseTool(
 			ToolWikiReadIssue,
-			"Read the details of a specific wiki page issue or list pending issues for a wiki page.",
+			`读取指定 Wiki 问题详情，或列出某页的待处理问题。`,
 			json.RawMessage(`{
   "type": "object",
   "properties": {
     "issue_id": {
       "type": "string",
-      "description": "Optional: The short iN ID of a specific issue from an earlier wiki_read_issue result."
+      "description": "可选：先前 wiki_read_issue 返回的问题短 iN ID。"
     },
     "slug": {
       "type": "string",
-      "description": "Optional: The slug of the wiki page to list pending issues for."
+      "description": "可选：需要列出待处理问题的页面 slug。"
     }
   },
-  "description": "Provide either issue_id or slug to read issue(s)."
+  "description": "提供 issue_id 或 slug 之一以读取问题。"
 }`),
 		),
 		wikiService: wikiService,

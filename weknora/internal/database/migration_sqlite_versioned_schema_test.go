@@ -38,18 +38,18 @@ var versionedSQLiteColumns = map[string][]string{
 	"knowledge_bases":        {"customer_profile"},
 	"tenant_skills":          {"catalog_id", "install_session_id", "install_message_id", "envs"},
 	"tenant_skill_snapshots": {"planned_name"},
-	"tenants":                {"api_principal_config", "customer_config"},         // 000064
-	"users":                  {"is_system_admin"},                                 // 000053
-	"knowledges":             {"pending_subtasks_count"},                          // 000056
-	"messages":               {"attachments", "usage", "artifacts"},               // 000034, 000085, 000023
-	"sessions":               {"sandbox_config_id", "customer_knowledge_base_id"}, // 000023
-	"tenant_invitations":     {"token", "accepted_count"},                         // 000054
-	"embed_channels":         {"allow_memory"},                                    // 000060
-	"mcp_oauth_tokens":       {"principal_type", "principal_id"},                  // 000064
-	"marketplace_products":   {"sample_conversations"},                            // 000026
+	"tenants":                {"api_principal_config", "customer_config", "system_prompt_config"}, // 000064
+	"users":                  {"is_system_admin"},                                                 // 000053
+	"knowledges":             {"pending_subtasks_count"},                                          // 000056
+	"messages":               {"attachments", "usage", "artifacts"},                               // 000034, 000085, 000023
+	"sessions":               {"sandbox_config_id", "customer_knowledge_base_id"},                 // 000023
+	"tenant_invitations":     {"token", "accepted_count"},                                         // 000054
+	"embed_channels":         {"allow_memory"},                                                    // 000060
+	"mcp_oauth_tokens":       {"principal_type", "principal_id"},                                  // 000064
+	"marketplace_products":   {"sample_conversations"},                                            // 000026
 }
 
-const expectedSQLiteMigrationVersion = 29
+const expectedSQLiteMigrationVersion = 30
 
 func TestSQLiteMigrationsCreateVersionedSchema(t *testing.T) {
 	repoRoot := sqliteRepoRoot(t)

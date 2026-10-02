@@ -449,15 +449,15 @@ func TestBuildInstallPromptAsksForADeclarationWithoutValues(t *testing.T) {
 	require.Contains(t, prompt, sandbox.SkillRequirementsPath(fx.bundle.Name))
 	require.Contains(t, prompt, ".weknora/requirements.json")
 	require.Contains(t, prompt, `{"env":[]}`)
-	require.Contains(t, prompt, "Never write any value",
+	require.Contains(t, prompt, "绝不能写入任何值",
 		"a value the model invents would be stored as the workspace credential")
 	require.Contains(t, prompt, "WEKNORA_API_KEY",
 		"the installer must be told credential names are declarable, or it writes {\"env\":[]}")
-	require.Contains(t, prompt, "On-demand / optional extras MUST be installed now")
+	require.Contains(t, prompt, "按需或可选依赖必须现在安装")
 	require.Contains(t, prompt, "uv venv --seed")
 	require.Contains(t, prompt, "install_deps.py")
-	require.Contains(t, prompt, "write_sandbox_file is not available")
-	require.Contains(t, prompt, "short shell redirect")
+	require.Contains(t, prompt, "write_sandbox_file 不可用")
+	require.Contains(t, prompt, "简短 shell 重定向")
 }
 
 func TestBuildInstallPromptNamesOnDemandInstallerInTheArchive(t *testing.T) {
@@ -466,7 +466,7 @@ func TestBuildInstallPromptNamesOnDemandInstallerInTheArchive(t *testing.T) {
 
 	prompt := buildInstallPrompt(installSkillDir, fx.bundle, true)
 
-	require.Contains(t, prompt, "This archive ships on-demand installer(s)")
+	require.Contains(t, prompt, "本归档包含按需安装器")
 	require.Contains(t, prompt, "scripts/install_deps.py")
 }
 
@@ -476,8 +476,8 @@ func TestBuildInstallPromptMentionsRepairedFrontmatter(t *testing.T) {
 
 	prompt := buildInstallPrompt(installSkillDir, fx.bundle, true)
 
-	require.Contains(t, prompt, "YAML frontmatter was automatically repaired")
-	require.Contains(t, prompt, "Mention this in your summary")
+	require.Contains(t, prompt, "YAML 元信息已自动修复")
+	require.Contains(t, prompt, "请在总结中说明")
 }
 
 func TestInstallSkillRepoNormalizesStoredUserEnvPrincipal(t *testing.T) {
@@ -1407,7 +1407,7 @@ func TestRunInstallHandsVerificationFindingsBackToTheInstaller(t *testing.T) {
 	require.Contains(t, repair, "imports openpyxl")
 	require.Contains(t, repair, installSkillDir+"/.venv",
 		"the round has to be told where the packages belong")
-	require.Contains(t, repair, "Do NOT edit",
+	require.Contains(t, repair, "不得编辑、移动或删除技能自身文件",
 		"a repair must not be allowed to edit the tree into passing")
 
 	require.Equal(t, 2, fx.loadCheckPasses, "the repair has to be verified, not trusted")

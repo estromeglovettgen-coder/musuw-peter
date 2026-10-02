@@ -15,63 +15,32 @@ import (
 
 var webSearchTool = BaseTool{
 	name: ToolWebSearch,
-	description: `Search the web for current information and news. This tool searches the internet to find up-to-date information that may not be in the knowledge base.
+	description: `搜索互联网中的最新信息和新闻，补充知识库可能没有的内容。
 
-## CRITICAL - KB First Rule
-**ABSOLUTE RULE**: You MUST complete KB retrieval (grep_chunks AND knowledge_search) FIRST before using this tool.
-- NEVER use web_search without first trying grep_chunks and knowledge_search
-- ONLY use web_search if BOTH grep_chunks AND knowledge_search return insufficient/no results
-- KB retrieval is MANDATORY - you CANNOT skip it
+## 知识库优先
+必须先完成 grep_chunks 和 knowledge_search，不能跳过。只有两者都没有足够结果时才能使用网络搜索。
 
-## Features
-- Real-time web search: Search the internet for current information
-- RAG compression: Automatically compresses and extracts relevant content from search results
-- Session-scoped caching: Maintains temporary knowledge base for session to avoid re-indexing
+## 能力与用法
+- 搜索实时信息，自动压缩和提取相关内容。
+- 会话范围内缓存，避免重复建立索引。
+- 适合知识库不足时查询新闻、事件、更新、近期发展或趋势，以及核验、补充知识库信息。
+- query 为必填搜索字符串。
+返回标题、短 wN 网页 ID、摘要和正文，最多 %d 条。
 
-## Usage
+## 示例
+{"query":"人工智能的最新进展"}
+{"query":"Python 3.12 发布说明"}
 
-**Use when**:
-- **ONLY after** completing grep_chunks AND knowledge_search
-- KB retrieval returned insufficient or no results
-- Need current or real-time information (news, events, recent updates)
-- Information is not available in knowledge bases
-- Need to verify or supplement information from knowledge bases
-- Searching for recent developments or trends
-
-**Parameters**:
-- query (required): Search query string
-
-**Returns**: Web search results with title, short wN page ID, snippet, and content (up to %d results)
-
-## Examples
-
-` + "`" + `
-# Search for current information
-{
-  "query": "latest developments in AI"
-}
-
-# Search for recent news
-{
-  "query": "Python 3.12 release notes"
-}
-` + "`" + `
-
-## Evidence and Fallback
-
-- Results are automatically compressed using RAG to extract relevant content
-- Search results are stored in a temporary knowledge base for the session
-- Titles, URLs, snippets, and content snippets are usable search-summary evidence
-- Use web_fetch only when the snippet is insufficient or full-page verification is important
-- If web_fetch fails, keep the search evidence, disclose that page content was not verified, and lower confidence for dynamic facts
-- Do not repeat equivalent searches merely because a page could not be fetched
-- Maximum %d results will be returned per search`,
+## 证据与降级
+标题、URL、摘要和正文片段都可作为搜索摘要证据。只有摘要不足或需要全文核验时才用 web_fetch。
+web_fetch 失败后保留搜索证据，说明网页正文未核验，对动态事实降低确定性；不能仅因网页抓取失败就反复做等价搜索。
+请优化搜索词，提高相关性，并遵循最多 %d 条结果的限制。`,
 	schema: utils.GenerateSchema[WebSearchInput](),
 }
 
 // WebSearchInput defines the input parameters for web search tool
 type WebSearchInput struct {
-	Query string `json:"query" jsonschema:"Search query string"`
+	Query string `json:"query" jsonschema:"搜索问题或关键词。"`
 }
 
 // WebSearchTool performs web searches and returns results
@@ -267,16 +236,16 @@ func (t *WebSearchTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 	}
 
 	// Add guidance for next steps
-	output += "\n=== Next Steps ===\n"
+	output += "\n=== 下一步 ===\n"
 	if len(webResults) > 0 {
-		output += "- Titles, URLs, snippets, and content snippets are usable search-summary evidence.\n"
-		output += "- If the evidence is sufficient, answer now. Use web_fetch only for claims that need full-page verification.\n"
-		output += "- If fetching fails, retain these results, disclose that page content was not verified, and avoid presenting dynamic facts as certain.\n"
+		output += "- 标题、链接、摘要及正文片段可以作为搜索摘要证据。\n"
+		output += "- 证据充分时直接回答。仅在需要核实完整网页中的信息时调用 web_fetch。\n"
+		output += "- 如果抓取失败，保留这些结果，说明未核实网页正文，不要将动态信息描述为确定事实。\n"
 	} else {
-		output += "- No web search results found. Consider:\n"
-		output += "  - Try different search queries or keywords\n"
-		output += "  - Check if question can be answered from knowledge base instead\n"
-		output += "  - Verify if the topic requires real-time information\n"
+		output += "- 没有找到网页搜索结果。可以考虑：\n"
+		output += "  - 更换搜索问题或关键词\n"
+		output += "  - 检查是否能根据知识库回答\n"
+		output += "  - 确认该主题是否需要实时信息\n"
 	}
 
 	return &types.ToolResult{

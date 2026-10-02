@@ -134,7 +134,7 @@ func (c *Consolidator) Consolidate(
 	summaryMsg := chat.Message{
 		Role: "system",
 		Content: fmt.Sprintf(
-			"[Memory Summary - %d earlier messages consolidated]\n\n%s",
+			"[会话摘要：已整合 %d 条较早消息]\n\n%s",
 			len(toConsolidate), summary,
 		),
 	}
@@ -252,31 +252,31 @@ func (c *Consolidator) summarizeWithRetry(
 // buildConsolidationPrompt creates the prompt for LLM to summarize messages.
 func (c *Consolidator) buildConsolidationPrompt(messages []chat.Message) string {
 	var sb strings.Builder
-	sb.WriteString("Summarize the following conversation history, preserving:\n")
-	sb.WriteString("1. Key facts and decisions made\n")
-	sb.WriteString("2. Tool execution results and their outcomes\n")
-	sb.WriteString("3. User's original intent and requirements\n")
-	sb.WriteString("4. Any errors encountered and how they were resolved\n\n")
-	sb.WriteString("Conversation to summarize:\n\n")
+	sb.WriteString("请总结下面的会话历史，并保留：\n")
+	sb.WriteString("1. 关键事实和已作出的决定\n")
+	sb.WriteString("2. 工具执行结果及其效果\n")
+	sb.WriteString("3. 用户原始意图和要求\n")
+	sb.WriteString("4. 遇到的错误和解决方式\n\n")
+	sb.WriteString("待总结会话：\n\n")
 
 	for _, msg := range messages {
 		switch msg.Role {
 		case "user":
-			sb.WriteString(fmt.Sprintf("**User**: %s\n\n", truncateForPrompt(msg.Content, 2000)))
+			sb.WriteString(fmt.Sprintf("**用户**: %s\n\n", truncateForPrompt(msg.Content, 2000)))
 		case "assistant":
 			if len(msg.ToolCalls) > 0 {
 				names := make([]string, len(msg.ToolCalls))
 				for i, tc := range msg.ToolCalls {
 					names[i] = tc.Function.Name
 				}
-				sb.WriteString(fmt.Sprintf("**Assistant** [called tools: %s]: %s\n\n",
+				sb.WriteString(fmt.Sprintf("**助手** [调用工具：%s]: %s\n\n",
 					strings.Join(names, ", "), truncateForPrompt(msg.Content, 1000)))
 			} else {
-				sb.WriteString(fmt.Sprintf("**Assistant**: %s\n\n",
+				sb.WriteString(fmt.Sprintf("**助手**: %s\n\n",
 					truncateForPrompt(msg.Content, 2000)))
 			}
 		case "tool":
-			sb.WriteString(fmt.Sprintf("**Tool [%s]**: %s\n\n",
+			sb.WriteString(fmt.Sprintf("**工具 [%s]**: %s\n\n",
 				msg.Name, truncateForPrompt(msg.Content, 1000)))
 		}
 	}
@@ -287,26 +287,26 @@ func (c *Consolidator) buildConsolidationPrompt(messages []chat.Message) string 
 // rawArchive creates a simple text dump of messages as fallback when LLM fails.
 func (c *Consolidator) rawArchive(messages []chat.Message) string {
 	var sb strings.Builder
-	sb.WriteString("Raw conversation archive (LLM summarization unavailable):\n\n")
+	sb.WriteString("会话原始存档（模型摘要不可用）：\n\n")
 
 	for _, msg := range messages {
 		content := truncateForPrompt(msg.Content, 500)
 		switch msg.Role {
 		case "user":
-			sb.WriteString(fmt.Sprintf("- User: %s\n", content))
+			sb.WriteString(fmt.Sprintf("- 用户： %s\n", content))
 		case "assistant":
 			if len(msg.ToolCalls) > 0 {
 				names := make([]string, len(msg.ToolCalls))
 				for j, tc := range msg.ToolCalls {
 					names[j] = tc.Function.Name
 				}
-				sb.WriteString(fmt.Sprintf("- Assistant [tools: %s]: %s\n",
+				sb.WriteString(fmt.Sprintf("- 助手 [工具：%s]： %s\n",
 					strings.Join(names, ","), content))
 			} else {
-				sb.WriteString(fmt.Sprintf("- Assistant: %s\n", content))
+				sb.WriteString(fmt.Sprintf("- 助手： %s\n", content))
 			}
 		case "tool":
-			sb.WriteString(fmt.Sprintf("- Tool[%s]: %s\n", msg.Name, content))
+			sb.WriteString(fmt.Sprintf("- 工具[%s]： %s\n", msg.Name, content))
 		}
 	}
 
@@ -324,14 +324,14 @@ func truncateForPrompt(s string, maxLen int) string {
 
 //nolint:lll // raw string literal used for prompt readability
 const consolidationSystemPrompt = "" +
-	"You are a conversation summarizer. " +
-	"Your task is to create a concise but comprehensive summary " +
-	"of a conversation between a user and an AI assistant.\n\n" +
-	"The summary should:\n" +
-	"- Be written in the same language as the original conversation\n" +
-	"- Preserve all key facts, numbers, and specific details\n" +
-	"- Include the outcomes of any tool executions\n" +
-	"- Note any errors or issues encountered\n" +
-	"- Be structured with clear sections if the conversation covered multiple topics\n" +
-	"- Be concise — aim for 30% or less of the original length\n\n" +
-	"Output only the summary, no preamble or explanation."
+	"你负责总结会话。" +
+	"请为用户与 AI 助手之间的会话" +
+	"生成简洁而全面的摘要。\n\n" +
+	"摘要要求：\n" +
+	"- 使用原会话的语言\n" +
+	"- 保留全部关键事实、数字和具体细节\n" +
+	"- 包含工具执行结果\n" +
+	"- 记录遇到的错误和问题\n" +
+	"- 涉及多个主题时按清楚的章节组织\n" +
+	"- 保持简洁，目标长度不超过原会话的 30%\n\n" +
+	"只输出摘要，不要前言或解释。"

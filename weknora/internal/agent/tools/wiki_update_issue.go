@@ -19,18 +19,18 @@ func NewWikiUpdateIssueTool(wikiService interfaces.WikiPageService, kbIDs []stri
 	return &wikiUpdateIssueTool{
 		BaseTool: NewBaseTool(
 			ToolWikiUpdateIssue,
-			"Update the status of a specific wiki page issue (e.g., set it to 'resolved' or 'ignored').",
+			`更新 Wiki 问题状态，例如 resolved、ignored、pending。`,
 			json.RawMessage(`{
   "type": "object",
   "properties": {
     "issue_id": {
       "type": "string",
-      "description": "The short iN issue ID from wiki_read_issue."
+      "description": "wiki_read_issue 返回的问题短 iN ID。"
     },
     "status": {
       "type": "string",
       "enum": ["resolved", "ignored", "pending"],
-      "description": "The new status for the issue."
+      "description": "问题的新状态。"
     }
   },
   "required": ["issue_id", "status"]

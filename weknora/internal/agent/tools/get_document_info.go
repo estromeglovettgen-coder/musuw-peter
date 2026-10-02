@@ -13,50 +13,23 @@ import (
 
 var getDocumentInfoTool = BaseTool{
 	name: ToolGetDocumentInfo,
-	description: `Retrieve detailed metadata information about documents.
-
-## When to Use
-
-Use this tool when:
-- Need to understand document basic information (title, type, size, etc.)
-- Check if document exists and is available
-- Batch query metadata for multiple documents
-- Understand document processing status
-
-Do not use when:
-- Need document content (use knowledge_search)
-- Need specific text chunks (search results already contain full content)
-
-
-## Returned Information
-
-- Basic info: title, description, source type
-- File info: filename, type, size
-- Processing status: whether processed, chunk count
-- Metadata: custom tags and properties
-
-
-## Notes
-
-- Concurrent query for multiple documents provides better performance
-- Returns complete document metadata, not just title
-- Can check document processing status (parse_status)
-
-## IDs
-- knowledge_ids: regular documents, using the short dN IDs from retrieval results
-- faq_ids: individual FAQ entries, using the short cN chunk IDs. Returns the standard question and answers, not the container title.`,
+	description: `读取文档的完整元数据，包括标题、描述、来源类型、文件名、文件类型、大小、处理状态、分块数量、自定义标签和属性。
+用于查看基本信息、确认文档是否存在可用、批量查询元数据及检查 parse_status 处理状态。多文档并发查询效率更好。
+需要正文时使用 knowledge_search；需要具体分块时查看搜索返回内容或使用分块读取工具，不把本工具当正文检索。
+- knowledge_ids：普通文档，使用检索结果短 dN ID。
+- faq_ids：单个 FAQ，使用短 cN ID。返回标准问题及答案，而非 FAQ 容器标题。`,
 	schema: json.RawMessage(`{
   "type": "object",
   "properties": {
     "knowledge_ids": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Short dN document IDs for regular documents"
+      "description": "普通文档的短 dN ID 数组。"
     },
     "faq_ids": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Short cN FAQ chunk IDs from retrieval results. Use instead of knowledge_ids for a single FAQ Q&A."
+      "description": "检索结果中的 FAQ 短 cN ID 数组。查询单个 FAQ 问答时使用它，不使用 knowledge_ids。"
     }
   }
 }`),

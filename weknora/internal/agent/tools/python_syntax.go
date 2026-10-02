@@ -13,9 +13,8 @@ import (
 // (`"这不是一个"大干快上"..."`), which Python treats as the end of the
 // string. Caught at write/edit time so the model does not burn a round on
 // execute_skill_script + py_compile.
-const pythonQuoteGuidance = "Python strings: never put ASCII `\"` inside `\"...\"` " +
-	"(or `'` inside `'...'`). Use the other quote for the literal, and 「」 " +
-	"for Chinese quotation."
+const pythonQuoteGuidance = "Python 字符串：不要在 `\"...\"` 内直接放入英文半角 `\"`，" +
+	"也不要在 `'...'` 内直接放入 `'`。外层改用另一种引号，中文引用使用「」。"
 
 var pythonKeywords = map[string]bool{
 	"False": true, "None": true, "True": true,
@@ -39,11 +38,10 @@ func pythonScriptSyntaxHint(filePath, src string) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"Python syntax looks broken around line %d: an ASCII quote inside a "+
-			"string of the same kind closed the literal early "+
-			"(e.g. (\"这不是一个\"大干快上\"...\")). The file was written. "+
-			"Fix it with edit_sandbox_file: wrap that text in the other quote, "+
-			"or use 「」 / \\\" for the inner quotation. Do not execute the script until it parses.",
+		"Python 第 %d 行附近可能存在语法错误：字符串内部使用了相同类型的英文半角引号，导致字符串提前结束"+
+			"（例如 (\"这不是一个\"大干快上\"...\")）。文件已写入。"+
+			"请用 edit_sandbox_file 修复：外层改用另一种引号，"+
+			"或将内部引号改为「」 / \\\"。语法修复前不要执行脚本。",
 		line,
 	)
 }
@@ -52,9 +50,9 @@ func pythonSyntaxErrorHint(stderr string) string {
 	if !strings.Contains(stderr, "SyntaxError") {
 		return ""
 	}
-	return "Hint: this is almost always an ASCII quote inside a same-kind Python string " +
-		`(e.g. "这不是一个"大干快上"..."). ` +
-		"edit_sandbox_file: wrap the text in the other quote, or replace inner quotes with 「」 / \\\"."
+	return "提示：通常是 Python 字符串内部使用了相同类型的英文半角引号" +
+		`（例如 "这不是一个"大干快上"..."）。` +
+		"请用 edit_sandbox_file 修复：外层改用另一种引号，或将内部引号改为「」 / \\\"。"
 }
 
 // firstBrokenPythonQuote reports the line of the first string literal that

@@ -5,12 +5,51 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Tencent/WeKnora/internal/config"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
+	"github.com/stretchr/testify/require"
 )
+
+type asyncPromptTitleModel struct {
+	*generatedTitleChatModel
+	seen chan []chat.Message
+}
+
+func (m *asyncPromptTitleModel) Chat(ctx context.Context, messages []chat.Message, options *chat.ChatOptions) (*types.ChatResponse, error) {
+	m.seen <- messages
+	return m.generatedTitleChatModel.Chat(ctx, messages, options)
+}
+
+func TestGenerateTitleAsyncRetainsWorkspacePrompt(t *testing.T) {
+	model := &asyncPromptTitleModel{
+		generatedTitleChatModel: &generatedTitleChatModel{response: "销售下一步"},
+		seen:                    make(chan []chat.Message, 1),
+	}
+	svc := &sessionService{
+		cfg:          &config.Config{Conversation: &config.ConversationConfig{GenerateSessionTitlePrompt: "默认标题规则"}},
+		sessionRepo:  &generatedTitleSessionRepository{},
+		modelService: &generatedTitleModelService{model: model},
+	}
+	ctx := context.WithValue(context.Background(), types.TenantIDContextKey, uint64(7))
+	ctx = context.WithValue(ctx, types.TenantInfoContextKey, &types.Tenant{
+		ID: 7, SystemPromptConfig: types.SystemPromptConfig{"conversation.session_title": "只生成销售下一步标题，使用 {{language}}。"},
+	})
+	ctx = context.WithValue(ctx, types.LanguageContextKey, "zh-CN")
+	svc.GenerateTitleAsync(ctx, &types.Session{ID: "async-workspace-title", TenantID: 7, UserID: "alice"}, "后续如何跟进客户", "model-1", nil)
+
+	select {
+	case messages := <-model.seen:
+		require.Len(t, messages, 2)
+		require.Equal(t, "只生成销售下一步标题，使用 Chinese (Simplified)。", messages[0].Content)
+		require.Equal(t, "后续如何跟进客户", messages[1].Content)
+	case <-time.After(5 * time.Second):
+		t.Fatal("asynchronous title generation did not reach the model")
+	}
+}
 
 type generatedTitleChatModel struct {
 	response     string

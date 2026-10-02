@@ -527,9 +527,9 @@ func (s *temporaryDocumentService) understandImagesWithVLM(
 		logger.Warnf(ctx, "temporary document VLM model load failed: %v", err)
 		return ""
 	}
-	ocrPrompt := vlmOCRPrompt
+	ocrPrompt := types.ResolveSystemPrompt(ctx, "image.ocr", vlmOCRPrompt)
 	if scanned {
-		ocrPrompt = vlmOCRScannedPDFPrompt
+		ocrPrompt = types.ResolveSystemPrompt(ctx, "image.scanned_pdf", vlmOCRScannedPDFPrompt)
 	}
 
 	// Page OCR runs with bounded concurrency so multi-page scans don't pay the

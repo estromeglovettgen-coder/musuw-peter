@@ -181,3 +181,7 @@ func TestPutTenantParserConfigAdminPreservesRedactedSecrets(t *testing.T) {
 	assert.Equal(t, "parser-secret-123", tenant.ParserEngineConfig.MinerUAPIKey)
 	assert.Equal(t, "https://example.com/mineru", tenant.ParserEngineConfig.MinerUEndpoint)
 }
+
+func (s *stubTenantService) UpdateSystemPrompt(context.Context, uint64, string, string) error {
+	panic("unexpected prompt update")
+}

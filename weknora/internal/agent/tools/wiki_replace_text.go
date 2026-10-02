@@ -30,26 +30,26 @@ func NewWikiReplaceTextTool(
 	return &wikiReplaceTextTool{
 		BaseTool: NewBaseTool(
 			ToolWikiReplaceText,
-			"Replace all occurrences of specific exact text in a Wiki page. Ideal for consistent minor corrections.",
+			`精确替换 Wiki 页面中指定文本的全部出现位置，适合统一修正小问题。`,
 			json.RawMessage(`{
 				"type": "object",
 				"properties": {
 					"slug": {
 						"type": "string",
-						"description": "The slug of the Wiki page"
+						"description": "Wiki 页面 slug。"
 					},
 					"old_text": {
 						"type": "string",
-						"description": "The exact text to find and replace"
+						"description": "需要精确查找并替换的文本。"
 					},
 					"new_text": {
 						"type": "string",
-						"description": "The new text to insert"
+						"description": "替换后的新文本。"
 					},
 					"source_refs": {
 						"type": "array",
 						"items": {"type": "string"},
-						"description": "An optional list of short dN source document IDs that justify this change. If provided, these will COMPLETELY REPLACE the existing source_refs of the page."
+						"description": "可选：支撑修改的来源文档短 dN ID 数组，提供时完整替换已有 source_refs。"
 					}
 				},
 				"required": ["slug", "old_text", "new_text"]

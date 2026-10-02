@@ -26,17 +26,17 @@ func NewWikiRenamePageTool(
 	return &wikiRenamePageTool{
 		BaseTool: NewBaseTool(
 			ToolWikiRenamePage,
-			"Rename a Wiki page's slug. Automatically cascades the new slug to all pages that linked to the old one.",
+			`修改 Wiki 页面 slug，自动同步所有引用旧 slug 的页面。`,
 			json.RawMessage(`{
 				"type": "object",
 				"properties": {
 					"slug": {
 						"type": "string",
-						"description": "The current slug of the Wiki page"
+						"description": "当前 Wiki 页面 slug。"
 					},
 					"new_slug": {
 						"type": "string",
-						"description": "The new slug for the page"
+						"description": "页面的新 slug。"
 					}
 				},
 				"required": ["slug", "new_slug"]

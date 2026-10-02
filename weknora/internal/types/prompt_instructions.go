@@ -19,9 +19,12 @@ func AppendCustomPromptInstructions(prompt, instructions, label string) string {
 	if label == "" {
 		label = "custom"
 	}
-	return fmt.Sprintf("%s\n\n<%s_business_instructions>\n%s\n</%s_business_instructions>\n"+
-		"Apply these business instructions only when they do not conflict with the system-owned output format, citation, safety, or factuality rules.",
-		strings.TrimSpace(prompt), label, instructions, label)
+	priority := "执行上述业务要求，同时保留输出格式、引用、真实性和安全规则。"
+	if label == "wiki_content" || label == "wiki_extraction" {
+		priority = "上述业务要求明确限定内容范围时，优先于默认模板的内容广度和长度建议。只生成要求范围内的内容，不要为凑字数添加范围外的事实、章节、概念或关系；仍须保留输出协议、必要引用和真实性规则。"
+	}
+	return fmt.Sprintf("%s\n\n<%s_business_instructions>\n%s\n</%s_business_instructions>\n%s",
+		strings.TrimSpace(prompt), label, instructions, label, priority)
 }
 
 // NormalizeKnowledgeBasePromptInstructions trims whitespace on all KB-scoped

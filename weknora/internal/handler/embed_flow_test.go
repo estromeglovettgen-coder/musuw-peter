@@ -333,3 +333,7 @@ func TestPatchEmbedChatPayloadInvalidBody(t *testing.T) {
 type badReader struct{}
 
 func (badReader) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+
+func (s *flowTenantSvc) UpdateSystemPrompt(context.Context, uint64, string, string) error {
+	panic("unexpected prompt update")
+}

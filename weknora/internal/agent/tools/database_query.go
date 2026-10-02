@@ -14,86 +14,27 @@ import (
 
 var databaseQueryTool = BaseTool{
 	name: ToolDatabaseQuery,
-	description: `Execute SQL queries to retrieve information from the database.
+	description: `执行只读 SELECT SQL，从授权数据库读取信息。
+系统自动加入当前登录用户 tenant_id 范围与 deleted_at IS NULL 软删除过滤。只允许 knowledge_bases、knowledges、chunks 表。
 
-## Security Features
-- Automatic tenant_id injection: All queries are automatically filtered by the logged-in user's tenant_id
-- Automatic soft-delete filtering: All queries are automatically filtered to include only records with deleted_at IS NULL
-- Read-only queries: Only SELECT statements are allowed
-- Safe tables: Only allow queries on authorized tables (knowledge_bases, knowledges, chunks)
+## 可用表和字段
+knowledge_bases：id/name（VARCHAR，ID/名称）、description（TEXT）、tenant_id（INTEGER）、embedding_model_id/summary_model_id/rerank_model_id（VARCHAR，模型 ID）、vlm_config（JSON，含 enabled 和 model_id）、created_at/updated_at/deleted_at（TIMESTAMP）。
+knowledges：id（VARCHAR，文档 ID）、tenant_id（INTEGER）、knowledge_base_id（VARCHAR）、type/title/description/source、parse_status（unprocessed/processing/completed/failed）、enable_status（enabled/disabled）、file_name/file_type（VARCHAR）、file_size/storage_size（BIGINT，字节）、created_at/updated_at/processed_at/deleted_at（TIMESTAMP）。
+chunks：id（VARCHAR，分块 ID）、tenant_id（INTEGER）、knowledge_base_id/knowledge_id（VARCHAR）、content（TEXT）、chunk_index（INTEGER）、is_enabled（BOOLEAN）、chunk_type（VARCHAR，text/image/table）、created_at/updated_at/deleted_at（TIMESTAMP）。
 
-## Available Tables and Columns
+## 示例
+知识库资料：SELECT id, name, description FROM knowledge_bases ORDER BY created_at DESC LIMIT 10
+按状态统计文档：SELECT parse_status, COUNT(*) as count FROM knowledges GROUP BY parse_status
+存储量：SELECT SUM(storage_size) as total_storage FROM knowledges
+关联文档：SELECT kb.name as kb_name, COUNT(k.id) as doc_count FROM knowledge_bases kb LEFT JOIN knowledges k ON kb.id = k.knowledge_base_id GROUP BY kb.id, kb.name
 
-### knowledge_bases
-- id (VARCHAR): Knowledge base ID
-- name (VARCHAR): Knowledge base name
-- description (TEXT): Description
-- tenant_id (INTEGER): Owner tenant ID
-- embedding_model_id, summary_model_id, rerank_model_id (VARCHAR): Model IDs
-- vlm_config (JSON): Includes VLM settings such as enabled flag and model_id
-- created_at, updated_at, deleted_at (TIMESTAMP)
-
-### knowledges (documents)
-- id (VARCHAR): Document ID
-- tenant_id (INTEGER): Owner tenant ID
-- knowledge_base_id (VARCHAR): Parent knowledge base ID
-- type (VARCHAR): Document type
-- title (VARCHAR): Document title
-- description (TEXT): Description
-- source (VARCHAR): Source location
-- parse_status (VARCHAR): Processing status (unprocessed/processing/completed/failed)
-- enable_status (VARCHAR): Enable status (enabled/disabled)
-- file_name, file_type (VARCHAR): File information
-- file_size, storage_size (BIGINT): Size in bytes
-- created_at, updated_at, processed_at, deleted_at (TIMESTAMP)
-
-
-
-### chunks
-- id (VARCHAR): Chunk ID
-- tenant_id (INTEGER): Owner tenant ID
-- knowledge_base_id (VARCHAR): Parent knowledge base ID
-- knowledge_id (VARCHAR): Parent document ID
-- content (TEXT): Chunk content
-- chunk_index (INTEGER): Index in document
-- is_enabled (BOOLEAN): Enable status
-- chunk_type (VARCHAR): Type (text/image/table)
-- created_at, updated_at, deleted_at (TIMESTAMP)
-
-## Usage Examples
-
-Query knowledge base information:
-{
-  "sql": "SELECT id, name, description FROM knowledge_bases ORDER BY created_at DESC LIMIT 10"
-}
-
-Count documents by status:
-{
-  "sql": "SELECT parse_status, COUNT(*) as count FROM knowledges GROUP BY parse_status"
-}
-
-Get storage usage:
-{
-  "sql": "SELECT SUM(storage_size) as total_storage FROM knowledges"
-}
-
-Join knowledge bases and documents:
-{
-  "sql": "SELECT kb.name as kb_name, COUNT(k.id) as doc_count FROM knowledge_bases kb LEFT JOIN knowledges k ON kb.id = k.knowledge_base_id GROUP BY kb.id, kb.name"
-}
-
-## Important Notes
-- DO NOT include tenant_id in WHERE clause - it's automatically added
-- DO NOT include deleted_at filtering manually unless needed - default query already enforces deleted_at IS NULL
-- Only SELECT queries are allowed
-- Limit results with LIMIT clause for better performance
-- Use appropriate JOINs when querying across tables
-- All timestamps are in UTC with time zone`,
+## 注意
+WHERE 不手工加入 tenant_id，系统会自动加入；除非必要不重复写 deleted_at 过滤。只允许 SELECT，使用 LIMIT 限制结果，跨表使用合适 JOIN。全部时间是带时区 UTC。`,
 	schema: utils.GenerateSchema[DatabaseQueryInput](),
 }
 
 type DatabaseQueryInput struct {
-	SQL string `json:"sql" jsonschema:"The SELECT SQL query to execute. DO NOT include tenant_id condition - it will be automatically added for security."`
+	SQL string `json:"sql" jsonschema:"要执行的 SELECT SQL，不要包含 tenant_id 条件，系统会自动加入授权过滤。"`
 }
 
 // DatabaseQueryTool allows AI to query the database with auto-injected tenant_id for security

@@ -41,8 +41,8 @@ func TestRegistryOwnsEncodingOrderForSummarySlugs(t *testing.T) {
 
 func TestRegistryProtocolOwnsResourceHandleRules(t *testing.T) {
 	prompt := NewRegistry(true).ProtocolPrompt()
-	require.Contains(t, prompt, "Source handling protocol")
-	require.Contains(t, prompt, "Resource handle protocol")
+	require.Contains(t, prompt, "来源标识协议")
+	require.Contains(t, prompt, "资源标识协议")
 	require.Contains(t, prompt, "res://NNNN")
 }
 

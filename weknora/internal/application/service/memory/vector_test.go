@@ -272,18 +272,18 @@ func TestExtractionOnlySeesRelevantMemories(t *testing.T) {
 	svc.ScheduleExtraction(ctx, "session-1", "message-1", "model-1")
 	drainExtractions(t, svc, enqueuer)
 
-	notes := existingNotesBlock(models.lastPromptContaining("What the user said:"))
+	notes := existingNotesBlock(models.lastPromptContaining("用户原话："))
 	shown := strings.Count(notes, "\n[")
 	require.LessOrEqual(t, shown, extractRelevantCandidates,
 		"the model must not be shown the whole store; it saw %d notes", shown)
 	require.Greater(t, shown, 0, "but it still has to see something to update against")
 }
 
-// existingNotesBlock returns just the "Existing notes:" section of the user
+// existingNotesBlock returns just the "现有记录：" section of the user
 // prompt. The last occurrence, because the system prompt's few-shot examples
 // contain the same heading and would otherwise be what gets measured.
 func existingNotesBlock(prompt string) string {
-	start := strings.LastIndex(prompt, "Existing notes:")
+	start := strings.LastIndex(prompt, "现有记录：")
 	if start < 0 {
 		return ""
 	}

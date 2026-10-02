@@ -31,39 +31,39 @@ func NewWikiWritePageTool(
 	return &wikiWritePageTool{
 		BaseTool: NewBaseTool(
 			ToolWikiWritePage,
-			"Create a new Wiki page or completely overwrite an existing one. Automatically handles outbound links.",
+			`新建 Wiki 页面或完整覆盖现有页面，自动处理出链。`,
 			json.RawMessage(`{
 				"type": "object",
 				"properties": {
 					"slug": {
 						"type": "string",
-						"description": "The slug of the Wiki page (e.g. 'entity/hunyuan-damoxing')"
+						"description": "Wiki 页面 slug，例如 entity/hunyuan-damoxing。"
 					},
 					"title": {
 						"type": "string",
-						"description": "The title of the page"
+						"description": "页面标题。"
 					},
 					"summary": {
 						"type": "string",
-						"description": "A one-sentence summary for the index listing"
+						"description": "用于索引列表的一句话摘要。"
 					},
 					"content": {
 						"type": "string",
-						"description": "The FULL, complete Markdown content of the page. Do NOT use placeholders."
+						"description": "完整的 Markdown 页面正文，不得使用占位内容。"
 					},
 					"page_type": {
 						"type": "string",
-						"description": "The page type, e.g., 'summary', 'entity', 'concept', 'synthesis', 'comparison'"
+						"description": "页面类型，如 summary、entity、concept、synthesis、comparison。"
 					},
 					"aliases": {
 						"type": "array",
 						"items": {"type": "string"},
-						"description": "A list of aliases for the page (optional). If provided, these will COMPLETELY REPLACE the existing aliases of the page."
+						"description": "可选页面别名数组；提供时完整替换已有 aliases。"
 					},
 					"source_refs": {
 						"type": "array",
 						"items": {"type": "string"},
-						"description": "A list of short dN source document IDs that contributed to this page. If provided, these will COMPLETELY REPLACE the existing source_refs of the page."
+						"description": "提供事实依据的来源文档短 dN ID 数组；提供时完整替换已有 source_refs。"
 					}
 				},
 				"required": ["slug", "title", "summary", "content", "page_type"]
@@ -160,9 +160,9 @@ func (t *wikiWritePageTool) Execute(ctx context.Context, args json.RawMessage) (
 		(isSummaryNamespace(params.Slug) || strings.EqualFold(params.PageType, types.WikiPageTypeSummary)) {
 		return &types.ToolResult{
 			Success: false,
-			Error: "summary pages are generated automatically from source documents and cannot be created manually. " +
-				"Use page_type 'synthesis'/'comparison'/'entity'/'concept' for authored pages, " +
-				"or target an existing summary page to update it.",
+			Error: "摘要页由源文档自动生成，不能手动创建。" +
+				"手写条目请使用 page_type 'synthesis'/'comparison'/'entity'/'concept'，" +
+				"或指定已有摘要页进行更新。",
 		}, nil
 	}
 

@@ -368,6 +368,7 @@ type wikiIngestService struct {
 	chunkRepo             interfaces.ChunkRepository
 	modelService          interfaces.ModelService
 	consumerModelResolver interfaces.ConsumerModelResolver
+	tenantRepo            interfaces.TenantRepository
 	task                  interfaces.TaskEnqueuer
 	audit                 interfaces.AuditLogService
 	pendingRepo           interfaces.TaskPendingOpsRepository
@@ -415,6 +416,7 @@ func NewWikiIngestService(
 	redisClient *redis.Client,
 	spanTracker SpanTracker,
 	consumerModelResolver interfaces.ConsumerModelResolver,
+	tenantRepo interfaces.TenantRepository,
 ) interfaces.TaskHandler {
 	svc := &wikiIngestService{
 		wikiService:           wikiService,
@@ -424,6 +426,7 @@ func NewWikiIngestService(
 		chunkRepo:             chunkRepo,
 		modelService:          modelService,
 		consumerModelResolver: consumerModelResolver,
+		tenantRepo:            tenantRepo,
 		task:                  task,
 		audit:                 audit,
 		pendingRepo:           pendingRepo,
@@ -2554,7 +2557,7 @@ func (s *wikiIngestService) deduplicateExtractedBatch(
 // summary page permanently. Retries plus failedOps requeuing (see
 // mapOneDocument) turn those events into at-most-a-few-minute hiccups.
 func (s *wikiIngestService) generateWithTemplate(ctx context.Context, chatModel chat.Chat, promptTpl string, data map[string]string) (string, error) {
-	tmpl, err := template.New("wiki").Parse(promptTpl)
+	tmpl, err := template.New("wiki").Parse(types.ResolveSystemPrompt(ctx, wikiPromptPurpose(promptTpl), promptTpl))
 	if err != nil {
 		return "", fmt.Errorf("parse template: %w", err)
 	}
@@ -2571,7 +2574,7 @@ func (s *wikiIngestService) generateWithTemplate(ctx context.Context, chatModel 
 	messages := []chat.Message{{Role: "user", Content: prompt}}
 	if promptTpl == agent.WikiPageModifyUserPrompt {
 		systemPrompt := types.AppendCustomPromptInstructions(
-			agent.WikiPageModifySystemPrompt,
+			types.ResolveSystemPrompt(ctx, "wiki_page_modify_system", agent.WikiPageModifySystemPrompt),
 			maskedData["CustomInstructions"],
 			maskedData["InstructionScope"],
 		)
@@ -2694,11 +2697,25 @@ func wikiPromptPurpose(promptTpl string) string {
 		return "wiki_taxonomy_plan"
 	case agent.WikiDeduplicationPrompt:
 		return "wiki_deduplication"
-	case agent.WikiIndexIntroPrompt, agent.WikiIndexIntroUpdatePrompt:
+	case agent.WikiIndexIntroPrompt:
 		return "wiki_index_intro"
+	case agent.WikiIndexIntroUpdatePrompt:
+		return "wiki_index_intro_update"
 	default:
 		return "wiki_generation"
 	}
+}
+
+func wikiExtractionScope(batch *WikiBatchContext) string {
+	if batch == nil {
+		return ""
+	}
+	content := strings.TrimSpace(batch.ContentInstructions)
+	extraction := strings.TrimSpace(batch.ExtractionInstructions)
+	if content == "" {
+		return extraction
+	}
+	return "内容范围要求（只提取该范围内需要的条目）：\n" + content + "\n\n提取重点：\n" + extraction
 }
 
 func (s *wikiIngestService) awaitWikiPromptWarmup(ctx context.Context, key string) (func(), error) {

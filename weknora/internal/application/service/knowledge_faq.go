@@ -1788,9 +1788,9 @@ func (s *knowledgeService) chunkToFAQEntry(chunk *types.Chunk, kb *types.Knowled
 
 func buildFAQChunkContent(meta *types.FAQChunkMetadata, mode types.FAQIndexMode) string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("Q: %s\n", meta.StandardQuestion))
+	builder.WriteString(fmt.Sprintf("问题：%s\n", meta.StandardQuestion))
 	if len(meta.SimilarQuestions) > 0 {
-		builder.WriteString("Similar Questions:\n")
+		builder.WriteString("相似问题：\n")
 		for _, q := range meta.SimilarQuestions {
 			builder.WriteString(fmt.Sprintf("- %s\n", q))
 		}
@@ -1798,7 +1798,7 @@ func buildFAQChunkContent(meta *types.FAQChunkMetadata, mode types.FAQIndexMode)
 	// 负例不应该包含在 Content 中，因为它们不应该被索引
 	// 答案根据索引模式决定是否包含
 	if mode == types.FAQIndexModeQuestionAnswer && len(meta.Answers) > 0 {
-		builder.WriteString("Answers:\n")
+		builder.WriteString("答案：\n")
 		for _, ans := range meta.Answers {
 			builder.WriteString(fmt.Sprintf("- %s\n", ans))
 		}

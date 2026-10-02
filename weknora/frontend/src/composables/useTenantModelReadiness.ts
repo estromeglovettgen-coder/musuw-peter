@@ -3,13 +3,12 @@ import { useUIStore } from '@/stores/ui'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import {
   evaluateTenantModelReadiness,
-  type TenantModelReadiness,
 } from '@/utils/tenantModelReadiness'
 
 export function useTenantModelReadiness() {
   const uiStore = useUIStore()
   const chatResources = useChatResourcesStore()
-  const readiness = ref<TenantModelReadiness | null>(null)
+  const readiness = computed(() => evaluateTenantModelReadiness(chatResources.allModels))
   const loaded = ref(false)
   const loading = ref(false)
 
@@ -17,22 +16,21 @@ export function useTenantModelReadiness() {
     loading.value = true
     try {
       await chatResources.ensureModels(force)
-      readiness.value = evaluateTenantModelReadiness(chatResources.allModels)
+      loaded.value = true
     } finally {
       loading.value = false
-      loaded.value = true
     }
   }
 
   onMounted(() => {
-    refresh()
+    void refresh().catch(() => {})
   })
 
   watch(
     () => uiStore.showSettingsModal,
     (open, wasOpen) => {
       if (wasOpen && !open) {
-        refresh(true)
+        void refresh(true).catch(() => {})
       }
     },
   )

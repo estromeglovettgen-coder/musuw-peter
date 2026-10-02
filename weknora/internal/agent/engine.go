@@ -118,11 +118,19 @@ func (e *AgentEngine) systemPromptOptions(ctx context.Context) *BuildSystemPromp
 }
 
 func (e *AgentEngine) buildSystemPrompt(ctx context.Context) string {
+	systemTemplate := e.systemPromptTemplate
+	if systemTemplate == "" {
+		if len(e.knowledgeBasesInfo) == 0 {
+			systemTemplate = types.ResolveSystemPrompt(ctx, "agent.pure", GetPureAgentSystemPrompt(e.appConfig))
+		} else {
+			systemTemplate = types.ResolveSystemPrompt(ctx, "agent.rag", GetProgressiveRAGSystemPrompt(e.appConfig))
+		}
+	}
 	prompt := BuildSystemPromptWithOptions(
 		e.knowledgeBasesInfo,
 		e.config.WebSearchEnabled,
 		e.systemPromptOptions(ctx),
-		e.systemPromptTemplate,
+		systemTemplate,
 	)
 	// Memory has to ride in the system prompt: buildMessagesWithLLMContext
 	// drops system messages coming from history, so a separate memory message
@@ -624,14 +632,14 @@ func (e *AgentEngine) runReActIteration(
 					round, *emptyRetries, maxEmptyResponseRetries)
 				*messagesPtr = append(*messagesPtr, chat.Message{
 					Role:    "user",
-					Content: "Please provide your complete answer now as plain text.",
+					Content: "请现在以纯文字给出完整回答。",
 				})
 				return iterOutcomeContinue, nil
 			}
 			// Retries exhausted — use fallback message rather than empty answer
 			logger.Warnf(ctx, "[Agent][Round-%d] Empty content after %d retries - using fallback",
 				round, maxEmptyResponseRetries)
-			state.FinalAnswer = "I'm sorry, I was unable to generate a response. Please try again."
+			state.FinalAnswer = "抱歉，未能生成回答，请重试。"
 			state.IsComplete = true
 			state.RoundSteps = append(state.RoundSteps, verdict.step)
 			return iterOutcomeBreak, nil
@@ -688,9 +696,9 @@ func (o iterOutcome) String() string {
 // Tool result image VLM description helpers
 // ---------------------------------------------------------------------------
 
-const toolImageAnalysisPrompt = "Describe the content of this image in detail. " +
-	"If it contains text, extract all readable text. " +
-	"If it contains charts or diagrams, describe the data and structure."
+const toolImageAnalysisPrompt = "详细描述这张图片的内容。" +
+	"如有文字，提取全部可读文字。" +
+	"如有图表或示意图，说明其数据和结构。"
 
 // describeImages generates text descriptions for tool result images using the
 // configured imageDescriber (VLM). Each image is decoded from a data URI and

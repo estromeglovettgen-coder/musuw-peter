@@ -703,6 +703,9 @@ func liteProductRouteBlocked(method, path string) bool {
 	if path == "/api/v1/tenants/kv/retrieval-config" {
 		return method != http.MethodGet && method != http.MethodPut
 	}
+	if path == "/api/v1/tenants/kv/system-prompts" {
+		return method != http.MethodGet && method != http.MethodPut
+	}
 	if path == "/api/v1/tenants/kv/prompt-templates" {
 		return method != http.MethodGet
 	}

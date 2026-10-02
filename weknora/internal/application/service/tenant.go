@@ -184,6 +184,10 @@ func (s *tenantService) UpdateTenant(ctx context.Context, tenant *types.Tenant) 
 	return tenant, nil
 }
 
+func (s *tenantService) UpdateSystemPrompt(ctx context.Context, tenantID uint64, id, content string) error {
+	return s.repo.UpdateSystemPrompt(ctx, tenantID, id, content)
+}
+
 func (s *tenantService) DeleteTenant(ctx context.Context, id uint64) error {
 	logger.Info(ctx, "Start deleting tenant")
 	if id == 0 {

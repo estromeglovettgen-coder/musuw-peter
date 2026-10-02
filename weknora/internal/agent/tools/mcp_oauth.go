@@ -257,8 +257,8 @@ func emitMCPOAuthRequiredNotice(
 func oauthAwareConnectError(service *types.MCPService, err error) string {
 	if service.AuthConfig.IsOAuth() && isAuthorizationRequired(err) {
 		return fmt.Sprintf(
-			"MCP service %q requires OAuth authorization. Please open the service settings "+
-				"and click \"Authorize\" to grant access, then retry.",
+			"MCP 服务 %q 需要 OAuth 授权。请打开服务设置"+
+				"并点击『授权』允许访问，然后重试。",
 			service.Name,
 		)
 	}
