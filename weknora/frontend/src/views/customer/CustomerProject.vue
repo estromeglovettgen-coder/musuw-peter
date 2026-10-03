@@ -14,6 +14,7 @@ import PeterTermHelp from '@/components/PeterTermHelp.vue'
 import KnowledgeBaseEditorModal from '@/views/knowledge/KnowledgeBaseEditorModal.vue'
 import KnowledgeBase from '@/views/knowledge/KnowledgeBase.vue'
 import CustomerTags from './CustomerTags.vue'
+import CustomerChatPaste from './CustomerChatPaste.vue'
 import { selectCustomerOverview } from './customerOverview'
 import { customerVisibleNote, customerVisibleTags } from './customerPresentation'
 import './customer.css'
@@ -117,12 +118,17 @@ async function addRecord() {
   catch(e:any){MessagePlugin.error(e.message || '保存失败')}finally{saving.value=false}
 }
 async function upload(event: Event) {
-  const selected=Array.from((event.target as HTMLInputElement).files || []); if(!selected.length) return
+  const selected=Array.from((event.target as HTMLInputElement).files || [])
+  await uploadFiles(selected)
+}
+async function uploadFiles(selected: File[]) {
+  if(!selected.length || uploading.value || deleting.value) return false
   const target=id.value
   uploading.value=true; let done=0,failed=0
-  for(const file of selected){ uploadStatus.value=`上传资料 ${done+failed+1}/${selected.length}：${file.name}`; try{await uploadKnowledgeFile(target,{file});done++}catch(e:any){failed++;MessagePlugin.error(`${file.name}：${e.message || '上传失败'}`)} }
-  if(id.value!==target){uploading.value=false;uploadStatus.value='';return}
-  uploadStatus.value=`已上传 ${done} 份${failed ? `，${failed} 份失败，请重新选择重试` : '，后续整理进度可在资料页查看'}`; uploading.value=false; if(fileInput.value)fileInput.value.value=''; await load()
+  for(const file of selected){ uploadStatus.value=`上传资料 ${done+failed+1}/${selected.length}：${file.name}`; try{const result=await uploadKnowledgeFile(target,{file});if(result?.success===false || result?.error)throw new Error(result?.error?.message || '上传失败');done++}catch(e:any){failed++;MessagePlugin.error(`${file.name}：${e.message || '上传失败'}`)} }
+  if(id.value!==target){uploading.value=false;uploadStatus.value='';return false}
+  uploadStatus.value=`已上传 ${done} 份${failed ? `，${failed} 份失败，请重试` : '，后续整理进度可在资料页查看'}`; uploading.value=false; if(fileInput.value)fileInput.value.value=''; await load()
+  return failed === 0
 }
 watch(id,()=>{kb.value=null;wiki.value=null;wikiProcessing.value=false;files.value=[];sessions.value=[];void load()},{immediate:true})
 onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
@@ -138,7 +144,7 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
       <t-alert v-if="detailError" theme="warning" :message="detailError" style="margin-bottom:16px"><template #operation><button class="customer-icon" @click="load">刷新</button></template></t-alert>
       <t-alert v-if="uploadStatus" :theme="uploading ? 'info' : 'success'" :message="uploadStatus" style="margin-bottom:16px"/>
       <div v-if="tab==='overview'" class="customer-overview"><section><article class="customer-panel"><div class="customer-panel-head"><h2>客户概况</h2><router-link v-if="wikiEnabled" class="customer-muted" :to="base+'?tab=wiki'+(wiki ? '&slug='+encodeURIComponent(wiki.slug) : '')">查看完整分析 <t-icon name="arrow-up-right"/></router-link></div><p class="customer-muted">{{!wikiEnabled ? '未开启自动整理' : processing ? '正在整理客户概况…' : wiki ? time(wiki.updated_at)+' 更新' : '等待资料整理'}}</p><div v-if="wiki" class="customer-profile-markdown" v-html="wikiHTML"/><div v-else class="customer-empty"><t-icon name="file" size="28px"/><p>{{!wikiEnabled ? '可在「编辑客户」的资料整理选项中开启自动整理。' : processing ? '整理完成后会自动更新。' : '上传聊天记录后，这里将展示整理出的客户概况。'}}</p><button class="customer-secondary" :disabled="uploading" @click="fileInput?.click()">上传资料</button></div></article><article class="customer-panel"><div class="customer-panel-head"><h2>最近记录</h2><button class="customer-secondary" @click="showRecord=true"><t-icon name="add"/>添加记录</button></div><div v-for="entry in timeline.slice(0,5)" :key="entry.id" class="customer-record"><span class="customer-record-icon"><t-icon :name="entry.icon"/></span><div class="customer-record-copy"><router-link :to="entry.href">{{entry.title}}</router-link><p><time>{{time(entry.date)}} · {{entry.kind}}</time></p></div></div><p v-if="!timeline.length" class="customer-muted">沟通、上传和 AI 会话会汇集在这里。</p></article></section>
-        <aside><article class="customer-panel"><h2>客户名片</h2><dl class="customer-metadata"><dt>联系方式</dt><dd>{{profile.contact || '尚未填写'}}</dd><dt>可参考的资料库<PeterTermHelp text="公共知识库：可让智能体在分析这个客户时参考所选销售案例或课程资料，不会把这些共用资料复制进客户资料。" label="了解可参考的资料库" /></dt><dd>{{sharedNames.join('、') || '尚未关联'}}</dd><dt>资料数量</dt><dd>{{kb.knowledge_count || files.length}} 份</dd></dl></article><article class="customer-panel"><div class="customer-panel-head"><h2>客户备注</h2><button class="customer-icon" aria-label="编辑客户备注" @click="openEdit"><t-icon name="edit"/></button></div><p class="customer-note">{{customerNote || '暂无备注'}}</p></article><button class="customer-secondary" style="width:100%;margin-bottom:10px" :disabled="uploading" @click="fileInput?.click()"><t-icon name="upload"/>上传聊天资料</button></aside>
+        <aside><article class="customer-panel"><h2>客户名片</h2><dl class="customer-metadata"><dt>联系方式</dt><dd>{{profile.contact || '尚未填写'}}</dd><dt>可参考的资料库<PeterTermHelp text="公共知识库：可让智能体在分析这个客户时参考所选销售案例或课程资料，不会把这些共用资料复制进客户资料。" label="了解可参考的资料库" /></dt><dd>{{sharedNames.join('、') || '尚未关联'}}</dd><dt>资料数量</dt><dd>{{kb.knowledge_count || files.length}} 份</dd></dl></article><article class="customer-panel"><div class="customer-panel-head"><h2>客户备注</h2><button class="customer-icon" aria-label="编辑客户备注" @click="openEdit"><t-icon name="edit"/></button></div><p class="customer-note">{{customerNote || '暂无备注'}}</p></article><button class="customer-secondary" style="width:100%;margin-bottom:10px" :disabled="uploading" @click="fileInput?.click()"><t-icon name="upload"/>上传聊天资料</button><CustomerChatPaste v-if="canManage" class="customer-paste-button" :disabled="uploading || deleting" :add-file="file => uploadFiles([file])" /></aside>
       </div>
       <div v-else-if="isContentTab" class="customer-content"><KnowledgeBase :key="id" embedded /></div>
       <section v-else-if="tab==='conversations'" class="customer-panel"><div class="customer-panel-head"><h2>这个客户的 AI 对话</h2><button class="customer-primary" :disabled="openingChat" @click="chat(true)"><t-icon name="add"/>新开一条对话</button></div><div v-for="s in sessions" :key="s.id" class="customer-record"><span class="customer-record-icon"><t-icon name="chat"/></span><div class="customer-record-copy"><router-link :to="'/platform/chat/'+s.id">{{s.title || '客户分析'}}</router-link><p><time>{{time(s.updated_at)}}</time></p></div><t-icon name="chevron-right"/></div><p v-if="!sessions.length" class="customer-muted">还没有对话，开始第一次分析。</p></section>
@@ -153,4 +159,5 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
 </template>
 <style scoped>
 .customer-delete{color:var(--td-error-color,#d54941)}
+.customer-paste-button{width:100%;margin-bottom:10px}
 </style>

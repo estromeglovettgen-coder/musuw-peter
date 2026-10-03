@@ -28,6 +28,7 @@ import TagEditDialog from './components/TagEditDialog.vue'
 import BatchTagDialog from './components/BatchTagDialog.vue'
 import KbTagManageDrawer from './components/KbTagManageDrawer.vue'
 import WikiBrowser from './wiki/WikiBrowser.vue'
+import CustomerChatPaste from '@/views/customer/CustomerChatPaste.vue'
 
 const legacy = LegacyKnowledgeBaseBusiness as any
 const legacySetup = legacy.setup
@@ -47,7 +48,7 @@ export default defineComponent({
     ...(legacy.components || {}),
     DocContent, EmptyKnowledge, ContextualGuide, KBSwitcherDropdown, KnowledgeBaseEditorModal, FAQEntryManager,
     DocumentListView, DocumentCardView, DocumentBatchBar, KbUploadSourceDropdown, KbFolderTree, KnowledgeUploadProgress,
-    TagEditDialog, BatchTagDialog, KbTagManageDrawer, WikiBrowser,
+    TagEditDialog, BatchTagDialog, KbTagManageDrawer, WikiBrowser, CustomerChatPaste,
   },
   setup(props: Record<string, unknown>, context: SetupContext) {
     const state = legacySetup?.(props, context)
@@ -139,6 +140,15 @@ export default defineComponent({
         if (files.length === 0 || !(await canAddDocuments(files, files.length))) return
         legacyHandleUploadSourceFiles?.(files)
       }
+      const handleChatPaste = async (file: File): Promise<boolean> => {
+        if (!state.ensureDocumentKbReady()) return false
+        const targetKbId = String(readStateValue<unknown>(state.kbId) || '')
+        const tagIds = [...readStateValue<string[]>(state.selectedTagIds)]
+        const targetFolder = readStateValue<string>(state.selectedFolderPath)
+        if (!(await canAddDocuments([file], 1)) || targetKbId !== readStateValue(state.kbId)) return false
+        const result = await state.executeUploadBatch([file], { tagIds, targetFolder })
+        return result.successCount === 1 && result.failCount === 0
+      }
 
       const handleManualCreate = async () => {
         if (!(await canAddDocuments([], 1))) return
@@ -173,6 +183,7 @@ export default defineComponent({
         folderTreeCollapsed,
         handleFolderTreeCollapsedChange,
         handleUploadSourceFiles,
+        handleChatPaste,
         handleManualCreate,
         fileTypeFilterPanelVisible,
         parseStatusFilterPanelVisible,
@@ -379,6 +390,7 @@ export default defineComponent({
                 <button type="button" :class="{ 'is-active': viewMode === 'list' }" :aria-pressed="viewMode === 'list'" @click="viewMode = 'list'"><t-icon name="view-list" /></button>
               </div>
               <KbUploadSourceDropdown v-if="canEdit" ref="uploadSourceRef" :accept-file-types="acceptFileTypes" :supported-file-types="[...supportedFileTypes]" include-manual trigger-icon="add" data-guide="kb-detail-add-doc" :tooltip="t('knowledgeBase.addDocument')" placement="bottom-right" @files="handleUploadSourceFiles" @url="handleUploadSourceUrl" @manual="handleManualCreate" />
+              <CustomerChatPaste v-if="embedded && canEdit" :add-file="handleChatPaste" />
             </div>
           </div>
 
