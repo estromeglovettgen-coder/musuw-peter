@@ -1,8 +1,15 @@
-import { safeRemoveItem, safeSetItem } from "@/composables/preferenceStorage";
+import { safeGetItem, safeRemoveItem, safeSetItem } from "@/composables/preferenceStorage";
 import { BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID } from "@/api/agent";
 import { DEFAULT_CHAT_MODEL_ID } from "@/utils/managedChatModels";
 
-export const SETTINGS_STORAGE_KEY = "WeKnora_settings";
+export const SETTINGS_STORAGE_KEY = "Musuw_settings";
+const LEGACY_SETTINGS_STORAGE_KEY = "WeKnora_settings";
+
+export function saveStoredSettings(settings: unknown): void {
+  const raw = JSON.stringify(settings);
+  safeSetItem(SETTINGS_STORAGE_KEY, raw);
+  safeSetItem(LEGACY_SETTINGS_STORAGE_KEY, raw);
+}
 
 /** Deep-clone settings so nested arrays/objects are not shared with defaults. */
 export function cloneSettings<T>(settings: T): T {
@@ -173,7 +180,7 @@ function reconcileLoadedSettings<T extends ReconcilableSettings>(
     delete loaded.enableMemory;
   }
   if (sourceWasStored && (removedLegacyMemorySetting || reconciledAgentMode || reconciledThinking)) {
-    safeSetItem(SETTINGS_STORAGE_KEY, JSON.stringify(loaded));
+    saveStoredSettings(loaded);
   }
   return loaded;
 }
@@ -188,6 +195,7 @@ function resetStoredSettings<T extends ReconcilableSettings>(
     reason,
   );
   safeRemoveItem(SETTINGS_STORAGE_KEY);
+  safeRemoveItem(LEGACY_SETTINGS_STORAGE_KEY);
   return reconcileLoadedSettings(cloneSettings(defaultSettings), defaultSettings, options, false);
 }
 
@@ -201,8 +209,9 @@ export function loadAndReconcileSettings<T extends ReconcilableSettings>(
     isLiteMode: options.isLiteMode ?? readLiteModeFlag(),
   };
   try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) {
+    const current = safeGetItem(SETTINGS_STORAGE_KEY);
+    const raw = current ?? safeGetItem(LEGACY_SETTINGS_STORAGE_KEY);
+    if (raw === null) {
       return reconcileLoadedSettings(
         cloneSettings(defaultSettings),
         defaultSettings,
@@ -218,6 +227,7 @@ export function loadAndReconcileSettings<T extends ReconcilableSettings>(
         resolvedOptions,
       );
     }
+    if (current === null) saveStoredSettings(parsed);
     return reconcileLoadedSettings(parsed as T, defaultSettings, resolvedOptions, true);
   } catch (e) {
     return resetStoredSettings(defaultSettings, e, resolvedOptions);

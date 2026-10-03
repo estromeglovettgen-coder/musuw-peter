@@ -21,7 +21,7 @@ import {
   removeFavorite,
   type FavoriteResourceType,
 } from '@/api/user-favorites'
-import { safeGetItem, safeSetItem, readUserId } from './preferenceStorage'
+import { loadPreference, savePreference } from './preferenceStorage'
 import { useAuthStore } from '@/stores/auth'
 
 export type ResourceType = FavoriteResourceType
@@ -58,12 +58,12 @@ function tenantSegmentForKey(): string {
   }
 }
 
-function recentsKey(): string {
-  return `WeKnora_${readUserId()}_${tenantSegmentForKey()}${RECENTS_SUFFIX}`
+function recentsSuffix(): string {
+  return `${tenantSegmentForKey()}${RECENTS_SUFFIX}`
 }
 
 function readRecents(): PinEntry[] {
-  const raw = safeGetItem(recentsKey())
+  const raw = loadPreference(recentsSuffix())
   if (!raw) return []
   try {
     const parsed = JSON.parse(raw)
@@ -82,7 +82,7 @@ function readRecents(): PinEntry[] {
 }
 
 function writeRecents(list: PinEntry[]): void {
-  safeSetItem(recentsKey(), JSON.stringify(list))
+  savePreference(recentsSuffix(), JSON.stringify(list))
 }
 
 // Module-level shared state: a single source of truth for the whole tab

@@ -26,7 +26,7 @@
         </p>
       </div>
       <a
-        href="https://github.com/estromeglovettgen-coder/musuw/blob/main/weknora/docs/BUILTIN_MODELS.md"
+        href="https://docs.musuw.com/guides/agents"
         target="_blank"
         rel="noopener noreferrer"
       >

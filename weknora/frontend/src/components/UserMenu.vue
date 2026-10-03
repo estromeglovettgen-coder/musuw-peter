@@ -217,7 +217,7 @@ const reopenGuide = () => {
 }
 const openDocs = () => {
   menuVisible.value = false
-  window.open('https://github.com/estromeglovettgen-coder/musuw/tree/main/weknora/docs', '_blank')
+  window.open('https://docs.musuw.com/', '_blank')
 }
 const openGithub = () => {
   menuVisible.value = false

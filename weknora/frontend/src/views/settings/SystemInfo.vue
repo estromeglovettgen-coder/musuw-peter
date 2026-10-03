@@ -246,7 +246,7 @@ function formatUptime(totalSeconds: number): string {
 }
 
 const troubleshootingDocsURL =
-  'https://github.com/estromeglovettgen-coder/musuw/blob/main/weknora/docs/migration-troubleshooting.md'
+  'https://docs.musuw.com/'
 
 // Pre-fills a new issue with the current migration error so users don't have to
 // paste it manually. Body is intentionally minimal — the bug template will fill

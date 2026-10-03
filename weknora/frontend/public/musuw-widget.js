@@ -26,8 +26,10 @@
 (function (global) {
   'use strict';
 
-  var HOST_SOURCE = 'weknora-host';
-  var EMBED_SOURCE = 'weknora-embed';
+  var HOST_SOURCE = 'musuw-host';
+  var EMBED_SOURCE = 'musuw-embed';
+  var LEGACY_HOST_SOURCE = 'weknora-host';
+  var LEGACY_EMBED_SOURCE = 'weknora-embed';
   var POSITIONS = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
   var DEFAULT_POSITION = 'bottom-right';
   var DEFAULT_COLOR = '#111318';
@@ -142,9 +144,12 @@
     var title = opts.title || DEFAULT_TITLE;
     var baseUrl = (opts.baseUrl || opts.base || '').replace(/\/$/, '');
     if (!baseUrl) {
-      var script = document.currentScript;
+      var script = opts.scriptEl || document.currentScript;
       if (script && script.src) {
-        baseUrl = script.src.replace(/\/weknora-widget\.js.*$/, '');
+        baseUrl = script.src.replace(/\/(?:musuw|weknora)-widget\.js(?:[?#].*)?$/, '');
+        if (baseUrl === script.src) {
+          try { baseUrl = new URL(script.src).origin; } catch (e) { baseUrl = ''; }
+        }
       } else {
         baseUrl = global.location ? global.location.origin : '';
       }
@@ -165,6 +170,7 @@
     var panelOpen = false;
     var iframeReady = false;
     var iframeOrigin = '';
+    var activeHostSource = HOST_SOURCE;
 
     var launcher = document.createElement('button');
     launcher.type = 'button';
@@ -274,7 +280,7 @@
       loadToken(false).then(function (tok) {
         if (!tok) return;
         postToIframe({
-          source: HOST_SOURCE,
+          source: activeHostSource,
           type: 'provide_token',
           token: tok,
           channel_id: channelId,
@@ -287,7 +293,7 @@
         console.warn('[Musuw] iframe not ready');
         return false;
       }
-      postToIframe({ source: HOST_SOURCE, type: type, payload: payload || {} });
+      postToIframe({ source: activeHostSource, type: type, payload: payload || {} });
       return true;
     }
 
@@ -337,8 +343,11 @@
       // Only trust messages coming from our own iframe window and origin.
       if (e.source !== iframe.contentWindow) return;
       if (!isTrustedOrigin(e.origin)) return;
-      if (!e.data || e.data.source !== EMBED_SOURCE) return;
+      if (!e.data || (e.data.source !== EMBED_SOURCE && e.data.source !== LEGACY_EMBED_SOURCE)) return;
       if (e.data.channel_id && e.data.channel_id !== channelId) return;
+
+      // Respond using the iframe's protocol version; one message per event.
+      activeHostSource = e.data.source === LEGACY_EMBED_SOURCE ? LEGACY_HOST_SOURCE : HOST_SOURCE;
 
       if (!iframeOrigin) {
         iframeOrigin = e.origin;

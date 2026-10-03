@@ -6,7 +6,7 @@
         {{ $t('settings.weknoraCloud.description') }}
         <a
           class="doc-link"
-          href="https://developers.weixin.qq.com/doc/aispeech/knowledge/atomic_capability/atomic_interface.html"
+          href="https://docs.musuw.com/guides/agents"
           target="_blank"
           rel="noopener noreferrer"
         >

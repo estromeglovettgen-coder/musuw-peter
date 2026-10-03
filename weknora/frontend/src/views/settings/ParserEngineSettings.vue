@@ -402,14 +402,14 @@ const authStore = useAuthStore()
 
 const CONFIGURABLE_ENGINES = new Set(['mineru', 'mineru_cloud', 'paddleocr_vl', 'paddleocr_vl_cloud'])
 
-/** 各解析引擎的项目/官方文档地址 */
+/** Musuw 文档的资料上传与解析说明。 */
 const ENGINE_DOC_LINKS: Record<string, string> = {
-  weknoracloud: 'https://developers.weixin.qq.com/doc/aispeech/knowledge/atomic_capability/atomic_interface.html',
-  markitdown: 'https://github.com/microsoft/markitdown',
-  mineru: 'https://github.com/opendatalab/MinerU',
-  mineru_cloud: 'https://mineru.net/apiManage/docs',
-  paddleocr_vl: 'https://github.com/PaddlePaddle/PaddleOCR',
-  paddleocr_vl_cloud: 'https://aistudio.baidu.com/paddleocr',
+  weknoracloud: 'https://docs.musuw.com/faq/upload',
+  markitdown: 'https://docs.musuw.com/faq/upload',
+  mineru: 'https://docs.musuw.com/faq/upload',
+  mineru_cloud: 'https://docs.musuw.com/faq/upload',
+  paddleocr_vl: 'https://docs.musuw.com/faq/upload',
+  paddleocr_vl_cloud: 'https://docs.musuw.com/faq/upload',
 }
 
 /** 解析引擎配置默认值（与 DocReader/Python 侧一致） */

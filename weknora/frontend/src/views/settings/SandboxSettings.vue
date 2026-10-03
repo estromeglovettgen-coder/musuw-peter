@@ -219,7 +219,7 @@ const { t } = useI18n()
 const router = useRouter()
 const confirmDelete = useConfirmDelete()
 
-const sandboxGuideUrl = 'https://github.com/Tencent/WeKnora/blob/main/docs/sandbox-cluster.md'
+const sandboxGuideUrl = 'https://docs.musuw.com/guides/agents'
 
 const backendTypes = NAMED_SANDBOX_BACKEND_TYPES
 

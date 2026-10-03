@@ -48,6 +48,17 @@ test('locale bundles expose the same translation keys', () => {
   assert.deepEqual(mismatches, [], mismatches.slice(0, 20).join('\n'))
 })
 
+test('locale display text uses Musuw while retaining authentication and environment contracts', () => {
+  for (const [localeName, bundle] of Object.entries(LOCALE_BUNDLES)) {
+    for (const key of collectLocaleKeys(bundle)) {
+      const value = getLocaleValueAtPath(bundle, key)
+      if (typeof value !== 'string') continue
+      const displayText = value.replace(/\bWEKNORA_[A-Z_]*/g, '').replace(/aud=weknora/gi, '')
+      assert.doesNotMatch(displayText, /weknora/i, `${localeName}: ${key}`)
+    }
+  }
+})
+
 test('critical runtime i18n trees are present', () => {
   const en = localeKeysByName['en-US']
   const missing = CRITICAL_LOCALE_KEYS.filter((key) => !en.has(key))

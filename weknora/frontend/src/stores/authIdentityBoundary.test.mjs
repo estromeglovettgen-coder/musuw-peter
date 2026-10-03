@@ -15,5 +15,5 @@ test('auth identity changes reset both persisted and live account-scoped setting
 test('settings store avoids a static auth cycle and owns the live reset action', () => {
   assert.doesNotMatch(settingsSource, /import \{ useAuthStore \} from ['"]@\/stores\/auth['"]/)
   assert.match(settingsSource, /resetForIdentityBoundary\(isLiteMode = false\)[\s\S]{0,300}resetSettingsForIdentityBoundary\(defaultSettings\)/)
-  assert.match(settingsSource, /resetForIdentityBoundary\(isLiteMode = false\)[\s\S]{0,700}localStorage\.setItem\("WeKnora_settings"/)
+  assert.match(settingsSource, /resetForIdentityBoundary\(isLiteMode = false\)[\s\S]{0,700}saveStoredSettings\(this\.settings\)/)
 })

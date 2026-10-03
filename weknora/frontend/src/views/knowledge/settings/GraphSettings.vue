@@ -586,9 +586,7 @@ const loadSystemInfo = async (force = false) => {
   }
 }
 
-const graphGuideUrl =
-  import.meta.env.VITE_KG_GUIDE_URL ||
-  'https://github.com/estromeglovettgen-coder/musuw/blob/main/weknora/docs/KnowledgeGraph.md'
+const graphGuideUrl = 'https://docs.musuw.com/guides/wiki-graph'
 
 // Open guide documentation to show how to enable graph database
 const handleOpenGraphGuide = () => {

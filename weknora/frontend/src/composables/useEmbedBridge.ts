@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   createEmbedSession,
+  clearEmbedStoredChatSession,
   embedChatSessionStorageKey,
   exchangeEmbedSession,
   getEmbedConfig,
@@ -15,6 +16,7 @@ import {
   parseEmbedTokenFromLocation,
   postEmbedBootstrapRequest,
   postEmbedReady,
+  readEmbedStoredChatSession,
   type EmbedChannelPublicConfig,
 } from '@/api/embed'
 import { applyEmbedLocale, readEmbedLocaleFromUrl, syncEmbedLocaleFromUrl } from '@/i18n/embed'
@@ -30,7 +32,7 @@ interface StoredSession {
 
 function readStoredSession(channelId: string): StoredSession | null {
   try {
-    const raw = window.localStorage.getItem(embedChatSessionStorageKey(channelId))
+    const raw = readEmbedStoredChatSession(channelId)
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed.id === 'string' && typeof parsed.sig === 'string' && parsed.id) {
@@ -53,7 +55,7 @@ function writeStoredSession(channelId: string, session: StoredSession | null) {
     if (session?.id) {
       window.localStorage.setItem(embedChatSessionStorageKey(channelId), JSON.stringify(session))
     } else {
-      window.localStorage.removeItem(embedChatSessionStorageKey(channelId))
+      clearEmbedStoredChatSession(channelId)
     }
   } catch {
     // localStorage may be unavailable (private mode / disabled cookies).

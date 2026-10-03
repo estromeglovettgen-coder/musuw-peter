@@ -4,7 +4,7 @@ export type WikiGraphRendererMode = 'obsidian' | 'weknora' | 'three' | 'sigma' |
 
 export const GRAPH_RENDERER_MODES = [
   { id: 'obsidian', label: 'Obsidian 原生' },
-  { id: 'weknora', label: 'WeKnora 原生' },
+  { id: 'weknora', label: 'Musuw 原生' },
   { id: 'three', label: 'Obsidian 3D' },
   { id: 'sigma', label: 'Sigma.js' },
   { id: 'g6', label: 'AntV G6' },
@@ -311,8 +311,8 @@ const defaultFactories: WikiGraphRendererFactories = {
     return new ObsidianWikiGraphRenderer(container)
   },
   weknora: async (container) => {
-    const { WeknoraNativeWikiGraphRenderer } = await import('./weknoraNativeWikiGraphRenderer.ts')
-    return new WeknoraNativeWikiGraphRenderer(container)
+    const { MusuwNativeWikiGraphRenderer } = await import('./musuwNativeWikiGraphRenderer.ts')
+    return new MusuwNativeWikiGraphRenderer(container)
   },
   three: async (container) => {
     const { ThreeWikiGraphRenderer } = await import('./threeWikiGraphRenderer.ts')

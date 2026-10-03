@@ -1431,7 +1431,7 @@ const saveDesktopPort = async () => {
 }
 
 function openApiDoc() {
-  window.open('https://github.com/estromeglovettgen-coder/musuw/blob/main/weknora/docs/api/README.md', '_blank')
+  window.open('https://docs.musuw.com/integrations/web-embed', '_blank')
 }
 
 function openCreateAPIKeyDialog() {

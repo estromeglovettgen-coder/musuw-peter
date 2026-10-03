@@ -60,13 +60,29 @@ export type WidgetPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top
 export const EMBED_SESSION_TOKEN_PREFIX = 'ems_'
 
 /** localStorage key prefix for persisted embed chat sessions (per channel). */
-export const EMBED_CHAT_SESSION_STORAGE_PREFIX = 'weknora-embed-session:'
+export const EMBED_CHAT_SESSION_STORAGE_PREFIX = 'musuw-embed-session:'
+const LEGACY_EMBED_CHAT_SESSION_STORAGE_PREFIX = 'weknora-embed-session:'
 
 /** localStorage key prefix for anonymous embed visitor ids (per channel). */
-export const EMBED_VISITOR_STORAGE_PREFIX = 'weknora-embed-visitor:'
+export const EMBED_VISITOR_STORAGE_PREFIX = 'musuw-embed-visitor:'
+const LEGACY_EMBED_VISITOR_STORAGE_PREFIX = 'weknora-embed-visitor:'
 
 export function embedVisitorStorageKey(channelId: string): string {
   return `${EMBED_VISITOR_STORAGE_PREFIX}${channelId}`
+}
+
+function readMigratedEmbedValue(key: string, legacyKey: string): string | null {
+  const current = localStorage.getItem(key)
+  if (current !== null) return current
+  const legacy = localStorage.getItem(legacyKey)
+  if (legacy === null) return null
+  try {
+    localStorage.setItem(key, legacy)
+    localStorage.removeItem(legacyKey)
+  } catch {
+    // Keep reading the old value if storage is writable only partially.
+  }
+  return legacy
 }
 
 /**
@@ -112,7 +128,7 @@ export function getOrCreateEmbedVisitorId(channelId: string): string {
   }
   const key = embedVisitorStorageKey(channelId)
   try {
-    const existing = localStorage.getItem(key)?.trim()
+    const existing = readMigratedEmbedValue(key, `${LEGACY_EMBED_VISITOR_STORAGE_PREFIX}${channelId}`)?.trim()
     if (existing) return existing
     const id = generateUUID()
     localStorage.setItem(key, id)
@@ -126,11 +142,25 @@ export function embedChatSessionStorageKey(channelId: string): string {
   return `${EMBED_CHAT_SESSION_STORAGE_PREFIX}${channelId}`
 }
 
+/** Read and migrate an existing signed session for this channel only. */
+export function readEmbedStoredChatSession(channelId: string): string | null {
+  if (typeof localStorage === 'undefined' || !channelId) return null
+  try {
+    return readMigratedEmbedValue(
+      embedChatSessionStorageKey(channelId),
+      `${LEGACY_EMBED_CHAT_SESSION_STORAGE_PREFIX}${channelId}`,
+    )
+  } catch {
+    return null
+  }
+}
+
 /** Drop a persisted embed chat session so the next load starts fresh. */
 export function clearEmbedStoredChatSession(channelId: string): void {
   if (typeof localStorage === 'undefined') return
   try {
     localStorage.removeItem(embedChatSessionStorageKey(channelId))
+    localStorage.removeItem(`${LEGACY_EMBED_CHAT_SESSION_STORAGE_PREFIX}${channelId}`)
   } catch {
     // localStorage may be unavailable in private mode.
   }
@@ -140,15 +170,15 @@ export function clearEmbedStoredChatSession(channelId: string): void {
 export function clearEmbedStoredChatSessionIfAgentMismatch(channelId: string, agentId: string): void {
   if (typeof localStorage === 'undefined' || !channelId || !agentId) return
   try {
-    const raw = localStorage.getItem(embedChatSessionStorageKey(channelId))
+    const raw = readEmbedStoredChatSession(channelId)
     if (!raw) return
     const parsed = JSON.parse(raw) as { agentId?: string }
     if (parsed?.agentId && parsed.agentId !== agentId) {
-      localStorage.removeItem(embedChatSessionStorageKey(channelId))
+      clearEmbedStoredChatSession(channelId)
     }
   } catch {
     // Malformed entry — remove so bootstrap can recover.
-    localStorage.removeItem(embedChatSessionStorageKey(channelId))
+    clearEmbedStoredChatSession(channelId)
   }
 }
 
@@ -436,8 +466,11 @@ export async function getEmbedMessageList(
   )
 }
 
-const EMBED_MSG_SOURCE = 'weknora-embed'
-const EMBED_HOST_SOURCE = 'weknora-host'
+const EMBED_MSG_SOURCE = 'musuw-embed'
+const EMBED_HOST_SOURCE = 'musuw-host'
+const LEGACY_EMBED_MSG_SOURCE = 'weknora-embed'
+const LEGACY_EMBED_HOST_SOURCE = 'weknora-host'
+let activeEmbedMessageSource = EMBED_MSG_SOURCE
 
 // The exact parent origin, learned from the first trusted host message
 // (trust-on-first-use). Once known, every inbound/outbound message is pinned to
@@ -464,7 +497,7 @@ function knownParentOrigin(): string {
 function isTrustedParentMessage(event: MessageEvent): boolean {
   if (window.parent === window) return false
   if (event.source !== window.parent) return false
-  if (!event.data || event.data.source !== EMBED_HOST_SOURCE) return false
+  if (!event.data || (event.data.source !== EMBED_HOST_SOURCE && event.data.source !== LEGACY_EMBED_HOST_SOURCE)) return false
   if (typeof event.origin !== 'string' || event.origin === 'null') return false
   const expected = knownParentOrigin()
   if (expected) {
@@ -473,6 +506,8 @@ function isTrustedParentMessage(event: MessageEvent): boolean {
     // First trusted handshake with no referrer hint: pin to this origin.
     verifiedParentOrigin = event.origin
   }
+  activeEmbedMessageSource = event.data.source === LEGACY_EMBED_HOST_SOURCE
+    ? LEGACY_EMBED_MSG_SOURCE : EMBED_MSG_SOURCE
   return true
 }
 
@@ -488,10 +523,10 @@ function postToParent(payload: Record<string, unknown>, opts?: { sensitive?: boo
   const target = knownParentOrigin()
   if (!target) {
     if (opts?.sensitive) return
-    window.parent.postMessage({ source: EMBED_MSG_SOURCE, ...payload }, '*')
+    window.parent.postMessage({ source: activeEmbedMessageSource, ...payload }, '*')
     return
   }
-  window.parent.postMessage({ source: EMBED_MSG_SOURCE, ...payload }, target)
+  window.parent.postMessage({ source: activeEmbedMessageSource, ...payload }, target)
 }
 
 /** Notify the parent page that the embed widget is ready. */
@@ -659,7 +694,7 @@ export function buildSecureServerNodeExample(channelId: string, opts?: { baseUrl
   const base = safeBaseUrl(opts?.baseUrl)
   const exchangeUrl = `${base}/api/v1/embed/${channelId}/exchange`
   return [
-    `// Node/Express — keep WEKNORA_PUBLISH_TOKEN only on the server (env var).`,
+    `// Node/Express — keep MUSUW_PUBLISH_TOKEN only on the server (env var).`,
     `app.get('/musuw/embed-token', async (req, res) => {`,
     `  // Only mint for logged-in visitors — e.g. session cookie or Bearer token.`,
     `  const auth = req.headers.authorization || ''`,
@@ -670,7 +705,7 @@ export function buildSecureServerNodeExample(channelId: string, opts?: { baseUrl
     `  const r = await fetch('${exchangeUrl}', {`,
     `    method: 'POST',`,
     `    headers: {`,
-    `      Authorization: 'Embed ' + process.env.WEKNORA_PUBLISH_TOKEN,`,
+    `      Authorization: 'Embed ' + process.env.MUSUW_PUBLISH_TOKEN,`,
     `      Origin: 'https://your-site.example.com', // must match channel allowed_origins`,
     `    },`,
     `  })`,
@@ -685,14 +720,14 @@ export function buildSecureServerGoExample(channelId: string, opts?: { baseUrl?:
   const base = safeBaseUrl(opts?.baseUrl)
   const exchangeUrl = `${base}/api/v1/embed/${channelId}/exchange`
   return [
-    `// Go net/http — keep WEKNORA_PUBLISH_TOKEN only on the server (env var).`,
+    `// Go net/http — keep MUSUW_PUBLISH_TOKEN only on the server (env var).`,
     `func embedTokenHandler(w http.ResponseWriter, r *http.Request) {`,
     `  if r.Header.Get("Authorization") == "" && r.Header.Get("Cookie") == "" {`,
     `    http.Error(w, \`{"error":"unauthorized"}\`, http.StatusUnauthorized)`,
     `    return`,
     `  }`,
     `  req, _ := http.NewRequest(http.MethodPost, "${exchangeUrl}", nil)`,
-    `  req.Header.Set("Authorization", "Embed "+os.Getenv("WEKNORA_PUBLISH_TOKEN"))`,
+    `  req.Header.Set("Authorization", "Embed "+os.Getenv("MUSUW_PUBLISH_TOKEN"))`,
     `  req.Header.Set("Origin", "https://your-site.example.com") // must match channel allowed_origins`,
     `  resp, err := http.DefaultClient.Do(req)`,
     `  if err != nil || resp.StatusCode >= 300 {`,

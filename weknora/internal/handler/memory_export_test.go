@@ -67,7 +67,7 @@ func TestMemoryExportPagesEveryStatusAndPreservesUnicode(t *testing.T) {
 	recorder := runMemoryExport(t, stub)
 
 	require.Equal(t, http.StatusOK, recorder.Code)
-	require.Equal(t, `attachment; filename="weknora-memories.json"`, recorder.Header().Get("Content-Disposition"))
+	require.Equal(t, `attachment; filename="musuw-memories.json"`, recorder.Header().Get("Content-Disposition"))
 	var payload struct {
 		Success   bool                `json:"success"`
 		Total     int64               `json:"total"`

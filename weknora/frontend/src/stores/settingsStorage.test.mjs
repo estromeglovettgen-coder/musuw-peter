@@ -4,7 +4,7 @@ import test from "node:test";
 import { runInThisContext } from "node:vm";
 import ts from "typescript";
 
-const SETTINGS_STORAGE_KEY = "WeKnora_settings";
+const SETTINGS_STORAGE_KEY = "Musuw_settings";
 const BUILTIN_QUICK_ANSWER_ID = "builtin-quick-answer";
 const BUILTIN_SMART_REASONING_ID = "builtin-smart-reasoning";
 const DEFAULT_CHAT_MODEL_ID = "builtin-deepseek-v4-flash";
@@ -18,6 +18,7 @@ const { outputText } = ts.transpileModule(settingsStorageSource, {
 const storageExports = {};
 runInThisContext(`(function(exports, require) {${outputText}\n})`)(storageExports, (name) => {
   if (name === "@/composables/preferenceStorage") return {
+    safeGetItem: (key) => localStorage.getItem(key),
     safeSetItem: (key, value) => localStorage.setItem(key, value),
     safeRemoveItem: (key) => localStorage.removeItem(key),
   };
@@ -25,7 +26,7 @@ runInThisContext(`(function(exports, require) {${outputText}\n})`)(storageExport
   if (name === "@/utils/managedChatModels") return { DEFAULT_CHAT_MODEL_ID };
   throw new Error(`Unexpected settings dependency: ${name}`);
 });
-const { cloneSettings, isStoredSettingsRecord, loadAndReconcileSettings } = storageExports;
+const { cloneSettings, isStoredSettingsRecord, loadAndReconcileSettings, saveStoredSettings } = storageExports;
 
 function makeDefaults() {
   return {
@@ -78,6 +79,24 @@ test("cloneSettings deep-clones nested structures", () => {
   assert.deepEqual(defaults.nested.items, ["a"]);
 });
 
+test("old settings migrate to Musuw without overriding an existing Musuw record", () => {
+  const store = installMockLocalStorage();
+  store.WeKnora_settings = JSON.stringify({ ...makeDefaults(), webSearchEnabled: true });
+  assert.equal(loadAndReconcileSettings(makeDefaults()).webSearchEnabled, true);
+  assert.equal(JSON.parse(store.Musuw_settings).webSearchEnabled, true);
+  store.Musuw_settings = JSON.stringify({ ...makeDefaults(), webSearchEnabled: false });
+  assert.equal(loadAndReconcileSettings(makeDefaults()).webSearchEnabled, false);
+});
+
+test("settings writes and identity resets update both cache names for older tabs", () => {
+  const store = installMockLocalStorage();
+  saveStoredSettings({ ...makeDefaults(), selectedAgentId: "prior-agent" });
+  assert.equal(store.Musuw_settings, store.WeKnora_settings);
+  saveStoredSettings(makeDefaults());
+  assert.equal(store.Musuw_settings, store.WeKnora_settings);
+  assert.equal(JSON.parse(store.WeKnora_settings).selectedAgentId, BUILTIN_SMART_REASONING_ID);
+});
+
 test("fresh settings use WeKnora main 81142df WebSearch default while keeping Musuw thinking", () => {
   const store = installMockLocalStorage();
   const defaults = makeDefaults();
@@ -94,12 +113,15 @@ test("fresh settings use WeKnora main 81142df WebSearch default while keeping Mu
 });
 
 test("corrupt/non-object storage resets to authority defaults", () => {
-  for (const raw of ["{broken", "null"]) {
+  for (const raw of ["{broken", "null", ""]) {
     const store = installMockLocalStorage();
     store[SETTINGS_STORAGE_KEY] = raw;
+    store.WeKnora_settings = JSON.stringify({ ...makeDefaults(), selectedAgentId: "prior-account-agent" });
     const loaded = loadAndReconcileSettings(makeDefaults());
     assert.equal(loaded.webSearchEnabled, false);
     assert.equal(loaded.conversationModels.thinkingEnabled, true);
+    assert.equal(store[SETTINGS_STORAGE_KEY], undefined);
+    assert.equal(store.WeKnora_settings, undefined);
   }
 });
 

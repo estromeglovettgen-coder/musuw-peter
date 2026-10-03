@@ -225,11 +225,27 @@ function asEmbedAttachments(value: unknown): EmbedAttachment[] | undefined {
   return Array.isArray(value) ? value as EmbedAttachment[] : undefined
 }
 
-const embedWebSearchStorageKey = () => `weknora-embed-web-search:${props.channelId}`
+const embedWebSearchStorageKey = () => `musuw-embed-web-search:${props.channelId}`
 
 const readStoredWebSearchEnabled = () => {
   if (typeof localStorage === 'undefined') return false
-  return localStorage.getItem(embedWebSearchStorageKey()) === '1'
+  try {
+    const key = embedWebSearchStorageKey()
+    const current = localStorage.getItem(key)
+    if (current !== null) return current === '1'
+    const legacyKey = `weknora-embed-web-search:${props.channelId}`
+    const legacy = localStorage.getItem(legacyKey)
+    if (legacy === null) return false
+    try {
+      localStorage.setItem(key, legacy)
+      localStorage.removeItem(legacyKey)
+    } catch {
+      // Keep the old preference for this page if migration cannot write.
+    }
+    return legacy === '1'
+  } catch {
+    return false
+  }
 }
 
 const webSearchEnabled = ref(readStoredWebSearchEnabled())

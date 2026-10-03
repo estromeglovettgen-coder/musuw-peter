@@ -54,7 +54,7 @@
         {{ $t('tenantMember.sectionDescription') }}
         <a
           class="doc-link"
-          href="https://github.com/estromeglovettgen-coder/musuw/blob/main/weknora/docs/RBAC%E8%AF%B4%E6%98%8E.md"
+          href="https://docs.musuw.com/faq/account"
           target="_blank"
           rel="noopener noreferrer"
         >

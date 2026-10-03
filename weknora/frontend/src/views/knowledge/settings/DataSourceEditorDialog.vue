@@ -503,7 +503,7 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     type: 'feishu',
     available: true,
     docUrl: 'https://open.feishu.cn/app',
-    permissionDocUrl: 'https://open.feishu.cn/document/server-docs/docs/wiki-v2/wiki-overview',
+    permissionDocUrl: 'https://docs.musuw.com/guides/knowledge-bases',
     permissionPageUrl: 'https://open.feishu.cn/app',
     requiredPermissions: [
       'wiki:wiki:readonly',
@@ -524,7 +524,7 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     type: 'lark',
     available: true,
     docUrl: 'https://open.larksuite.com/app',
-    permissionDocUrl: 'https://open.larksuite.com/document/server-docs/docs/wiki-v2/wiki-overview',
+    permissionDocUrl: 'https://docs.musuw.com/guides/knowledge-bases',
     permissionPageUrl: 'https://open.larksuite.com/app',
     requiredPermissions: [
       'wiki:wiki:readonly',
@@ -545,7 +545,7 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     type: 'feishu_drive',
     available: true,
     docUrl: 'https://open.feishu.cn/app',
-    permissionDocUrl: 'https://open.feishu.cn/document/server-docs/docs/drive-v1/file/list',
+    permissionDocUrl: 'https://docs.musuw.com/guides/knowledge-bases',
     permissionPageUrl: 'https://open.feishu.cn/app',
     requiredPermissions: [
       'drive:drive:readonly',
@@ -563,7 +563,7 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     type: 'lark_drive',
     available: true,
     docUrl: 'https://open.larksuite.com/app',
-    permissionDocUrl: 'https://open.larksuite.com/document/server-docs/docs/drive-v1/file/list',
+    permissionDocUrl: 'https://docs.musuw.com/guides/knowledge-bases',
     permissionPageUrl: 'https://open.larksuite.com/app',
     requiredPermissions: [
       'drive:drive:readonly',
@@ -591,7 +591,7 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     type: 'yuque',
     available: true,
     docUrl: 'https://www.yuque.com/yuque/developer/api',
-    permissionDocUrl: 'https://www.yuque.com/yuque/developer/api',
+    permissionDocUrl: 'https://docs.musuw.com/guides/knowledge-bases',
     permissionPageUrl: 'https://www.yuque.com/settings/tokens',
     requiredPermissions: [
       'repo:read',
@@ -608,7 +608,7 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     type: 'ima',
     available: true,
     docUrl: 'https://ima.qq.com/agent-interface',
-    permissionDocUrl: 'https://ima.qq.com/agent-interface',
+    permissionDocUrl: 'https://docs.musuw.com/guides/knowledge-bases',
     permissionPageUrl: 'https://ima.qq.com/agent-interface',
     requiredPermissions: [],
     fields: [
@@ -1401,7 +1401,7 @@ const drawerConfirmText = computed(() => {
           <t-icon name="info-circle-filled" class="inline-alert__icon" />
           <span class="inline-alert__text">{{ t('datasource.docHint') }}</span>
           <a
-            :href="currentDef.docUrl"
+            href="https://docs.musuw.com/guides/knowledge-bases"
             target="_blank"
             rel="noopener"
             class="inline-alert__action doc-link"

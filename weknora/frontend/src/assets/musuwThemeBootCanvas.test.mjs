@@ -1,13 +1,28 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import { runInNewContext } from 'node:vm'
 
 const index = readFileSync(new URL('../../index.html', import.meta.url), 'utf8')
 
 test('pre-paint theme resolves the active user namespace before the legacy fallback', () => {
   assert.match(index, /localStorage\.getItem\('weknora_user'\)/)
-  assert.match(index, /legacyThemeKey\.replace\('_theme',\s*'_'\s*\+\s*userId\s*\+\s*'_theme'\)/)
-  assert.match(index, /localStorage\.getItem\(userThemeKey\)\s*\|\|\s*localStorage\.getItem\(anonThemeKey\)\s*\|\|\s*localStorage\.getItem\(legacyThemeKey\)/)
+  const script = index.match(/<script>([\s\S]*?)<\/script>/)[1]
+  function boot(values, unavailable = false) {
+    let mode
+    runInNewContext(script, {
+      localStorage: { getItem: key => { if (unavailable) throw new Error('blocked'); return values[key] ?? null } },
+      window: { matchMedia: () => ({ matches: true }) },
+      document: { documentElement: { setAttribute: (_, value) => { mode = value }, style: {} }, body: { style: {} } },
+    })
+    return mode
+  }
+  const user = { weknora_user: JSON.stringify({ id: 17 }) }
+  assert.equal(boot({ ...user, Musuw_17_theme: 'dark', WeKnora_17_theme: 'light' }), 'dark')
+  assert.equal(boot({ ...user, WeKnora_17_theme: 'dark', Musuw_anon_theme: 'light' }), 'dark')
+  assert.equal(boot({ ...user, Musuw_23_theme: 'dark', WeKnora_23_theme: 'dark' }), 'light')
+  assert.equal(boot({ ...user, Musuw_17_theme: 'broken', WeKnora_17_theme: 'dark' }), 'light')
+  assert.equal(boot({}, true), 'light')
 })
 
 test('startup feedback uses the root theme without repainting the app canvas', () => {

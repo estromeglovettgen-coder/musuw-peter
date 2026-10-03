@@ -1,7 +1,7 @@
 /**
  * Shared localStorage utilities for per-user UI preferences (theme, fonts).
  *
- * Storage layout: WeKnora_${userId}_${suffix}, where userId is the active
+ * Storage layout: Musuw_${userId}_${suffix}, where userId is the active
  * user's id or "anon" before login. Read paths are intentionally narrow —
  * no cross-namespace fallbacks — so one user's preferences cannot bleed
  * into another user's session.
@@ -60,15 +60,22 @@ export function safeRemoveItem(key: string): void {
 }
 
 export function userKey(suffix: string): string {
-  return `WeKnora_${readUserId()}_${suffix}`
+  return `Musuw_${readUserId()}_${suffix}`
 }
 
 export function loadPreference(suffix: string): string | null {
-  return safeGetItem(userKey(suffix))
+  const key = userKey(suffix)
+  const current = safeGetItem(key)
+  if (current !== null) return current
+  const legacy = safeGetItem(`WeKnora_${readUserId()}_${suffix}`)
+  if (legacy !== null) safeSetItem(key, legacy)
+  return legacy
 }
 
 export function savePreference(suffix: string, value: string): void {
   safeSetItem(userKey(suffix), value)
+  // Keep older tabs and rollback builds able to read this user's preference.
+  safeSetItem(`WeKnora_${readUserId()}_${suffix}`, value)
 }
 
 let migratedForUser: string | null = null
@@ -83,31 +90,31 @@ export function migratePreferencesIntoUser(): void {
   const userId = readUserId()
   if (userId === 'anon') return
   if (migratedForUser === userId) return
-  migratedForUser = userId
+  let complete = true
 
   for (const suffix of PREFERENCE_SUFFIXES) {
-    const target = `WeKnora_${userId}_${suffix}`
-    const targetExists = safeGetItem(target) !== null
-
-    const anonKey = `WeKnora_anon_${suffix}`
-    const legacyKey = `WeKnora_${suffix}`
-
-    if (!targetExists) {
-      const anonValue = safeGetItem(anonKey)
-      if (anonValue !== null) {
-        safeSetItem(target, anonValue)
-      } else {
-        const legacyValue = safeGetItem(legacyKey)
-        if (legacyValue !== null) {
-          safeSetItem(target, legacyValue)
-        }
+    const target = `Musuw_${userId}_${suffix}`
+    const oldTarget = `WeKnora_${userId}_${suffix}`
+    const sourceKeys = [
+      `Musuw_anon_${suffix}`, `WeKnora_anon_${suffix}`,
+      `Musuw_${suffix}`, `WeKnora_${suffix}`,
+    ]
+    const value = safeGetItem(target) ?? safeGetItem(oldTarget)
+      ?? sourceKeys.map(safeGetItem).find(v => v !== null) ?? null
+    if (value !== null) {
+      safeSetItem(target, value)
+      // Do not discard the only copy when storage is full or disabled.
+      if (safeGetItem(target) !== value) {
+        complete = false
+        continue
       }
+      safeSetItem(oldTarget, value)
     }
 
     // Always clean up source keys so subsequent users cannot inherit them.
-    safeRemoveItem(anonKey)
-    safeRemoveItem(legacyKey)
+    for (const key of sourceKeys) safeRemoveItem(key)
   }
+  if (complete) migratedForUser = userId
 }
 
 /** Resets the per-session migration latch (used when the active user changes). */

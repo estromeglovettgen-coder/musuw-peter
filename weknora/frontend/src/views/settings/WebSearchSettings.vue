@@ -122,7 +122,7 @@
         <span>{{ selectedProviderType.name }}</span>
         <a
           v-if="selectedProviderType.docs_url"
-          :href="selectedProviderType.docs_url"
+          href="https://docs.musuw.com/guides/agents"
           target="_blank"
           rel="noopener noreferrer"
           class="doc-link doc-link--inline"

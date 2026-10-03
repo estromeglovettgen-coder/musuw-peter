@@ -682,23 +682,23 @@ const engineDescText = computed((): string => {
 const ENGINE_LINK_TABLE: Record<string, { console?: string; docs?: string }> = {
   cos: {
     console: 'https://console.cloud.tencent.com/cos',
-    docs: 'https://cloud.tencent.com/document/product/436',
+    docs: 'https://docs.musuw.com/guides/knowledge-bases',
   },
   tos: {
     console: 'https://console.volcengine.com/tos',
-    docs: 'https://www.volcengine.com/docs/6349',
+    docs: 'https://docs.musuw.com/guides/knowledge-bases',
   },
   s3: {
     console: 'https://aws.amazon.com/s3/',
-    docs: 'https://docs.aws.amazon.com/s3/',
+    docs: 'https://docs.musuw.com/guides/knowledge-bases',
   },
   oss: {
     console: 'https://oss.console.aliyun.com/',
-    docs: 'https://help.aliyun.com/zh/oss/',
+    docs: 'https://docs.musuw.com/guides/knowledge-bases',
   },
   obs: {
     console: 'https://obs.huaweicloud.com/',
-    docs: 'https://support.huaweicloud.com/obs/',
+    docs: 'https://docs.musuw.com/guides/knowledge-bases',
   },
 }
 

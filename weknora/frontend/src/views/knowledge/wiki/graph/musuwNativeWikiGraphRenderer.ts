@@ -61,7 +61,7 @@ interface WeknoraNativePanZoom {
 }
 
 /** Exact radius formula from the repository's original WikiBrowser graph. */
-export function weknoraNativeNodeRadius(linkCount: number): number {
+export function musuwNativeNodeRadius(linkCount: number): number {
   return Math.max(8, Math.min(24, 8 + Math.log(linkCount + 1) * 4))
 }
 
@@ -108,7 +108,7 @@ export function calculateWeknoraNativeFit(
  * this repository's HEAD. Rendering stays SVG-based and the layout constants,
  * event timing and force equations below are copied from that implementation.
  */
-export class WeknoraNativeWikiGraphRenderer implements WikiGraphRenderer {
+export class MusuwNativeWikiGraphRenderer implements WikiGraphRenderer {
   private request: WikiGraphRenderRequest | null = null
   private graphNodes: WeknoraNativeNode[] = []
   private graphSvg: SVGSVGElement | null = null
@@ -411,7 +411,7 @@ export class WeknoraNativeWikiGraphRenderer implements WikiGraphRenderer {
   ): WeknoraNativeNodeElement {
     const g = document.createElementNS(SVG_NS, 'g')
     g.style.cursor = 'pointer'
-    const radius = weknoraNativeNodeRadius(node.linkCount)
+    const radius = musuwNativeNodeRadius(node.linkCount)
     const visibleNeighbors = adjacency.get(node.slug)?.size ?? 0
     const hiddenNeighbors = Math.max(0, node.linkCount - visibleNeighbors)
     const isEgoCenter = graph.meta?.mode === 'ego' && graph.meta.center === node.slug
@@ -895,8 +895,8 @@ export class WeknoraNativeWikiGraphRenderer implements WikiGraphRenderer {
     const distance = Math.sqrt(dx * dx + dy * dy) || 1
     const ux = dx / distance
     const uy = dy / distance
-    const sourceRadius = weknoraNativeNodeRadius(source.linkCount) + 4
-    const targetRadius = weknoraNativeNodeRadius(target.linkCount) + 4
+    const sourceRadius = musuwNativeNodeRadius(source.linkCount) + 4
+    const targetRadius = musuwNativeNodeRadius(target.linkCount) + 4
     line.setAttribute('x1', String(source.x + ux * sourceRadius))
     line.setAttribute('y1', String(source.y + uy * sourceRadius))
     line.setAttribute('x2', String(target.x - ux * targetRadius))
@@ -914,7 +914,7 @@ export class WeknoraNativeWikiGraphRenderer implements WikiGraphRenderer {
     const hoverNeighbors = hoverSlug ? adjacency.get(hoverSlug) || new Set<string>() : new Set<string>()
 
     for (const { g, circle, activeRing, node } of nodeEls) {
-      const radius = weknoraNativeNodeRadius(node.linkCount)
+      const radius = musuwNativeNodeRadius(node.linkCount)
       if (node.slug === slug || (hoverSlug && node.slug === hoverSlug)) {
         circle.setAttribute('r', String(radius + 3))
         circle.setAttribute('stroke-width', '3')
@@ -971,7 +971,7 @@ export class WeknoraNativeWikiGraphRenderer implements WikiGraphRenderer {
     }
 
     for (const { g, circle, activeRing, node } of nodeEls) {
-      circle.setAttribute('r', String(weknoraNativeNodeRadius(node.linkCount)))
+      circle.setAttribute('r', String(musuwNativeNodeRadius(node.linkCount)))
       circle.setAttribute('stroke-width', '2')
       g.style.opacity = '1'
       activeRing.style.opacity = '0'

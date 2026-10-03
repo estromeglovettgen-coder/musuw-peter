@@ -37,3 +37,10 @@ abstractions. Broader untested capacity/integration scenarios are explicit limit
 - [x] 5.6 Consolidate review, final deployed verification, release/runbook/evidence and explicit unconfigured-provider limits; finish after acceptance closure.
 
 Final evidence: see `docs/PETER_SERVER_ACCEPTANCE.md`. App 20260929-04 and frontend 20260929-10; corrected native Docker recovery, full-host reboot, final browser feedback/navigation, typecheck/build and scoped tests passed. Larger-scale capacity and unconfigured integrations are explicit limits, not acceptance claims. Latest steering removes the previous minimum work window.
+
+## 6. Bounded brand and documentation follow-up (2026-10-03)
+
+- [x] 6.1 Remove the obsolete cloud provider from Peter's new-model choices and use Musuw for ordinary visible brand labels and memory download names.
+- [x] 6.2 Point product help/tutorial links to verified, existing official Musuw documentation pages; retain actual API endpoints, credential consoles, published packages, licenses and provenance.
+- [x] 6.3 Introduce Musuw preference/widget names while preserving legacy reading, identity/channel isolation, old iframe handshake and exact window/origin verification. Keep login/JWT/reserved environment contracts unchanged.
+- [x] 6.4 Run targeted contract/compatibility checks, typecheck/build and one consolidated review; deploy frontend 20261003-01 and the narrowly matched download-header correction, verify live artifact hashes, authenticated export and service health. Evidence and rollback are in `docs/PETER_SERVER_DELIVERY.md`.

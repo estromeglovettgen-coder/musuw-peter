@@ -57,7 +57,7 @@ test('marketplace entry selects its agent and KB atomically without a prior agen
   assert.equal(store.conversationModels.selectedChatModelId, 'builtin-deepseek-v4-flash');
   assert.equal(store.getConsumerSceneModel('rag'), 'builtin-deepseek-v4-flash');
   assert.equal(store._isApplyingSessionState, false);
-  assert.equal(JSON.parse(storage.get('WeKnora_settings')).marketplaceProductId, 'product-taylor');
+  assert.equal(JSON.parse(storage.get('Musuw_settings')).marketplaceProductId, 'product-taylor');
   stop();
 });
 
@@ -79,7 +79,7 @@ test('marketplace context follows the conversation and clears when the user choo
 
 test('restored model/depth and later metadata repair remain inside the conversation snapshot', async () => {
   const { store, storage } = setup();
-  const saved = storage.get('WeKnora_settings');
+  const saved = storage.get('Musuw_settings');
   store.snapshotAsDefaultsIfNeeded();
   store.applyLastRequestState({ agent_id: 'builtin-smart-reasoning', model_id: 'gpt', reasoning_effort: 'medium' });
   assert.equal(store.conversationModels.selectedChatModelId, 'gpt');
@@ -88,7 +88,7 @@ test('restored model/depth and later metadata repair remain inside the conversat
   await nextTick();
   // A catalog can arrive after the synchronous hydration guard has ended.
   store.updateConversationModels({ reasoningEffort: 'low', reasoningModelId: 'gpt', thinkingEnabled: true });
-  assert.equal(storage.get('WeKnora_settings'), saved);
+  assert.equal(storage.get('Musuw_settings'), saved);
   store.restoreDefaultsIfSnapshotted();
   assert.equal(store.conversationModels.selectedChatModelId, 'grok');
   assert.equal(store.conversationModels.reasoningEffort, 'high');
@@ -103,7 +103,7 @@ test('fresh conversations default to fifty agent iterations', () => {
 
 test('saved conversation iteration preferences remain explicit after the default changes', () => {
   const { store, storage } = setup();
-  storage.set('WeKnora_settings', JSON.stringify({
+  storage.set('Musuw_settings', JSON.stringify({
     ...store.settings,
     agentConfig: { ...store.agentConfig, maxIterations: 10 },
   }));
@@ -125,7 +125,7 @@ test('homepage model and manual depth choices still persist normally', () => {
   const { store, storage } = setup();
   store.updateConsumerSceneModel('rag', 'qwen');
   store.updateConversationModels({ selectedChatModelId: 'qwen', reasoningEffort: 'high', reasoningModelId: 'qwen' });
-  const saved = JSON.parse(storage.get('WeKnora_settings')).conversationModels;
+  const saved = JSON.parse(storage.get('Musuw_settings')).conversationModels;
   assert.equal(saved.selectedChatModelId, 'qwen');
   assert.equal(saved.reasoningEffort, 'high');
   assert.equal(saved.reasoningModelId, 'qwen');
@@ -147,7 +147,7 @@ test('explicit scene settings still update browser defaults while viewing histor
   store.snapshotAsDefaultsIfNeeded();
   store.applyLastRequestState({ model_id: 'gpt', reasoning_effort: 'medium' });
   store.updateConsumerSceneModel('rag', 'kimi');
-  const saved = JSON.parse(storage.get('WeKnora_settings')).conversationModels;
+  const saved = JSON.parse(storage.get('Musuw_settings')).conversationModels;
   assert.equal(saved.consumerSceneModelIds.rag, 'kimi');
   assert.equal(saved.selectedChatModelId, 'grok');
   assert.equal(saved.reasoningEffort, 'high');

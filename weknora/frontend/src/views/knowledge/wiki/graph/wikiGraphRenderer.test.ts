@@ -77,12 +77,12 @@ function fakeRenderer(name: string, calls: string[]): WikiGraphRenderer {
   }
 }
 
-test('exposes WeKnora native beside the four imported graph engines', () => {
+test('exposes Musuw native beside the four imported graph engines', () => {
   assert.deepEqual(
     GRAPH_RENDERER_MODES.map(({ id, label }) => ({ id, label })),
     [
       { id: 'obsidian', label: 'Obsidian 原生' },
-      { id: 'weknora', label: 'WeKnora 原生' },
+      { id: 'weknora', label: 'Musuw 原生' },
       { id: 'three', label: 'Obsidian 3D' },
       { id: 'sigma', label: 'Sigma.js' },
       { id: 'g6', label: 'AntV G6' },

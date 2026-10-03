@@ -39,9 +39,21 @@
     if(parsedUser&&parsedUser.id)userId=String(parsedUser.id);
   }catch(_){}
   var legacyThemeKey='WeKnora_theme';
-  var userThemeKey=legacyThemeKey.replace('_theme','_'+userId+'_theme');
-  var anonThemeKey=legacyThemeKey.replace('_theme','_anon_theme');
-  var t=localStorage.getItem(userThemeKey)||localStorage.getItem(anonThemeKey)||localStorage.getItem(legacyThemeKey)||'light';
+  var themeKey='Musuw_theme';
+  var userThemeKey=themeKey.replace('_theme','_'+userId+'_theme');
+  var themeKeys=[userThemeKey,legacyThemeKey.replace('_theme','_'+userId+'_theme'),
+    themeKey.replace('_theme','_anon_theme'),legacyThemeKey.replace('_theme','_anon_theme'),
+    themeKey,legacyThemeKey];
+  var t='light';
+  try{
+    for(var i=0;i<themeKeys.length;i++){
+      var savedTheme=localStorage.getItem(themeKeys[i]);
+      if(savedTheme!==null){
+        if(savedTheme==='light'||savedTheme==='dark'||savedTheme==='system')t=savedTheme;
+        break;
+      }
+    }
+  }catch(_){}
   if(t==='system')t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
   document.documentElement.setAttribute('theme-mode',t);
   /* 与 theme.css 的 --musuw-canvas 完全一致，避免 CSS 接管时发生首屏跳色。 */
