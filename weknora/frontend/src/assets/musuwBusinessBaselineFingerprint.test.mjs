@@ -37,7 +37,7 @@ const CREATOR_MARKETPLACE_CHANGE = 'creator-marketplace-subscriptions'
 
 const LOCKED_BUSINESS_BLOBS = {
   './business-baselines/ChatIndex.pre-view.vue': '5cf5274325a8fc8ee502974dd7602967a62d01fa',
-  './business-baselines/Input-field.pre-view.vue': 'c7d978fcd14fa7cfee893dcfaeac7a4ee1912f03',
+  './business-baselines/Input-field.pre-view.vue': '48ee2472e0d9863ac5b96841aea7d05ebc6d869b',
   './business-baselines/KnowledgeBase.pre-view.vue': 'bed8327060469d2174ac0c2624eb8fa74a9bed1d',
   './business-baselines/KnowledgeBaseList.pre-view.vue': '42d4ed67cb5f4c8fd145d67f119e4a95bf88c45e',
   './business-baselines/manual-knowledge-editor.pre-view.vue': '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e',
@@ -57,6 +57,7 @@ const INTENTIONAL_BEHAVIOR_EVOLUTION = {
     commit: NATIVE_MULTI_MODEL_RESTORE_COMMIT,
     change: `${NATIVE_AGENT_MCP_EXPOSURE_CHANGE}+${MODEL_REASONING_DEFAULT_CHANGE}+${CREATOR_MARKETPLACE_CHANGE}`,
     resultingBlob: LOCKED_BUSINESS_BLOBS['./business-baselines/Input-field.pre-view.vue'],
+    // Peter UI repair: restore file titles/end loading and dismiss @ outside its popup.
     authority: 'WeKnora main 81142df native multi-model, tenant Agent selection, and MCP catalog flow constrained by server-authoritative consumer scene and Lite route policy; explicit user-requested minimum enabled reasoning defaults with model-scoped saved depth; approved marketplace delivery uses a separate safe agent/KB projection, preserves the homepage draft while consuming its route parameter, and relies on server-authorized product readiness; explicit marketplace entry supersedes restored product selection and blocks sends until the current entry resolves; approved consumer owned/subscribed agents use the buyer membership model catalog and runtime model for readiness, preserving explicit model/depth against source defaults while Standard native/shared source-model behavior remains unchanged',
   },
   chatParent: {

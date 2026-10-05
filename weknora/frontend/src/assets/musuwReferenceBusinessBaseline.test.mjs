@@ -11,7 +11,7 @@ const scriptOf = (path) => read(path).match(/<script setup(?: lang="ts")?>([\s\S
 
 // creator-marketplace-subscriptions: consumer agent models/readiness follow the buyer membership catalog; source defaults cannot override explicit selection.
 const frozen = new Map([
-  ['./business-baselines/Input-field.pre-view.vue', 'c7d978fcd14fa7cfee893dcfaeac7a4ee1912f03'],
+  ['./business-baselines/Input-field.pre-view.vue', '48ee2472e0d9863ac5b96841aea7d05ebc6d869b'],
   ['./business-baselines/KnowledgeBase.pre-view.vue', 'bed8327060469d2174ac0c2624eb8fa74a9bed1d'],
   ['./business-baselines/manual-knowledge-editor.pre-view.vue', '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e'],
   // creator-marketplace-subscriptions: approved message-scoped snippets-only drawer and hover behavior.

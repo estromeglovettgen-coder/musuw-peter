@@ -671,6 +671,7 @@ const selectedSkillNames = computed(() => settingsStore.settings.selectedSkills 
 // 已就绪的知识库（来自空间级缓存）
 const knowledgeBases = computed(() => chatResources.validKnowledgeBases);
 const fileList = ref<Array<{ id: string; name: string }>>([]);
+const fileLoadStates = ref<Record<string, "loading" | "missing" | "failed">>({});
 
 // 选中的知识库：包含自己的 + 组织共享的 + 共享智能体下的（用于展示已选列表与 org 角标）
 const selectedKbs = computed(() => {
@@ -715,11 +716,14 @@ const selectedKbs = computed(() => {
 });
 
 const selectedFiles = computed(() => {
-  // If we have file details in fileList, use them.
-  // Otherwise we might show ID or Loading...
   return selectedFileIds.value.map((id: string) => {
     const found = fileList.value.find((f) => f.id === id);
-    return found || { id, name: "Loading..." };
+    if (found) return found;
+    const status = fileLoadStates.value[id];
+    const name = status === "missing"
+      ? t("agent.artifactDrawer.inlineMissing")
+      : status === "failed" ? t("chat.citation.loadFailed") : t("common.loading");
+    return { id, name };
   });
 });
 
@@ -958,53 +962,51 @@ const loadKnowledgeBases = async (force = false) => {
 };
 
 const loadFiles = async () => {
-  const ids = selectedFileIds.value;
-  if (ids.length === 0) return;
-
-  const missingIds = ids.filter((id: string) => !fileList.value.find((f) => f.id === id));
+  const missingIds = selectedFileIds.value.filter((id: string) =>
+    !fileList.value.some((file) => file.id === id) && fileLoadStates.value[id] !== "loading",
+  );
   if (missingIds.length === 0) return;
 
-  try {
-    // 按 kb_id 分组：共享知识库下的文档需带 kb_id 才能正确查询
-    const byKbId = new Map<string, string[]>();
-    const noKbId: string[] = [];
-    missingIds.forEach((id: string) => {
-      const kbId = fileIdToKbId.value[id];
-      if (kbId) {
-        if (!byKbId.has(kbId)) byKbId.set(kbId, []);
-        byKbId.get(kbId)!.push(id);
-      } else {
-        noKbId.push(id);
-      }
-    });
+  // The immediate watcher runs before onMounted, so read persisted scope here too.
+  const byKbId = new Map<string, string[]>();
+  missingIds.forEach((id: string) => {
+    fileLoadStates.value[id] = "loading";
+    const kbId = fileIdToKbId.value[id] || settingsStore.settings.selectedFileKbMap?.[id] || "";
+    if (!byKbId.has(kbId)) byKbId.set(kbId, []);
+    byKbId.get(kbId)!.push(id);
+  });
 
-    const allNewFiles: Array<{ id: string; name: string }> = [];
-    const agentIdForBatch = settingsStore.selectedAgentSourceTenantId
-      ? settingsStore.selectedAgentId
-      : undefined;
-    const runBatch = async (batchIds: string[], kbId?: string, agentId?: string) => {
+  const agentIdForBatch = settingsStore.selectedAgentSourceTenantId
+    ? settingsStore.selectedAgentId
+    : undefined;
+  for (const [kbId, batchIds] of byKbId) {
+    try {
       const query = new URLSearchParams();
       batchIds.forEach((id: string) => query.append("ids", id));
-      const sourceTenantId = agentId
-        ? (settingsStore.selectedAgentSourceTenantId ?? undefined)
-        : undefined;
-      const res: any = await batchQueryKnowledge(query.toString(), kbId, agentId, sourceTenantId);
-      if (res.data && Array.isArray(res.data)) {
-        res.data.forEach((f: any) => allNewFiles.push({ id: f.id, name: f.title || f.file_name }));
+      const agentId = kbId ? undefined : agentIdForBatch;
+      const sourceTenantId = agentId ? (settingsStore.selectedAgentSourceTenantId ?? undefined) : undefined;
+      const res: any = await batchQueryKnowledge(query.toString(), kbId || undefined, agentId, sourceTenantId);
+      if (res.success === false || (res.data != null && !Array.isArray(res.data))) {
+        throw new Error("Invalid file details response");
       }
-    };
-
-    for (const [kbId, batchIds] of byKbId) {
-      await runBatch(batchIds, kbId);
+      const files = new Map<string, any>((res.data || []).map((file: any) => [file.id, file]));
+      for (const id of batchIds) {
+        const file = files.get(id);
+        if (!file) {
+          fileLoadStates.value[id] = "missing";
+          continue;
+        }
+        const name = file.title || file.file_name || t("knowledgeBase.untitledDocument");
+        const cached = fileList.value.find((entry) => entry.id === id);
+        if (cached) cached.name = name;
+        else fileList.value.push({ id, name });
+        delete fileLoadStates.value[id];
+      }
+    } catch (error: any) {
+      const status = error?.status === 403 || error?.status === 404 ? "missing" : "failed";
+      batchIds.forEach((id: string) => { fileLoadStates.value[id] = status; });
+      console.error("Failed to load files", error);
     }
-    if (noKbId.length > 0) {
-      await runBatch(noKbId, undefined, agentIdForBatch);
-    }
-    if (allNewFiles.length > 0) {
-      fileList.value = [...fileList.value, ...allNewFiles];
-    }
-  } catch (e) {
-    console.error("Failed to load files", e);
   }
 };
 
@@ -1018,9 +1020,9 @@ const loadMCPServices = async () => {
 };
 
 watch(
-  selectedFileIds,
+  () => [...selectedFileIds.value],
   () => {
-    loadFiles();
+    void loadFiles();
   },
   { immediate: true },
 );
@@ -1957,15 +1959,17 @@ const onMentionSelect = (item: any) => {
     }
     settingsStore.addKnowledgeBase(item.id);
   } else if (item.type === "file") {
-    settingsStore.addFile(item.id);
     if (item.kbId) {
       fileIdToKbId.value[item.id] = item.kbId;
       settingsStore.setFileKbMap({ [item.id]: item.kbId });
     }
-    // Add to local cache immediately
-    if (!fileList.value.find((f) => f.id === item.id)) {
-      fileList.value.push({ id: item.id, name: item.name });
-    }
+    // Preserve the selected title before changing the watched IDs, including re-selection.
+    const cached = fileList.value.find((file) => file.id === item.id);
+    const name = item.name || t("knowledgeBase.untitledDocument");
+    if (cached) cached.name = name;
+    else fileList.value.push({ id: item.id, name });
+    delete fileLoadStates.value[item.id];
+    settingsStore.addFile(item.id);
   } else if (item.type === "tag") {
     if (item.kbId) {
       settingsStore.addTag({ id: item.id, name: item.name, kbId: item.kbId, kbName: item.kbName });
@@ -2039,9 +2043,14 @@ const closeModelSelector = () => {
 };
 
 const closeMentionSelector = (e: MouseEvent) => {
+  if (!showMention.value) return;
   const target = e.target as HTMLElement;
-  // 如果点击的是输入框区域，不关闭 Mention 列表（由光标逻辑控制）
-  if (target.closest(".rich-input-container")) {
+  // Only the menu, its detail popup and the @ trigger are inside the selector.
+  // Capture pointer events so the composer's click.stop does not swallow dismissal.
+  if (
+    atButtonRef.value?.contains(target) ||
+    target?.closest?.(".visual-mention-menu, .visual-mention-detail-popup")
+  ) {
     return;
   }
   showMention.value = false;
@@ -2094,7 +2103,7 @@ onMounted(() => {
 
   // 监听点击外部关闭下拉菜单
   document.addEventListener("click", closeModelSelector);
-  document.addEventListener("click", closeMentionSelector);
+  document.addEventListener("pointerdown", closeMentionSelector, true);
 
   // 监听窗口大小变化和滚动，重新计算位置
   resizeHandler = () => {
@@ -2115,7 +2124,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener(CHAT_FILE_DROP_EVENT, handleChatFileDrop as EventListener);
   document.removeEventListener("click", closeModelSelector);
-  document.removeEventListener("click", closeMentionSelector);
+  document.removeEventListener("pointerdown", closeMentionSelector, true);
   if (resizeHandler) {
     window.removeEventListener("resize", resizeHandler);
   }

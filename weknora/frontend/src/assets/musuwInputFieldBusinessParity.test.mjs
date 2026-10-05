@@ -11,7 +11,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 // creator-marketplace-subscriptions: approved membership model freedom and runtime readiness for owned/subscribed agents.
 test('audited Input-field controller remains locked after marketplace delivery, model freedom and draft preservation', () => {
   const controller = read('./business-baselines/Input-field.pre-view.vue')
-  assert.equal(blobSha(controller), 'c7d978fcd14fa7cfee893dcfaeac7a4ee1912f03')
+  assert.equal(blobSha(controller), '48ee2472e0d9863ac5b96841aea7d05ebc6d869b')
 })
 
 test('rebuilt Input-field reuses the frozen component options and replaces only its active View', () => {
