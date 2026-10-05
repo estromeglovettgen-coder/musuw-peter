@@ -35,6 +35,24 @@ type tikHubWorkerRepoStub struct {
 	claimErr             error
 }
 
+func TestSocialVideoUploadRespectsProductEdition(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		edition string
+		plan    types.ConsumerPlan
+		allowed bool
+	}{
+		{"standard free tenant", "standard", types.ConsumerPlanFree, true},
+		{"lite free tenant", "lite", types.ConsumerPlanFree, false},
+		{"lite paid tenant", "lite", types.ConsumerPlanPlus, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("MUSUW_PRODUCT_EDITION", tc.edition)
+			require.Equal(t, tc.allowed, socialVideoUploadAllowed(contextWithConsumerPlan(11, tc.plan)))
+		})
+	}
+}
+
 func (r *tikHubWorkerRepoStub) UpdateKnowledge(_ context.Context, knowledge *types.Knowledge) error {
 	r.updates++
 	if knowledge != nil {
@@ -366,7 +384,7 @@ func TestPrepareTikHubArtifactAllowsDouyinPhotoOnFreePlanWithoutVLM(t *testing.T
 	t.Parallel()
 
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/v1/douyin/app/v3/fetch_one_video_by_share_url", r.URL.Path)
+		require.Equal(t, "/api/v1/douyin/web/fetch_one_video_by_share_url", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"code":200,"data":{"desc":"抖音图文","images":[{"url_list":["https://images.example/photo.jpg"]}]}}`)
 	}))
@@ -400,7 +418,7 @@ func TestPrepareTikHubArtifactFailsWhenProviderImageCannotBeStored(t *testing.T)
 	t.Parallel()
 
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/v1/douyin/app/v3/fetch_one_video_by_share_url", r.URL.Path)
+		require.Equal(t, "/api/v1/douyin/web/fetch_one_video_by_share_url", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"code":200,"data":{"desc":"正文仍应入库","images":[{"url_list":["https://127.0.0.1/unreachable.jpg"]}]}}`)
 	}))

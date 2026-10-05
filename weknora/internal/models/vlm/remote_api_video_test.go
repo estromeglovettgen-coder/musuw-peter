@@ -246,6 +246,36 @@ func TestRemoteAPIVLMPredictVideoReportsFinishReason(t *testing.T) {
 	}
 }
 
+func TestRemoteAPIVLMPredictVideoRejectsIncompleteNonEmptyOutput(t *testing.T) {
+	for _, finishReason := range []string{"length", "content_filter", "stop"} {
+		t.Run(finishReason, func(t *testing.T) {
+			const content = "# Video timeline\n00:00 A partial description."
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				calls++
+				w.Header().Set("Content-Type", "application/json")
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+					"choices": []any{map[string]any{"finish_reason": finishReason, "message": map[string]any{"content": content}}},
+				}))
+			}))
+			defer server.Close()
+			withVLMSSRFWhitelist(t, "127.0.0.1")
+			model, err := NewRemoteAPIVLM(&Config{BaseURL: server.URL, ModelName: "qwen/qwen3.8-flash", Provider: "openrouter", Extra: map[string]any{"video_input_mode": VideoInputModeURL}})
+			require.NoError(t, err)
+			got, err := model.PredictVideoURL(context.Background(), "https://objects.example.test/video.mp4", "video/mp4", "Describe it")
+			require.Equal(t, 1, calls)
+			if finishReason == "stop" {
+				require.NoError(t, err)
+				require.Equal(t, content, got)
+			} else {
+				require.ErrorContains(t, err, "finish_reason="+finishReason)
+				require.Empty(t, got, "incomplete content must not reach the durable Markdown checkpoint")
+				require.False(t, IsRetryableVideoError(err), "the same token limit must not trigger another paid attempt")
+			}
+		})
+	}
+}
+
 func TestRemoteAPIVLMPredictVideoReportsNoChoices(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

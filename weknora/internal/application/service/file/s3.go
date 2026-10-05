@@ -58,7 +58,11 @@ func newS3Client(endpoint, accessKey, secretKey, bucketName, region, pathPrefix 
 	// Create S3 client with custom endpoint if provided.
 	// For S3-compatible services (non-AWS), use path-style addressing
 	// (endpoint/bucket/key) instead of virtual-hosted style (bucket.endpoint/key).
-	httpClient := utils.NewSSRFSafeHTTPClient(utils.DefaultSSRFSafeHTTPClientConfig())
+	// Concurrent 8 MiB multipart uploads can exceed 30 seconds on slow uplinks.
+	// Connectivity probes keep their own shorter context deadline below.
+	httpConfig := utils.DefaultSSRFSafeHTTPClientConfig()
+	httpConfig.Timeout = 2 * time.Minute
+	httpClient := utils.NewSSRFSafeHTTPClient(httpConfig)
 	var client *s3.Client
 	if endpoint != "" {
 		usePathStyle := forcePathStyle || !strings.Contains(endpoint, "amazonaws.com")
@@ -213,6 +217,12 @@ func (s *s3FileService) parseS3FilePath(filePath string) (string, error) {
 	}
 	if err := utils.SafeObjectKey(parts[1]); err != nil {
 		return "", fmt.Errorf("invalid file path: %w", err)
+	}
+	// A configured prefix is also the backend's read/delete/signing boundary,
+	// not just its upload layout. Shared buckets may contain another deployment
+	// with the same tenant number; its paths must not be accessible here.
+	if s.pathPrefix != "" && !strings.HasPrefix(parts[1], s.pathPrefix) {
+		return "", fmt.Errorf("S3 object is outside the storage backend prefix")
 	}
 	return parts[1], nil
 }

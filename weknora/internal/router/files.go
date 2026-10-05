@@ -194,6 +194,15 @@ func resolveTenantFileServiceWithFallback(
 // cache policy, then the body (skipped for HEAD). Closes reader.
 func streamStoredFile(c *gin.Context, reader io.ReadCloser, contentType string, inline bool, cacheControl, logTag string) {
 	defer reader.Close()
+	// Local video URLs require an explicit length for multimodal providers.
+	// Stat and querying the current offset do not consume or reposition the file.
+	if file, ok := reader.(*os.File); ok {
+		if info, err := file.Stat(); err == nil && info.Mode().IsRegular() {
+			if position, err := file.Seek(0, io.SeekCurrent); err == nil {
+				c.Header("Content-Length", strconv.FormatInt(max(0, info.Size()-position), 10))
+			}
+		}
+	}
 	c.Header("Content-Type", contentType)
 	c.Header("X-Content-Type-Options", "nosniff")
 	if !inline {

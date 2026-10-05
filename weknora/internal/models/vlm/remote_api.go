@@ -512,10 +512,18 @@ func (v *RemoteAPIVLM) predictOpenRouterVideoPayload(
 	return content, nil
 }
 
-// videoCompletionText classifies syntactically valid but empty responses as
-// transient, except when the provider explicitly reports a permanent stop such
-// as content filtering or token truncation.
+// videoCompletionText rejects truncated or filtered output even when it has
+// text. Empty successful responses remain transient; repeating a permanent
+// stop with the same model and token limit cannot recover the complete video.
 func videoCompletionText(resp openai.ChatCompletionResponse, operation string) (string, error) {
+	if len(resp.Choices) > 0 {
+		switch strings.TrimSpace(string(resp.Choices[0].FinishReason)) {
+		case string(openai.FinishReasonLength):
+			return "", permanentVideoError(fmt.Errorf("%s response incomplete (finish_reason=length; completion truncated at %d tokens)", operation, defaultMaxToks))
+		case string(openai.FinishReasonContentFilter):
+			return "", permanentVideoError(fmt.Errorf("%s response incomplete (finish_reason=content_filter)", operation))
+		}
+	}
 	content, err := completionText(resp, operation)
 	if err == nil {
 		return content, nil
@@ -524,9 +532,6 @@ func videoCompletionText(resp openai.ChatCompletionResponse, operation string) (
 		return "", RetryableVideoError(err)
 	}
 	choice := resp.Choices[0]
-	if strings.TrimSpace(choice.Message.Content) != "" {
-		return choice.Message.Content, nil
-	}
 	finishReason := strings.TrimSpace(string(choice.FinishReason))
 	switch finishReason {
 	case "", string(openai.FinishReasonNull), string(openai.FinishReasonStop):

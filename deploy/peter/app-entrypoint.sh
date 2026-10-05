@@ -23,4 +23,14 @@ case "$neo4j_auth" in
 esac
 unset neo4j_auth
 
+if [[ ! -r /run/secrets/tikhub_api_key ]]; then
+    printf '%s\n' 'required social import secret is unavailable' >&2
+    exit 1
+fi
+export TIKHUB_API_KEY="$(tr -d '\r\n' < /run/secrets/tikhub_api_key)"
+if [[ -z "$TIKHUB_API_KEY" ]]; then
+    printf '%s\n' 'social import secret is empty' >&2
+    exit 1
+fi
+
 exec /app/scripts/docker-entrypoint.sh "$@"

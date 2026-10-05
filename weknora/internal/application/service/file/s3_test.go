@@ -2,6 +2,7 @@ package file
 
 import (
 	"context"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -203,5 +204,58 @@ func TestParseS3FilePath(t *testing.T) {
 				t.Errorf("parseS3FilePath(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestS3BackendPrefixRejectsOtherDeploymentPaths(t *testing.T) {
+	// A nil client ensures every operation rejects outside paths before I/O.
+	svc := &s3FileService{bucketName: "shared-bucket", pathPrefix: "peter/server/"}
+	for _, path := range []string{
+		"s3://shared-bucket/musuw/10000/exports/video.mp4",
+		"s3://shared-bucket/peter/server-other/10000/exports/video.mp4",
+	} {
+		t.Run(path, func(t *testing.T) {
+			if got, err := svc.parseS3FilePath(path); err == nil || got != "" {
+				t.Fatal("outside-prefix path must not parse")
+			}
+			if got, err := svc.GetFile(context.Background(), path); err == nil || got != nil {
+				t.Fatal("outside-prefix path must not be read")
+			}
+			if err := svc.DeleteFile(context.Background(), path); err == nil {
+				t.Fatal("outside-prefix path must not be deleted")
+			}
+			if got, err := svc.CopyFile(context.Background(), path, 10000, "knowledge"); err == nil || got != "" {
+				t.Fatal("outside-prefix path must not be copied")
+			}
+			if got, err := svc.GetFileURL(context.Background(), path); err == nil || got != "" {
+				t.Fatal("outside-prefix path must not be signed")
+			}
+		})
+	}
+}
+
+func TestS3BackendPrefixAllowsOwnedPathsAndLegacyUnprefixedBackend(t *testing.T) {
+	svc, err := newS3Client("", "ak", "sk", "shared-bucket", "us-east-1", "peter/server", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const key = "peter/server/10000/exports/video.mp4"
+	path := "s3://shared-bucket/" + key
+	if got, err := svc.parseS3FilePath(path); err != nil || got != key {
+		t.Fatal("owned-prefix path must remain accessible")
+	}
+	// AWS SDK signing with static credentials is local and makes no request.
+	signed, err := svc.GetFileURL(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(signed)
+	if err != nil || parsed.Path != "/"+key || parsed.Query().Get("X-Amz-Signature") == "" {
+		t.Fatal("owned-prefix path must receive a valid download signature")
+	}
+	legacy := &s3FileService{bucketName: "shared-bucket"}
+	const legacyKey = "musuw/10000/exports/video.mp4"
+	if got, err := legacy.parseS3FilePath("s3://shared-bucket/" + legacyKey); err != nil || got != legacyKey {
+		t.Fatal("backend without a configured prefix must preserve legacy paths")
 	}
 }

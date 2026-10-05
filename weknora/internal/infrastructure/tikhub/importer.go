@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -37,6 +38,7 @@ var (
 	ErrMissingAPIKey       = errors.New("TIKHUB_API_KEY is not configured")
 	ErrMissingRouteValue   = errors.New("TikHub route is missing its required value")
 	ErrUnsupportedPlatform = errors.New("TikHub route uses an unsupported platform")
+	errEmptyProviderData   = errors.New("TikHub returned empty data")
 )
 
 type ResultKind string
@@ -53,10 +55,16 @@ type Result struct {
 	Title       string     `json:"title,omitempty"`
 	Description string     `json:"description,omitempty"`
 	MediaURL    string     `json:"media_url,omitempty"`
-	FileName    string     `json:"file_name,omitempty"`
-	FileType    string     `json:"file_type,omitempty"`
-	Markdown    string     `json:"markdown,omitempty"`
-	ImageURLs   []string   `json:"image_urls,omitempty"`
+	// MediaURLs are equivalent addresses for the selected Douyin rendition.
+	// The first entry remains MediaURL; no alternate codec or quality is added.
+	MediaURLs []string `json:"media_urls,omitempty"`
+	// MediaSizeBytes is the provider-reported size of this exact rendition.
+	// Zero means unknown; it must not be borrowed from another video/quality.
+	MediaSizeBytes int64    `json:"media_size_bytes,omitempty"`
+	FileName       string   `json:"file_name,omitempty"`
+	FileType       string   `json:"file_type,omitempty"`
+	Markdown       string   `json:"markdown,omitempty"`
+	ImageURLs      []string `json:"image_urls,omitempty"`
 }
 
 // TikHubImporter is deliberately concrete and small: fixed provider host,
@@ -88,8 +96,8 @@ func NewTikHubImporterForTest(baseURL, apiKey string, client *http.Client) *TikH
 	}
 }
 
-// Fetch makes one billed request, except for provider-documented conditional
-// fallbacks: Douyin App filter reason 8 to Web, and Xiaohongshu image to video
+// Fetch makes one billed request, except for bounded conditional
+// fallbacks: Douyin Web HTTP 400 or missing content to App, and Xiaohongshu image to video
 // when the first response identifies a video note.
 func (i *TikHubImporter) Fetch(ctx context.Context, route Route) (Result, error) {
 	if i == nil || i.client == nil {
@@ -107,17 +115,26 @@ func (i *TikHubImporter) Fetch(ctx context.Context, route Route) (Result, error)
 		}
 		endpoint := tiktokSharePath
 		if route.Platform == PlatformDouyin {
-			endpoint = douyinSharePath
+			// Prefer Web's full H.264 source; App addresses can be slow and large.
+			endpoint = douyinWebSharePath
 		}
 		data, err := i.get(ctx, endpoint, url.Values{"share_url": {input}})
 		if err != nil {
-			return Result{}, err
+			var statusErr *HTTPStatusError
+			if route.Platform != PlatformDouyin || (!errors.Is(err, errEmptyProviderData) &&
+				(!errors.As(err, &statusErr) || statusErr.StatusCode != http.StatusBadRequest)) {
+				return Result{}, err
+			}
+		} else {
+			result, normalizeErr := normalizeWork(route.Platform, route.ObjectID, data, true)
+			if normalizeErr == nil || route.Platform != PlatformDouyin || douyinResponseBlocksFallback(data) {
+				return result, normalizeErr
+			}
 		}
-		result, normalizeErr := normalizeWork(route.Platform, route.ObjectID, data, true)
-		if normalizeErr == nil || route.Platform != PlatformDouyin || !douyinAppRequiresWebFallback(data) {
-			return result, normalizeErr
-		}
-		data, err = i.get(ctx, douyinWebSharePath, url.Values{"share_url": {input}})
+		// Try the same work through App once when Web has no usable content.
+		// Authentication, credits, rate limits and transport errors never reach
+		// this fallback, and an App failure does not recurse back to Web.
+		data, err = i.get(ctx, douyinSharePath, url.Values{"share_url": {input}})
 		if err != nil {
 			return Result{}, err
 		}
@@ -179,7 +196,7 @@ func (i *TikHubImporter) Fetch(ctx context.Context, route Route) (Result, error)
 	}
 }
 
-func douyinAppRequiresWebFallback(data any) bool {
+func douyinResponseBlocksFallback(data any) bool {
 	object, ok := data.(map[string]any)
 	if !ok {
 		return false
@@ -194,7 +211,9 @@ func douyinAppRequiresWebFallback(data any) bool {
 			continue
 		}
 		reason, ok := numberValue(filter["reason"])
-		if ok && reason == 8 {
+		// Reason 8 is the existing recoverable endpoint filter. Other reasons
+		// identify unavailable/private works and must not be bypassed.
+		if ok && reason != 8 {
 			return true
 		}
 	}
@@ -232,6 +251,15 @@ type responseEnvelope struct {
 	Data json.RawMessage `json:"data"`
 }
 
+// HTTPStatusError exposes only the status, without provider URLs or messages.
+type HTTPStatusError struct {
+	StatusCode int
+}
+
+func (e *HTTPStatusError) Error() string {
+	return fmt.Sprintf("TikHub request returned HTTP %d", e.StatusCode)
+}
+
 func (i *TikHubImporter) get(ctx context.Context, endpoint string, params url.Values) (any, error) {
 	base, err := url.Parse(i.baseURL)
 	if err != nil || base.Scheme == "" || base.Host == "" || !strings.HasPrefix(endpoint, "/") {
@@ -258,7 +286,7 @@ func (i *TikHubImporter) get(ctx context.Context, endpoint string, params url.Va
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("TikHub request returned HTTP %d", resp.StatusCode)
+		return nil, &HTTPStatusError{StatusCode: resp.StatusCode}
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	if err != nil {
@@ -273,7 +301,7 @@ func (i *TikHubImporter) get(ctx context.Context, endpoint string, params url.Va
 		return nil, fmt.Errorf("TikHub request returned code %d", envelope.Code)
 	}
 	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
-		return nil, errors.New("TikHub returned empty data")
+		return nil, errEmptyProviderData
 	}
 	var data any
 	if err := json.Unmarshal(envelope.Data, &data); err != nil || data == nil {
@@ -296,11 +324,20 @@ func normalizeWork(platform Platform, routeID string, data any, allowDocument bo
 		return normalizeDocument(platform, routeID, data, false)
 	}
 	if mediaURL := videoURL(platform, data); mediaURL != "" {
-		return Result{
+		result := Result{
 			Kind: ResultVideo, Title: title, Description: description, MediaURL: mediaURL,
 			FileName: artifactName(platform, routeID, extensionForURL(mediaURL, "mp4")),
 			FileType: extensionForURL(mediaURL, "mp4"),
-		}, nil
+		}
+		if platform == PlatformDouyin {
+			urls, size := workH264VideoMedia(data)
+			result.MediaURLs = preferDouyinPlaybackURLs(urls)
+			result.MediaSizeBytes = size
+			if len(result.MediaURLs) > 0 {
+				result.MediaURL = result.MediaURLs[0]
+			}
+		}
+		return result, nil
 	}
 	if allowDocument {
 		return normalizeDocument(platform, routeID, data, false)
@@ -352,17 +389,8 @@ func videoURL(platform Platform, data any) string {
 		// accept the container while producing no text for that codec. Select the
 		// lowest explicitly identified H.264 rendition that keeps a 360p short
 		// side, then use the provider's primary H.264 address.
-		h264Candidates := workH264BitrateCandidates(data)
-		if candidate := lowestH264BitrateURL(h264Candidates, minimumVLMVideoShortSide); candidate != "" {
-			return candidate
-		}
-		if candidate := primaryWorkVideoURL(data, "play_addr_h264"); candidate != "" {
-			return candidate
-		}
-		// If every explicitly identified H.264 alternative is below the quality
-		// floor, it is still safer for the VLM than an unknown/ByteVC stream.
-		if candidate := lowestH264BitrateURL(h264Candidates, 0); candidate != "" {
-			return candidate
+		if candidates, _ := workH264VideoMedia(data); len(candidates) > 0 {
+			return candidates[0]
 		}
 		// Do not fall back to play_addr, download_addr, video_url, a codec-mixed
 		// bit_rate entry, or play_addr_265. Their container/extension does not
@@ -431,7 +459,7 @@ func xiaohongshuH264VideoURL(data any) string {
 }
 
 type h264Candidate struct {
-	url         string
+	urls        []string
 	bitrate     float64
 	dataSize    float64
 	width       float64
@@ -466,12 +494,15 @@ func workH264BitrateCandidates(data any) []h264Candidate {
 			if candidateURL == "" {
 				continue
 			}
-			candidate := h264Candidate{url: candidateURL}
+			candidate := h264Candidate{urls: []string{candidateURL}}
 			candidate.bitrate, candidate.hasBitrate = numberField(object, "bitrate", "bit_rate", "bitRate")
 			candidate.dataSize, candidate.hasDataSize = numberField(object, "data_size", "dataSize")
 			width, hasWidth := numberField(object, "width", "video_width")
 			height, hasHeight := numberField(object, "height", "video_height")
 			if playAddress, ok := object["play_addr"].(map[string]any); ok {
+				if firstPlayableURL(playAddress) == candidateURL {
+					candidate.urls = h264AddressURLs(playAddress)
+				}
 				if !candidate.hasDataSize {
 					candidate.dataSize, candidate.hasDataSize = numberField(playAddress, "data_size", "dataSize")
 				}
@@ -491,10 +522,10 @@ func workH264BitrateCandidates(data any) []h264Candidate {
 	return result
 }
 
-// lowestH264BitrateURL chooses only renditions that positively identify as
+// lowestH264BitrateCandidate chooses only renditions that positively identify as
 // H.264/AVC. Unknown codecs are deliberately excluded: an MP4 container alone
 // does not make ByteVC2 decodable by a VLM.
-func lowestH264BitrateURL(candidates []h264Candidate, minimumShortSide float64) string {
+func lowestH264BitrateCandidate(candidates []h264Candidate, minimumShortSide float64) *h264Candidate {
 	var best *h264Candidate
 	for index := range candidates {
 		candidate := &candidates[index]
@@ -505,10 +536,89 @@ func lowestH264BitrateURL(candidates []h264Candidate, minimumShortSide float64) 
 			best = candidate
 		}
 	}
-	if best == nil {
-		return ""
+	return best
+}
+
+// workH264VideoMedia keeps the original rendition policy and returns only that
+// rendition's equivalent CDN addresses, never the next quality/codec/work.
+func workH264VideoMedia(data any) ([]string, int64) {
+	candidates := workH264BitrateCandidates(data)
+	if best := lowestH264BitrateCandidate(candidates, minimumVLMVideoShortSide); best != nil {
+		return best.urls, mediaSizeBytes(best.dataSize)
 	}
-	return best.url
+	for _, video := range workVideoObjects(data) {
+		address := nestedMapValue(video, "play_addr_h264")
+		if urls := h264AddressURLs(address); len(urls) > 0 {
+			object, _ := address.(map[string]any)
+			size, _ := numberField(object, "data_size", "dataSize")
+			return urls, mediaSizeBytes(size)
+		}
+	}
+	// Below-floor explicit H.264 remains preferable to an unknown codec.
+	if best := lowestH264BitrateCandidate(candidates, 0); best != nil {
+		return best.urls, mediaSizeBytes(best.dataSize)
+	}
+	return nil, 0
+}
+
+func mediaSizeBytes(size float64) int64 {
+	if size > 0 && size < float64(math.MaxInt64) && math.Trunc(size) == size {
+		return int64(size)
+	}
+	return 0
+}
+
+func h264AddressURLs(address any) []string {
+	primary := firstPlayableURL(address)
+	if primary == "" {
+		return nil
+	}
+	urls := []string{primary}
+	seen := map[string]bool{primary: true}
+	var lists []any
+	if object, ok := address.(map[string]any); ok {
+		lists = []any{object["url_list"], object["urlList"]}
+	} else if _, ok := address.([]any); ok {
+		lists = []any{address}
+	}
+	for _, raw := range lists {
+		items, _ := raw.([]any)
+		for _, item := range items {
+			// An address list contains strings. Do not recursively include nested
+			// rendition objects, which could contain another codec or quality.
+			value, ok := item.(string)
+			if !ok {
+				continue
+			}
+			if candidate := firstPlayableURL(value); candidate != "" && !seen[candidate] {
+				seen[candidate] = true
+				urls = append(urls, candidate)
+			}
+		}
+	}
+	return urls
+}
+
+// Prefer Douyin's playback entry within the already selected rendition so its
+// redirect can choose a CDN. Keep every other equivalent address in order.
+func preferDouyinPlaybackURLs(urls []string) []string {
+	var preferred, remaining []string
+	for _, candidate := range urls {
+		if IsDouyinPlaybackURL(candidate) {
+			preferred = append(preferred, candidate)
+		} else {
+			remaining = append(remaining, candidate)
+		}
+	}
+	return append(preferred, remaining...)
+}
+
+// IsDouyinPlaybackURL admits only the official public playback entries, not a
+// lookalike host, credentials, arbitrary path, or non-HTTPS address.
+func IsDouyinPlaybackURL(candidate string) bool {
+	parsed, err := url.Parse(candidate)
+	return err == nil && parsed.Scheme == "https" && parsed.Host == "www.douyin.com" && parsed.User == nil &&
+		(parsed.Path == "/aweme/v1/play/" || parsed.Path == "/aweme/v1/play/dash/")
 }
 
 func lowerH264Cost(a, b h264Candidate) bool {
@@ -571,22 +681,6 @@ func isH264Rendition(value map[string]any) bool {
 		}
 	}
 	return codecFlagSeen
-}
-
-// primaryWorkVideoURL reads the deterministic primary work object used by the
-// TikTok/Douyin App endpoints. Douyin commonly returns aweme_detail while
-// TikTok commonly returns aweme_details; a recursive key search is unsuitable
-// here because it can select the same-named play_addr nested in bit_rate.
-func primaryWorkVideoURL(data any, keys ...string) string {
-	videoObjects := workVideoObjects(data)
-	for _, video := range videoObjects {
-		for _, key := range keys {
-			if candidate := firstPlayableURL(nestedMapValue(video, key)); candidate != "" {
-				return candidate
-			}
-		}
-	}
-	return ""
 }
 
 func workVideoObjects(data any) []any {

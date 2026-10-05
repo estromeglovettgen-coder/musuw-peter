@@ -1,2 +1,21 @@
-# Models are configured through the native browser interface.
-builtin_models: []
+# Conversation models remain configured through the native browser interface.
+# This stable video route matches the running Musuw import pipeline. Its API
+# credential is provisioned through the native encrypted credential endpoint.
+builtin_models:
+  - id: builtin-openrouter-vlm-qwen-3-7-flash
+    tenant_id: 10000
+    name: qwen/qwen3.8-flash
+    type: VLLM
+    source: remote
+    display_name: 视频理解
+    description: 网页视频导入使用的素材理解模型
+    is_default: false
+    status: active
+    parameters:
+      base_url: https://openrouter.ai/api/v1
+      provider: openrouter
+      interface_type: openai
+      supports_vision: true
+      extra_config:
+        video_input_mode: url
+        video_provider: alibaba

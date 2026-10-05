@@ -82,6 +82,12 @@ func newModelService(repo interfaces.ModelRepository,
 	entitlement interfaces.EntitlementService,
 	consumerResolver interfaces.ConsumerModelResolver,
 ) interfaces.ModelService {
+	// Private Standard workspaces use their own model credentials. Injecting
+	// the hosted consumer meter here would replace those credentials and require
+	// an unrelated subscription/key-provisioning service on every inference.
+	if !isLiteProductEdition() {
+		entitlement = nil
+	}
 	return &modelService{
 		repo:             repo,
 		kbRepo:           kbRepo,

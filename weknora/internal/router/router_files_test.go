@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -127,6 +130,120 @@ func (s *stubFileService) DeleteFile(ctx context.Context, filePath string) error
 
 func (s *stubFileService) CopyFile(ctx context.Context, srcPath string, tenantID uint64, knowledgeID string) (string, error) {
 	panic("unexpected call to CopyFile")
+}
+
+func TestPresignedFileLocalContentLength(t *testing.T) {
+	engine, baseDir, signURL := setupPresignedTestServer(t)
+	body := strings.Repeat("video-content", 4096)
+	storagePath := writeTestFile(t, baseDir, "1/exports/video.mp4", body)
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		t.Run(method, func(t *testing.T) {
+			req := httptest.NewRequest(method, signURL(storagePath, 1, time.Hour), nil)
+			response := httptest.NewRecorder()
+			engine.ServeHTTP(response, req)
+			if response.Code != http.StatusOK || response.Header().Get("Content-Length") != strconv.Itoa(len(body)) {
+				t.Fatalf("status=%d Content-Length=%q, want 200 and %d", response.Code, response.Header().Get("Content-Length"), len(body))
+			}
+			wantBody := body
+			if method == http.MethodHead {
+				wantBody = ""
+			}
+			if response.Body.String() != wantBody {
+				t.Fatalf("%s body length=%d, want %d", method, response.Body.Len(), len(wantBody))
+			}
+		})
+	}
+}
+
+type fileLengthTestReader struct {
+	reader io.Reader
+	reads  int
+	closed bool
+}
+
+func (r *fileLengthTestReader) Read(p []byte) (int, error) {
+	r.reads++
+	return r.reader.Read(p)
+}
+
+func (r *fileLengthTestReader) Close() error {
+	r.closed = true
+	return nil
+}
+
+func TestStreamStoredFileLengthPreservesReaderPosition(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	const body = "prefix-video-content"
+	baseDir := t.TempDir()
+	writeTestFile(t, baseDir, "video.mp4", body)
+	for _, tc := range []struct {
+		name       string
+		position   int64
+		method     string
+		wantLength string
+	}{
+		{name: "offset GET", position: 7, method: http.MethodGet, wantLength: "13"},
+		{name: "offset HEAD", position: 7, method: http.MethodHead, wantLength: "13"},
+		{name: "past end", position: 25, method: http.MethodGet, wantLength: "0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reader, err := os.Open(filepath.Join(baseDir, "video.mp4"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = reader.Close() })
+			if _, err := reader.Seek(tc.position, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			engine := gin.New()
+			engine.Handle(tc.method, "/file", func(c *gin.Context) {
+				streamStoredFile(c, reader, "video/mp4", true, "private", "length-test")
+			})
+			response := httptest.NewRecorder()
+			engine.ServeHTTP(response, httptest.NewRequest(tc.method, "/file", nil))
+			if response.Code != http.StatusOK || response.Header().Get("Content-Length") != tc.wantLength {
+				t.Fatalf("status=%d Content-Length=%q, want 200 and %q", response.Code, response.Header().Get("Content-Length"), tc.wantLength)
+			}
+			wantBody := ""
+			if tc.method == http.MethodGet && tc.position < int64(len(body)) {
+				wantBody = body[tc.position:]
+			}
+			if response.Body.String() != wantBody {
+				t.Fatalf("body=%q, want %q", response.Body.String(), wantBody)
+			}
+			if _, err := reader.Stat(); err == nil {
+				t.Fatal("streamed file must be closed")
+			}
+		})
+	}
+}
+
+func TestStreamStoredFileUnknownLengthKeepsStreaming(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		t.Run(method, func(t *testing.T) {
+			tracked := &fileLengthTestReader{reader: strings.NewReader("unknown-length-content")}
+			engine := gin.New()
+			engine.Handle(method, "/file", func(c *gin.Context) {
+				streamStoredFile(c, tracked, "video/mp4", true, "private", "length-test")
+			})
+			response := httptest.NewRecorder()
+			engine.ServeHTTP(response, httptest.NewRequest(method, "/file", nil))
+			if response.Code != http.StatusOK || response.Header().Get("Content-Length") != "" {
+				t.Fatalf("status=%d Content-Length=%q, want unchanged streaming response", response.Code, response.Header().Get("Content-Length"))
+			}
+			if method == http.MethodHead {
+				if tracked.reads != 0 || response.Body.Len() != 0 {
+					t.Fatal("HEAD must not consume an unknown-length reader")
+				}
+			} else if response.Body.String() != "unknown-length-content" {
+				t.Fatalf("GET body=%q", response.Body.String())
+			}
+			if !tracked.closed {
+				t.Fatal("streamed reader must be closed")
+			}
+		})
+	}
 }
 
 func TestServeFilesFallsBackToGlobalFileService(t *testing.T) {

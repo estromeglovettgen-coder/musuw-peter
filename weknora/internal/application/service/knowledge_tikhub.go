@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -15,6 +18,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/infrastructure/docparser"
 	"github.com/Tencent/WeKnora/internal/infrastructure/tikhub"
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/models/vlm"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
@@ -26,6 +30,7 @@ var (
 	errSocialVideoTooLarge          = errors.New("social video exceeds the product upload limit")
 	errSocialVideoFormatUnsupported = errors.New("social video format is unsupported")
 	errSocialMediaURLUnsafe         = errors.New("social media URL failed security validation")
+	errSocialMediaDownloadTimeout   = errors.New("social media download timed out")
 
 	// SocialImportFailedPublicMessage is the neutral public source failure for
 	// social works that may resolve to text, images, or video.
@@ -38,6 +43,7 @@ var (
 	// SocialFormatUnsupportedPublicMessage is the public format failure for a
 	// provider video before the knowledge row has adopted its final file type.
 	SocialFormatUnsupportedPublicMessage = "暂不支持此社媒视频格式"
+	SocialDownloadTimeoutPublicMessage   = "社媒内容下载超时，请稍后重试"
 )
 
 func cleanupTikHubResolvedImages(ctx context.Context, fileSvc interfaces.FileService, images []docparser.StoredImage) {
@@ -66,6 +72,8 @@ func socialImportFailureReason(err error) string {
 		return "format_unsupported"
 	case errors.Is(err, errSocialMediaURLUnsafe):
 		return "unsafe_media_url"
+	case errors.Is(err, errSocialMediaDownloadTimeout):
+		return "download_timeout"
 	default:
 		return "provider_or_processing_error"
 	}
@@ -81,6 +89,17 @@ func socialImportFailureReason(err error) string {
 func socialImportShouldRetry(err error, retryCount int) bool {
 	if err == nil || retryCount >= 1 {
 		return false
+	}
+	var directErr *socialDirectVideoError
+	if errors.As(err, &directErr) {
+		if errors.Is(directErr.cause, context.Canceled) {
+			return false
+		}
+		var videoErr *vlm.VideoRequestError
+		if errors.As(directErr.cause, &videoErr) {
+			return vlm.IsRetryableVideoError(directErr.cause)
+		}
+		return videoFailureRetryable(directErr.cause)
 	}
 	switch {
 	case errors.Is(err, errTikHubNotConfigured),
@@ -108,6 +127,8 @@ func socialImportPublicMessage(err error) string {
 		return SocialFormatUnsupportedPublicMessage
 	case "unsafe_media_url":
 		return SocialImportFailedPublicMessage
+	case "download_timeout":
+		return SocialDownloadTimeoutPublicMessage
 	default:
 		return SocialImportFailedPublicMessage
 	}
@@ -145,8 +166,9 @@ func resumeMaterializedTikHubArtifact(payload *types.DocumentProcessPayload, kno
 
 // prepareTikHubArtifact recognizes a supported social work and materializes its
 // normalized result as a real file. YouTube is understood directly by the
-// fixed Google AI Studio model and saved as Markdown; the other social sources
-// continue through TikHub. Once it returns handled=true, payload.URL is empty,
+// fixed Google AI Studio model and saved as Markdown. Supported Douyin video
+// URLs use the fixed video model directly; other social sources use TikHub's
+// stored artifact path. Once it returns handled=true, payload.URL is empty,
 // so the existing pipeline sees an ordinary stored artifact instead of sending
 // the social page to WebParser.
 func (s *knowledgeService) prepareTikHubArtifact(
@@ -198,7 +220,10 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 		if s.tikhubImporter == nil {
 			return true, nil, errTikHubNotConfigured
 		}
+		fetchStarted := time.Now()
 		result, err = s.tikhubImporter.Fetch(ctx, *route)
+		logger.Infof(ctx, "[SocialVideo] provider fetch finished: platform=%s elapsed_ms=%d success=%t kind=%s source_size=%d",
+			route.Platform, time.Since(fetchStarted).Milliseconds(), err == nil, result.Kind, result.MediaSizeBytes)
 		if err != nil {
 			return true, nil, fmt.Errorf("TikHub social import failed for %s: %w", route.Platform, err)
 		}
@@ -251,7 +276,32 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 		if !socialVideoUploadAllowed(ctx) {
 			return true, nil, errSocialVideoNotAllowed
 		}
-		media, err = downloadTikHubMedia(ctx, result.MediaURL, s.tikhubMediaClient, videoMaxBytes)
+		if result.MediaSizeBytes > videoMaxBytes {
+			return true, nil, fmt.Errorf("%w: %d bytes", errSocialVideoTooLarge, videoMaxBytes)
+		}
+		if route.Platform == tikhub.PlatformDouyin && result.MediaSizeBytes > 0 {
+			markdown, direct, analyzeErr := s.analyzeDouyinVideoURL(ctx, result, eff.VLMConfig)
+			if analyzeErr != nil {
+				return true, nil, analyzeErr
+			}
+			if direct {
+				if caption := strings.TrimSpace(result.Description); caption != "" {
+					// The publication text is evidence, not model instructions or
+					// an invented part of the video's spoken transcript.
+					markdown += "\n\n## 作品原文（来自发布页面）\n\n> " + strings.ReplaceAll(caption, "\n", "\n> ")
+				}
+				// Like YouTube, the analysis is the durable source checkpoint.
+				// Keep Knowledge.Source intact; reparse consumes this Markdown.
+				result = tikhub.Result{
+					Kind: tikhub.ResultDocument, Title: firstMarkdownTitle(markdown),
+					Markdown: markdown, FileType: "md",
+					FileName: strings.TrimSuffix(result.FileName, filepath.Ext(result.FileName)) + ".md",
+				}
+				content = []byte(markdown)
+				break
+			}
+		}
+		media, err = downloadTikHubResultMedia(ctx, result, s.tikhubMediaClient, videoMaxBytes)
 		if err != nil {
 			return true, nil, err
 		}
@@ -288,6 +338,7 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 	// This file is the knowledge source and retry checkpoint, not scratch data.
 	var filePath string
 	var fileSize int64
+	storageStarted := time.Now()
 	if media != nil {
 		streamer, ok := fileSvc.(interfaces.StreamingFileService)
 		if !ok {
@@ -303,6 +354,10 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 			media.contentType,
 			false,
 		)
+		// Streaming time includes source reads and storage backpressure; it
+		// must not be attributed to the object store alone.
+		logger.Infof(ctx, "[SocialVideo] source read and storage finished: elapsed_ms=%d bytes_read=%d success=%t",
+			time.Since(storageStarted).Milliseconds(), media.bytesRead, err == nil)
 		if err != nil {
 			if strings.TrimSpace(filePath) != "" {
 				_ = fileSvc.DeleteFile(ctx, filePath)
@@ -328,6 +383,8 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 	} else {
 		fileSize = int64(len(content))
 		filePath, err = fileSvc.SaveBytes(ctx, content, payload.TenantID, fileName, false)
+		logger.Infof(ctx, "[SocialVideo] Markdown storage finished: elapsed_ms=%d bytes=%d success=%t",
+			time.Since(storageStarted).Milliseconds(), fileSize, err == nil)
 	}
 	if err != nil {
 		cleanupResolvedImages()
@@ -347,7 +404,7 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 	// image/text social works in the automatic URL-title state so the existing
 	// summary-model call can publish a concise title. A document that has no
 	// provider description or images is already a direct model-analysis result
-	// (currently the YouTube path), so its generated heading can be used now.
+	// (YouTube or direct Douyin), so its generated heading can be used now.
 	if result.Kind == tikhub.ResultDocument &&
 		strings.TrimSpace(result.Description) == "" && len(result.ImageURLs) == 0 &&
 		automaticURLKnowledgeTitle(updatedKnowledge) {
@@ -408,6 +465,78 @@ func (s *knowledgeService) prepareTikHubArtifactWithVideoLimit(
 	return true, resolvedImages, nil
 }
 
+// Do not let provider errors echo signed source URLs into task logs or spans.
+// Preserve the underlying native classification for the worker's sole retry.
+type socialDirectVideoError struct{ cause error }
+
+func (e *socialDirectVideoError) Error() string { return "social direct video understanding failed" }
+func (e *socialDirectVideoError) Unwrap() error { return e.cause }
+
+func (s *knowledgeService) analyzeDouyinVideoURL(ctx context.Context, result tikhub.Result, cfg types.VLMConfig) (string, bool, error) {
+	var sourceURL string
+	for _, candidate := range append([]string{result.MediaURL}, result.MediaURLs...) {
+		if tikhub.IsDouyinPlaybackURL(candidate) {
+			sourceURL = candidate
+			break
+		}
+	}
+	if sourceURL == "" {
+		return "", false, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return "", true, &socialDirectVideoError{cause: err}
+	}
+	if err := secutils.ValidateURLForSSRF(sourceURL); err != nil {
+		return "", true, errSocialMediaURLUnsafe
+	}
+	if s.modelService == nil {
+		return "", true, &socialDirectVideoError{cause: errors.New("video model is not configured")}
+	}
+	model, err := s.modelService.GetVLMModel(ctx, fixedVideoModelID())
+	if err != nil {
+		return "", true, &socialDirectVideoError{cause: err}
+	}
+	if model == nil {
+		return "", true, &socialDirectVideoError{cause: errors.New("video model is not configured")}
+	}
+	if !vlm.SupportsVideoURL(model) {
+		return "", false, nil
+	}
+	// Detailed source extraction is a default, not a restriction on Peter's
+	// own content scope. Append his native instructions last, as before.
+	custom := cfg.CustomInstructions
+	cfg.CustomInstructions = ""
+	prompt := buildVideoUnderstandingPrompt(ctx, cfg) + `
+
+<source_video_requirements>
+不要把整段视频压缩成几个概括句。按实际顺序覆盖从开头到结尾的内容，逐段标明可以确认的时间范围，充分记录原声表达、画面文字、观点、论据、案例、条件、反例和行动建议，保留前后转折与关键细节。听不清或无法确定的内容明确注明，不得补写；不要把作者观点改成你自己的评价，也不要把观点当成已验证事实。
+这些完整性要求只作为默认：工作区规则或用户业务要求明确限定内容范围时，按其范围生成，不强制添加范围外的内容；仍保留输出格式和真实性规则。
+</source_video_requirements>`
+	prompt = types.AppendCustomPromptInstructions(prompt, custom, "video_understanding")
+	started := time.Now()
+	markdown, err := vlm.PredictVideoURL(ctx, model, sourceURL, "video/mp4", prompt)
+	markdown = strings.TrimSpace(markdown)
+	if err == nil && markdown == "" {
+		err = vlm.RetryableVideoError(errors.New("video understanding returned empty content"))
+	}
+	logger.Infof(ctx, "[SocialVideo] direct understanding finished: host=www.douyin.com path_type=%s source_size=%d elapsed_ms=%d characters=%d success=%t retryable=%t",
+		socialMediaPathType(sourceURL), result.MediaSizeBytes, time.Since(started).Milliseconds(), len([]rune(markdown)), err == nil, err != nil && socialImportShouldRetry(&socialDirectVideoError{cause: err}, 0))
+	if err != nil {
+		return "", true, &socialDirectVideoError{cause: err}
+	}
+	return markdown, true, nil
+}
+
+func socialMediaPathType(rawURL string) string {
+	if parsed, err := url.Parse(rawURL); err == nil && tikhub.IsDouyinPlaybackURL(rawURL) {
+		if parsed.Path == "/aweme/v1/play/dash/" {
+			return "douyin_play_dash"
+		}
+		return "douyin_play"
+	}
+	return "media"
+}
+
 func firstMarkdownTitle(markdown string) string {
 	var firstLine string
 	for _, line := range strings.Split(markdown, "\n") {
@@ -455,6 +584,9 @@ func unresolvedSocialImageURLs(expected []string, resolved []docparser.StoredIma
 }
 
 func socialVideoUploadAllowed(ctx context.Context) bool {
+	if !isLiteProductEdition() {
+		return true
+	}
 	tenant, ok := types.TenantInfoFromContext(ctx)
 	if !ok || tenant == nil || tenant.Plan == "" {
 		return true
@@ -506,12 +638,23 @@ type tikHubMediaStream struct {
 	contentLength int64
 	contentType   string
 	bytesRead     int64
+	ctx           context.Context
+	readStarted   time.Time
+	lastProgress  time.Time
 }
 
 func (s *tikHubMediaStream) Read(p []byte) (int, error) {
 	n, err := s.reader.Read(p)
 	if n > 0 {
 		s.bytesRead += int64(n)
+		if s.ctx != nil && time.Since(s.lastProgress) >= 30*time.Second {
+			logger.Infof(s.ctx, "[SocialVideo] source read progress: bytes_read=%d elapsed_ms=%d includes_storage_backpressure=true",
+				s.bytesRead, time.Since(s.readStarted).Milliseconds())
+			s.lastProgress = time.Now()
+		}
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		err = fmt.Errorf("%w: %w", errSocialMediaDownloadTimeout, context.DeadlineExceeded)
 	}
 	return n, err
 }
@@ -521,6 +664,58 @@ func (s *tikHubMediaStream) Close() error {
 		return nil
 	}
 	return s.closer.Close()
+}
+
+func socialMediaHTTPTimeout() time.Duration {
+	seconds, err := strconv.ParseInt(strings.TrimSpace(os.Getenv("SOCIAL_MEDIA_HTTP_TIMEOUT_SECONDS")), 10, 64)
+	if err != nil || seconds <= 0 {
+		return 10 * time.Minute
+	}
+	// Stay below the default two-hour document deadline and avoid an unbounded
+	// download or duration overflow when an operator supplies a large value.
+	if seconds > 3600 {
+		return time.Hour
+	}
+	return time.Duration(seconds) * time.Second
+}
+
+type tikHubMediaHTTPError struct{ statusCode int }
+
+func (e *tikHubMediaHTTPError) Error() string {
+	return fmt.Sprintf("TikHub media server returned HTTP %d", e.statusCode)
+}
+
+// Alternatives come only from the same provider-selected rendition. Switch
+// addresses only when the server rejects the request before reading any bytes;
+// never combine partial objects or bypass URL, codec and size validation.
+func downloadTikHubResultMedia(ctx context.Context, result tikhub.Result, client *http.Client, maxBytes int64) (*tikHubMediaStream, error) {
+	candidates := append([]string{result.MediaURL}, result.MediaURLs...)
+	seen := make(map[string]bool)
+	var lastErr error
+	tried := 0
+	for _, candidate := range candidates {
+		candidate = strings.TrimSpace(candidate)
+		if candidate == "" || seen[candidate] {
+			continue
+		}
+		seen[candidate] = true
+		tried++
+		stream, err := downloadTikHubMedia(ctx, candidate, client, maxBytes)
+		if err == nil {
+			return stream, nil
+		}
+		lastErr = err
+		var responseErr *tikHubMediaHTTPError
+		if tried >= 3 || !errors.As(err, &responseErr) ||
+			(responseErr.statusCode != http.StatusForbidden && responseErr.statusCode != http.StatusNotFound && responseErr.statusCode != http.StatusGone) {
+			return nil, err
+		}
+		logger.Warnf(ctx, "[SocialVideo] source candidate unavailable: candidate=%d status=%d", tried, responseErr.statusCode)
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, errors.New("TikHub video response contained no media URL")
 }
 
 func downloadTikHubMedia(
@@ -542,7 +737,7 @@ func downloadTikHubMedia(
 			// whole-request timeout on ordinary uplinks. Keep one bounded timeout
 			// below the document-processing deadline without introducing a custom
 			// downloader or resumable-download state machine.
-			Timeout:      10 * time.Minute,
+			Timeout:      socialMediaHTTPTimeout(),
 			MaxRedirects: 5,
 		})
 	}
@@ -551,13 +746,30 @@ func downloadTikHubMedia(
 		return nil, errors.New("failed to create TikHub media request")
 	}
 	req.Header.Set("Accept", "video/*, application/octet-stream")
+	requestStarted := time.Now()
 	resp, err := client.Do(req)
+	if resp != nil {
+		finalHost := ""
+		if resp.Request != nil && resp.Request.URL != nil {
+			finalHost = resp.Request.URL.Hostname()
+		}
+		logger.Infof(ctx, "[SocialVideo] source response headers: host=%s final_host=%s path_type=%s status=%d content_length=%d elapsed_ms=%d",
+			req.URL.Hostname(), finalHost, socialMediaPathType(mediaURL), resp.StatusCode, resp.ContentLength, time.Since(requestStarted).Milliseconds())
+	} else {
+		logger.Infof(ctx, "[SocialVideo] source response headers failed: host=%s path_type=%s elapsed_ms=%d timeout=%t",
+			req.URL.Hostname(), socialMediaPathType(mediaURL), time.Since(requestStarted).Milliseconds(), errors.Is(err, context.DeadlineExceeded))
+	}
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			// Preserve the timeout cause without returning url.Error, whose text
+			// contains the provider's full (possibly signed) media URL.
+			return nil, fmt.Errorf("%w: %w", errSocialMediaDownloadTimeout, context.DeadlineExceeded)
+		}
 		return nil, errors.New("failed to fetch TikHub media")
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		_ = resp.Body.Close()
-		return nil, fmt.Errorf("TikHub media server returned HTTP %d", resp.StatusCode)
+		return nil, &tikHubMediaHTTPError{statusCode: resp.StatusCode}
 	}
 
 	if resp.ContentLength > maxBytes {
@@ -582,5 +794,8 @@ func downloadTikHubMedia(
 		// the bounded reader so the post-copy byte count remains authoritative.
 		contentLength: -1,
 		contentType:   contentType,
+		ctx:           ctx,
+		readStarted:   time.Now(),
+		lastProgress:  time.Now(),
 	}, nil
 }

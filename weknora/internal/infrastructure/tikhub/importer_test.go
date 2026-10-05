@@ -50,7 +50,7 @@ func TestTikHubImporterFetchesTikTokAndDouyinShareURLs(t *testing.T) {
 				t.Errorf("TikTok share_url = %q", got)
 			}
 			io.WriteString(w, `{"code":200,"data":{"aweme_details":[{"desc":"TikTok title","video":{"play_addr_h264":{"url_list":["https://cdn.example/tiktok.mp4"]}}}]}}`)
-		case "/api/v1/douyin/app/v3/fetch_one_video_by_share_url":
+		case "/api/v1/douyin/web/fetch_one_video_by_share_url":
 			if got := r.URL.Query().Get("share_url"); got != "https://v.douyin.com/abc/" {
 				t.Errorf("Douyin share_url = %q", got)
 			}
@@ -92,16 +92,16 @@ func TestTikHubImporterFetchesTikTokAndDouyinShareURLs(t *testing.T) {
 	}
 }
 
-func TestTikHubImporterFallsBackToDouyinWebWhenAppFiltersTheWork(t *testing.T) {
+func TestTikHubImporterFallsBackToDouyinAppWhenWebFiltersTheWork(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/api/v1/douyin/app/v3/fetch_one_video_by_share_url":
-			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_details":[],"filter_list":[{"aweme_id":"7680316918494022931","reason":8}],"status_code":0}}`)
 		case "/api/v1/douyin/web/fetch_one_video_by_share_url":
-			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_detail":{"aweme_id":"7680316918494022931","desc":"Public video","video":{"play_addr_h264":{"url_list":["https://cdn.example/douyin-web.mp4"]}}}}}`)
+			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_details":[],"filter_list":[{"aweme_id":"7680316918494022931","reason":8}],"status_code":0}}`)
+		case "/api/v1/douyin/app/v3/fetch_one_video_by_share_url":
+			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_detail":{"aweme_id":"7680316918494022931","desc":"Public video","video":{"play_addr_h264":{"url_list":["https://cdn.example/douyin-app.mp4"]}}}}}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -115,20 +115,21 @@ func TestTikHubImporterFallsBackToDouyinWebWhenAppFiltersTheWork(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Fetch() error = %v", err)
 	}
-	if result.Kind != ResultVideo || result.Title != "Public video" || result.MediaURL != "https://cdn.example/douyin-web.mp4" {
+	if result.Kind != ResultVideo || result.Title != "Public video" || result.MediaURL != "https://cdn.example/douyin-app.mp4" {
 		t.Fatalf("result = %+v", result)
 	}
 }
 
-func TestTikHubImporterDoesNotUseDouyinWebForPrivateWork(t *testing.T) {
+func TestTikHubImporterDoesNotUseDouyinAppForPrivateWork(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/api/v1/douyin/app/v3/fetch_one_video_by_share_url":
-			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_details":[],"filter_list":[{"aweme_id":"private","reason":5}],"status_code":0}}`)
 		case "/api/v1/douyin/web/fetch_one_video_by_share_url":
+			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_details":[],"filter_list":[{"aweme_id":"private","reason":5}],"status_code":0}}`)
+		case "/api/v1/douyin/app/v3/fetch_one_video_by_share_url":
+			t.Error("must not call App for a private/unavailable work")
 			_, _ = io.WriteString(w, `{"code":200,"data":{"aweme_detail":{"desc":"must not be fetched","video":{"play_addr_h264":{"url_list":["https://cdn.example/private.mp4"]}}}}}`)
 		default:
 			http.NotFound(w, r)
