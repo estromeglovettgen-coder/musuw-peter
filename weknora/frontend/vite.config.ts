@@ -222,7 +222,9 @@ export default defineConfig({
           if (id.includes('marked') || id.includes('katex')) {
             return 'vendor-markdown'
           }
-          if (id.includes('highlight.js')) {
+          // Read-only Markdown uses the tiny stylesheet without the optional
+          // engine. Combining both makes the CSS import eagerly load its JS.
+          if (id.includes('highlight.js') && !id.includes('/highlight.js/styles/')) {
             return 'vendor-highlight'
           }
         },
