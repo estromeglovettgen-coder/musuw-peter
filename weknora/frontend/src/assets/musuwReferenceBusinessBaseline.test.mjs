@@ -10,8 +10,9 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 const scriptOf = (path) => read(path).match(/<script setup(?: lang="ts")?>([\s\S]*?)<\/script>/)?.[1] || ''
 
 // creator-marketplace-subscriptions: consumer agent models/readiness follow the buyer membership catalog; source defaults cannot override explicit selection.
+// peter-taylor-global-chat-default: approved account-local Taylor default migration and awaited, deduplicated first send; explicit/native session, embed and other-profile choices remain authoritative.
 const frozen = new Map([
-  ['./business-baselines/Input-field.pre-view.vue', '48ee2472e0d9863ac5b96841aea7d05ebc6d869b'],
+  ['./business-baselines/Input-field.pre-view.vue', '38818096ea1065829e45321299f71e0276ebac45'],
   ['./business-baselines/KnowledgeBase.pre-view.vue', '3e2da17cdb15cc4dc42d7102da77502407ad21c2'],
   ['./business-baselines/manual-knowledge-editor.pre-view.vue', '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e'],
   // creator-marketplace-subscriptions: approved message-scoped snippets-only drawer and hover behavior.

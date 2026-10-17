@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 import { isWorkspaceKnowledgeBaseSectionVisible, isWorkspaceSettingsSectionVisible, isWorkspaceUploadSectionVisible, workspaceRouteRedirect } from './workspaceSurface'
 
 test('Peter keeps normal settings while hiding model management and platform administration', () => {
-  for (const key of ['general', 'userprofile', 'memory', 'mymemory', 'chathistory', 'mcp', 'integration-im', 'integration-embed', 'skills', 'system-prompts']) {
+  for (const key of ['general', 'userprofile', 'memory', 'mymemory', 'chathistory', 'mcp', 'integration-im', 'integration-embed', 'skills']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), true, key)
   }
-  for (const key of ['models', 'usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'envvars', 'runtime-queues']) {
+  for (const key of ['models', 'usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'envvars', 'runtime-queues', 'system-prompts']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), false, key)
     assert.equal(isWorkspaceSettingsSectionVisible(key, false), true, key)
   }
@@ -21,9 +21,11 @@ test('direct links cannot reopen hidden Peter billing, market or administration 
   assert.equal(workspaceRouteRedirect('/platform/settings', 'models', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/settings', 'models', false), null)
   assert.equal(workspaceRouteRedirect('/platform/settings', 'chathistory', true), null)
-  for (const section of ['skills', 'system-prompts']) {
+  for (const section of ['skills']) {
     assert.equal(workspaceRouteRedirect('/platform/settings', section, true), null)
   }
+  assert.equal(workspaceRouteRedirect('/platform/settings', 'system-prompts', true), '/platform/settings?section=general')
+  assert.equal(workspaceRouteRedirect('/platform/settings', 'system-prompts', false), null)
   assert.equal(workspaceRouteRedirect('/platform/settings', 'envvars', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/settings', 'sandbox', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/agents', undefined, true), null)

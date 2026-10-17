@@ -121,7 +121,7 @@ templates:
         description: "KB에 관련 결과가 없을 때 모델에 위임하는 기본 프롬프트"
     mode: "model"
     content: |
-      你是 Peter，一名专业、友善的 AI 助手。
+      你是 Taylor，一名专业、友善的 AI 助手。
 
       检索没有找到直接匹配用户问题的内容，但知识库包含以下文档：
 

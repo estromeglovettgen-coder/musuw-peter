@@ -271,6 +271,7 @@ const navItems = computed<NavItem[]>(() => {
       (item) => canSeeSection(item.key) && isSectionSupported(item.key),
     )
     return [...liteItems, ...supportedIntegrationItems]
+      .filter((item) => isWorkspaceSettingsSectionVisible(item.key))
   }
 
   // Behavior authority is the fixed main commit 81142df. Keep every compatible

@@ -1062,12 +1062,20 @@ const loadWebSearchConfig = async (force = false) => {
 };
 
 // 加载智能体列表（我的 + 共享，供选中态与就绪检查用）
+const usesPeterNewChatDefault = () => isPeterWorkspace && route.name === "globalCreatChat"
+  && !props.embeddedMode && !settingsStore._defaultsSnapshot && !settingsStore._isApplyingSessionState
+  && !settingsStore.selectedAgentSourceTenantId && !settingsStore.settings.marketplaceProductId
+  && !marketplaceEntryPending.value;
+
 const loadAgents = async (force = false) => {
   try {
     await chatResources.ensureAgents(force);
     ensureSelectedAgentNotDisabled();
+    return !usesPeterNewChatDefault() || (!selectedAgent.value.is_builtin
+      && !disabledOwnAgentIds.value.includes(selectedAgent.value.id));
   } catch (error) {
     console.error("Failed to load agents:", error);
+    return false;
   }
 };
 
@@ -1079,17 +1087,26 @@ const loadAgents = async (force = false) => {
 const ensureSelectedAgentNotDisabled = () => {
   if (settingsStore.selectedAgentSourceTenantId) return;
   const currentId = settingsStore.selectedAgentId || BUILTIN_QUICK_ANSWER_ID;
-  if (!disabledOwnAgentIds.value.includes(currentId)) return;
+  const current = agents.value.find((agent) => agent.id === currentId);
+  // A new global conversation uses this account's enabled custom Taylor.
+  // Historical sessions, shared/product entries and explicit custom picks keep
+  // their native selection. Reuse selectAgent so the normal resource watchers run.
+  const defaultTaylor = usesPeterNewChatDefault()
+    && (!current || current.is_builtin || disabledOwnAgentIds.value.includes(currentId))
+    ? agents.value.find((agent) => !agent.is_builtin && agent.name.trim() === "泰勒"
+      && !disabledOwnAgentIds.value.includes(agent.id))
+    : undefined;
+  if (!defaultTaylor && !disabledOwnAgentIds.value.includes(currentId)) return;
 
   const isEnabled = (id: string) =>
     agents.value.some((a) => a.id === id) && !disabledOwnAgentIds.value.includes(id);
 
-  let fallback: CustomAgent | undefined;
-  if (isEnabled(BUILTIN_SMART_REASONING_ID)) {
+  let fallback: CustomAgent | undefined = defaultTaylor;
+  if (!fallback && isEnabled(BUILTIN_SMART_REASONING_ID)) {
     fallback = agents.value.find((a) => a.id === BUILTIN_SMART_REASONING_ID);
-  } else if (isEnabled(BUILTIN_QUICK_ANSWER_ID)) {
+  } else if (!fallback && isEnabled(BUILTIN_QUICK_ANSWER_ID)) {
     fallback = agents.value.find((a) => a.id === BUILTIN_QUICK_ANSWER_ID);
-  } else {
+  } else if (!fallback) {
     fallback = agents.value.find((a) => !disabledOwnAgentIds.value.includes(a.id));
   }
   if (!fallback) return;
@@ -2177,7 +2194,19 @@ const emit = defineEmits<{
   (e: "stop-generation"): void;
 }>();
 
+let peterNewChatSubmitPending = false;
 const createSession = async (val: string) => {
+  if (!usesPeterNewChatDefault()) return submitSession(val);
+  if (peterNewChatSubmitPending) return;
+  peterNewChatSubmitPending = true;
+  try {
+    return await submitSession(val);
+  } finally {
+    peterNewChatSubmitPending = false;
+  }
+};
+
+const submitSession = async (val: string) => {
   if (!val.trim()) {
     MessagePlugin.info(t("input.messages.enterContent"));
     return;
@@ -2210,6 +2239,18 @@ const createSession = async (val: string) => {
     emit("send-msg", val, selectedModelId.value || "", [], [], [], thinkingEnabled.value, reasoningEffort.value);
     clearvalue();
     return;
+  }
+
+  if (usesPeterNewChatDefault()) {
+    // The first send can race the mount-time catalog request. Resolve the real
+    // agent before readiness checks and emitting, never just change its label.
+    const agentsReady = await loadAgents();
+    if (!usesPeterNewChatDefault()) return;
+    if (!agentsReady) {
+      MessagePlugin.error(t("common.resourceLoadFailed.body"));
+      return;
+    }
+    await nextTick();
   }
 
   // Images and non-embedded attachments both travel to the backend as

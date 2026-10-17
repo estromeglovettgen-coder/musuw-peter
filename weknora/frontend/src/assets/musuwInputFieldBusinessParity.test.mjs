@@ -9,9 +9,10 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex')
 
 // creator-marketplace-subscriptions: approved membership model freedom and runtime readiness for owned/subscribed agents.
-test('audited Input-field controller remains locked after marketplace delivery, model freedom and draft preservation', () => {
+// peter-taylor-global-chat-default: user-authorized native default selection and concurrent-send guard; real controller/Pinia actions are covered by Input-field.peter-default.test.mjs.
+test('audited Input-field controller remains locked after approved marketplace and Peter Taylor default evolution', () => {
   const controller = read('./business-baselines/Input-field.pre-view.vue')
-  assert.equal(blobSha(controller), '48ee2472e0d9863ac5b96841aea7d05ebc6d869b')
+  assert.equal(blobSha(controller), '38818096ea1065829e45321299f71e0276ebac45')
 })
 
 test('rebuilt Input-field reuses the frozen component options and replaces only its active View', () => {

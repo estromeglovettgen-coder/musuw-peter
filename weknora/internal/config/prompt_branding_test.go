@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestPromptTemplatesUsePeterBranding(t *testing.T) {
+func TestPromptTemplatesUseTaylorBranding(t *testing.T) {
 	templates, err := loadPromptTemplates(filepath.Join("..", "..", "config"))
 	if err != nil {
 		t.Fatalf("load prompt templates: %v", err)
@@ -26,7 +26,7 @@ func TestPromptTemplatesUsePeterBranding(t *testing.T) {
 		templates.IntentPrompts,
 	}
 
-	foundPeter := false
+	foundTaylor := false
 	for _, group := range groups {
 		for _, template := range group {
 			// `.weknora/requirements.json` is a stable sandbox wire path, not
@@ -36,14 +36,17 @@ func TestPromptTemplatesUsePeterBranding(t *testing.T) {
 			if strings.Contains(brandingText, "weknora") || strings.Contains(brandingText, "tencent") || strings.Contains(template.Content, "腾讯") {
 				t.Fatalf("template %q still contains legacy branding", template.ID)
 			}
+			if strings.Contains(strings.ToLower(template.Content), "peter") {
+				t.Fatalf("template %q still contains the previous assistant identity", template.ID)
+			}
 			if strings.Contains(template.Content, "Musuw") || strings.Contains(template.Content, "地底人") {
 				t.Fatalf("template %q still contains the original product identity", template.ID)
 			}
-			foundPeter = foundPeter || strings.Contains(template.Content, "Peter")
+			foundTaylor = foundTaylor || strings.Contains(template.Content, "Taylor")
 		}
 	}
-	if !foundPeter {
-		t.Fatal("prompt templates must identify the product as Peter")
+	if !foundTaylor {
+		t.Fatal("prompt templates must identify the assistant as Taylor")
 	}
 }
 
