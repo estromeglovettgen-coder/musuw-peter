@@ -8,6 +8,7 @@ import { getInitialAuthLocale } from "./locale";
 import { createAuthRuntime, isLocalMusuwAuthEnabled } from "./runtime";
 import { createSupabaseIdentityClient } from "./supabase";
 import "./styles.css";
+import "./fire.css";
 
 const root = document.getElementById("root");
 
@@ -18,6 +19,10 @@ if (root === null) {
 let content: React.ReactNode;
 try {
   const passwordOnly = import.meta.env["VITE_WORKSPACE_PROFILE"] === "peter";
+  if (passwordOnly) {
+    document.documentElement.dataset['workspaceBrand'] = 'fire';
+    document.documentElement.setAttribute('theme-mode', 'dark');
+  }
   const sharedOptions = {
     onDiagnostic: reportDiagnostic,
     nativeStorage: window.localStorage,

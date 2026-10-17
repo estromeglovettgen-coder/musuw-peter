@@ -60,7 +60,7 @@ async function load() {
     customers.value = ((res.value as any).data || []).filter((kb: any) => kb.customer_profile)
     if (choices.status === 'fulfilled') config.value = choices.value
   }
-  catch (e: any) { if (version === loadVersion) error.value = e.message || '客户列表加载失败' }
+  catch (e: any) { if (version === loadVersion) error.value = e.message || '目标列表加载失败' }
   finally { if (version === loadVersion) loading.value = false }
 }
 function clearFilters() { search.value = ''; selectedTags.value = [] }
@@ -69,7 +69,7 @@ function openBatchEdit() { batchMode.value = 'add'; batchTags.value = []; action
 function createBatchTag(value: string) {
   const tag = value.trim()
   if (!tag || batchTags.value.includes(tag)) return
-  if (new TextEncoder().encode(tag).length > 100 || batchTags.value.length >= 30) return MessagePlugin.warning('客户标签最多 30 个，单个标签请缩短')
+  if (new TextEncoder().encode(tag).length > 100 || batchTags.value.length >= 30) return MessagePlugin.warning('目标标签最多 30 个，单个标签请缩短')
   batchTags.value = [...batchTags.value, tag]
 }
 async function saveBatchTags() {
@@ -88,10 +88,10 @@ async function saveBatchTags() {
   savingBatch.value = false
   if (failures.length) {
     actionError.value = failures.join('；')
-    MessagePlugin.warning(`已更新 ${targets.length - failed.length} 位客户，${failed.length} 位未完成，可重试`)
+    MessagePlugin.warning(`已更新 ${targets.length - failed.length} 个目标，${failed.length} 个未完成，可重试`)
   } else {
     showBatchEdit.value = false
-    MessagePlugin.success(`已更新 ${targets.length} 位客户的标签`)
+    MessagePlugin.success(`已更新 ${targets.length} 个目标的标签`)
   }
 }
 function requestDelete(targets: any[]) {
@@ -114,10 +114,10 @@ async function confirmDelete() {
   deleting.value = false
   if (failures.length) {
     actionError.value = failures.join('；')
-    MessagePlugin.warning(`已删除 ${targets.length - failed.length} 位客户，${failed.length} 位未完成，可重试`)
+    MessagePlugin.warning(`已删除 ${targets.length - failed.length} 个目标，${failed.length} 个未完成，可重试`)
   } else {
     showDelete.value = false
-    MessagePlugin.success(`已删除 ${targets.length} 位客户`)
+    MessagePlugin.success(`已删除 ${targets.length} 个目标`)
   }
 }
 const date = (value: string) => value ? new Date(value).toLocaleDateString('zh-CN', {month:'2-digit', day:'2-digit'}) : '—'
@@ -125,15 +125,15 @@ onMounted(load)
 </script>
 <template>
   <main class="customer-page customer-list" :aria-busy="loading || mutating">
-    <header class="workspace-list-header"><h1><t-icon name="usergroup"/>客户</h1><button v-if="authStore.hasRole('contributor')" class="customer-primary" :disabled="mutating" @click="openCreate"><t-icon name="add"/>新建客户</button></header>
-    <div class="customer-filters"><t-input v-model="search" clearable :disabled="mutating" aria-label="搜索客户" placeholder="搜索姓名、标签、备注或联系方式"><template #prefix-icon><t-icon name="search"/></template></t-input><t-select v-model="selectedTags" multiple clearable filterable :disabled="mutating" aria-label="按客户标签筛选" placeholder="按标签筛选" :options="tags.map(value=>({label:value,value}))"/><span class="customer-muted" role="status">{{visible.length}} 位客户</span><button class="customer-icon" :disabled="loading || mutating" :aria-label="loading ? '正在刷新客户' : '刷新'" @click="load"><t-loading v-if="loading" size="16px"/><t-icon v-else name="refresh"/></button></div>
-    <div v-if="selectedCustomers.length" class="customer-batch-bar" role="toolbar" aria-label="批量管理客户"><span>已选 {{selectedCustomers.length}} 位客户</span><button class="customer-secondary" :disabled="mutating || loading" @click="openBatchEdit"><t-icon name="edit"/>批量编辑标签</button><button class="customer-secondary customer-danger" :disabled="mutating || loading" @click="requestDelete(selectedCustomers)"><t-icon name="delete"/>批量删除</button><button class="customer-icon" :disabled="mutating" @click="selectAll(false)">取消选择</button></div>
+    <header class="workspace-list-header"><h1><t-icon name="usergroup"/>目标</h1><button v-if="authStore.hasRole('contributor')" class="customer-primary" :disabled="mutating" @click="openCreate"><t-icon name="add"/>新建目标</button></header>
+    <div class="customer-filters"><t-input v-model="search" clearable :disabled="mutating" aria-label="搜索目标" placeholder="搜索姓名、标签、备注或联系方式"><template #prefix-icon><t-icon name="search"/></template></t-input><t-select v-model="selectedTags" multiple clearable filterable :disabled="mutating" aria-label="按目标标签筛选" placeholder="按标签筛选" :options="tags.map(value=>({label:value,value}))"/><span class="customer-muted" role="status">{{visible.length}} 个目标</span><button class="customer-icon" :disabled="loading || mutating" :aria-label="loading ? '正在刷新目标' : '刷新'" @click="load"><t-loading v-if="loading" size="16px"/><t-icon v-else name="refresh"/></button></div>
+    <div v-if="selectedCustomers.length" class="customer-batch-bar" role="toolbar" aria-label="批量管理目标"><span>已选 {{selectedCustomers.length}} 个目标</span><button class="customer-secondary" :disabled="mutating || loading" @click="openBatchEdit"><t-icon name="edit"/>批量编辑标签</button><button class="customer-secondary customer-danger" :disabled="mutating || loading" @click="requestDelete(selectedCustomers)"><t-icon name="delete"/>批量删除</button><button class="customer-icon" :disabled="mutating" @click="selectAll(false)">取消选择</button></div>
     <t-alert v-if="error" theme="error" :message="error"><template #operation><t-button variant="text" :disabled="loading" @click="load">重新加载</t-button></template></t-alert>
-    <div v-if="loading && !customers.length" class="customer-empty"><t-loading text="正在读取客户…"/></div>
-    <div v-else-if="!error && !visible.length" class="customer-empty"><t-icon name="usergroup" size="32px"/><h3>{{customers.length ? '没有符合条件的客户' : '从第一位客户开始'}}</h3><button v-if="customers.length" class="customer-secondary" @click="clearFilters">清除筛选</button><button v-else-if="authStore.hasRole('contributor')" class="customer-primary" @click="openCreate">新建客户</button></div>
-    <div v-else-if="visible.length" class="customer-table-wrap"><table class="customer-table"><thead><tr><th v-if="selectable.length" class="customer-select-cell"><input type="checkbox" aria-label="选择当前列表全部可管理客户" :checked="allSelected" :indeterminate="partlySelected" :disabled="loading || mutating" @change="selectAll(($event.target as HTMLInputElement).checked)"/></th><th>客户</th><th>标签</th><th>备注</th><th>资料</th><th>最近更新</th><th>操作</th></tr></thead><tbody><tr v-for="customer in visible" :key="customer.id" :class="{'customer-row-selected':selectedIds.has(customer.id)}" @click="!mutating && router.push(`/platform/customers/${customer.id}`)"><td v-if="selectable.length" class="customer-select-cell" @click.stop><input v-if="canManage(customer)" type="checkbox" :aria-label="`选择客户 ${customer.name}`" :checked="selectedIds.has(customer.id)" :disabled="loading || mutating" @change="selectCustomer(customer.id, ($event.target as HTMLInputElement).checked)"/></td><td><router-link class="customer-name" :to="`/platform/customers/${customer.id}`" @click.stop><span><strong>{{customer.name}}</strong><small>{{customer.customer_profile.contact || '暂未填写联系方式'}}</small></span></router-link></td><td><CustomerTags :tags="customerVisibleTags(customer.customer_profile)" /></td><td><p class="customer-table-description">{{customerVisibleNote(customer.customer_profile.note, customer.description) || '还没有补充备注'}}</p></td><td>{{customer.knowledge_count || 0}} 份</td><td class="customer-muted">{{date(customer.updated_at)}}</td><td @click.stop><button v-if="canManage(customer)" class="customer-icon customer-danger customer-row-delete" :disabled="mutating || loading" :aria-label="`删除客户 ${customer.name}`" @click="requestDelete([customer])"><t-icon name="delete"/>删除</button><t-icon v-else name="chevron-right"/></td></tr></tbody></table></div>
-    <t-dialog v-model:visible="showBatchEdit" :header="`批量编辑标签 · ${selectedCustomers.length} 位客户`" :confirm-btn="{content:'保存标签', loading:savingBatch}" :cancel-btn="{disabled:savingBatch}" :close-btn="!savingBatch" :close-on-overlay-click="!savingBatch" :close-on-esc-keydown="!savingBatch" @confirm="saveBatchTags"><div class="customer-form"><label>操作方式<t-select v-model="batchMode" :disabled="savingBatch" :options="[{label:'添加标签',value:'add'},{label:'移除标签',value:'remove'}]" @change="batchTags=[]"/></label><label>标签<t-select v-model="batchTags" multiple filterable clearable :creatable="batchMode==='add'" :disabled="savingBatch" :options="tags.map(value=>({label:value,value}))" :placeholder="batchMode==='add' ? '选择标签，或输入新标签后回车' : '选择要移除的标签'" @create="createBatchTag"/></label><p class="customer-muted">{{batchMode==='add' ? '只添加选中的标签，其他标签保持不变。' : '只移除选中的标签，其他标签保持不变。'}}</p><t-alert v-if="actionError" theme="error" :message="actionError"/></div></t-dialog>
-    <t-dialog v-model:visible="showDelete" :header="deleteTargets.length > 1 ? '删除所选客户' : '删除客户'" theme="warning" :confirm-btn="{content:'确认删除',theme:'danger',loading:deleting}" :cancel-btn="{disabled:deleting}" :close-btn="!deleting" :close-on-overlay-click="!deleting" :close-on-esc-keydown="!deleting" @confirm="confirmDelete"><p class="customer-delete-names">将删除 {{deleteTargets.length}} 位客户：{{deleteNames}}</p><p class="customer-muted">删除后客户将从列表移除，客户资料会由系统清理。此操作不可撤回。</p><t-alert v-if="actionError" theme="error" :message="actionError"/></t-dialog>
+    <div v-if="loading && !customers.length" class="customer-empty"><t-loading text="正在读取目标…"/></div>
+    <div v-else-if="!error && !visible.length" class="customer-empty"><t-icon name="usergroup" size="32px"/><h3>{{customers.length ? '没有符合条件的目标' : '从第一个目标开始'}}</h3><button v-if="customers.length" class="customer-secondary" @click="clearFilters">清除筛选</button><button v-else-if="authStore.hasRole('contributor')" class="customer-primary" @click="openCreate">新建目标</button></div>
+    <div v-else-if="visible.length" class="customer-table-wrap"><table class="customer-table"><thead><tr><th v-if="selectable.length" class="customer-select-cell"><input type="checkbox" aria-label="选择当前列表全部可管理目标" :checked="allSelected" :indeterminate="partlySelected" :disabled="loading || mutating" @change="selectAll(($event.target as HTMLInputElement).checked)"/></th><th>目标</th><th>标签</th><th>备注</th><th>资料</th><th>最近更新</th><th>操作</th></tr></thead><tbody><tr v-for="customer in visible" :key="customer.id" :class="{'customer-row-selected':selectedIds.has(customer.id)}" @click="!mutating && router.push(`/platform/customers/${customer.id}`)"><td v-if="selectable.length" class="customer-select-cell" @click.stop><input v-if="canManage(customer)" type="checkbox" :aria-label="`选择目标 ${customer.name}`" :checked="selectedIds.has(customer.id)" :disabled="loading || mutating" @change="selectCustomer(customer.id, ($event.target as HTMLInputElement).checked)"/></td><td><router-link class="customer-name" :to="`/platform/customers/${customer.id}`" @click.stop><span><strong>{{customer.name}}</strong><small>{{customer.customer_profile.contact || '暂未填写联系方式'}}</small></span></router-link></td><td><CustomerTags :tags="customerVisibleTags(customer.customer_profile)" /></td><td><p class="customer-table-description">{{customerVisibleNote(customer.customer_profile.note, customer.description) || '还没有补充备注'}}</p></td><td>{{customer.knowledge_count || 0}} 份</td><td class="customer-muted">{{date(customer.updated_at)}}</td><td @click.stop><button v-if="canManage(customer)" class="customer-icon customer-danger customer-row-delete" :disabled="mutating || loading" :aria-label="`删除目标 ${customer.name}`" @click="requestDelete([customer])"><t-icon name="delete"/>删除</button><t-icon v-else name="chevron-right"/></td></tr></tbody></table></div>
+    <t-dialog v-model:visible="showBatchEdit" :header="`批量编辑标签 · ${selectedCustomers.length} 个目标`" :confirm-btn="{content:'保存标签', loading:savingBatch}" :cancel-btn="{disabled:savingBatch}" :close-btn="!savingBatch" :close-on-overlay-click="!savingBatch" :close-on-esc-keydown="!savingBatch" @confirm="saveBatchTags"><div class="customer-form"><label>操作方式<t-select v-model="batchMode" :disabled="savingBatch" :options="[{label:'添加标签',value:'add'},{label:'移除标签',value:'remove'}]" @change="batchTags=[]"/></label><label>标签<t-select v-model="batchTags" multiple filterable clearable :creatable="batchMode==='add'" :disabled="savingBatch" :options="tags.map(value=>({label:value,value}))" :placeholder="batchMode==='add' ? '选择标签，或输入新标签后回车' : '选择要移除的标签'" @create="createBatchTag"/></label><p class="customer-muted">{{batchMode==='add' ? '只添加选中的标签，其他标签保持不变。' : '只移除选中的标签，其他标签保持不变。'}}</p><t-alert v-if="actionError" theme="error" :message="actionError"/></div></t-dialog>
+    <t-dialog v-model:visible="showDelete" :header="deleteTargets.length > 1 ? '删除所选目标' : '删除目标'" theme="warning" :confirm-btn="{content:'确认删除',theme:'danger',loading:deleting}" :cancel-btn="{disabled:deleting}" :close-btn="!deleting" :close-on-overlay-click="!deleting" :close-on-esc-keydown="!deleting" @confirm="confirmDelete"><p class="customer-delete-names">将删除 {{deleteTargets.length}} 个目标：{{deleteNames}}</p><p class="customer-muted">删除后目标将从列表移除，目标资料会由系统清理。此操作不可撤回。</p><t-alert v-if="actionError" theme="error" :message="actionError"/></t-dialog>
     <KnowledgeBaseEditorModal v-model:visible="showCreate" mode="create" customer @success="id => router.push(`/platform/customers/${id}`)" />
   </main>
 </template>

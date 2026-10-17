@@ -11,6 +11,7 @@ import "@fontsource-variable/noto-sans-sc";
 // One ordered application-presentation seam. Vendor styles and component
 // behavior remain owned by TDesign and the existing Vue components.
 import "@/assets/musuw-visual.less";
+import "@/assets/fire/fire-theme.css";
 // vue-virtual-scroller ships its own tiny stylesheet — required for
 // RecycleScroller/DynamicScroller to size their viewport correctly.
 // Without it the scroller computes 0 height and renders no items.

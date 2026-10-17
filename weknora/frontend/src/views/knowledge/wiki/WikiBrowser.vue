@@ -1086,6 +1086,7 @@
             </div>
           </div>
         </div>
+        <FireWikiOutline v-if="isPeterWorkspace && selectedPage && !editingPage" :target="readerBodyRef" :content="renderedContent" @graph="openGraphDrawer(selectedPage.slug)" />
       </div>
     </template>
 
@@ -1319,6 +1320,8 @@ import { hydrateProtectedFileImages, sanitizeMarkdownHTML } from "@/utils/securi
 import type { ProtectedFileAccessContext } from "@/utils/protectedFileAccess";
 import picturePreview from "@/components/picture-preview.vue";
 import WikiFolderActions from "./WikiFolderActions.vue";
+import FireWikiOutline from '@/components/fire/FireWikiOutline.vue';
+import { isPeterWorkspace } from '@/config/workspaceSurface';
 import WikiRevisionDrawer from "./WikiRevisionDrawer.vue";
 import { expandedWikiDirectoryPaths, expandWikiDirectoryPath } from "./wikiDirectoryState";
 import { normalizeWikiGraphData } from "./wikiGraphData";

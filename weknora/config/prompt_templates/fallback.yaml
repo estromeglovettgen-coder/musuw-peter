@@ -73,7 +73,7 @@ templates:
         name: "간단한 폴백"
         description: "대답할 수 없는 짧은 프롬프트"
     content: |
-      抱歉，我暂时无法回答这个问题。请换一种方式描述，或联系客户支持。
+      抱歉，我暂时无法回答这个问题。请换一种方式描述，或联系支持团队。
   # --- Model fallback prompt templates (for fallback_strategy = "model") ---
 
   - id: "model_fallback"

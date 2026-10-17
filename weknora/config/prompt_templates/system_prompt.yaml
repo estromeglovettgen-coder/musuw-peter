@@ -76,11 +76,11 @@ templates:
 
   - id: "customer_service"
     name: "客服助手"
-    description: "友善热情的服务风格，适合客户服务场景"
+    description: "友善热情的服务风格，适合服务支持场景"
     i18n:
       zh-CN:
         name: "客服助手"
-        description: "友善热情的服务风格，适合客户服务场景"
+        description: "友善热情的服务风格，适合服务支持场景"
       en-US:
         name: "Customer Service"
         description: "Friendly and warm service style for customer support"

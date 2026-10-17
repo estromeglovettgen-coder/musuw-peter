@@ -19,8 +19,8 @@ const models=(await api('/api/v1/models')).data
 const model=models.find(m=>/deepseek/i.test(m.name) && !/fixture/i.test(m.name))
 if(!model)throw new Error('Local DeepSeek model is missing. Configure one in the browser before seeding.')
 const all=(await api('/api/v1/knowledge-bases')).data
-const extraction='重点识别当前客户、关联人物、重要经历、需求、顾虑和课程疑问。保留原文依据，不把销售建议或 AI 推断当作客户事实。'
-const content='围绕当前客户按背景与现状、需求与痛点、顾虑与疑问、沟通进展和待确认事项组织 Wiki。客户人物条目持续汇总来源，区分事实与推断，保留引用。'
+const extraction='重点识别当前目标、关联人物、重要经历、需求、顾虑和课程疑问。保留原文依据，不把销售建议或 AI 推断当作目标事实。'
+const content='围绕当前目标按背景与现状、需求与痛点、顾虑与疑问、沟通进展和待确认事项组织 Wiki。目标人物条目持续汇总来源，区分事实与推断，保留引用。'
 const manifestPath=resolve(runtime,'customer-demo.json')
 const manifest=existsSync(manifestPath)?JSON.parse(readFileSync(manifestPath,'utf8')):{customers:[]}
 const persist=()=>writeFileSync(manifestPath,JSON.stringify(manifest,null,2),{mode:0o600})
@@ -42,11 +42,11 @@ async function page(kbID,slug,title,type,body,summary,sources){
 }
 const common=await kb('销售经验（演示）','虚构演示资料：需求澄清、课程匹配与交付跟进。实际案例由 Peter 手动维护。')
 manifest.sharedKnowledgeBaseID=common.id;persist()
-const methodDoc=await document(common.id,'销售案例：先确认目标，再介绍课程（演示）','# 虚构演示案例\n\n客户第一次咨询时，不急着给出课程方案。先确认他希望改变的具体场景、尝试过的方法，以及判断改善的标准。\n\n## 处理过程\n1. 复述客户的实际困难，确认理解。\n2. 问一个具体问题，了解最近一次发生的情境。\n3. 将课程内容和该情境逐项对应，并说明课程不承诺保证结果。\n4. 对时间、费用或课程形式的疑问分别回答。\n\n这是一份人工编写的本地演示材料。','演示方法：先澄清具体目标，再将课程内容与客户情境对应。')
-await page(common.id,'concept/needs-first','先澄清需求，再匹配课程','concept','这是本地虚构案例提炼的演示方法。\n\n- 先确认具体情境与希望改变的行为。\n- 用实际课程内容说明适用性，不编造效果承诺。\n- 一次提出一个容易回答的问题。\n- 不把客户未确认的预算、动机或意愿写成事实。','需求澄清与课程匹配的演示方法。',[methodDoc.id])
+const methodDoc=await document(common.id,'销售案例：先确认目标，再介绍课程（演示）','# 虚构演示案例\n\n目标第一次咨询时，不急着给出课程方案。先确认他希望改变的具体场景、尝试过的方法，以及判断改善的标准。\n\n## 处理过程\n1. 复述目标的实际困难，确认理解。\n2. 问一个具体问题，了解最近一次发生的情境。\n3. 将课程内容和该情境逐项对应，并说明课程不承诺保证结果。\n4. 对时间、费用或课程形式的疑问分别回答。\n\n这是一份人工编写的本地演示材料。','演示方法：先澄清具体目标，再将课程内容与目标情境对应。')
+await page(common.id,'concept/needs-first','先澄清需求，再匹配课程','concept','这是本地虚构案例提炼的演示方法。\n\n- 先确认具体情境与希望改变的行为。\n- 用实际课程内容说明适用性，不编造效果承诺。\n- 一次提出一个容易回答的问题。\n- 不把目标未确认的预算、动机或意愿写成事实。','需求澄清与课程匹配的演示方法。',[methodDoc.id])
 const agentName='Peter 销售助手'
 const agentList=(await api('/api/v1/agents')).data || []
-const agent=agentList.find(a=>a.name===agentName) || (await api('/api/v1/agents','POST',{name:agentName,description:'结合当前客户资料与销售经验，分析情况、建议下一步，并起草回复。所有配置均可自行修改。',config:{agent_mode:'smart-reasoning',agent_type:'wiki-qa',model_id:model.id,system_prompt:'你是 Peter 的销售与交付工作助手。先读取当前客户及已关联经验库中的相关 Wiki，再回答。结合证据分析客户情况与卡点，给出具体下一步，并在适合时提供一段可编辑回复草稿。区分客户已说过的话、Peter 的备注和你的推断。信息不够时明确指出，并给出需要确认的问题；不要编造课程价格、承诺、客户事实或已发送的消息。这只是可编辑的初始工作方式，遵循 Peter 在对话中提出的具体任务。',kb_selection_mode:'selected',knowledge_bases:[common.id],allowed_tools:['wiki_search','wiki_read_page'],max_iterations:8,max_completion_tokens:2500,temperature:0.3,history_turns:20,memory_enabled:true,web_search_enabled:false,image_upload_enabled:false,audio_upload_enabled:false,question_suggestions:{starters:{enabled:true,mode:'curated',items:['分析这位客户目前最需要确认的问题','结合最近沟通，帮我起草下一条回复','整理这个客户目前的交付重点'],count:3},follow_ups:{enabled:false}}}})).data
+const agent=agentList.find(a=>a.name===agentName) || (await api('/api/v1/agents','POST',{name:agentName,description:'结合当前目标资料与销售经验，分析情况、建议下一步，并起草回复。所有配置均可自行修改。',config:{agent_mode:'smart-reasoning',agent_type:'wiki-qa',model_id:model.id,system_prompt:'你是 Peter 的销售与交付工作助手。先读取当前目标及已关联经验库中的相关 Wiki，再回答。结合证据分析目标情况与卡点，给出具体下一步，并在适合时提供一段可编辑回复草稿。区分目标已说过的话、Peter 的备注和你的推断。信息不够时明确指出，并给出需要确认的问题；不要编造课程价格、承诺、目标事实或已发送的消息。这只是可编辑的初始工作方式，遵循 Peter 在对话中提出的具体任务。',kb_selection_mode:'selected',knowledge_bases:[common.id],allowed_tools:['wiki_search','wiki_read_page'],max_iterations:8,max_completion_tokens:2500,temperature:0.3,history_turns:20,memory_enabled:true,web_search_enabled:false,image_upload_enabled:false,audio_upload_enabled:false,question_suggestions:{starters:{enabled:true,mode:'curated',items:['分析这位目标目前最需要确认的问题','结合最近沟通，帮我起草下一条回复','整理这个目标目前的交付重点'],count:3},follow_ups:{enabled:false}}}})).data
 manifest.agentID=agent.id;manifest.modelID=model.id;persist()
 const samples=[
 {name:'Alex',status:'沟通中',tags:['表达练习','时间安排'],contact:'微信：alex_demo（虚构）',description:'想改善初次沟通时紧张、解释过多的问题，正在了解课程形式。',note:'先了解具体场景；不要把“问价格”直接当作已决定购买。',goal:'希望初次沟通更自然，减少紧张时不断解释的情况。',concern:'工作日下班较晚，关心是否有回放，以及每周需要投入多久。',progress:'已经介绍课程的练习方式，还没有确认预算、报名时间或购买意愿。',chat:'2026-09-24 20:15 Alex：我一紧张就会说很多，后来想想其实没必要解释那么多。\n20:17 Peter：最近一次是什么情况？\n20:19 Alex：上周第一次见面，对方话比较少，我就一直在找话题。\n20:22 Peter：可以先从停顿和简洁表达的练习入手。\n20:25 Alex：我平时加班比较多，课程有没有回放？大概每周花多久？',next:'先回答回放与练习时间的问题，再确认 Alex 希望优先改善哪一种沟通场景。'},
@@ -56,17 +56,17 @@ const samples=[
 const seededSessions=[]
 for(const s of samples){
  const customer=await kb(`${s.name}（演示）`,s.description,{status:s.status,tags:s.tags,contact:s.contact,note:s.note,shared_knowledge_base_ids:[common.id],wiki_slug:`entity/${s.name.toLowerCase()}`})
- const source=await document(customer.id,`${s.name} · 原始聊天记录（演示）`,`# 虚构聊天原文\n\n> 本资料由人工编写，仅用于本地界面体验，不对应任何真实客户。\n\n${s.chat.replaceAll('\n','\n\n')}`,s.description)
+ const source=await document(customer.id,`${s.name} · 原始聊天记录（演示）`,`# 虚构聊天原文\n\n> 本资料由人工编写，仅用于本地界面体验，不对应任何真实目标。\n\n${s.chat.replaceAll('\n','\n\n')}`,s.description)
  const followup=await document(customer.id,`${s.name} · 跟进记录（演示）`,`# 人工跟进记录\n\n> 虚构演示记录。\n\n${s.progress}\n\n需要继续确认：${s.next}`,s.progress)
  const clientSlug=`entity/${s.name.toLowerCase()}`
  await page(customer.id,'concept/goals','需求与目标','concept',`# 需求与目标\n\n${s.goal}\n\n来自 [[${clientSlug}|${s.name}]] 的聊天材料。\n\n相关：[[concept/concerns|顾虑与疑问]]。`,s.goal,[source.id])
- await page(customer.id,'concept/concerns','顾虑与疑问','concept',`# 顾虑与疑问\n\n${s.concern}\n\n需要结合 [[concept/goals|需求与目标]] 继续确认。\n\n客户：[[${clientSlug}|${s.name}]]。`,s.concern,[source.id])
- await page(customer.id,'concept/progress','沟通进展','concept',`# 沟通进展\n\n${s.progress}\n\n人工备注：${s.note}\n\n客户：[[${clientSlug}|${s.name}]]。`,s.progress,[followup.id])
- await page(customer.id,clientSlug,`${s.name} · 客户画像`,'entity',`> 本页是人工编写的虚构演示画像，用来展示界面效果，非本次模型生成。\n\n## 背景与现状\n${s.description}\n\n## 需求与痛点\n${s.goal}\n\n详见 [[concept/goals|需求与目标]]。\n\n## 顾虑与疑问\n${s.concern}\n\n详见 [[concept/concerns|顾虑与疑问]]。\n\n## 沟通进展\n${s.progress}\n\n详见 [[concept/progress|沟通进展]]。\n\n## 待确认事项\n${s.next}\n\n**资料依据：**「${s.name} · 原始聊天记录（演示）」与「${s.name} · 跟进记录（演示）」。`,s.description,[source.id,followup.id])
- await page(customer.id,'index',`${s.name} 的客户资料`,'index',`# ${s.name} 的客户资料\n\n本地虚构演示客户。\n\n- [[${clientSlug}|客户画像]]\n- [[concept/goals|需求与目标]]\n- [[concept/concerns|顾虑与疑问]]\n- [[concept/progress|沟通进展]]`,s.description,[source.id])
+ await page(customer.id,'concept/concerns','顾虑与疑问','concept',`# 顾虑与疑问\n\n${s.concern}\n\n需要结合 [[concept/goals|需求与目标]] 继续确认。\n\n目标：[[${clientSlug}|${s.name}]]。`,s.concern,[source.id])
+ await page(customer.id,'concept/progress','沟通进展','concept',`# 沟通进展\n\n${s.progress}\n\n人工备注：${s.note}\n\n目标：[[${clientSlug}|${s.name}]]。`,s.progress,[followup.id])
+ await page(customer.id,clientSlug,`${s.name} · 目标画像`,'entity',`> 本页是人工编写的虚构演示画像，用来展示界面效果，非本次模型生成。\n\n## 背景与现状\n${s.description}\n\n## 需求与痛点\n${s.goal}\n\n详见 [[concept/goals|需求与目标]]。\n\n## 顾虑与疑问\n${s.concern}\n\n详见 [[concept/concerns|顾虑与疑问]]。\n\n## 沟通进展\n${s.progress}\n\n详见 [[concept/progress|沟通进展]]。\n\n## 待确认事项\n${s.next}\n\n**资料依据：**「${s.name} · 原始聊天记录（演示）」与「${s.name} · 跟进记录（演示）」。`,s.description,[source.id,followup.id])
+ await page(customer.id,'index',`${s.name} 的目标资料`,'index',`# ${s.name} 的目标资料\n\n本地虚构演示目标。\n\n- [[${clientSlug}|目标画像]]\n- [[concept/goals|需求与目标]]\n- [[concept/concerns|顾虑与疑问]]\n- [[concept/progress|沟通进展]]`,s.description,[source.id])
  let sessions=(await api(`/api/v1/sessions?customer_knowledge_base_id=${customer.id}&page_size=50`)).data || []
  const session=sessions.find(x=>x.title===`${s.name} · 首次情况分析`) || (await api('/api/v1/sessions','POST',{title:`${s.name} · 首次情况分析`,description:'虚构本地演示会话；示例回复为人工编写。',customer_knowledge_base_id:customer.id})).data
- seededSessions.push({id:session.id,agentID:agent.id,modelID:model.id,kbID:customer.id,sharedID:common.id,question:'结合客户资料，整理目前最需要确认的问题。',answer:`【人工编写的演示回复】\n\n**当前情况**\n${s.description}\n\n**已有依据**\n${s.goal}\n${s.concern}\n\n**建议下一步**\n${s.next}\n\n这是一段本地示例历史。你可以直接继续提问，后续回复使用已配置的模型。`})
+ seededSessions.push({id:session.id,agentID:agent.id,modelID:model.id,kbID:customer.id,sharedID:common.id,question:'结合目标资料，整理目前最需要确认的问题。',answer:`【人工编写的演示回复】\n\n**当前情况**\n${s.description}\n\n**已有依据**\n${s.goal}\n${s.concern}\n\n**建议下一步**\n${s.next}\n\n这是一段本地示例历史。你可以直接继续提问，后续回复使用已配置的模型。`})
  if(!manifest.customers.some(x=>x.id===customer.id))manifest.customers.push({id:customer.id,name:customer.name,sessionID:session.id})
  persist();console.log(`Prepared ${customer.name}`)
 }

@@ -5223,8 +5223,8 @@ export default {
     interestThresholdLabel: '成为长期关注的次数',
     interestThresholdDescription: '同一个主题被问到这么多次后，才会作为长期关注记下来。设为 1 会把每个一次性问题都记下来，通常太吵。',
     instructionsLabel: '自定义挖掘规则',
-    instructionsDescription: '追加到挖掘提示词里的自定义规则，用来表达产品猜不到的策略，例如「永远不要记录客户姓名」。',
-    instructionsPlaceholder: '一行一条规则，例如：永远不要记录客户姓名',
+    instructionsDescription: '追加到挖掘提示词里的自定义规则，用来表达产品猜不到的策略，例如「永远不要记录目标姓名」。',
+    instructionsPlaceholder: '一行一条规则，例如：永远不要记录目标姓名',
     maxItemsLabel: '记忆上限',
     maxItemsDescription: '超出后按重要度与使用时间归档最低的若干条，归档的记忆仍可在「我的记忆」里查看。',
     toasts: {

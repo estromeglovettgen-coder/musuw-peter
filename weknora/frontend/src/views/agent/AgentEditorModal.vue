@@ -205,11 +205,11 @@
 
                     <div v-if="isPeterWorkspace" class="setting-row" data-agent-field="archive_customer_sources">
                       <div class="setting-info">
-                        <label>新附件归档到客户库</label>
-                        <p class="desc">客户会话中上传的附件自动保存到该客户的资料库。</p>
+                        <label>新附件归档到目标库</label>
+                        <p class="desc">目标会话中上传的附件自动保存到该目标的资料库。</p>
                       </div>
                       <div class="setting-control">
-                        <t-switch v-model="formData.config.archive_customer_sources" aria-label="新附件归档到客户库" />
+                        <t-switch v-model="formData.config.archive_customer_sources" aria-label="新附件归档到目标库" />
                       </div>
                     </div>
 
@@ -3579,7 +3579,7 @@ watch(() => props.visible, async (val) => {
     } else {
       // 创建新智能体，使用系统默认值
       const newFormData = JSON.parse(JSON.stringify(defaultFormData));
-      // Peter Standard 的客户库可能只有 Wiki；新建时使用同时支持 Wiki 与文档的预设。
+      // Peter Standard 的目标库可能只有 Wiki；新建时使用同时支持 Wiki 与文档的预设。
       if (isPeterWorkspace && !authStore.isLiteMode) {
         newFormData.config.agent_type = 'hybrid-rag-wiki';
       }

@@ -54,11 +54,12 @@ describe("auth shell browser routes", () => {
 });
 
 describe("auth shell localized copy", () => {
-  it("keeps the original Musuw layout with only the private deployment's password sign-in", () => {
+  it("brands the private workspace as Fire while retaining password-only sign-in", () => {
     const html = renderToStaticMarkup(
       createElement(AuthApp, { runtime: {} as AuthRuntime, passwordOnly: true }),
     );
-    expect(html).toContain('class="auth-showcase"');
+    expect(html).toContain('class="fire-auth-showcase"');
+    expect(html).toContain('src="/brand/fire-mark.png"');
     expect(html).toContain('name="email"');
     expect(html).toContain('name="password"');
     expect(html).toContain('type="submit"');
@@ -194,7 +195,9 @@ describe("auth shell TikHub reference experience", () => {
     expect(source).toContain('className="auth-link auth-back-link"');
     expect(source).toContain('{!isRecoveryExperience && !passwordOnly ? (');
     expect(source).toContain('src="/auth/auth-reference/google.svg"');
-    expect(source).toContain('src="/auth/musuw-logo.png"');
+    const standardHtml = renderToStaticMarkup(createElement(AuthApp, { runtime: {} as AuthRuntime }));
+    expect(standardHtml).toContain('src="/auth/musuw-logo.png"');
+    expect(standardHtml).not.toContain('class="fire-auth-showcase"');
   });
 
   it("uses the reference font, equal split, high-contrast liquid motion, and responsive collapse", () => {

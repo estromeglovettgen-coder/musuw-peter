@@ -217,6 +217,20 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: 'fire-workspace-html',
+      transformIndexHtml(html) {
+        if (process.env.VITE_WORKSPACE_PROFILE !== 'peter') return html
+        return html
+          .replace('<html lang="en">', '<html lang="zh-CN" data-workspace-brand="fire">')
+          .replace('<title>Musuw</title>', '<title>火种</title>')
+          .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-mark.png"')
+          .replace('<strong>Musuw</strong>', '<strong>火种</strong>')
+          .replace("if(t==='system')", "if(document.documentElement.dataset.workspaceBrand==='fire')t='dark';\n  if(t==='system')")
+          .replace("var bg=t==='dark'?'#151619':'#fff';", "var bg=document.documentElement.dataset.workspaceBrand==='fire'?'#0b0b0d':t==='dark'?'#151619':'#fff';")
+          .replace('</style>', 'html[data-workspace-brand="fire"] #musuw-startup { background:#0b0b0d; color:#f2f0f0; }</style>')
+      },
+    },
     businessControllerPlugin(),
     vue(),
     vueJsx(),

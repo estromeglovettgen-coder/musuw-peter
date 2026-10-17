@@ -98,7 +98,7 @@ func systemPromptCatalog(cfg *config.Config) []systemPromptItem {
 		{"wiki_index_intro", "Wiki 首页介绍", "生成知识库 Wiki 首页介绍。", agent.WikiIndexIntroPrompt},
 		{"wiki_index_intro_update", "Wiki 首页更新", "更新首页介绍。", agent.WikiIndexIntroUpdatePrompt},
 	} {
-		add(p.id, p.name, "Wiki 与客户分析", p.description, p.content)
+		add(p.id, p.name, "Wiki 与目标分析", p.description, p.content)
 	}
 	labels := map[string]string{"memory.extract": "长期记忆提取", "memory.consolidate": "长期记忆合并", "memory.topic_adjudication": "记忆主题整理", "image.ocr": "图片文字识别", "image.scanned_pdf": "扫描件文字识别", "image.caption": "图片描述", "video.understanding": "视频理解", "chat.suggestions": "追问建议", "table.description": "表格摘要", "table.columns": "字段说明"}
 	defaults := service.DefaultServiceSystemPrompts()

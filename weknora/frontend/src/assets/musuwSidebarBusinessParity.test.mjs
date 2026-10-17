@@ -17,7 +17,7 @@ test('reference sidebar reuses frozen business setup and keeps every native sess
   for (const token of [
     "import LegacySidebarBusiness from '@/assets/business-baselines/menu.pre-view.vue'",
     'const legacySetup = legacy.setup',
-    'return { ...state, orgStore, bucketHasMore, isPeterWorkspace }',
+    'return { ...state, orgStore, bucketHasMore, isPeterWorkspace, isCustomerPage }',
     'toggleSidebar',
     "handleMenuClick('creatChat')",
     "handleMenuClick('knowledge-bases')",

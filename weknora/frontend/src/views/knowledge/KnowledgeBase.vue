@@ -254,7 +254,7 @@ export default defineComponent({
 
       <section v-if="embedded && activeKbTab !== 'documents' && !isWiki" class="visual-knowledge-unavailable" role="status">
         <t-loading v-if="!kbInfo" text="正在读取…" />
-        <template v-else><p>此客户尚未启用 Wiki。</p><t-button v-if="canEdit" variant="outline" @click="handleOpenKBSettings">前往设置</t-button></template>
+        <template v-else><p>此目标尚未启用 Wiki。</p><t-button v-if="canEdit" variant="outline" @click="handleOpenKBSettings">前往设置</t-button></template>
       </section>
 
       <section v-if="activeKbTab === 'documents' || (!embedded && !isWiki)" class="visual-knowledge-documents">

@@ -17,9 +17,9 @@ function select(event: Event) {
 const size = (bytes: number) => bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 </script>
 <template>
-  <section class="initial-sources" aria-label="客户聊天资料">
+  <section class="initial-sources" aria-label="目标聊天资料">
     <h2>{{ created ? '资料上传' : '聊天资料（可选）' }}</h2>
-    <p>{{ created ? '客户已保存，已上传的资料正在按保存的配置整理。' : '可上传聊天记录、截图或其他文件，也可直接粘贴聊天文字。' }}</p>
+    <p>{{ created ? '目标已保存，已上传的资料正在按保存的配置整理。' : '可上传聊天记录、截图或其他文件，也可直接粘贴聊天文字。' }}</p>
     <input ref="input" type="file" multiple hidden @change="select" />
     <div v-if="!created" class="source-actions"><t-button variant="outline" :disabled="uploading" @click="input?.click()"><template #icon><t-icon name="upload" /></template>选择文件</t-button><CustomerChatPaste :disabled="uploading" :add-file="file => { files.push({ file, status: 'pending', progress: 0 }) }" /></div>
     <ul v-if="files.length" aria-live="polite">
@@ -33,7 +33,7 @@ const size = (bytes: number) => bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)
       </li>
     </ul>
     <p v-else class="empty">尚未添加资料，也可以创建后再补充。</p>
-    <t-alert v-if="created && !uploading && files.some(item => item.status === 'error')" theme="warning" message="部分文件上传失败。可重试失败文件，或先进入客户，稍后补传。" />
+    <t-alert v-if="created && !uploading && files.some(item => item.status === 'error')" theme="warning" message="部分文件上传失败。可重试失败文件，或先进入目标，稍后补传。" />
   </section>
 </template>
 <style scoped>

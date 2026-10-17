@@ -414,7 +414,12 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
     if (typeof window === "undefined") return "en-US";
     return getInitialAuthLocale();
   });
-  const copy = getAuthCopy(locale);
+  const baseCopy = getAuthCopy(locale);
+  const copy = passwordOnly ? {
+    ...baseCopy,
+    title: locale === 'zh-CN' ? '登录火种' : 'Log in to Fire',
+    registerTitle: locale === 'zh-CN' ? '创建火种账号' : 'Create a Fire account',
+  } : baseCopy;
   const [screen, setScreen] = useState<Screen>(() => {
     if (typeof window === "undefined") return "login";
     return initialAuthScreenForPathname(window.location.pathname);
@@ -877,13 +882,17 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
   return (
     <main className="auth-page" aria-busy={isPendingScreen || isSubmitting}>
       <div className="auth-layout">
-        <AuthShowcase
+        {passwordOnly ? <aside className="fire-auth-showcase">
+          <div className="fire-auth-brand"><span className="fire-auth-mark"><img src="/brand/fire-mark.png" alt="" /></span><div><strong>火种</strong><small>FIRE CONSULTING</small></div></div>
+          <div className="fire-auth-copy"><span>课程 · 知识 · 实践</span><h2>让学到的，<br />真正用得上。</h2><p>整理课程知识，找到具体问题的答案。</p></div>
+          <span className="fire-auth-footer">FIRE CONSULTING</span>
+        </aside> : <AuthShowcase
           eyebrowPhrases={[heroEyebrow]}
           headlineFocus={headlineFocus}
           headlinePre={headlinePre}
           interactionState={showcaseState}
           subhead={heroDescription}
-        />
+        />}
 
         <section
           className="auth-panel"
@@ -895,8 +904,8 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
         >
           <div className="auth-panel-inner">
             <header className="auth-header">
-              <img alt="Musuw" className="auth-logo" height="28" src="/auth/musuw-logo.png" width="28" />
-              <span>Musuw</span>
+              <img alt={passwordOnly ? '火种' : 'Musuw'} className="auth-logo" height="28" src={passwordOnly ? '/brand/fire-mark.png' : '/auth/musuw-logo.png'} width="28" />
+              <span>{passwordOnly ? '火种' : 'Musuw'}</span>
             </header>
             <section
               aria-labelledby="auth-title"

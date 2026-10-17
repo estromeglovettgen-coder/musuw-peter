@@ -32,18 +32,18 @@ func (s *sessionService) resolveCustomerKnowledge(ctx context.Context, req *type
 	}
 	for _, requestedID := range req.KnowledgeBaseIDs {
 		if !allowed[requestedID] {
-			return nil, nil, apperrors.NewBadRequestError("此会话已绑定客户，请切换客户会话或先关联公共知识库")
+			return nil, nil, apperrors.NewBadRequestError("此会话已绑定目标，请切换目标会话或先关联公共知识库")
 		}
 	}
 	for _, scope := range req.TagScopes {
 		if !allowed[scope.KnowledgeBaseID] {
-			return nil, nil, apperrors.NewForbiddenError("标签不属于当前客户资料范围")
+			return nil, nil, apperrors.NewForbiddenError("标签不属于当前目标资料范围")
 		}
 	}
 	for _, docID := range req.KnowledgeIDs {
 		doc, e := s.knowledgeService.GetKnowledgeByID(ctx, docID)
 		if e != nil || doc == nil || !allowed[doc.KnowledgeBaseID] {
-			return nil, nil, apperrors.NewForbiddenError("文档不属于当前客户资料范围")
+			return nil, nil, apperrors.NewForbiddenError("文档不属于当前目标资料范围")
 		}
 	}
 	if err := types.AuthorizeTenantAPIKeyKnowledgeTargets(ctx, ids, req.KnowledgeIDs); err != nil {

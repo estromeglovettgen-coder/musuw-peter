@@ -233,6 +233,13 @@ const router = createRouter({
       meta: { requiresInit: true, requiresAuth: true },
       children: [
         {
+          path: 'design-system',
+          name: 'fireDesignSystem',
+          component: () => import('../views/fire/FireComponentLibrary.vue'),
+          beforeEnter: () => isPeterWorkspace || { path: '/platform/creatChat' },
+          meta: { requiresInit: true, requiresAuth: true }
+        },
+        {
           path: "tenant",
           redirect: "/platform/settings"
         },

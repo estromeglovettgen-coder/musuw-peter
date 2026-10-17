@@ -4,10 +4,10 @@ import { selectInitialModelId, type ModelDefaultCandidate } from './modelDefault
 export function createPeterProcessingDefaults(customer: boolean) {
   const example = customer
     ? {
-        text: '客户 Alex 向 Peter 咨询表达课程。Peter 负责跟进 Alex，并记录他的沟通目标。',
+        text: '目标 Alex 向 Peter 咨询表达课程。Peter 负责跟进 Alex，并记录他的沟通目标。',
         tags: ['咨询', '负责跟进', '关注', '参与', '提出', '解决'],
         nodes: [
-          { name: 'Alex', attributes: ['咨询表达课程的客户'] },
+          { name: 'Alex', attributes: ['咨询表达课程的目标'] },
           { name: 'Peter', attributes: ['负责跟进的顾问'] },
           { name: '表达课程', attributes: ['Alex 咨询的课程'] },
         ],

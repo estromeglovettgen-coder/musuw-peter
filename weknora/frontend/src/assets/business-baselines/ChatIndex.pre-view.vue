@@ -755,7 +755,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
                 archiveCustomerSources = agent.config.archive_customer_sources !== false;
             }
         } catch (error) {
-            MessagePlugin.error(error?.message || '客户会话准备失败，请重试');
+            MessagePlugin.error(error?.message || '目标会话准备失败，请重试');
             return;
         } finally { customerTurnPreparing.value = false; }
     }

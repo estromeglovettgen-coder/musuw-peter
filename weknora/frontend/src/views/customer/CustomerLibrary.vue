@@ -15,7 +15,7 @@ watch(() => route.query.type, type => {
   <div class="customer-library">
     <nav v-if="isPeterWorkspace" class="customer-library-tabs" aria-label="工作区">
       <router-link to="/platform/knowledge-bases" :class="{active: route.name === 'knowledgeBaseList'}"><t-icon name="folder"/>知识库</router-link>
-      <router-link to="/platform/customers" :class="{active: route.name === 'customerList'}"><t-icon name="usergroup"/>客户</router-link>
+      <router-link to="/platform/customers" :class="{active: route.name === 'customerList'}"><t-icon name="usergroup"/>目标</router-link>
     </nav>
     <CustomerList v-if="isPeterWorkspace && route.name === 'customerList'"/>
     <KnowledgeBaseList v-else/>

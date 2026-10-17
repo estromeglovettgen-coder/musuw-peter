@@ -1,0 +1,34 @@
+/* Same brand values as the native workspace. Only the Peter build opts in. */
+html[data-workspace-brand="fire"] {
+  color-scheme: dark;
+  --auth-background: #0b0b0d;
+  --auth-card: #101012;
+  --auth-foreground: #f2f0f0;
+  --auth-muted: #a2a2ac;
+  --auth-border: #34323b;
+  --auth-hover: #232327;
+  --auth-subtle: #1b1b1f;
+  --auth-inverse: #fff;
+  --auth-danger: #ffa0ad;
+  --auth-danger-bg: #351822;
+  --auth-success: #88cbb1;
+  --auth-success-bg: #132a23;
+  background: #0b0b0d;
+}
+html[data-workspace-brand="fire"] .auth-panel { border-left: 1px solid #2b2b31; background: #101012; }
+html[data-workspace-brand="fire"] .auth-form button[type="submit"] { background: #d62642; color: #fff; border-color: #d62642; border-radius: 9px; }
+html[data-workspace-brand="fire"] .auth-form button[type="submit"]:hover:not(:disabled) { background: #e23854; }
+html[data-workspace-brand="fire"] .auth-form input { border-radius: 9px; background: #151518; border-color: #34323b; color: #f2f0f0; }
+html[data-workspace-brand="fire"] .auth-form input:focus { border-color: #e66a82; box-shadow: 0 0 0 3px rgb(214 38 66 / 12%); }
+html[data-workspace-brand="fire"] .auth-logo { width: 32px; height: 44px; object-fit: contain; transform: scale(1.5); }
+.fire-auth-showcase { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 48px; min-height: 100dvh; padding: clamp(32px, 5vw, 80px); background: #0b0b0d; color: #f2f0f0; }
+.fire-auth-brand { display: flex; gap: 12px; align-items: center; }
+.fire-auth-mark { display: flex; align-items: center; justify-content: center; width: 40px; height: 55px; overflow: hidden; }
+.fire-auth-mark img { width: 158%; height: 158%; max-width: none; object-fit: contain; flex: none; }
+.fire-auth-brand strong { display: block; font-size: 24px; letter-spacing: .1em; font-weight: 600; }
+.fire-auth-brand small { display: block; margin-top: 6px; color: #a2a2ac; font-size: 9px; letter-spacing: .16em; }
+.fire-auth-copy > span { font-size: 12px; letter-spacing: .2em; color: #ef7b90; }
+.fire-auth-copy h2 { margin: 24px 0; font-size: clamp(35px, 3.8vw, 60px); line-height: 1.45; letter-spacing: -.035em; font-weight: 550; }
+.fire-auth-copy p { margin: 0; font-size: 15px; line-height: 1.8; color: #a2a2ac; }
+.fire-auth-footer { color: #6f6b76; font-size: 10px; letter-spacing: .18em; }
+@media (max-width: 760px) { .fire-auth-showcase { display: none; } html[data-workspace-brand="fire"] .auth-panel { border-left: 0; } }

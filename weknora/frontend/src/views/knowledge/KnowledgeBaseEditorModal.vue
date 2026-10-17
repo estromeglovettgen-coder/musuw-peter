@@ -32,14 +32,14 @@
       <CustomerInitialSources v-if="isCustomer && currentSection === 'sources'" v-model="initialSources" :created="!!savedCustomerId" :uploading="saving" />
       <template v-if="!savedCustomerId">
       <section v-if="isCustomer && currentSection === 'customer'" class="kb-config-section section">
-        <div class="section-header"><h2>客户资料</h2></div>
-        <t-loading v-if="customerResourcesLoading" text="正在读取客户资料选项…" />
+        <div class="section-header"><h2>目标资料</h2></div>
+        <t-loading v-if="customerResourcesLoading" text="正在读取目标资料选项…" />
         <t-alert v-else-if="customerResourcesError" theme="error" :message="customerResourcesError"><template #operation><t-button variant="text" @click="loadCustomerResources">重试</t-button></template></t-alert>
         <CustomerProfileFields v-else v-model:name="formData.name" v-model:profile="formData.customerProfile" :config="customerConfig" :libraries="customerLibraries" :pages="customerWikiPages" :editing="editorMode === 'edit'" />
       </section>
       <div v-show="currentSection === 'basic'" class="kb-config-section section">
         <div class="section-header">
-          <h2>{{ isPeterWorkspace ? (isCustomer ? '客户资料整理' : '资料设置') : isCustomer ? 'Wiki 与检索' : $t('knowledgeEditor.sidebar.basic') }}</h2>
+          <h2>{{ isPeterWorkspace ? (isCustomer ? '目标资料整理' : '资料设置') : isCustomer ? 'Wiki 与检索' : $t('knowledgeEditor.sidebar.basic') }}</h2>
           <p v-if="!isCustomer && !isPeterWorkspace" class="section-description">{{ $t('knowledgeEditor.modalDescription') }}</p>
         </div>
 
@@ -141,7 +141,7 @@
             <div class="setting-control setting-control-full kb-settings-textarea">
               <t-textarea
                 v-model="formData.wikiConfig.contentInstructions"
-                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：先说客户背景、需求和关键顾虑，语气简洁并保留来源。' : '例如：先概括背景和结论，再归纳关键方法与注意事项。') : $t('knowledgeEditor.wiki.contentInstructionsPlaceholder')"
+                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：先说目标背景、需求和关键顾虑，语气简洁并保留来源。' : '例如：先概括背景和结论，再归纳关键方法与注意事项。') : $t('knowledgeEditor.wiki.contentInstructionsPlaceholder')"
                 :maxlength="4000"
                 :autosize="{ minRows: 3, maxRows: 7 }"
               />
@@ -159,7 +159,7 @@
             <div class="setting-control setting-control-full kb-settings-textarea">
               <t-textarea
                 v-model="formData.wikiConfig.extractionInstructions"
-                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：重点关注客户目标、预算、异议、已承诺事项和下次跟进。' : '例如：重点关注核心观点、适用场景、关键案例和结论。') : $t('knowledgeEditor.wiki.extractionInstructionsPlaceholder')"
+                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：重点关注目标的需求、预算、异议、已承诺事项和下次跟进。' : '例如：重点关注核心观点、适用场景、关键案例和结论。') : $t('knowledgeEditor.wiki.extractionInstructionsPlaceholder')"
                 :maxlength="4000"
                 :autosize="{ minRows: 3, maxRows: 7 }"
               />
@@ -404,7 +404,7 @@
 
     <template #footer>
       <t-button variant="outline" :disabled="saving" @click="handleClose">
-        {{ savedCustomerId ? '进入客户' : $t('common.cancel') }}
+        {{ savedCustomerId ? '进入目标' : $t('common.cancel') }}
       </t-button>
       <t-button
         v-if="formData"
@@ -501,12 +501,12 @@ const editorMode = computed(() => props.mode)
 const activeKbId = computed(() => props.kbId)
 const isCustomer = computed(() => !!props.customer || !!formData.value?.customerProfile)
 const editorTitle = computed(() =>
-  isCustomer.value ? (editorMode.value === 'create' ? '新建客户' : '编辑客户') : editorMode.value === 'create'
+  isCustomer.value ? (editorMode.value === 'create' ? '新建目标' : '编辑目标') : editorMode.value === 'create'
     ? t('knowledgeEditor.titleCreate')
     : t('knowledgeEditor.titleEdit')
 )
 const saveButtonLabel = computed(() =>
-  savedCustomerId.value ? '重试失败文件' : isCustomer.value ? (editorMode.value === 'create' ? '创建客户' : '保存客户') : editorMode.value === 'create'
+  savedCustomerId.value ? '重试失败文件' : isCustomer.value ? (editorMode.value === 'create' ? '创建目标' : '保存目标') : editorMode.value === 'create'
     ? t('knowledgeEditor.buttons.confirmCreate')
     : t('knowledgeEditor.buttons.save')
 )
@@ -634,8 +634,8 @@ const DEFAULT_CHUNKING_PRESET = {
 const navItems = computed(() => {
   if (savedCustomerId.value) return [{ key: 'sources', icon: 'upload', label: '资料上传' }]
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
-    ...(isCustomer.value ? [{ key: 'customer', icon: 'user', label: '客户资料' }, { key: 'sources', icon: 'upload', label: '聊天资料' }] : []),
-    { key: 'basic', icon: 'info-circle', label: isPeterWorkspace ? (isCustomer.value ? '客户资料整理' : '资料设置') : isCustomer.value ? 'Wiki 与检索' : t('knowledgeEditor.sidebar.basic') },
+    ...(isCustomer.value ? [{ key: 'customer', icon: 'user', label: '目标资料' }, { key: 'sources', icon: 'upload', label: '聊天资料' }] : []),
+    { key: 'basic', icon: 'info-circle', label: isPeterWorkspace ? (isCustomer.value ? '目标资料整理' : '资料设置') : isCustomer.value ? 'Wiki 与检索' : t('knowledgeEditor.sidebar.basic') },
   ]
   if (authStore.isLiteMode) {
     const liteItems: { key: string; icon: string; label: string; badge?: number }[] = LITE_KB_EDITOR_SECTIONS.map((item) => ({
@@ -754,7 +754,7 @@ async function loadCustomerResources() {
     const wikiPages = wikiResult.status === 'fulfilled' ? wikiResult.value as any : null
     customerWikiPages.value = wikiPages?.pages || wikiPages?.data?.pages || []
   } catch (error: any) {
-    if (version === loadVersion) customerResourcesError.value = error.message || '客户资料选项加载失败，请重试'
+    if (version === loadVersion) customerResourcesError.value = error.message || '目标资料选项加载失败，请重试'
   } finally {
     if (version === loadVersion) customerResourcesLoading.value = false
   }
@@ -791,10 +791,10 @@ async function uploadCustomerSources(id: string) {
     }
   }
   if (initialSources.value.some(item => item.status === 'error')) {
-    MessagePlugin.warning('客户已保存，部分文件上传失败，可重试')
+    MessagePlugin.warning('目标已保存，部分文件上传失败，可重试')
     return
   }
-  MessagePlugin.success(initialSources.value.length ? `客户已保存，${initialSources.value.length} 份资料已上传` : '客户已保存')
+  MessagePlugin.success(initialSources.value.length ? `目标已保存，${initialSources.value.length} 份资料已上传` : '目标已保存')
   finishSave(id)
 }
 // FAQ remains a Standard/admin capability.  Lite's form is document-only
@@ -1110,7 +1110,7 @@ const loadKBData = async (kbIdOverride?: string) => {
     }
 
     const kb = kbInfo.data
-    if (props.customer && !(kb as any).customer_profile) throw new Error('未找到客户项目')
+    if (props.customer && !(kb as any).customer_profile) throw new Error('未找到目标项目')
     hasFiles.value = (filesResult as any)?.total > 0
     kbCreatorId.value = (kb as any).creator_id || ''
     kbTenantId.value = Number((kb as any).tenant_id || 0)
@@ -1306,12 +1306,12 @@ const validateForm = (): boolean => {
     }
     const profile = customerFieldsForSave(formData.value.customerProfile, formData.value.customerLegacy).profile
     if (profile.tags.length > 30 || profile.tags.some((tag: string) => new TextEncoder().encode(tag).length > 100) || profile.shared_knowledge_base_ids.length > 30) {
-      MessagePlugin.warning('客户标签最多 30 个，单个标签请缩短；可参考的资料库最多 30 个')
+      MessagePlugin.warning('目标标签最多 30 个，单个标签请缩短；可参考的资料库最多 30 个')
       currentSection.value = 'customer'
       return false
     }
     if (new TextEncoder().encode(profile.note || '').length > 12000) {
-      MessagePlugin.warning('客户备注过长，请适当缩短')
+      MessagePlugin.warning('目标备注过长，请适当缩短')
       currentSection.value = 'customer'
       return false
     }
@@ -1319,7 +1319,7 @@ const validateForm = (): boolean => {
 
   // 验证基本信息
   if (!formData.value.name || !formData.value.name.trim()) {
-    MessagePlugin.warning(isCustomer.value ? '请填写客户名称' : t('knowledgeEditor.messages.nameRequired'))
+    MessagePlugin.warning(isCustomer.value ? '请填写目标名称' : t('knowledgeEditor.messages.nameRequired'))
     currentSection.value = isCustomer.value ? 'customer' : 'basic'
     return false
   }

@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   loadPreference,
   savePreference,
@@ -12,6 +13,7 @@ const THEME_KEY = 'theme'
 const THEME_COLOR_KEY = 'theme_color'
 
 function loadTheme(): ThemeMode {
+  if (isPeterWorkspace) return 'dark'
   const v = loadPreference(THEME_KEY)
   if (v === 'light' || v === 'dark' || v === 'system') return v
   return 'light'
@@ -71,7 +73,7 @@ function releaseBootCanvas() {
 }
 
 function applyTheme(mode: ThemeMode) {
-  const effective = mode === 'system' ? getSystemTheme() : mode
+  const effective = isPeterWorkspace ? 'dark' : mode === 'system' ? getSystemTheme() : mode
   if (lastEffective === effective) return
   lastEffective = effective
   document.documentElement.setAttribute('theme-mode', effective)
@@ -85,6 +87,7 @@ function applyThemeColor(color: ThemeColor) {
 
 export function useTheme() {
   function setTheme(mode: ThemeMode): boolean {
+    if (isPeterWorkspace && mode !== 'dark') return false
     if (mode !== 'light' && mode !== 'dark' && mode !== 'system') return false
     currentTheme.value = mode
     savePreference(THEME_KEY, mode)
@@ -105,6 +108,12 @@ export function useTheme() {
 
 /** Call once in main.ts to initialise theme and listen for OS changes. */
 export function initTheme() {
+  if (isPeterWorkspace) {
+    document.documentElement.dataset.workspaceBrand = 'fire'
+    document.title = '火种'
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (favicon) favicon.href = '/brand/fire-mark.png'
+  }
   currentTheme.value = loadTheme()
   currentThemeColor.value = loadThemeColor()
   applyTheme(currentTheme.value)

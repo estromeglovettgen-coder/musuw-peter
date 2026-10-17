@@ -4,7 +4,8 @@
     <button v-if="mobileNavigationOpen" class="visual-mobile-backdrop" :aria-label="t('menu.collapseSidebar')" @click="closeMobileNavigation" />
     <header class="visual-mobile-header" :inert="mobileNavigationOpen">
       <button ref="mobileMenuButton" type="button" :aria-label="t('menu.expandSidebar')" :aria-expanded="mobileNavigationOpen" @click="uiStore.sidebarCollapsed = false"><t-icon name="view-list" /></button>
-      <img src="/musuw-logo.png" alt="Musuw" />
+      <FireBrand v-if="isPeterWorkspace" />
+      <img v-else src="/musuw-logo.png" alt="Musuw" />
       <button type="button" :aria-label="t('menu.newChat')" @click="router.push('/platform/creatChat')"><t-icon name="chat-add" /></button>
     </header>
     <div v-if="isRouterAlive" class="platform-route-outlet" :inert="mobileNavigationOpen">
@@ -25,6 +26,8 @@
 </template>
 <script setup lang="ts">
 import Menu from "@/components/menu.vue";
+import FireBrand from '@/components/fire/FireBrand.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { computed, ref, onMounted, onUnmounted, nextTick, provide, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import UploadMask from "@/components/upload-mask.vue";
@@ -67,10 +70,10 @@ const closeMobileNavigation = () => {
   nextTick(() => mobileMenuButton.value?.focus({ preventScroll: true }));
 };
 const handleMobileNavigationClick = (event: MouseEvent) => {
-  if (event.target instanceof Element && event.target.closest('.visual-sidebar__primary, .visual-sidebar__brand')) closeMobileNavigation();
+  if (event.target instanceof Element && event.target.closest('.visual-sidebar__primary, .visual-sidebar__brand, .fire-sidebar-brand')) closeMobileNavigation();
 };
 watch(mobileNavigationOpen, (open) => {
-  if (open) nextTick(() => dropzone.value?.querySelector<HTMLButtonElement>('.visual-sidebar__brand')?.focus({ preventScroll: true }));
+  if (open) nextTick(() => dropzone.value?.querySelector<HTMLButtonElement>('.visual-sidebar__brand, .fire-sidebar-brand')?.focus({ preventScroll: true }));
 });
 watch(() => route.fullPath, closeMobileNavigation);
 onMounted(() => mobileViewport.addEventListener('change', syncMobileViewport));

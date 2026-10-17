@@ -122,7 +122,7 @@ func (c *CustomerConfig) Scan(value interface{}) error {
 
 func (c *CustomerConfig) Validate() error {
 	if len(c.Statuses) == 0 || len(c.Statuses) > 50 || len(c.Tags) > 100 {
-		return fmt.Errorf("请保留 1–50 个客户状态，标签不能超过 100 个")
+		return fmt.Errorf("请保留 1–50 个目标状态，标签不能超过 100 个")
 	}
 	for _, values := range [][]string{c.Statuses, c.Tags} {
 		seen := make(map[string]bool, len(values))
@@ -138,7 +138,7 @@ func (c *CustomerConfig) Validate() error {
 		c.Tags = []string{}
 	}
 	if len(c.Templates) > 50 {
-		return fmt.Errorf("客户模板不能超过 50 套")
+		return fmt.Errorf("目标模板不能超过 50 套")
 	}
 	ids, names := map[string]bool{}, map[string]bool{}
 	for i := range c.Templates {
@@ -156,7 +156,7 @@ func (c *CustomerConfig) Validate() error {
 		}
 		data, err := json.Marshal(template.Config)
 		if err != nil || len(data) > 128*1024 {
-			return fmt.Errorf("单套客户模板配置不能超过 128 KB")
+			return fmt.Errorf("单套目标模板配置不能超过 128 KB")
 		}
 	}
 	if c.Templates == nil {

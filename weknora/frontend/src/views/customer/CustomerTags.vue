@@ -23,7 +23,7 @@ defineProps<{ tags: string[] }>()
       overlay-class-name="customer-tags-popover"
       :overlay-inner-style="{ padding: '10px' }"
     >
-      <button type="button" class="customer-tag-overflow" :aria-label="`查看全部 ${tags.length} 个客户标签`">
+      <button type="button" class="customer-tag-overflow" :aria-label="`查看全部 ${tags.length} 个目标标签`">
         +{{ tags.length - 3 }}
       </button>
       <template #content>

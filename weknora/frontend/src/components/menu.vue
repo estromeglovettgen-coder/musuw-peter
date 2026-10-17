@@ -1,5 +1,6 @@
 <script lang="ts">
-import { defineComponent, type SetupContext } from 'vue'
+import { computed, defineComponent, type SetupContext } from 'vue'
+import { useRoute } from 'vue-router'
 import LegacySidebarBusiness from '@/assets/business-baselines/menu.pre-view.vue'
 import SessionSidebarRow from './SessionSidebarRow.vue'
 import SessionSourceFilter from './SessionSourceFilter.vue'
@@ -9,6 +10,7 @@ import TenantSelector from './TenantSelector.vue'
 import { useOrganizationStore } from '@/stores/organization'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { bucketHasMore } from './sessionSidebarBuckets'
+import FireBrand from './fire/FireBrand.vue'
 
 const legacy = LegacySidebarBusiness as any
 const legacySetup = legacy.setup
@@ -23,11 +25,14 @@ export default defineComponent({
     SessionBatchManageModal,
     UserMenu,
     TenantSelector,
+    FireBrand,
   },
   setup(props: Record<string, unknown>, context: SetupContext) {
     const state = legacySetup?.(props, context)
     const orgStore = useOrganizationStore()
-    if (state && typeof state === 'object' && typeof state.then !== 'function') return { ...state, orgStore, bucketHasMore, isPeterWorkspace }
+    const route = useRoute()
+    const isCustomerPage = computed(() => route.name === 'customerList' || route.name === 'customerProject')
+    if (state && typeof state === 'object' && typeof state.then !== 'function') return { ...state, orgStore, bucketHasMore, isPeterWorkspace, isCustomerPage }
     return state
   },
 })
@@ -37,11 +42,13 @@ export default defineComponent({
   <aside class="visual-sidebar" :class="{ 'is-collapsed': uiStore.sidebarCollapsed }">
     <template v-if="uiStore.sidebarCollapsed">
       <div class="visual-sidebar__collapsed-main">
+        <button v-if="isPeterWorkspace" type="button" class="fire-sidebar-brand is-compact" aria-label="火种 · 展开侧栏" @click="toggleSidebar"><FireBrand mark-only /></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__collapsed-logo" :title="'Musuw 穆苏瓦'" @click="toggleSidebar"><img src="/musuw-logo.png" alt="Musuw" /></button>
         <button type="button" class="visual-sidebar__collapsed-control" :title="t('menu.expandSidebar')" @click="toggleSidebar"><t-icon name="chevron-right" /></button>
         <div class="visual-sidebar__collapsed-divider" />
         <button type="button" class="visual-sidebar__collapsed-nav is-new" :title="t('menu.newChat')" @click="handleMenuClick('creatChat')"><t-icon name="chat-add" /></button>
-        <button type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': isMenuItemActive('knowledge-bases') }" :title="isPeterWorkspace ? '工作区' : t('menu.knowledgeBase')" @click="handleMenuClick('knowledge-bases')"><t-icon name="folder" /></button>
+        <button type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': isMenuItemActive('knowledge-bases') && (!isPeterWorkspace || !isCustomerPage) }" :title="t('menu.knowledgeBase')" @click="handleMenuClick('knowledge-bases')"><t-icon name="folder" /></button>
+        <button v-if="isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav fire-customers-nav" :class="{ 'is-active': isCustomerPage }" title="目标" @click="$router.push('/platform/customers')"><t-icon name="usergroup" /></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" :title="t('creatorMarketplace.title')" @click="handleMenuClick('marketplace')"><t-icon name="shop" /></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'agentList' }" :title="t('menu.agents')" @click="handleMenuClick('agents')"><t-icon name="usergroup" /></button>
         <button v-if="!isPeterWorkspace && visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'organizationList' }" :title="t('menu.organizations')" @click="handleMenuClick('organizations')"><t-icon name="system-sum" /></button>
@@ -52,6 +59,7 @@ export default defineComponent({
 
     <template v-else>
       <header class="visual-sidebar__header">
+        <button v-if="isPeterWorkspace" type="button" class="fire-sidebar-brand" aria-label="火种首页" @click="handleMenuClick('creatChat')"><FireBrand /></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__brand" aria-label="Musuw" @click="handleMenuClick('creatChat')"><span class="visual-sidebar__mark" aria-hidden="true"><img src="/musuw-logo.png" alt="" /></span></button>
         <div class="visual-sidebar__header-actions">
           <button v-if="!authStore.isLiteMode" type="button" class="visual-sidebar__header-icon" :title="t('menu.search')" :aria-label="t('menu.search')" @click="commandPaletteStore.openPalette('')"><t-icon name="search" /></button>
@@ -63,10 +71,11 @@ export default defineComponent({
 
       <div class="visual-sidebar__primary-actions">
         <button type="button" class="visual-sidebar__primary is-new" data-guide="nav-creatChat" @click="handleMenuClick('creatChat')"><t-icon name="chat-add" /><span>{{ t('menu.newChat') }}</span></button>
-        <button type="button" class="visual-sidebar__primary is-kb" :class="{ 'is-active': isMenuItemActive('knowledge-bases') }" data-guide="nav-knowledge-bases" @click="handleMenuClick('knowledge-bases')">
-          <span class="visual-sidebar__primary-copy"><t-icon name="folder" /><span>{{ isPeterWorkspace ? '工作区' : t('menu.knowledgeBase') }}</span></span>
+        <button type="button" class="visual-sidebar__primary is-kb" :class="{ 'is-active': isMenuItemActive('knowledge-bases') && (!isPeterWorkspace || !isCustomerPage) }" data-guide="nav-knowledge-bases" @click="handleMenuClick('knowledge-bases')">
+          <span class="visual-sidebar__primary-copy"><t-icon name="folder" /><span>{{ t('menu.knowledgeBase') }}</span></span>
           <span v-if="!isPeterWorkspace && chatResources.rawKnowledgeBases?.length" class="visual-sidebar__kb-count">{{ chatResources.rawKnowledgeBases.length }}</span>
         </button>
+        <button v-if="isPeterWorkspace" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': isCustomerPage }" data-guide="nav-customers" @click="$router.push('/platform/customers')"><span class="visual-sidebar__primary-copy"><t-icon name="usergroup" /><span>目标</span></span></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" data-guide="nav-marketplace" @click="handleMenuClick('marketplace')"><span class="visual-sidebar__primary-copy"><t-icon name="shop" /><span>{{ t('creatorMarketplace.title') }}</span></span></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'agentList' }" data-guide="nav-agents" @click="handleMenuClick('agents')">
           <span class="visual-sidebar__primary-copy"><t-icon name="usergroup" /><span>{{ t('menu.agents') }}</span></span>

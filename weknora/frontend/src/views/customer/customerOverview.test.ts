@@ -23,4 +23,11 @@ describe('customer overview Wiki selection', () => {
   it('does not match partial names', () => {
     assert.equal(selectCustomerOverview([{page_type:'entity', title:'Bobby', slug:'entity/bobby'}], 'Bob'), undefined)
   })
+  it('recognizes both legacy customer and renamed target overview titles', () => {
+    const summary = { page_type: 'summary', title: '沟通记录', slug: 'summary/chat' }
+    for (const suffix of ['客户画像', '目标画像', '客户资料', '目标资料']) {
+      const overview = { page_type: 'entity', title: `Alex · ${suffix}`, slug: 'entity/person-17' }
+      assert.equal(selectCustomerOverview([summary, overview], 'Alex'), overview, suffix)
+    }
+  })
 })
