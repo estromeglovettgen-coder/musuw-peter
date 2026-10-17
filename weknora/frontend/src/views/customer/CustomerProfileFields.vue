@@ -41,8 +41,8 @@ const wikiOptions = computed(() => {
     <label>目标名称 <span class="required">*</span><t-input v-model="name" aria-label="目标名称" :maxlength="80" placeholder="例如：Alex" /></label>
     <label>联系方式<t-input v-model="profile.contact" aria-label="联系方式" :maxlength="300" placeholder="微信、邮箱或电话" /></label>
     <label class="wide">目标标签<PeterTermHelp text="目标标签：可以同时选多个，也可以输入新标签后回车。旧目标的“状态”会作为普通标签显示，不再需要单独设置状态。" label="了解目标标签" /><t-select v-model="profile.tags" aria-label="目标标签" multiple creatable filterable clearable :options="tags.map(value => ({ label: value, value }))" placeholder="选择标签，或输入新标签后回车" @create="createTag" @change="normalizeTags" /></label>
-    <label class="wide">目标备注<PeterTermHelp text="目标备注：记录目标现状、需求、顾虑或跟进事项，智能体分析时可将它作为背景。旧版的一句话说明和置顶备注会在这里一起显示。" label="了解目标备注" /><t-textarea v-model="profile.note" aria-label="目标备注" :maxlength="10000" :autosize="{ minRows: 4, maxRows: 10 }" placeholder="目标目前的情况、关注点，以及后续需要跟进的事项" /></label>
-    <label class="wide">回答可参考的资料库<PeterTermHelp text="公共知识库：可选择销售案例、课程等共用资料，智能体分析这个目标时能同时参考。目标自己的聊天记录仍保存在独立资料中。" label="了解共用资料库" /><t-select v-model="profile.shared_knowledge_base_ids" aria-label="回答可参考的资料库" multiple filterable clearable :options="libraryOptions" placeholder="选择销售经验或课程资料" /></label>
+    <label class="wide">目标备注<PeterTermHelp text="目标备注：记录相识背景、当前关系、最近互动及希望理清的问题，智能体分析时可作为背景。" label="了解目标备注" /><t-textarea v-model="profile.note" aria-label="目标备注" :maxlength="10000" :autosize="{ minRows: 4, maxRows: 10 }" placeholder="怎么认识的、目前是什么关系、最近发生了什么" /></label>
+    <label class="wide">回答可参考的资料库<PeterTermHelp text="公共知识库：可选择社交课程、沟通方法与案例，分析目标时一并参考。目标自己的聊天记录仍保存在独立资料中。" label="了解共用资料库" /><t-select v-model="profile.shared_knowledge_base_ids" aria-label="回答可参考的资料库" multiple filterable clearable :options="libraryOptions" placeholder="选择社交课程或沟通案例" /></label>
     <label v-if="editing && wikiOptions.length" class="wide">概览显示哪篇目标分析<PeterTermHelp text="Wiki 页面：系统从目标资料中整理出的主题页面。选中一篇显示在目标概览；留空时系统自动选择。" label="了解首页目标分析" /><t-select v-model="profile.wiki_slug" aria-label="概览显示哪篇目标分析" clearable filterable :options="wikiOptions" placeholder="自动选择目标分析" /></label>
   </div>
 </template>

@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <div v-if="!isPeterWorkspace" class="visual-setting-row">
+      <div class="visual-setting-row">
         <div class="visual-setting-row__copy">
           <label for="visual-theme-select">{{ $t('theme.theme') }}</label>
           <p>{{ $t('theme.themeDescription') }}</p>

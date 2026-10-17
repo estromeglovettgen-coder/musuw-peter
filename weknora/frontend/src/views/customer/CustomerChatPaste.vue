@@ -28,7 +28,7 @@ async function save() {
     :confirm-btn="{ content: '添加资料', loading: saving }" :cancel-btn="{ disabled: saving }" :close-btn="!saving"
     :close-on-overlay-click="!saving" :close-on-esc-keydown="!saving" @confirm="save">
     <div class="chat-paste-form">
-      <label>标题（可选）<t-input v-model="title" aria-label="聊天记录标题" :maxlength="100" placeholder="例如：10 月 2 日课程咨询" :disabled="saving" /></label>
+      <label>标题（可选）<t-input v-model="title" aria-label="聊天记录标题" :maxlength="100" placeholder="例如：周末见面后的聊天" :disabled="saving" /></label>
       <label>聊天记录<t-textarea v-model="content" aria-label="聊天记录内容" :autosize="{ minRows: 10, maxRows: 16 }" :disabled="saving" placeholder="直接粘贴双方聊天原文，保留说话人和时间。" /></label>
     </div>
   </t-dialog>

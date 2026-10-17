@@ -21,7 +21,17 @@ try {
   const passwordOnly = import.meta.env["VITE_WORKSPACE_PROFILE"] === "peter";
   if (passwordOnly) {
     document.documentElement.dataset['workspaceBrand'] = 'fire';
-    document.documentElement.setAttribute('theme-mode', 'dark');
+    let theme = 'dark';
+    try {
+      const user = JSON.parse(window.localStorage.getItem('weknora_user') || 'null');
+      const id = user?.id ? String(user.id) : 'anon';
+      const saved = window.localStorage.getItem(`Musuw_${id}_theme`)
+        ?? window.localStorage.getItem(`WeKnora_${id}_theme`)
+        ?? window.localStorage.getItem('Musuw_auth_theme');
+      if (saved === 'light' || saved === 'dark') theme = saved;
+      if (saved === 'system') theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch { /* A blocked preference store must not prevent sign-in. */ }
+    document.documentElement.setAttribute('theme-mode', theme);
   }
   const sharedOptions = {
     onDiagnostic: reportDiagnostic,

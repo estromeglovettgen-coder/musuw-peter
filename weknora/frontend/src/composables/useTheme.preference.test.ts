@@ -125,3 +125,37 @@ test('preference migration keeps user and tenant namespaces isolated', { concurr
   assert.equal(values.get('WeKnora_42_theme'), 'dark')
   assert.equal(values.get('Musuw_41_theme'), 'light')
 })
+
+test('light appearance survives reload and system appearance follows OS changes', { concurrency: false }, async () => {
+  const values = new Map<string, string>([['weknora_user', JSON.stringify({ id: 51 })]])
+  const attributes = new Map<string, string>()
+  let systemDark = false
+  let onSystemChange: (() => void) | undefined
+  globalThis.localStorage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value) },
+    removeItem: (key: string) => { values.delete(key) },
+  } as unknown as Storage
+  globalThis.document = {
+    documentElement: { setAttribute: (key: string, value: string) => { attributes.set(key, value) } },
+  } as unknown as Document
+  globalThis.window = {
+    matchMedia: () => ({ matches: systemDark, addEventListener: (_event: string, listener: () => void) => { onSystemChange = listener } }),
+  } as unknown as Window & typeof globalThis
+  const theme = await import(`./useTheme.ts?appearance-persistence=${Date.now()}`)
+  const api = theme.useTheme()
+  theme.initTheme()
+  assert.equal(api.setTheme('light'), true)
+  assert.equal(values.get('Musuw_51_theme'), 'light')
+  assert.equal(values.get('WeKnora_51_theme'), 'light')
+  theme.reloadThemeFromStorage()
+  assert.equal(api.currentTheme.value, 'light')
+  assert.equal(attributes.get('theme-mode'), 'light')
+  api.setTheme('system')
+  systemDark = true
+  onSystemChange?.()
+  assert.equal(attributes.get('theme-mode'), 'dark')
+  api.setTheme('light')
+  onSystemChange?.()
+  assert.equal(attributes.get('theme-mode'), 'light', 'An explicit choice must override later OS changes')
+})

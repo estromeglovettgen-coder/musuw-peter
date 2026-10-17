@@ -4,7 +4,7 @@ withDefaults(defineProps<{ markOnly?: boolean }>(), { markOnly: false })
 
 <template>
   <span class="fire-brand" :class="{ 'fire-brand--mark': markOnly }" :aria-label="markOnly ? undefined : '火种'">
-    <span class="fire-brand__mark" aria-hidden="true"><img src="/brand/fire-mark.png" alt="" /></span>
+    <span class="fire-brand__mark" aria-hidden="true"><img src="/brand/fire-mark-256.png" alt="" /></span>
     <span v-if="!markOnly" class="fire-brand__wordmark"><strong>火种</strong><small>FIRE CONSULTING</small></span>
   </span>
 </template>

@@ -1339,7 +1339,7 @@ import {
   saveObsidianGraphSettings,
   type ObsidianGraphSettings,
 } from "./graph/obsidianGraphSettings";
-import { getKnowledgeDetails } from "@/api/knowledge-base";
+import { batchQueryKnowledge } from "@/api/knowledge-base";
 import { createSessions } from "@/api/chat";
 import ChatView from "@/views/chat/index.vue";
 import {
@@ -1810,6 +1810,13 @@ const hasContentPages = computed(() => {
 // so filenames do not leak into LLM citation strings. Resolve titles for display.
 const sourceRefTitleCache = reactive<Record<string, string>>({});
 let sourceRefTitleRequestSeq = 0;
+let sourceRefTitleScope = "";
+
+// Native summary slugs use the original knowledge ID. Reuse the scoped source
+// batch endpoint instead of loading every summary or fetching pages one by one.
+function summarySourceId(slug: string): string {
+  return /^summary\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(slug)?.[1] || "";
+}
 
 function parseSourceRefEntry(ref: string): { id: string; title: string } {
   const pipeIdx = ref.indexOf("|");
@@ -1832,17 +1839,35 @@ const parsedSourceRefs = computed(() => {
 });
 
 async function hydrateSourceRefTitles(refs: string[]) {
-  if (subscriptionReadOnly.value) return;
-  const ids = refs.filter((ref) => ref.indexOf("|") < 0 && !sourceRefTitleCache[ref]);
-  if (!ids.length) return;
   const seq = ++sourceRefTitleRequestSeq;
-  for (const id of ids) {
+  const kbId = props.knowledgeBaseId;
+  const scope = `${kbId}:${props.marketplaceProductId || ""}`;
+  if (sourceRefTitleScope !== scope) {
+    for (const id of Object.keys(sourceRefTitleCache)) delete sourceRefTitleCache[id];
+    sourceRefTitleScope = scope;
+  }
+  if (subscriptionReadOnly.value) return;
+  if (selectedPage.value?.knowledge_base_id && selectedPage.value.knowledge_base_id !== kbId) return;
+  for (const ref of refs) {
+    if (ref.indexOf("|") <= 0) continue;
+    const entry = parseSourceRefEntry(ref);
+    if (entry.title.trim()) sourceRefTitleCache[entry.id] = entry.title;
+  }
+  const ids = [...new Set(refs.filter((ref) => ref && ref.indexOf("|") < 0 && !sourceRefTitleCache[ref]))];
+  if (!ids.length) return;
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const batch = ids.slice(offset, offset + 100);
+    const query = new URLSearchParams();
+    for (const id of batch) query.append("ids", id);
     try {
-      const res = await getKnowledgeDetails(id);
-      if (seq !== sourceRefTitleRequestSeq) return;
+      const res = await batchQueryKnowledge(query.toString(), kbId);
+      if (seq !== sourceRefTitleRequestSeq || props.knowledgeBaseId !== kbId || sourceRefTitleScope !== scope) return;
       const data = (res as any)?.data ?? res;
-      const title = data?.title || data?.file_name || data?.fileName;
-      if (title) sourceRefTitleCache[id] = title;
+      for (const doc of Array.isArray(data) ? data : []) {
+        if (!batch.includes(doc.id) || (doc.knowledge_base_id && doc.knowledge_base_id !== kbId)) continue;
+        const title = doc.title || doc.file_name || doc.fileName;
+        if (title) sourceRefTitleCache[doc.id] = title;
+      }
     } catch {
       // Keep truncated-ID fallback when the doc was deleted or is inaccessible.
     }
@@ -1850,9 +1875,14 @@ async function hydrateSourceRefTitles(refs: string[]) {
 }
 
 watch(
-  () => selectedPage.value?.source_refs,
-  (refs) => {
-    if (refs?.length) hydrateSourceRefTitles(refs);
+  () => [props.knowledgeBaseId, props.marketplaceProductId, selectedPage.value?.source_refs, selectedPage.value?.in_links],
+  (_refs, _previous, onCleanup) => {
+    onCleanup(() => { sourceRefTitleRequestSeq++; });
+    const summaryIds = (selectedPage.value?.in_links || [])
+      .filter((slug) => !pages.value.some((page) => page.slug === slug && page.title))
+      .map(summarySourceId)
+      .filter(Boolean);
+    void hydrateSourceRefTitles([...(selectedPage.value?.source_refs || []), ...summaryIds]);
   },
   { immediate: true },
 );
@@ -4440,7 +4470,9 @@ function formatDate(dateStr: string) {
 function slugDisplayName(slug: string): string {
   // Find the page title if loaded
   const page = pages.value.find((p) => p.slug === slug);
-  if (page) return page.title;
+  if (page?.title) return page.title;
+  const sourceId = summarySourceId(slug);
+  if (sourceId && sourceRefTitleCache[sourceId]) return sourceRefTitleCache[sourceId];
   // Fallback: strip type prefix, replace hyphens
   const parts = slug.split("/");
   return parts.length > 1 ? parts.slice(1).join("/") : slug;

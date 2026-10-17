@@ -9,7 +9,7 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { compileScript, parse } from '@vue/compiler-sfc'
 import { nativeWorkspaceProxy } from '../../shared/nativeWorkspaceProxy'
-import { workspaceBrandCopy } from './src/config/workspaceBrand'
+import { workspaceBrandCopy, NATIVE_PASSWORD_ENTRY_BOOTSTRAP } from './src/config/workspaceBrand'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
@@ -122,11 +122,19 @@ function embedHtmlDevFallback(): Plugin {
   return {
     name: 'embed-html-dev-fallback',
     configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
+      server.middlewares.use((req, res, next) => {
         const raw = req.url ?? ''
         const qIdx = raw.indexOf('?')
         const path = qIdx >= 0 ? raw.slice(0, qIdx) : raw
         const qs = qIdx >= 0 ? raw.slice(qIdx) : ''
+        // Match the released nginx login redirect. Mounting the workspace here
+        // just to hand it back to auth aborts its initial Vue navigation.
+        if (process.env.VITE_WORKSPACE_PROFILE === 'peter' && path === '/login') {
+          res.statusCode = 302
+          res.setHeader('Location', `/auth/start${qs}`)
+          res.end()
+          return
+        }
         if (process.env.VITE_WORKSPACE_PROFILE === 'peter' && /^\/auth\/(start|error|logout)\/?$/.test(path)) {
           req.url = `/auth/index.html${qs}`
         }
@@ -225,11 +233,12 @@ export default defineConfig({
       transformIndexHtml(html) {
         if (process.env.VITE_WORKSPACE_PROFILE !== 'peter') return html
         return workspaceBrandCopy(html, true)
+          .replace('<head>', `<head><script>${NATIVE_PASSWORD_ENTRY_BOOTSTRAP}</script>`)
           .replace('<html lang="en">', '<html lang="zh-CN" data-workspace-brand="fire">')
-          .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-mark.png"')
-          .replace("if(t==='system')", "if(document.documentElement.dataset.workspaceBrand==='fire')t='dark';\n  if(t==='system')")
-          .replace("var bg=t==='dark'?'#151619':'#fff';", "var bg=document.documentElement.dataset.workspaceBrand==='fire'?'#0b0b0d':t==='dark'?'#151619':'#fff';")
-          .replace('</style>', 'html[data-workspace-brand="fire"] #musuw-startup { background:#0b0b0d; color:#f2f0f0; }</style>')
+          .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-icon-64.png"')
+          .replace("if(t==='system')", "if(document.documentElement.dataset.workspaceBrand==='fire'&&!savedTheme){\n    t='dark';\n    if(userId==='anon'){try{var authTheme=localStorage.getItem('Musuw_auth_theme');if(authTheme==='light'||authTheme==='dark'||authTheme==='system')t=authTheme;}catch(_){}}\n  }\n  if(t==='system')")
+          .replace("var bg=t==='dark'?'#151619':'#fff';", "var bg=document.documentElement.dataset.workspaceBrand==='fire'&&t==='dark'?'#0b0b0d':t==='dark'?'#151619':'#fff';")
+          .replace('</style>', 'html[data-workspace-brand="fire"][theme-mode="dark"] #musuw-startup { background:#0b0b0d; color:#f2f0f0; }</style>')
       },
     },
     businessControllerPlugin(),

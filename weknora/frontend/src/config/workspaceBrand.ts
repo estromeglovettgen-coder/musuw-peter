@@ -11,3 +11,14 @@ export function workspaceBrandMessages<T>(messages: T, fire: boolean): T {
   }
   return messages
 }
+
+// Presentation-only fast path. A saved token still goes through the native
+// server validation; callbacks and unavailable storage keep the normal bootstrap.
+export const NATIVE_PASSWORD_ENTRY_BOOTSTRAP = `(function () {
+  if (!/^\\/(?:platform(?:\\/|$)|$)/.test(location.pathname)) return;
+  if (/(?:^|[#&])oidc_(?:result|error)=/.test(location.hash)) return;
+  try {
+    if (localStorage.getItem('weknora_token')) return;
+  } catch (_) { return; }
+  location.replace('/auth/start' + location.search);
+})();`

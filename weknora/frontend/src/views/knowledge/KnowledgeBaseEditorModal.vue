@@ -141,7 +141,7 @@
             <div class="setting-control setting-control-full kb-settings-textarea">
               <t-textarea
                 v-model="formData.wikiConfig.contentInstructions"
-                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：先说目标背景、需求和关键顾虑，语气简洁并保留来源。' : '例如：先概括背景和结论，再归纳关键方法与注意事项。') : $t('knowledgeEditor.wiki.contentInstructionsPlaceholder')"
+                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：整理关系背景、互动变化和沟通重点，区分事实与推测并保留来源。' : '例如：先概括背景和结论，再归纳关键方法与注意事项。') : $t('knowledgeEditor.wiki.contentInstructionsPlaceholder')"
                 :maxlength="4000"
                 :autosize="{ minRows: 3, maxRows: 7 }"
               />
@@ -159,7 +159,7 @@
             <div class="setting-control setting-control-full kb-settings-textarea">
               <t-textarea
                 v-model="formData.wikiConfig.extractionInstructions"
-                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：重点关注目标的需求、预算、异议、已承诺事项和下次跟进。' : '例如：重点关注核心观点、适用场景、关键案例和结论。') : $t('knowledgeEditor.wiki.extractionInstructionsPlaceholder')"
+                :placeholder="isPeterWorkspace ? (isCustomer ? '例如：重点关注她的情绪表达、互动情境、明确意愿与边界。' : '例如：重点关注核心观点、适用场景、关键案例和结论。') : $t('knowledgeEditor.wiki.extractionInstructionsPlaceholder')"
                 :maxlength="4000"
                 :autosize="{ minRows: 3, maxRows: 7 }"
               />

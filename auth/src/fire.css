@@ -1,5 +1,5 @@
 /* Same brand values as the native workspace. Only the Peter build opts in. */
-html[data-workspace-brand="fire"] {
+html[data-workspace-brand="fire"][theme-mode="dark"] {
   color-scheme: dark;
   --auth-background: #0b0b0d;
   --auth-card: #101012;
@@ -15,12 +15,22 @@ html[data-workspace-brand="fire"] {
   --auth-success-bg: #132a23;
   background: #0b0b0d;
 }
-html[data-workspace-brand="fire"] .auth-panel { border-left: 1px solid #2b2b31; background: #101012; }
+html[data-workspace-brand="fire"][theme-mode="light"] {
+  color-scheme: light;
+  --auth-background: #f9fafb; --auth-card: #fff; --auth-foreground: #1a1a1a;
+  --auth-muted: #737373; --auth-border: #e2e8f0; --auth-hover: #f5f5f4;
+  --auth-subtle: #f4f4f1; --auth-inverse: #fff;
+  --auth-danger: #b42318; --auth-danger-bg: #fff4f2;
+  --auth-success: #067647; --auth-success-bg: #ecfdf3;
+}
+html[data-workspace-brand="fire"] .auth-panel { border-left: 1px solid var(--auth-border); background: var(--auth-card); }
 html[data-workspace-brand="fire"] .auth-form button[type="submit"] { background: #d62642; color: #fff; border-color: #d62642; border-radius: 9px; }
 html[data-workspace-brand="fire"] .auth-form button[type="submit"]:hover:not(:disabled) { background: #e23854; }
-html[data-workspace-brand="fire"] .auth-form input { border-radius: 9px; background: #151518; border-color: #34323b; color: #f2f0f0; }
+html[data-workspace-brand="fire"] .auth-form input { border-radius: 9px; background: var(--auth-card); border-color: var(--auth-border); color: var(--auth-foreground); }
 html[data-workspace-brand="fire"] .auth-form input:focus { border-color: #e66a82; box-shadow: 0 0 0 3px rgb(214 38 66 / 12%); }
-html[data-workspace-brand="fire"] .auth-logo { width: 32px; height: 44px; object-fit: contain; transform: scale(1.5); }
+html[data-workspace-brand="fire"] .auth-logo { width: 32px; height: 44px; object-fit: contain; transform: scale(1.5); filter: none; }
+html[data-workspace-brand="fire"] :is(.auth-password-toggle, .auth-email-code img) { filter: none; }
+html[data-workspace-brand="fire"][theme-mode="dark"] :is(.auth-password-toggle, .auth-email-code img) { filter: invert(1) opacity(.74); }
 .fire-auth-showcase { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 48px; min-height: 100dvh; padding: clamp(32px, 5vw, 80px); background: #0b0b0d; color: #f2f0f0; }
 .fire-auth-brand { display: flex; gap: 12px; align-items: center; }
 .fire-auth-mark { display: flex; align-items: center; justify-content: center; width: 40px; height: 55px; overflow: hidden; }

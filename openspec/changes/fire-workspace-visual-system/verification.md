@@ -83,3 +83,7 @@
 - 本轮合并审查覆盖非 Peter profile、旧管理入口、移动布局、消息资源卡片、数据保护及回滚。没有改后端权限、模型凭据、技能或沙箱能力。真实截图与结果位于私有 `artifacts/fire-ui-implementation-20261017/refinement-online-verified/`。
 
 磁盘清理另见 `docs/PETER_SERVER_DISK_MAINTENANCE.md`：净回收 1.66GiB，余量 3.29GiB；原业务文件校验值和课程库/图谱响应校验值相同，运行、回滚和技能镜像保留。没有发起付费扩容。
+
+## 登录、浅色、关系分析与加载补充
+
+本轮发布 `20261017-fire-04`，保持后端容器与业务数据。匿名首页登录前置跳转、开发登录 302、Logo 反色、小尺寸品牌资源、设置面板按需加载、浅色模式及 Wiki 摘要链接名称已修复。详见 [加载验收](../../../docs/PETER_FIRE_LOADING_ACCEPTANCE.md) 与 [关系分析默认场景](../../../docs/PETER_RELATIONSHIP_DEFAULTS.md)。冷启动实测从 9.592 秒降至约 6.0–6.1 秒，仍有公网吞吐/基础资源限制；没有将健康接口时延冒充整页速度。腾讯云套餐带宽因控制台暂不可登录尚未核实，未购买升级。

@@ -12,8 +12,8 @@ export interface CustomerProfile {
   wiki_slug: string
 }
 
-export const CUSTOMER_EXTRACTION = '重点识别当前目标及关联人物、重要经历、需求、顾虑、购买动机和课程疑问。同一目标的不同称呼应结合原文谨慎归并。保留资料依据，不能把销售人员或 AI 的建议当成目标事实。'
-export const CUSTOMER_CONTENT = '围绕当前目标整理内容：背景与现状、需求与痛点、顾虑与疑问、沟通进展、待确认事项。目标人物条目应持续汇总相关来源。区分原文事实与分析推断，重要判断保留引用，信息不足时写明待确认。按真实沟通时间呈现变化，不编造姓名、预算或购买意愿。'
+export const CUSTOMER_EXTRACTION = '围绕当前目标及其社交互动，识别有原文依据的人物、关系、具体经历、情绪表达、关注点、沟通方式、意愿和明确边界。保留说话人、上下文与互动先后；同一人物的不同称呼谨慎归并。只将表达或行为记录为事实，心理与动机推测不得作为已确认属性。不能把用户的期待、课程观点或 AI 建议当成对方事实，不从泛称或孤立词语硬建实体。'
+export const CUSTOMER_CONTENT = '围绕当前目标整理人物背景、双方关系与互动阶段、重要经历、表达出的情绪与需求、沟通变化、意愿与边界。人物页持续汇总来源，结合真实互动时间更新现状，已被后续资料取代的判断保留为历史。心理和意图只能作为有依据、待验证的可能解释，不能写成读心结论或心理诊断。重要判断保留原文引用，区分对方原话、用户备注、课程方法和分析推断；信息不足明确待确认，不编造好感、关系承诺或经历。依据实际内容建立有独立检索价值的实体与概念，同义知识增量融合，不为每句话硬拆页面，不用重复段落凑内容。'
 export const emptyCustomerProfile = (): CustomerProfile => ({ status: '', tags: [], contact: '', note: '', shared_knowledge_base_ids: [], wiki_slug: '' })
 
 /** Apply only the requested labels, including labels stored in the old status field. */

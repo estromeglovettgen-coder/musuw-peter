@@ -1,9 +1,11 @@
 import { ref } from 'vue'
-import { isPeterWorkspace } from '@/config/workspaceSurface'
+import { isPeterWorkspace } from '../config/workspaceSurface'
 import {
   loadPreference,
   savePreference,
   migratePreferencesIntoUser,
+  readUserId,
+  safeSetItem,
 } from './preferenceStorage'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
@@ -13,10 +15,9 @@ const THEME_KEY = 'theme'
 const THEME_COLOR_KEY = 'theme_color'
 
 function loadTheme(): ThemeMode {
-  if (isPeterWorkspace) return 'dark'
   const v = loadPreference(THEME_KEY)
   if (v === 'light' || v === 'dark' || v === 'system') return v
-  return 'light'
+  return isPeterWorkspace ? 'dark' : 'light'
 }
 
 function isThemeColor(value: string | null): value is ThemeColor {
@@ -73,7 +74,12 @@ function releaseBootCanvas() {
 }
 
 function applyTheme(mode: ThemeMode) {
-  const effective = isPeterWorkspace ? 'dark' : mode === 'system' ? getSystemTheme() : mode
+  // The signed-out login shell has no account namespace. Remember only its
+  // appearance; account preferences continue to be loaded in isolation above.
+  if (isPeterWorkspace && readUserId() !== 'anon') {
+    safeSetItem('Musuw_auth_theme', mode)
+  }
+  const effective = mode === 'system' ? getSystemTheme() : mode
   if (lastEffective === effective) return
   lastEffective = effective
   document.documentElement.setAttribute('theme-mode', effective)
@@ -87,7 +93,6 @@ function applyThemeColor(color: ThemeColor) {
 
 export function useTheme() {
   function setTheme(mode: ThemeMode): boolean {
-    if (isPeterWorkspace && mode !== 'dark') return false
     if (mode !== 'light' && mode !== 'dark' && mode !== 'system') return false
     currentTheme.value = mode
     savePreference(THEME_KEY, mode)
@@ -112,7 +117,7 @@ export function initTheme() {
     document.documentElement.dataset.workspaceBrand = 'fire'
     document.title = '火种'
     const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
-    if (favicon) favicon.href = '/brand/fire-mark.png'
+    if (favicon) favicon.href = '/brand/fire-icon-64.png'
   }
   currentTheme.value = loadTheme()
   currentThemeColor.value = loadThemeColor()

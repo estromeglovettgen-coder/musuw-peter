@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { runInNewContext } from 'node:vm'
+import * as nativeEntry from '../config/workspaceBrand.ts'
 
 import {
   AUTHENTICATED_HOME_PATH,
@@ -12,6 +14,25 @@ import {
   isDefinitiveNativeSessionFailure,
   usesNativeAuthentication,
 } from './nativeAuthHandoff.ts'
+
+test('signed-out private entry reaches the login shell before downloading the workspace', () => {
+  const script = (nativeEntry as Record<string, unknown>).NATIVE_PASSWORD_ENTRY_BOOTSTRAP
+  assert.equal(typeof script, 'string')
+  const navigations: string[] = []
+  const location = { pathname: '/', search: '?lang=zh-CN', hash: '', replace: (p: string) => navigations.push(p) }
+  runInNewContext(script as string, { location, localStorage: { getItem: () => null } })
+  assert.deepEqual(navigations, ['/auth/start?lang=zh-CN'])
+  for (const patch of [{ hash: '#oidc_result=callback' }, { pathname: '/auth/callback' }]) {
+    navigations.length = 0
+    runInNewContext(script as string, { location: { ...location, ...patch }, localStorage: { getItem: () => null } })
+    assert.deepEqual(navigations, [])
+  }
+  navigations.length = 0
+  runInNewContext(script as string, { location, localStorage: { getItem: () => 'saved-token' } })
+  assert.deepEqual(navigations, [])
+  runInNewContext(script as string, { location, localStorage: { getItem: () => { throw Error('storage blocked') } } })
+  assert.deepEqual(navigations, [])
+})
 
 test('private deployment uses the native login for sign-in, logout and expired sessions', () => {
   assert.equal(usesNativeAuthentication('native'), true)

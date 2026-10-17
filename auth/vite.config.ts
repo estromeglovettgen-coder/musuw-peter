@@ -26,7 +26,7 @@ export default defineConfig(({ command, mode }) => {
         .replace('<script src="/config.js"></script>', '')
         .replace('<html lang="en-US">', '<html lang="zh-CN" data-workspace-brand="fire" theme-mode="dark">')
         .replace('<title>Musuw</title>', '<title>火种</title>')
-        .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-mark.png"')
+        .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-icon-64.png"')
         .replace('<strong>Musuw</strong>', '<strong>火种</strong>')
         .replace('</style>', 'html[data-workspace-brand="fire"] #musuw-startup{background:#0b0b0d;color:#f2f0f0}</style>'),
     }] : [])],

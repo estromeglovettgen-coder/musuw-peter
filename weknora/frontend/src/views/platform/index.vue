@@ -14,9 +14,9 @@
     <div class="upload-mask" v-show="ismask">
       <UploadMask></UploadMask>
     </div>
-    <!-- The dedicated settings route mounts Settings in RouterView. All other
-         platform routes share this modal instance, so only one dialog exists. -->
-    <Settings v-if="route.path !== '/platform/settings'" />
+    <!-- The dedicated route owns its instance. Other pages load the modal
+         only when opened, keeping settings dependencies off their cold path. -->
+    <Settings v-if="route.path !== '/platform/settings' && uiStore.showSettingsModal" />
     <!-- 全局命令面板 (⌘K)，随 platform 路由存活 -->
     <GlobalCommandPalette />
     <!-- NewUserGuide owns the contextual guide and the invitation bell. Keep
@@ -28,10 +28,9 @@
 import Menu from "@/components/menu.vue";
 import FireBrand from '@/components/fire/FireBrand.vue'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
-import { computed, ref, onMounted, onUnmounted, nextTick, provide, watch } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick, provide, watch, defineAsyncComponent } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import UploadMask from "@/components/upload-mask.vue";
-import Settings from "@/views/settings/Settings.vue";
 import GlobalCommandPalette from "@/components/GlobalCommandPalette.vue";
 import { useCommandPaletteStore } from "@/stores/commandPalette";
 import { useChatResourcesStore } from "@/stores/chatResources";
@@ -50,6 +49,8 @@ import {
   exceedsConsumerDocumentLimit,
   exceedsConsumerStorageQuota,
 } from '@/utils/consumerUploadLimits'
+
+const Settings = defineAsyncComponent(() => import('@/views/settings/Settings.vue'));
 
 const route = useRoute();
 const router = useRouter();

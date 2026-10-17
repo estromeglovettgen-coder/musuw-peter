@@ -59,7 +59,7 @@ describe("auth shell localized copy", () => {
       createElement(AuthApp, { runtime: {} as AuthRuntime, passwordOnly: true }),
     );
     expect(html).toContain('class="fire-auth-showcase"');
-    expect(html).toContain('src="/brand/fire-mark.png"');
+    expect(html).toContain('src="/brand/fire-mark-256.png"');
     expect(html).toContain('name="email"');
     expect(html).toContain('name="password"');
     expect(html).toContain('type="submit"');

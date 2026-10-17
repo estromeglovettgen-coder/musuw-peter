@@ -4,16 +4,19 @@ import { selectInitialModelId, type ModelDefaultCandidate } from './modelDefault
 export function createPeterProcessingDefaults(customer: boolean) {
   const example = customer
     ? {
-        text: '目标 Alex 向 Peter 咨询表达课程。Peter 负责跟进 Alex，并记录他的沟通目标。',
-        tags: ['咨询', '负责跟进', '关注', '参与', '提出', '解决'],
+        text: '小林和阿远在朋友聚会上认识。小林说这周工作忙，约好周六一起去看展。',
+        tags: ['认识于', '约定', '表达', '参与', '关注', '提到'],
         nodes: [
-          { name: 'Alex', attributes: ['咨询表达课程的目标'] },
-          { name: 'Peter', attributes: ['负责跟进的顾问'] },
-          { name: '表达课程', attributes: ['Alex 咨询的课程'] },
+          { name: '小林', attributes: ['表示这周工作忙', '约好周六看展'] },
+          { name: '阿远', attributes: ['在朋友聚会上与小林认识'] },
+          { name: '朋友聚会', attributes: ['小林和阿远相识的场合'] },
+          { name: '周六看展', attributes: ['双方约定的活动，尚未确认发生'] },
         ],
         relations: [
-          { node1: 'Alex', node2: '表达课程', type: '咨询' },
-          { node1: 'Peter', node2: 'Alex', type: '负责跟进' },
+          { node1: '小林', node2: '朋友聚会', type: '认识于' },
+          { node1: '阿远', node2: '朋友聚会', type: '认识于' },
+          { node1: '小林', node2: '周六看展', type: '约定' },
+          { node1: '阿远', node2: '周六看展', type: '约定' },
         ],
       }
     : {

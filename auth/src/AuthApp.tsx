@@ -883,7 +883,7 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
     <main className="auth-page" aria-busy={isPendingScreen || isSubmitting}>
       <div className="auth-layout">
         {passwordOnly ? <aside className="fire-auth-showcase">
-          <div className="fire-auth-brand"><span className="fire-auth-mark"><img src="/brand/fire-mark.png" alt="" /></span><div><strong>火种</strong><small>FIRE CONSULTING</small></div></div>
+          <div className="fire-auth-brand"><span className="fire-auth-mark"><img src="/brand/fire-mark-256.png" alt="" /></span><div><strong>火种</strong><small>FIRE CONSULTING</small></div></div>
           <div className="fire-auth-copy"><span>课程 · 知识 · 实践</span><h2>让学到的，<br />真正用得上。</h2><p>整理课程知识，找到具体问题的答案。</p></div>
           <span className="fire-auth-footer">FIRE CONSULTING</span>
         </aside> : <AuthShowcase
@@ -904,7 +904,7 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
         >
           <div className="auth-panel-inner">
             <header className="auth-header">
-              <img alt={passwordOnly ? '火种' : 'Musuw'} className="auth-logo" height="28" src={passwordOnly ? '/brand/fire-mark.png' : '/auth/musuw-logo.png'} width="28" />
+              <img alt={passwordOnly ? '火种' : 'Musuw'} className="auth-logo" height="28" src={passwordOnly ? '/brand/fire-mark-256.png' : '/auth/musuw-logo.png'} width="28" />
               <span>{passwordOnly ? '火种' : 'Musuw'}</span>
             </header>
             <section
