@@ -2717,6 +2717,8 @@ export default {
     }
   },
   error: {
+    requestHeadersTooLarge: "Запрос браузера слишком большой. Очистите cookie этого сайта и повторите попытку.",
+    serverUnavailable: "Сервер временно не может обработать запрос. Повторите попытку позже.",
     networkError: 'Ошибка сети, проверьте подключение',
     invalidCredentials: 'Неверное имя пользователя или пароль',
     tokenRefreshFailed: 'Не удалось обновить токен',

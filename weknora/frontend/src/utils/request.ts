@@ -5,6 +5,7 @@ import axios from "axios";
 import { generateRandomString, MAX_FILE_SIZE_MB } from "./index";
 import i18n from '../i18n'
 import { localizeConsumerPlanError } from './consumerPlanError'
+import { httpErrorMessageKey } from './httpErrorMessage'
 import { operationsCsrfToken } from '../operations/csrf'
 import { getApiBaseUrl } from './api-base';
 import {
@@ -144,6 +145,10 @@ instance.interceptors.response.use(
   },
   async (error: any) => {
     const originalRequest = error.config;
+    if (error.response && typeof error.response.data === 'string') {
+      const key = httpErrorMessageKey(error.response.status, error.response.data);
+      if (key) error.response.data = { message: t(key) };
+    }
     
     if (!error.response) {
       return Promise.reject({ message: t('error.networkError') });

@@ -8,6 +8,8 @@ import { defineConfig, transformWithEsbuild, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { compileScript, parse } from '@vue/compiler-sfc'
+import { nativeWorkspaceProxy } from '../../shared/nativeWorkspaceProxy'
+import { workspaceBrandCopy } from './src/config/workspaceBrand'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
@@ -145,6 +147,7 @@ const DEV_PROXY_TARGET =
 // remains same-origin through this standard Vite proxy.  It is opt-in so
 // upstream standalone frontend development keeps its original topology.
 const AUTH_DEV_TARGET = process.env.VITE_AUTH_DEV_TARGET
+const nativeProxy = () => nativeWorkspaceProxy(DEV_PROXY_TARGET, process.env.VITE_WORKSPACE_PROFILE === 'peter')
 
 function resolveVueOfficePptxEntry(): string {
   try {
@@ -221,11 +224,9 @@ export default defineConfig({
       name: 'fire-workspace-html',
       transformIndexHtml(html) {
         if (process.env.VITE_WORKSPACE_PROFILE !== 'peter') return html
-        return html
+        return workspaceBrandCopy(html, true)
           .replace('<html lang="en">', '<html lang="zh-CN" data-workspace-brand="fire">')
-          .replace('<title>Musuw</title>', '<title>火种</title>')
           .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-mark.png"')
-          .replace('<strong>Musuw</strong>', '<strong>火种</strong>')
           .replace("if(t==='system')", "if(document.documentElement.dataset.workspaceBrand==='fire')t='dark';\n  if(t==='system')")
           .replace("var bg=t==='dark'?'#151619':'#fff';", "var bg=document.documentElement.dataset.workspaceBrand==='fire'?'#0b0b0d':t==='dark'?'#151619':'#fff';")
           .replace('</style>', 'html[data-workspace-brand="fire"] #musuw-startup { background:#0b0b0d; color:#f2f0f0; }</style>')
@@ -247,21 +248,9 @@ export default defineConfig({
     host: true,
     // 代理配置，用于开发环境
     proxy: {
-      '/api': {
-        target: DEV_PROXY_TARGET,
-        changeOrigin: true,
-        secure: false,
-      },
-      '/files': {
-        target: DEV_PROXY_TARGET,
-        changeOrigin: true,
-        secure: false,
-      },
-      '/r': {
-        target: DEV_PROXY_TARGET,
-        changeOrigin: true,
-        secure: false,
-      },
+      '/api': nativeProxy(),
+      '/files': nativeProxy(),
+      '/r': nativeProxy(),
       ...(AUTH_DEV_TARGET
         ? {
             '/auth': {
@@ -288,16 +277,8 @@ export default defineConfig({
     port: 4173,
     host: true,
     proxy: {
-      '/api': {
-        target: DEV_PROXY_TARGET,
-        changeOrigin: true,
-        secure: false,
-      },
-      '/files': {
-        target: DEV_PROXY_TARGET,
-        changeOrigin: true,
-        secure: false,
-      }
+      '/api': nativeProxy(),
+      '/files': nativeProxy()
     }
   }
 })

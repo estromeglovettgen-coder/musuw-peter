@@ -4358,6 +4358,8 @@ export default {
     }
   },
   error: {
+    requestHeadersTooLarge: "Your browser sent too much data. Clear this site's cookies and try again.",
+    serverUnavailable: "The server cannot process this request right now. Please try again later.",
     networkError: 'Network error, please check your connection',
     invalidCredentials: 'Invalid username or password',
     tokenRefreshFailed: 'Token refresh failed',

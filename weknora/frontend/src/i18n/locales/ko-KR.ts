@@ -2717,6 +2717,8 @@ export default {
     }
   },
   error: {
+    requestHeadersTooLarge: "브라우저 요청 정보가 너무 큽니다. 이 사이트의 쿠키를 삭제한 후 다시 시도해 주세요.",
+    serverUnavailable: "서버가 현재 요청을 처리할 수 없습니다. 나중에 다시 시도해 주세요.",
     networkError: '네트워크 오류, 연결을 확인해 주세요',
     invalidCredentials: '사용자 이름 또는 비밀번호가 올바르지 않습니다',
     tokenRefreshFailed: '토큰 갱신 실패',

@@ -285,7 +285,7 @@ const navItems = computed<NavItem[]>(() => {
     { key: 'models', icon: 'cpu', label: t('settings.modelManagement') },
     { key: 'system-prompts', icon: 'edit', label: '系统提示词' },
     { key: 'ollama', icon: 'server', label: 'Ollama' },
-    { key: 'weknoracloud', icon: 'cloud', label: 'Musuw Cloud' },
+    { key: 'weknoracloud', icon: 'cloud', label: t('settings.weknoraCloud.title') },
     { key: 'memory', icon: 'bulletpoint', label: t('memoryWorkspaceSettings.title') },
     { key: 'mymemory', icon: 'bookmark', label: t('memorySettings.title') },
     { key: 'envvars', icon: 'key', label: t('envVarSettings.title') },

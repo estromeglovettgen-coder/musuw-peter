@@ -860,6 +860,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOrganizationStore } from '@/stores/organization'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
+import { workspaceBrandMessages } from '@/config/workspaceBrand'
 import {
   listFAQEntries,
   upsertFAQEntries,
@@ -2457,7 +2458,7 @@ const handleDownloadExample = (data: { value: string }) => {
 
 // 下载 JSON 示例
 const downloadJSONExample = () => {
-  const jsonStr = JSON.stringify(exampleData, null, 2)
+  const jsonStr = JSON.stringify(workspaceBrandMessages(exampleData, isPeterWorkspace), null, 2)
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -2472,7 +2473,7 @@ const downloadJSONExample = () => {
 // 下载 CSV 示例
 const downloadCSVExample = () => {
   const headers = ['标签(必填)', '问题(必填)', '相似问题(选填-多个用##分隔)', '反例问题(选填-多个用##分隔)', '机器人回答(必填-多个用##分隔)', '是否全部回复(选填-默认FALSE)', '是否停用(选填-默认FALSE)', '是否禁止被推荐(选填-默认False 可被推荐)']
-  const rows = exampleData.map((item) => {
+  const rows = workspaceBrandMessages(exampleData, isPeterWorkspace).map((item) => {
     return [
       item.tag_name || '', // 标签
       item.standard_question,
@@ -2508,7 +2509,7 @@ const downloadCSVExample = () => {
 // 下载 Excel 示例
 const downloadExcelExample = () => {
   const worksheet = XLSX.utils.json_to_sheet(
-    exampleData.map((item) => ({
+    workspaceBrandMessages(exampleData, isPeterWorkspace).map((item) => ({
       '标签(必填)': item.tag_name || '',
       '问题(必填)': item.standard_question,
       '相似问题(选填-多个用##分隔)': item.similar_questions.join('##'),

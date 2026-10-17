@@ -1,15 +1,18 @@
-// Explicit browser acceptance against a local candidate and Peter's existing
-// backend. Apart from signing in, this test does not write business data.
+// Explicit browser acceptance against a local candidate or Peter's released UI.
+// Uses the existing backend. Apart from signing in, this test does not write business data.
 import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { chromium } from '../../.runtime/peter/deployment/browser/node_modules/playwright/index.mjs'
 
 const origin = process.env.PETER_FIRE_ORIGIN || 'http://127.0.0.1:4217'
-const destination = 'artifacts/fire-ui-implementation-20261017'
+const destination = process.env.PETER_FIRE_ARTIFACTS || 'artifacts/fire-ui-implementation-20261017'
 mkdirSync(destination, { recursive: true })
 const account = JSON.parse(readFileSync('.runtime/peter/deployment/account.json', 'utf8'))
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'zh-CN', viewport: { width: 1586, height: 992 } })
+if (process.env.PETER_FIRE_OVERSIZED_COOKIE === '1') {
+  await context.addCookies(Array.from({ length: 4 }, (_, i) => ({ name: `fire_cookie_regression_${i}`, value: 'x'.repeat(3000), url: origin })))
+}
 const page = await context.newPage()
 page.setDefaultTimeout(30000)
 await page.addLocatorHandler(page.locator('.guide__skip'), button => button.click())
@@ -17,7 +20,7 @@ const errors = []
 const checks = []
 page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack, url: page.url() }))
 const pass = text => { checks.push(text); console.log('PASS ' + text) }
-const screenshot = name => page.screenshot({ path: `${destination}/${name}.png`, fullPage: true })
+const screenshot = name => page.screenshot({ path: `${destination}/${name}.png`, fullPage: true, animations: 'disabled' })
 const background = selector => page.locator(selector).first().evaluate(el => getComputedStyle(el).backgroundColor)
 const go = async path => {
   await page.goto(origin + path, { waitUntil: 'domcontentloaded' })
@@ -60,6 +63,7 @@ try {
   assert.equal(await background('.visual-new-chat-view'), 'rgb(11, 11, 13)')
   await page.locator('.visual-chat-composer__surface').waitFor()
   await screenshot('04-new-chat')
+  assert.doesNotMatch(await page.locator('body').innerText(), /Musuw|穆苏瓦/i)
   pass('New chat uses the shared composer and Fire branding')
   await go('/platform/knowledge-bases/961f9976-ae42-4bc4-bafe-1dfa4506f0c9?tab=wiki&slug=summary/e0fc0355-7ea2-4921-a09a-ceebb038327d')
   await page.locator('.wiki-sidebar').waitFor({ timeout: 90000 })
@@ -86,6 +90,7 @@ try {
   await page.locator('.visual-references-panel').waitFor()
   await page.locator('.visual-reference-item').first().waitFor()
   await screenshot('06-real-chat')
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true)
   await page.locator('.visual-references-panel__close').click()
   pass('Existing real DeepSeek conversation and source panel render without a new model call')
   await go('/platform/customers')
@@ -101,6 +106,18 @@ try {
   await screenshot('07b-target-form')
   await targetDialog.getByRole('button', { name: '取消', exact: true }).click()
   pass('Targets use the renamed dedicated navigation and page title')
+  // Replay the exact gateway failure, then restore the real API and retry.
+  const kbList = url => url.pathname === '/api/v1/knowledge-bases'
+  const gatewayFailure = route => route.fulfill({ status: 400, contentType: 'text/html', body: '<html><head><title>400 Request Header Or Cookie Too Large</title></head><body>Request Header Or Cookie Too Large</body></html>' })
+  await page.route(kbList, gatewayFailure)
+  await page.getByRole('button', { name: '刷新', exact: true }).click()
+  await page.locator('.customer-list > .t-alert').filter({ hasText: '浏览器请求信息过大' }).waitFor()
+  assert.doesNotMatch(await page.locator('.customer-list > .t-alert').innerText(), /<html>|nginx|<body>/i)
+  await page.unroute(kbList, gatewayFailure)
+  await page.getByRole('button', { name: '重新加载', exact: true }).click()
+  await page.locator('.customer-list[aria-busy="false"]').waitFor()
+  assert.equal(await page.locator('.customer-list > .t-alert').count(), 0)
+  pass('Gateway HTML becomes a readable message and retry restores the real target list')
   await go('/platform/settings?section=general')
   await page.locator('.visual-general-settings').waitFor()
   assert.equal(await page.locator('#visual-theme-select').count(), 0)

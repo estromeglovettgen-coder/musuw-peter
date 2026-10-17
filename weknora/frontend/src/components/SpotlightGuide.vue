@@ -55,7 +55,6 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SpotlightGuideStep } from '@/types/spotlightGuide'
-import { isPeterWorkspace } from '@/config/workspaceSurface'
 
 const CARD_WIDTH = 340
 const GAP = 16
@@ -190,9 +189,8 @@ const attachInteractTarget = (el: HTMLElement) => {
 
 const step = computed(() => props.steps[index.value] ?? props.steps[0])
 const isLast = computed(() => index.value === props.steps.length - 1)
-const brandCopy = (text: string) => isPeterWorkspace ? text.replaceAll('Musuw', '火种') : text
-const stepTitle = computed(() => brandCopy(t(`${props.stepI18nPrefix}.${step.value.key}.title`)))
-const stepDesc = computed(() => brandCopy(t(`${props.stepI18nPrefix}.${step.value.key}.desc`)))
+const stepTitle = computed(() => t(`${props.stepI18nPrefix}.${step.value.key}.title`))
+const stepDesc = computed(() => t(`${props.stepI18nPrefix}.${step.value.key}.desc`))
 
 const hole = computed(() => {
   const el = targetEl.value

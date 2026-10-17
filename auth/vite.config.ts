@@ -2,6 +2,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
 import { authConfigFromEnvironment } from "./src/config";
+import { nativeWorkspaceProxy } from "../shared/nativeWorkspaceProxy";
 
 export default defineConfig(({ command, mode }) => {
   const environment = loadEnv(mode, ".", "");
@@ -14,7 +15,7 @@ export default defineConfig(({ command, mode }) => {
   }
   const nativeAPI = environment["VITE_DEV_PROXY_TARGET"] ?? "http://127.0.0.1:18080";
   const proxy = {
-    "/api": { changeOrigin: true, secure: false, target: nativeAPI },
+    "/api": nativeWorkspaceProxy(nativeAPI, peter),
   };
 
   return {

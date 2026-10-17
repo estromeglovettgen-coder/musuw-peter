@@ -2721,6 +2721,8 @@ export default {
     }
   },
   error: {
+    requestHeadersTooLarge: "浏览器请求信息过大，请清理本站 Cookie 后重试。",
+    serverUnavailable: "服务器暂时无法处理请求，请稍后重试。",
     networkError: '网络错误，请检查您的网络连接',
     invalidCredentials: '用户名或密码错误',
     tokenRefreshFailed: 'Token刷新失败',
