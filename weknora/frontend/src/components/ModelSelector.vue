@@ -7,7 +7,7 @@
         :aria-label="chatPanelLabel"
         @keydown="handlePanelKeydown"
       >
-        <template v-if="view === 'overview'">
+        <template v-if="view === 'overview' && !reasoningOnly">
           <button
             ref="overviewFirstRef"
             type="button"
@@ -60,15 +60,15 @@
 
         <template v-else>
           <header class="visual-model-selector__chat-header">
-            <button type="button" class="visual-model-selector__chat-back" :aria-label="backLabel" @click="openView('overview')">
+            <button v-if="!reasoningOnly" type="button" class="visual-model-selector__chat-back" :aria-label="backLabel" @click="openView('overview')">
               <t-icon name="chevron-left" aria-hidden="true" />
             </button>
-            <span class="visual-model-selector__chat-title">{{ view === 'models' ? modelLabel : reasoningLabel }}</span>
+            <span class="visual-model-selector__chat-title">{{ view === 'models' && !reasoningOnly ? modelLabel : reasoningLabel }}</span>
             <span class="visual-model-selector__chat-header-spacer" aria-hidden="true" />
           </header>
 
           <div
-            v-if="view === 'models'"
+            v-if="view === 'models' && !reasoningOnly"
             :id="modelListId"
             ref="modelListRef"
             class="visual-model-selector__chat-list"
@@ -139,7 +139,7 @@
 
         <Transition name="visual-model-selector__chat-flyout">
           <div
-            v-if="view === 'overview' && hoveredSubmenu"
+            v-if="view === 'overview' && hoveredSubmenu && !reasoningOnly"
             :key="hoveredSubmenu"
             class="visual-model-selector__chat-flyout"
             :class="[`is-${submenuPlacement}`, `is-${hoveredSubmenu}`]"
@@ -441,6 +441,7 @@ interface Props {
   selectedReasoningLabel?: string
   reasoningOptions?: Array<{ value: string; label: string }>
   reasoningEffort?: string
+  reasoningOnly?: boolean
   agents?: CustomAgent[]
   sharedAgents?: SharedAgentInfo[]
   subscribedAgents?: MarketplaceLibraryEntry[]
@@ -466,6 +467,7 @@ const props = withDefaults(defineProps<Props>(), {
   selectedReasoningLabel: '',
   reasoningOptions: () => [],
   reasoningEffort: 'none',
+  reasoningOnly: false,
   agents: () => [],
   sharedAgents: () => [],
   subscribedAgents: () => [],
@@ -648,7 +650,7 @@ const handleModelChange = handleCatalogModelChange
 const agentLabel = computed(() => t('agent.title'))
 const modelLabel = computed(() => t('input.modelLabel'))
 const reasoningLabel = computed(() => t('input.reasoningEffort'))
-const chatPanelLabel = computed(() => `${agentLabel.value} / ${modelLabel.value} / ${reasoningLabel.value}`)
+const chatPanelLabel = computed(() => props.reasoningOnly ? reasoningLabel.value : `${agentLabel.value} / ${modelLabel.value} / ${reasoningLabel.value}`)
 const backLabel = computed(() => t('input.back'))
 const noAgentsLabel = computed(() => t('agent.noAgents'))
 const noModelsLabel = computed(() => t('input.noModel'))
@@ -754,6 +756,7 @@ const toggleHover = (nextView: 'agents' | 'models' | 'reasoning') => {
 }
 
 const openView = (nextView: 'overview' | 'models' | 'reasoning') => {
+  if (props.reasoningOnly && nextView !== 'reasoning') return
   hoveredSubmenu.value = null
   emit('update:view', nextView)
   nextTick(() => {
@@ -855,13 +858,14 @@ const handleReasoningKeydown = (event: KeyboardEvent) => {
     if (option) selectChatReasoning(option.value)
   } else if (event.key === 'Escape') {
     event.preventDefault()
-    emit('update:view', 'overview')
+    if (props.reasoningOnly) emit('close')
+    else emit('update:view', 'overview')
   }
 }
 const handlePanelKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     event.preventDefault()
-    if (props.view === 'overview') emit('close')
+    if (props.reasoningOnly || props.view === 'overview') emit('close')
     else emit('update:view', 'overview')
   }
 }

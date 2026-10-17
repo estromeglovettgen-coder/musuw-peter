@@ -1197,6 +1197,21 @@ const loadChatModels = async (force = false) => {
 
 const ensureModelSelection = () => {
   if (!availableModels.value.length) return;
+  // Peter's new-chat surface exposes depth only. Its actual model comes from
+  // the native agent configuration, never a leftover browser picker override.
+  if (usesPeterNewChatDefault() && agentModelId.value) {
+    const configuredId = agentModelId.value;
+    if (!availableModels.value.some((model) => model.id === configuredId)) return;
+    if (selectedModelId.value !== configuredId) {
+      selectedModelId.value = configuredId;
+      settingsStore.updateConversationModels({
+        summaryModelId: configuredId,
+        selectedChatModelId: configuredId,
+        rerankModelId: "",
+      });
+    }
+    return;
+  }
   if (sceneManagedByConsumerResolver.value) {
     const scene = effectiveConsumerScene.value;
     const response = consumerSceneOptions.value[scene];
@@ -1223,7 +1238,7 @@ const ensureModelSelection = () => {
   });
 };
 
-watch([availableModels, selectedModelId, selectedAgentId, effectiveConsumerScene], ensureModelSelection, { immediate: true });
+watch([availableModels, selectedModelId, selectedAgentId, agentModelId, effectiveConsumerScene], ensureModelSelection, { immediate: true });
 
 watch(effectiveConsumerScene, (scene, previous) => {
   if (scene === previous) return;

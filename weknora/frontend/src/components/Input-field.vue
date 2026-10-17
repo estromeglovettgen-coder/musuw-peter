@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useOrganizationStore } from '@/stores/organization'
 import { BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID } from '@/api/agent'
 import { useMarketplaceLibrary } from '@/composables/useMarketplaceLibrary'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 
 const legacy = LegacyInputFieldBusiness as any
 const legacySetup = legacy.setup
@@ -181,8 +182,8 @@ export default defineComponent({
         void nextTick(() => createSession(text))
       }
       const openModelPicker = () => {
-        modelPickerView.value = 'overview'
-        void loadSubscribedAgents()
+        modelPickerView.value = isPeterWorkspace ? 'reasoning' : 'overview'
+        if (!isPeterWorkspace) void loadSubscribedAgents()
         ;(state as any).toggleModelSelector?.()
       }
       const restoreModelPickerFocus = () => {
@@ -240,6 +241,7 @@ export default defineComponent({
         ...state,
         authStore,
         orgStore,
+        isPeterWorkspace,
         subscribedAgents,
         createSession,
         modelPickerView,
@@ -368,10 +370,16 @@ export default defineComponent({
             data-guide="chat-picker"
             :class="{ 'is-open': showModelSelector }"
             :aria-expanded="showModelSelector"
-            :aria-label="`${selectedAgentDisplayName} ${selectedModelCapsuleName} ${selectedReasoningLabel}`"
+            :aria-label="isPeterWorkspace ? `${$t('input.reasoningEffort')} ${selectedReasoningLabel}` : `${selectedAgentDisplayName} ${selectedModelCapsuleName} ${selectedReasoningLabel}`"
             @click.stop="openModelPicker"
           >
             <span class="visual-chat-composer__combined-picker-copy">
+              <template v-if="isPeterWorkspace">
+                <span class="visual-chat-composer__combined-picker-agent">{{ $t('input.reasoningEffort') }}</span>
+                <span class="visual-chat-composer__combined-picker-dot" aria-hidden="true">·</span>
+                <span class="visual-chat-composer__combined-picker-effort" :title="selectedReasoningLabel">{{ selectedReasoningLabel }}</span>
+              </template>
+              <template v-else>
               <span class="visual-chat-composer__combined-picker-agent" :title="selectedAgentDisplayName">{{ selectedAgentDisplayName }}</span>
               <span class="visual-chat-composer__combined-picker-dot" aria-hidden="true">·</span>
               <span
@@ -379,6 +387,7 @@ export default defineComponent({
                 :title="selectedModelCapsuleName"
               >{{ selectedModelCapsuleName }}</span>
               <span v-if="reasoningEffort !== 'none' && selectedReasoningLabel" class="visual-chat-composer__combined-picker-effort">{{ selectedReasoningLabel }}</span>
+              </template>
             </span>
             <t-icon name="chevron-down" />
           </button>
@@ -405,6 +414,7 @@ export default defineComponent({
               <ModelSelector
                 class="visual-chat-composer__native-model-selector"
                 mode="chat"
+                :reasoning-only="isPeterWorkspace"
                 :models="availableModels"
                 :scene-options="sceneOptionsFor(effectiveConsumerScene)"
                 :selected-model-id="selectedModelId"

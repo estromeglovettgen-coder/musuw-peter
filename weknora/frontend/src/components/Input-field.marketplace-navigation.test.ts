@@ -41,6 +41,7 @@ function setup({ history = true, product = 'taylor', lite = true } = {}) {
     '@/stores/auth': { useAuthStore: () => ({ isLiteMode: lite }) },
     '@/stores/organization': { useOrganizationStore: () => ({ sharedAgents: [] }) },
     '@/api/agent': { BUILTIN_QUICK_ANSWER_ID: 'quick', BUILTIN_SMART_REASONING_ID: 'smart' },
+    '@/config/workspaceSurface': { isPeterWorkspace: false },
     '@/composables/useMarketplaceLibrary': { useMarketplaceLibrary: () => ({ entries: vue.ref([{ product_id: 'taylor', can_chat: true }, { product_id: 'writing', can_chat: true }, { product_id: 'expired', can_chat: false }]), load: async () => {} }) },
   }
   new Function('require', 'module', 'exports', javascript)((name: string) => {

@@ -160,7 +160,7 @@ test("combined selector mechanically preserves native labels, hover entry, and t
   assert.match(capsule, /\{\{ selectedAgentDisplayName \}\}/);
   assert.match(capsule, /combined-picker-dot[\s\S]*?combined-picker-model[\s\S]*?combined-picker-effort/);
   assert.doesNotMatch(capsule, /<template v-if="!isBuiltinAgentSelected">/);
-  assert.match(inputField, /:aria-label="`\$\{selectedAgentDisplayName\} \$\{selectedModelCapsuleName\}/);
+  assert.match(inputField, /:aria-label="isPeterWorkspace \?[^\n]+: `\$\{selectedAgentDisplayName\} \$\{selectedModelCapsuleName\}/);
   assert.match(agentRow, /@mouseenter="hoverOpen\('agents'\)"/);
   assert.match(agentRow, /@click="toggleHover\('agents'\)"/);
   assert.match(agentRow, /@keydown\.enter\.stop\.prevent="toggleHover\('agents'\)"/);

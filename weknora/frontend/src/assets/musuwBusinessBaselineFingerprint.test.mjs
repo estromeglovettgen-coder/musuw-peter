@@ -35,11 +35,11 @@ const KNOWLEDGE_UPLOAD_FEEDBACK_CHANGE = 'retain-upload-progress-and-refresh-acc
 const MODEL_REASONING_DEFAULT_CHANGE = 'refresh-global-model-catalog'
 const KNOWLEDGE_COLD_LOADING_CHANGE = 'fire-native-document-lazy-loading-and-single-stats-owner'
 const CREATOR_MARKETPLACE_CHANGE = 'creator-marketplace-subscriptions'
-const PETER_TAYLOR_DEFAULT_CHANGE = 'peter-taylor-global-chat-default'
+const PETER_TAYLOR_DEFAULT_CHANGE = 'peter-taylor-global-chat-default+peter-depth-only-agent-model'
 
 const LOCKED_BUSINESS_BLOBS = {
   './business-baselines/ChatIndex.pre-view.vue': '5cf5274325a8fc8ee502974dd7602967a62d01fa',
-  './business-baselines/Input-field.pre-view.vue': '38818096ea1065829e45321299f71e0276ebac45',
+  './business-baselines/Input-field.pre-view.vue': '374059e8d616a9bd64778f13836e0d10873e6834',
   './business-baselines/KnowledgeBase.pre-view.vue': '3e2da17cdb15cc4dc42d7102da77502407ad21c2',
   './business-baselines/KnowledgeBaseList.pre-view.vue': '42d4ed67cb5f4c8fd145d67f119e4a95bf88c45e',
   './business-baselines/manual-knowledge-editor.pre-view.vue': '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e',
@@ -60,7 +60,7 @@ const INTENTIONAL_BEHAVIOR_EVOLUTION = {
     change: `${NATIVE_AGENT_MCP_EXPOSURE_CHANGE}+${MODEL_REASONING_DEFAULT_CHANGE}+${CREATOR_MARKETPLACE_CHANGE}+${PETER_TAYLOR_DEFAULT_CHANGE}`,
     resultingBlob: LOCKED_BUSINESS_BLOBS['./business-baselines/Input-field.pre-view.vue'],
     // Peter UI repair: restore file titles/end loading and dismiss @ outside its popup.
-    authority: 'WeKnora main 81142df native multi-model, tenant Agent selection, and MCP catalog flow constrained by server-authoritative consumer scene and Lite route policy; explicit user-requested minimum enabled reasoning defaults with model-scoped saved depth; approved marketplace delivery uses a separate safe agent/KB projection, preserves the homepage draft while consuming its route parameter, and relies on server-authorized product readiness; explicit marketplace entry supersedes restored product selection and blocks sends until the current entry resolves; approved consumer owned/subscribed agents use the buyer membership model catalog and runtime model for readiness, preserving explicit model/depth against source defaults while Standard native/shared source-model behavior remains unchanged; explicit 2026-10-17 Peter evolution migrates only new global chat builtin/stale defaults to the enabled account-local custom Taylor through native Agent/resource selection, retains explicit custom/shared/product selections and historical/embed state, waits for the actual Agent before sending, and deduplicates only overlapping Peter new-chat submissions with failure-safe release',
+    authority: 'WeKnora main 81142df native multi-model, tenant Agent selection, and MCP catalog flow constrained by server-authoritative consumer scene and Lite route policy; explicit user-requested minimum enabled reasoning defaults with model-scoped saved depth; approved marketplace delivery uses a separate safe agent/KB projection, preserves the homepage draft while consuming its route parameter, and relies on server-authorized product readiness; explicit marketplace entry supersedes restored product selection and blocks sends until the current entry resolves; approved consumer owned/subscribed agents use the buyer membership model catalog and runtime model for readiness, preserving explicit model/depth against source defaults while Standard native/shared source-model behavior remains unchanged; explicit 2026-10-17 Peter evolution migrates only new global chat builtin/stale defaults to the enabled account-local custom Taylor through native Agent/resource selection, retains explicit custom/shared/product selections and historical/embed state, waits for the actual Agent before sending, and deduplicates only overlapping Peter new-chat submissions with failure-safe release; explicit Peter depth-only homepage uses the native agent configured model instead of an obsolete browser override, including late model metadata, while history and other products retain their selection',
   },
   chatParent: {
     change: `${ENTITLEMENT_USAGE_REVALIDATION_CHANGE}+${MODEL_REASONING_DEFAULT_CHANGE}+${CHAT_HISTORY_FEEDBACK_CHANGE}+${CREATOR_MARKETPLACE_CHANGE}`,

@@ -12,7 +12,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 // peter-taylor-global-chat-default: user-authorized native default selection and concurrent-send guard; real controller/Pinia actions are covered by Input-field.peter-default.test.mjs.
 test('audited Input-field controller remains locked after approved marketplace and Peter Taylor default evolution', () => {
   const controller = read('./business-baselines/Input-field.pre-view.vue')
-  assert.equal(blobSha(controller), '38818096ea1065829e45321299f71e0276ebac45')
+  assert.equal(blobSha(controller), '374059e8d616a9bd64778f13836e0d10873e6834')
 })
 
 test('rebuilt Input-field reuses the frozen component options and replaces only its active View', () => {

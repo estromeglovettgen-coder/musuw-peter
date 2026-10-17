@@ -208,3 +208,56 @@ test('identity reset resolves the current account Taylor without retaining anoth
   await f.loadAgents()
   assert.equal(f.store.getSelectedAgentId(), 'account-two-taylor')
 })
+
+// The native resolver/getter/watch and Pinia store prove that hiding the picker
+// cannot leave a previously chosen browser model active in a new Taylor chat.
+const modelControllerSource = actualBlock('const selectedModelId =', 'const thinkingEnabled =')
+  + actualBlock('const usesPeterNewChatDefault =', 'const loadAgents =')
+  + actualBlock('const ensureModelSelection =', 'watch(effectiveConsumerScene,')
+const modelControllerJS = ts.transpileModule(modelControllerSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText
+const { resolveChatModelId } = loadModule('@/utils/managedChatModels')
+function modelController({ peter = true, restored = false, embedded = false, configuredModel = 'configured-flash', routeName = 'globalCreatChat' } = {}) {
+  const base = setup({ peter, routeName })
+  base.scope.props.embeddedMode = embedded
+  base.store.updateConversationModels({ selectedChatModelId: 'old-browser-model' })
+  if (restored) base.store.snapshotAsDefaultsIfNeeded()
+  const values = {
+    computed, ref, watch, settingsStore: base.store, isPeterWorkspace: peter,
+    route: base.route, props: base.scope.props, marketplaceEntryPending: ref(false),
+    sceneManagedByConsumerResolver: ref(false), effectiveConsumerScene: ref('chat'),
+    selectedAgentId: ref('local-taylor'), agentModelId: ref(configuredModel),
+    availableModels: ref([{ id: 'configured-flash' }, { id: 'old-browser-model' }]),
+    readLastChatModelID: () => 'old-browser-model', resolveChatModelId,
+    consumerSceneOptions: ref({}), sceneOptionsFor: () => [], resolveConsumerSceneCandidate() {},
+  }
+  const actions = runInThisContext(`(function(${Object.keys(values).join(',')}) {${modelControllerJS}\nreturn {ensureModelSelection, selectedModelId};})`)(...Object.values(values))
+  return { ...base, ...actions, modelValues: values }
+}
+
+test('new Peter Taylor chat uses its configured model despite an old valid browser choice', () => {
+  const f = modelController()
+  f.ensureModelSelection()
+  assert.equal(f.selectedModelId.value, 'configured-flash')
+  assert.equal(f.store.conversationModels.selectedChatModelId, 'configured-flash')
+})
+
+test('late configured-model metadata resolves through the native watcher without a new user choice', async () => {
+  const f = modelController({ configuredModel: '' })
+  assert.equal(f.selectedModelId.value, 'old-browser-model')
+  f.modelValues.agentModelId.value = 'configured-flash'
+  await nextTick()
+  assert.equal(f.selectedModelId.value, 'configured-flash')
+})
+
+test('restored sessions, embedded composers and other products retain their original model', () => {
+  for (const options of [{ restored: true }, { peter: false }, { routeName: 'globalChat' }]) {
+    const f = modelController(options)
+    f.ensureModelSelection()
+    assert.equal(f.selectedModelId.value, 'old-browser-model')
+  }
+  const f = modelController({ embedded: true })
+  f.ensureModelSelection()
+  assert.equal(f.selectedModelId.value, 'old-browser-model')
+})
