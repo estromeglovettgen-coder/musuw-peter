@@ -1,9 +1,8 @@
 <template>
     <main class="visual-new-chat-view">
         <section class="visual-new-chat-stack" aria-labelledby="visual-new-chat-title">
-            <FireBrand v-if="isPeterWorkspace" class="fire-new-chat-brand" />
             <h1 id="visual-new-chat-title" class="visual-new-chat-title" style="--wails-draggable: drag">
-                {{ isPeterWorkspace ? '今天，想聊些什么？' : $t('createChat.title') }}
+                {{ isPeterWorkspace ? 'I am Taylor' : $t('createChat.title') }}
             </h1>
 
             <div v-if="!isPeterWorkspace" ref="sqContainerRef" class="visual-new-chat-suggestions">
@@ -90,7 +89,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import InputField from '@/components/Input-field.vue';
-import FireBrand from '@/components/fire/FireBrand.vue';
 import ContextualGuide from '@/components/ContextualGuide.vue';
 import { createSessions } from "@/api/chat/index";
 import { mentionedCustomer } from '@/api/customer';

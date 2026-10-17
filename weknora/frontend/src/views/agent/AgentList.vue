@@ -897,6 +897,7 @@ const recentsAgentList = computed<DisplayAgent[]>(() => {
 })
 
 const matchesAgentSearch = (agent: any) => {
+  if (isPeterWorkspace && agent?.is_builtin) return false
   const query = agentSearchQuery.value.trim().toLowerCase()
   if (!query) return true
   const name = String(agent?.name || '').toLowerCase()
