@@ -18,7 +18,7 @@ try {
     let blockedRequests = 0, navigations = 0, blocked = true
     page.on('pageerror', error => errors.push(error.message))
     page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations++ })
-    const chunk = kind === 'retrieval' ? /\/assets\/RetrievalSettings-[^/]+\.js(?:\?.*)?$/ : /\/assets\/Settings-[^/]+\.js(?:\?.*)?$/
+    const chunk = kind === 'retrieval' ? /\/assets\/RetrievalSettings(?:\.vue_vue_type_script_setup[^/]*)?-[^/]+\.js(?:\?.*)?$/ : /\/assets\/Settings(?:\.vue_vue_type_script_setup[^/]*)?-[^/]+\.js(?:\?.*)?$/
     await context.route(chunk, route => {
       if (!blocked) return route.continue()
       blockedRequests++
