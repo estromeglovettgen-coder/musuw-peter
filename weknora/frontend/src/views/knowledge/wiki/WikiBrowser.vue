@@ -1874,8 +1874,36 @@ async function hydrateSourceRefTitles(refs: string[]) {
   }
 }
 
+async function hydrateLinkedWikiTitles() {
+  const page = selectedPage.value;
+  const kbId = props.knowledgeBaseId;
+  if (!page || (page.knowledge_base_id && page.knowledge_base_id !== kbId)) return;
+  const links = [...new Set([...(page.in_links || []), ...(page.out_links || [])])];
+  // Summary-only readers already use the source metadata batch. Resolve other
+  // missing slugs through one small native neighborhood, never a full index.
+  const missing = links.some((slug) => !summarySourceId(slug) && !sourceRefTitleCache[slug]
+    && !pages.value.some((item) => item.slug === slug && item.title)
+    && !graphData.value?.nodes.some((node) => node.slug === slug && node.title));
+  if (!missing) return;
+  const seq = sourceRefTitleRequestSeq;
+  const scope = sourceRefTitleScope;
+  try {
+    const res = await readWiki(getWikiGraph(wikiReadScope.value, {
+      mode: "ego", center: page.slug, depth: 1, limit: Math.min(2000, links.length + 1),
+    }));
+    if (seq !== sourceRefTitleRequestSeq || sourceRefTitleScope !== scope
+      || props.knowledgeBaseId !== kbId || selectedPage.value?.slug !== page.slug) return;
+    const data = (res as any)?.data ?? res;
+    for (const node of data?.nodes || []) {
+      if (links.includes(node.slug) && node.title) sourceRefTitleCache[node.slug] = node.title;
+    }
+  } catch {
+    // Metadata is optional: the existing readable slug remains navigable.
+  }
+}
+
 watch(
-  () => [props.knowledgeBaseId, props.marketplaceProductId, selectedPage.value?.source_refs, selectedPage.value?.in_links],
+  () => [props.knowledgeBaseId, props.marketplaceProductId, selectedPage.value?.source_refs, selectedPage.value?.in_links, selectedPage.value?.out_links],
   (_refs, _previous, onCleanup) => {
     onCleanup(() => { sourceRefTitleRequestSeq++; });
     const summaryIds = (selectedPage.value?.in_links || [])
@@ -1883,6 +1911,7 @@ watch(
       .map(summarySourceId)
       .filter(Boolean);
     void hydrateSourceRefTitles([...(selectedPage.value?.source_refs || []), ...summaryIds]);
+    void hydrateLinkedWikiTitles();
   },
   { immediate: true },
 );
@@ -4471,6 +4500,9 @@ function slugDisplayName(slug: string): string {
   // Find the page title if loaded
   const page = pages.value.find((p) => p.slug === slug);
   if (page?.title) return page.title;
+  const graphTitle = graphData.value?.nodes.find((node) => node.slug === slug)?.title;
+  if (graphTitle) return graphTitle;
+  if (sourceRefTitleCache[slug]) return sourceRefTitleCache[slug];
   const sourceId = summarySourceId(slug);
   if (sourceId && sourceRefTitleCache[sourceId]) return sourceRefTitleCache[sourceId];
   // Fallback: strip type prefix, replace hyphens

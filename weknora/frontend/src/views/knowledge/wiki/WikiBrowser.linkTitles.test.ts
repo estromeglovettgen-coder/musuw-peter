@@ -7,7 +7,7 @@ import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
 
 const { descriptor } = parse(readFileSync(new URL('./WikiBrowser.vue', import.meta.url), 'utf8'))
 const source = ts.createSourceFile('WikiBrowser.ts', descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true)
-const names = new Set(['sourceRefTitleCache', 'sourceRefTitleRequestSeq', 'sourceRefTitleScope', 'parseSourceRefEntry', 'parsedSourceRefs', 'hydrateSourceRefTitles', 'summarySourceId', 'slugDisplayName'])
+const names = new Set(['sourceRefTitleCache', 'sourceRefTitleRequestSeq', 'sourceRefTitleScope', 'parseSourceRefEntry', 'parsedSourceRefs', 'hydrateSourceRefTitles', 'hydrateLinkedWikiTitles', 'summarySourceId', 'slugDisplayName'])
 const blocks = source.statements.filter(statement => {
   if (ts.isVariableStatement(statement)) return statement.declarationList.declarations.some(d => names.has(d.name.getText(source)))
   if (ts.isFunctionDeclaration(statement)) return names.has(statement.name?.text || '')
@@ -25,20 +25,25 @@ const docs = ids.map((id, index) => ({ id, knowledge_base_id: kb, title: titles[
 const selected = (links = ids.map(id => `summary/${id}`), source_refs: string[] = []) => ({ slug: 'concept/curiosity', title: '好奇心', knowledge_base_id: kb, in_links: links, source_refs })
 const settle = async () => { await nextTick(); await Promise.resolve(); await nextTick(); await Promise.resolve() }
 
-function setup(options: { pages?: any[]; page?: any; subscribed?: boolean; load?: (...args: any[]) => Promise<any> } = {}) {
-  const calls: any[][] = [], props = reactive({ knowledgeBaseId: kb, marketplaceProductId: options.subscribed ? 'market-product' : undefined })
+function setup(options: { pages?: any[]; page?: any; subscribed?: boolean; load?: (...args: any[]) => Promise<any>; graph?: any; loadLinked?: (...args: any[]) => Promise<any> } = {}) {
+  const calls: any[][] = [], linkedCalls: any[][] = [], props = reactive({ knowledgeBaseId: kb, marketplaceProductId: options.subscribed ? 'market-product' : undefined })
   const selectedPage = ref(options.page ?? selected()), pages = ref(options.pages || [{ slug: 'concept/curiosity', title: '好奇心' }])
   const scope = effectScope()
   const dependencies = {
-    reactive, ref, computed, watch, props, selectedPage, pages, graphData: ref(null),
+    reactive, ref, computed, watch, props, selectedPage, pages, graphData: ref(options.graph || null),
     subscriptionReadOnly: computed(() => !!props.marketplaceProductId),
-    wikiReadScope: computed(() => props.knowledgeBaseId),
+    wikiReadScope: computed(() => props.marketplaceProductId ? { knowledgeBaseId: props.knowledgeBaseId, marketplaceProductId: props.marketplaceProductId } : props.knowledgeBaseId),
+    readWiki: (request: Promise<any>) => request,
+    getWikiGraph: async (...args: any[]) => { linkedCalls.push(args); return options.loadLinked ? options.loadLinked(...args) : { nodes: [
+      { slug: 'concept/conquest-desire', title: '征服欲' }, { slug: 'concept/vitality', title: '生命力' },
+      { slug: `summary/${ids[0]}`, title: '经过编辑的摘要标题' },
+    ] } },
     batchQueryKnowledge: async (...args: any[]) => { calls.push(args); return options.load ? options.load(...args) : { success: true, data: docs } },
     getKnowledgeDetails: async (id: string) => ({ data: docs.find(doc => doc.id === id) }),
   }
   const run = new Function(...Object.keys(dependencies), `${javascript}\nreturn { slugDisplayName, parsedSourceRefs }`)
   const state = scope.run(() => run(...Object.values(dependencies)))
-  return { state, props, selectedPage, pages, calls, stop: () => scope.stop() }
+  return { state, props, selectedPage, pages, calls, linkedCalls, stop: () => scope.stop() }
 }
 
 test('unloaded summary backlinks show Chinese source titles with one scoped batch and unchanged slugs', async () => {
@@ -135,4 +140,36 @@ test('a response completing after unmount cannot populate the title cache', asyn
   finish({ data: docs })
   await settle()
   assert.equal(app.state.slugDisplayName(`summary/${ids[0]}`), ids[0])
+})
+
+test('unloaded concept backlinks resolve through one bounded ego title request and keep edited Wiki titles', async () => {
+  const app = setup({ page: { ...selected(['concept/conquest-desire', 'concept/vitality', `summary/${ids[0]}`]), out_links: ['concept/vitality'] } })
+  await settle()
+  assert.equal(app.state.slugDisplayName('concept/conquest-desire'), '征服欲')
+  assert.equal(app.state.slugDisplayName('concept/vitality'), '生命力')
+  assert.equal(app.state.slugDisplayName(`summary/${ids[0]}`), '经过编辑的摘要标题')
+  assert.deepEqual(app.linkedCalls, [[kb, { mode: 'ego', center: 'concept/curiosity', depth: 1, limit: 4 }]])
+  app.stop()
+})
+
+test('already loaded graph node titles avoid any additional linked-title request', async () => {
+  const app = setup({ page: selected(['concept/vitality']), graph: { nodes: [{ slug: 'concept/vitality', title: '生命力' }] } })
+  await settle()
+  assert.equal(app.state.slugDisplayName('concept/vitality'), '生命力')
+  assert.deepEqual(app.linkedCalls, [])
+  app.stop()
+})
+
+test('linked title requests preserve subscription scope and ignore responses after navigation', async () => {
+  let finish!: (response: any) => void
+  const app = setup({ subscribed: true, page: selected(['concept/vitality']), loadLinked: () => new Promise(resolve => { finish = resolve }) })
+  await settle()
+  assert.deepEqual(app.linkedCalls[0][0], { knowledgeBaseId: kb, marketplaceProductId: 'market-product' })
+  assert.deepEqual(app.calls, [])
+  app.selectedPage.value = selected([])
+  await settle()
+  finish({ nodes: [{ slug: 'concept/vitality', title: '不应显示的旧结果' }] })
+  await settle()
+  assert.equal(app.state.slugDisplayName('concept/vitality'), 'vitality')
+  app.stop()
 })
