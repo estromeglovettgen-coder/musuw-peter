@@ -155,7 +155,8 @@
 :root[data-workspace-brand="fire"] .visual-chat-header__title { color: var(--fire-secondary) !important; font-weight: 500 !important; }
 :root[data-workspace-brand="fire"] .visual-chat-scroll { padding-top: 40px; }
 :root[data-workspace-brand="fire"] .visual-chat-messages { gap: 36px; }
-:root[data-workspace-brand="fire"] :is(.visual-user-message, .visual-user-message__bubble) { border-color: var(--fire-line) !important; background: var(--fire-raised) !important; color: var(--fire-text) !important; box-shadow: none !important; }
+:root[data-workspace-brand="fire"] .visual-user-message { background: transparent !important; color: var(--fire-text) !important; box-shadow: none !important; }
+:root[data-workspace-brand="fire"] .visual-user-message__bubble { border: 1px solid #3b2831 !important; border-radius: 14px !important; background: #24191e !important; color: var(--fire-text) !important; box-shadow: none !important; }
 :root[data-workspace-brand="fire"] :is(.visual-assistant-message, .visual-assistant-markdown, .agent-stream) { color: var(--fire-text) !important; }
 :root[data-workspace-brand="fire"] .visual-chat-composer__surface { border: 1px solid var(--fire-line-strong) !important; border-radius: 16px !important; background: var(--fire-surface) !important; box-shadow: 0 5px 20px rgb(0 0 0 / 10%) !important; }
 :root[data-workspace-brand="fire"] .visual-chat-composer__surface:focus-within { border-color: #8b3e54 !important; box-shadow: 0 0 0 2px rgb(214 38 66 / 8%) !important; }

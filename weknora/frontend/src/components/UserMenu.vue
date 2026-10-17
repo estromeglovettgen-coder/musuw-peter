@@ -19,7 +19,7 @@ import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom'
 import { openNewUserGuide } from '@/config/contextualGuides'
 import { SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE } from '@/config/settingsAccess'
 import { handoffToExternalAuth } from '@/utils/nativeAuthHandoff'
-import { isPeterWorkspace } from '@/config/workspaceSurface'
+import { isPeterWorkspace, isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface'
 import { useCurrentEntitlementStore } from '@/stores/entitlement'
 
 const { t } = useI18n()
@@ -43,8 +43,10 @@ const canManageMembers = computed(() =>
   authStore.canAccessAllTenants || authStore.hasRole(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.members),
 )
 const canManageModels = computed(() =>
-  authStore.canAccessAllTenants || authStore.isSystemAdmin ||
-  authStore.hasRole(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.models),
+  isWorkspaceSettingsSectionVisible('models') && (
+    authStore.canAccessAllTenants || authStore.isSystemAdmin ||
+    authStore.hasRole(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.models)
+  ),
 )
 
 const menuRef = ref<HTMLElement>()
