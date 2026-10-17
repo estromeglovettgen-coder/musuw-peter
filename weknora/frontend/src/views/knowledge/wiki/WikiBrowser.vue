@@ -1341,7 +1341,7 @@ import {
 } from "./graph/obsidianGraphSettings";
 import { batchQueryKnowledge } from "@/api/knowledge-base";
 import { createSessions } from "@/api/chat";
-import ChatView from "@/views/chat/index.vue";
+import { defineRecoverableAsyncComponent } from "@/utils/recoverableAsyncComponent";
 import {
   listWikiPages,
   listWikiFolders,
@@ -1402,6 +1402,14 @@ const canEdit = computed(() => !!props.canEdit && !subscriptionReadOnly.value);
 const wikiReadScope = computed(() => props.marketplaceProductId
   ? { knowledgeBaseId: props.knowledgeBaseId, marketplaceProductId: props.marketplaceProductId }
   : props.knowledgeBaseId);
+let wikiReadRevision = 0;
+let wikiUnmounted = false;
+let readerRequestSeq = 0;
+function currentWikiRead() {
+  const scope = wikiReadScope.value;
+  const revision = wikiReadRevision;
+  return { scope, isCurrent: () => !wikiUnmounted && revision === wikiReadRevision && scope === wikiReadScope.value };
+}
 async function readWiki<T>(request: Promise<T>): Promise<T> {
   try { return await request; }
   catch (error) {
@@ -1545,6 +1553,10 @@ const searchResults = ref<WikiPage[] | null>(null);
 const pageIssues = ref<WikiPageIssue[]>([]);
 const showIssuesBox = ref(false);
 const showFixDrawer = ref(false);
+const ChatView = defineRecoverableAsyncComponent(
+  () => import("@/views/chat/index.vue"),
+  () => { showFixDrawer.value = false; },
+);
 const showGlobalIssuesDrawer = ref(false);
 const globalIssues = ref<WikiPageIssue[]>([]);
 const currentFixSessionId = ref("");
@@ -2796,6 +2808,7 @@ function emptyBucket(): PageTypeBucket {
 }
 
 async function loadFlatPagesForType(type: string, reset = false): Promise<boolean> {
+  const request = currentWikiRead();
   const bucket = ensureBucket(type);
   if (bucket.flatLoading) return bucket.flatItems.length > 0;
   if (!reset && bucket.flatInitialized && bucket.flatItems.length >= bucket.flatTotal) return true;
@@ -2803,13 +2816,14 @@ async function loadFlatPagesForType(type: string, reset = false): Promise<boolea
   bucket.flatLoading = true;
   try {
     const requestPage = reset ? 1 : bucket.flatNextPage;
-    const res = await readWiki(listWikiPages(wikiReadScope.value, {
+    const res = await readWiki(listWikiPages(request.scope, {
       page_type: tabPageTypes(type),
       page: requestPage,
       page_size: WIKI_SIDEBAR_PAGE_SIZE,
       sort_by: "wiki_path",
       sort_order: "asc",
     }));
+    if (!request.isCurrent()) return false;
     const body: any = (res as any).data || res;
     const batch: WikiPage[] = body?.pages || [];
     if (reset) {
@@ -2855,6 +2869,7 @@ async function loadCategoriesForType(
   type: string,
   opts: { reset?: boolean; parentPath?: string[] } = {},
 ) {
+  const request = currentWikiRead();
   const bucket = ensureBucket(type);
   const parentPath = opts.parentPath || [];
   const parentKey = directoryPathKey(type, parentPath);
@@ -2878,7 +2893,8 @@ async function loadCategoriesForType(
   setState({ ...state, loading: true });
   if (isRoot) bucket.categoriesLoading = true;
   try {
-    const res = await readWiki(listWikiFolders(wikiReadScope.value, parentId || "", tabPageTypes(type)));
+    const res = await readWiki(listWikiFolders(request.scope, parentId || "", tabPageTypes(type)));
+    if (!request.isCurrent()) return;
     const body: any = (res as any).data || res;
     const folders: WikiFolderNode[] = Array.isArray(body?.folders) ? body.folders : [];
     const incoming = folders
@@ -3216,6 +3232,7 @@ async function loadPagesForType(
   type: string,
   opts: { reset?: boolean; categoryPath?: string[]; preserveDirectoryState?: boolean } = {},
 ) {
+  const request = currentWikiRead();
   const bucket = ensureBucket(type);
   const categoryPath = opts.categoryPath || [];
   const scopedToCategory = categoryPath.length > 0;
@@ -3254,7 +3271,7 @@ async function loadPagesForType(
       : currentScopedState
         ? currentScopedState.nextPage
         : bucket.nextPage;
-    const res = await readWiki(listWikiPages(wikiReadScope.value, {
+    const res = await readWiki(listWikiPages(request.scope, {
       page_type: tabPageTypes(type),
       page: requestPage,
       page_size: WIKI_SIDEBAR_PAGE_SIZE,
@@ -3263,6 +3280,7 @@ async function loadPagesForType(
       category_path: categoryPath.join("/"),
       category_depth: categoryPath.length,
     }));
+    if (!request.isCurrent()) return;
     const body: any = (res as any).data || res;
     const batch: WikiPage[] = body?.pages || [];
     const reportedTotal = Number(body?.total) || 0;
@@ -3346,16 +3364,18 @@ function stripLegacyIndexDirectory(intro: string): string {
 }
 
 async function loadIndex() {
+  const request = currentWikiRead();
   try {
     // We only need intro on the initial probe — the directory groups
     // are fetched lazily once the user opens the Index view. Passing
     // an unknown type filter yields a cheap single count(*) + 0 rows
     // on the backend instead of scanning every directory group, and
     // the frontend discards the resulting empty group unconditionally.
-    const idxRes = await readWiki(getWikiIndex(wikiReadScope.value, {
+    const idxRes = await readWiki(getWikiIndex(request.scope, {
       types: ["__intro_only__"],
       limit: 1,
     }));
+    if (!request.isCurrent()) return;
     const body: any = (idxRes as any).data || (idxRes as any);
     const intro: string = body?.intro || "";
     const cleanIntro = stripLegacyIndexDirectory(intro);
@@ -3372,9 +3392,10 @@ async function loadIndex() {
 // overview. Re-uses the intro already fetched during loadPages(); only
 // re-fetches on first ever open or if a prior attempt failed.
 async function openIndexView() {
+  readerRequestSeq++;
   selectedPage.value = null;
   activeSystemView.value = "index";
-  if (!indexMarkdown.value) {
+  if (!indexAvailable.value) {
     indexLoading.value = true;
     try {
       await loadIndex();
@@ -3426,6 +3447,7 @@ function appendIndexDirectoryLines(items: WikiIndexEntryDTO[]): string {
 async function loadMoreIndexSection() {
   if (indexLoading.value) return;
   if (indexSectionIdx.value >= INDEX_SECTION_ORDER.length) return;
+  const request = currentWikiRead();
 
   const type = INDEX_SECTION_ORDER[indexSectionIdx.value];
   const state = indexSections.value[type] || { loaded: false, cursor: "", total: 0 };
@@ -3433,11 +3455,12 @@ async function loadMoreIndexSection() {
 
   indexLoading.value = true;
   try {
-    const res = await readWiki(getWikiIndex(wikiReadScope.value, {
+    const res = await readWiki(getWikiIndex(request.scope, {
       types: [type],
       limit: 50,
       cursor: isFirstChunkOfSection ? undefined : state.cursor || undefined,
     }));
+    if (!request.isCurrent()) return;
     const body: any = (res as any).data || (res as any);
     const group = (body?.groups || []).find((g: WikiIndexGroup) => g.type === type);
 
@@ -3476,7 +3499,7 @@ async function loadMoreIndexSection() {
       e,
     );
   } finally {
-    indexLoading.value = false;
+    if (request.isCurrent()) indexLoading.value = false;
   }
 
   // IntersectionObserver does NOT re-fire while the target stays
@@ -3491,7 +3514,7 @@ async function loadMoreIndexSection() {
   // out when either hasMore turns off or the sentinel is pushed
   // below the fold by the accumulated entries.
   await nextTick();
-  if (indexHasMore.value && sentinelInView()) {
+  if (request.isCurrent() && indexHasMore.value && sentinelInView()) {
     loadMoreIndexSection();
   }
 }
@@ -3552,23 +3575,35 @@ onUnmounted(() => {
 // was multiple seconds of network + serialization + O(n) group
 // computation before the user saw anything.
 async function loadPages() {
+  const request = currentWikiRead();
   loading.value = true;
   try {
     searchResults.value = null;
     for (const tab of CONTENT_TABS) ensureBucket(tab);
-    await loadIndex();
-    await Promise.all(
-      CONTENT_TABS.map(async (tab) => {
+    // Reader, index intro, and directory metadata have no dependency on one
+    // another. A direct article is started by the route watcher below.
+    const indexReady = loadIndex().then(() => {
+      if (request.isCurrent() && props.view !== "graph" && !route.query.slug
+        && !selectedPage.value && activeSystemView.value === "" && indexAvailable.value) {
+        return openIndexView();
+      }
+    });
+    await Promise.all([
+      indexReady,
+      ...CONTENT_TABS.map(async (tab) => {
         await loadPagesForType(tab, { reset: true });
-        await loadCategoriesForType(tab, { reset: true });
+        if (request.isCurrent()) await loadCategoriesForType(tab, { reset: true });
       }),
-    );
+    ]);
+    if (!request.isCurrent()) return;
 
     // Default to the knowledge tab (first in CONTENT_TABS) once every
     // bucket has had a chance to load. On later reloads (e.g. after
     // indexing finishes) keep the user's current tab when still valid.
     if (initialSidebarLoad) {
-      activeTab.value = preferredDefaultTab(visibleTabs.value);
+      if (!visibleTabs.value.some((tab) => tab.type === activeTab.value)) {
+        activeTab.value = preferredDefaultTab(visibleTabs.value);
+      }
       initialSidebarLoad = false;
     } else {
       const tabValid =
@@ -3580,27 +3615,18 @@ async function loadPages() {
     if (sidebarViewMode.value === "list" && activeTab.value) {
       await loadFlatPagesForType(activeTab.value, true);
     }
-
-    // Auto-select based on query string or default to the index
-    // overview. The index is the natural landing view — it shows
-    // intro + a paginated directory of every page type.
-    if (!selectedPage.value && activeSystemView.value === "") {
-      if (route.query.slug && typeof route.query.slug === "string") {
-        navigateToSlug(route.query.slug);
-      } else if (indexAvailable.value) {
-        openIndexView();
-      }
-    }
   } finally {
-    loading.value = false;
+    if (request.isCurrent()) loading.value = false;
   }
 }
 
 let statsTimer: ReturnType<typeof setInterval> | null = null;
 
 async function loadStats() {
+  const request = currentWikiRead();
   try {
-    const res = await readWiki(getWikiStats(wikiReadScope.value));
+    const res = await readWiki(getWikiStats(request.scope));
+    if (!request.isCurrent()) return;
     stats.value = (res as any).data || (res as any);
 
     // Notify parent so it can reflect wiki status (e.g. indexing badge in the breadcrumb)
@@ -3877,9 +3903,12 @@ function editSourceTheme(source?: string): "primary" | "success" | "warning" | "
 // Refresh the currently selected page's content without touching navigation history
 async function refreshSelectedPage() {
   if (!selectedPage.value) return;
+  const request = currentWikiRead();
+  const seq = readerRequestSeq;
   const slug = selectedPage.value.slug;
   try {
-    const res = await readWiki(getWikiPage(wikiReadScope.value, slug));
+    const res = await readWiki(getWikiPage(request.scope, slug));
+    if (!request.isCurrent() || seq !== readerRequestSeq || selectedPage.value?.slug !== slug) return;
     selectedPage.value = (res as any).data || (res as any);
     await loadPageIssues(slug);
   } catch (e) {
@@ -4293,11 +4322,15 @@ async function growFrontier() {
 
 async function loadPageIssues(slug: string) {
   if (subscriptionReadOnly.value) return;
+  const request = currentWikiRead();
+  const seq = readerRequestSeq;
   try {
     const res = await listWikiIssues(props.knowledgeBaseId, slug, "pending");
+    if (!request.isCurrent() || seq !== readerRequestSeq || selectedPage.value?.slug !== slug) return;
     pageIssues.value = (res as any).data || (res as any) || [];
     showIssuesBox.value = false;
   } catch (e) {
+    if (!request.isCurrent() || seq !== readerRequestSeq || selectedPage.value?.slug !== slug) return;
     console.error("Failed to load wiki issues:", e);
     pageIssues.value = [];
     showIssuesBox.value = false;
@@ -4305,27 +4338,12 @@ async function loadPageIssues(slug: string) {
 }
 
 async function selectPage(page: WikiPage) {
-  try {
-    if (selectedPage.value && selectedPage.value.id !== page.id) {
-      navHistory.value.push(selectedPage.value);
-    } else if (!selectedPage.value && activeSystemView.value) {
-      // Jumping out of a system view (Index / Log) onto a page.
-      // navHistory only holds WikiPages, so we stash the origin
-      // system view separately; goBack restores it when the history
-      // stack is empty.
-      navFromSystemView.value = activeSystemView.value;
-    }
-    if (!subscriptionReadOnly.value) activeSystemView.value = "";
-    const res = await readWiki(getWikiPage(wikiReadScope.value, page.slug));
-    activeSystemView.value = "";
-    selectedPage.value = (res as any).data || (res as any);
-    await loadPageIssues(page.slug);
-  } catch (e) {
-    console.error("Failed to load wiki page:", e);
-  }
+  return navigateToSlug(page.slug);
 }
 
 async function navigateToSlug(slug: string) {
+  const request = currentWikiRead();
+  const seq = ++readerRequestSeq;
   try {
     if (selectedPage.value && selectedPage.value.slug !== slug) {
       navHistory.value.push(selectedPage.value);
@@ -4336,16 +4354,19 @@ async function navigateToSlug(slug: string) {
       navFromSystemView.value = activeSystemView.value;
     }
     if (!subscriptionReadOnly.value) activeSystemView.value = "";
-    const res = await readWiki(getWikiPage(wikiReadScope.value, slug));
+    const res = await readWiki(getWikiPage(request.scope, slug));
+    if (!request.isCurrent() || seq !== readerRequestSeq) return;
     activeSystemView.value = "";
     selectedPage.value = (res as any).data || (res as any);
     await loadPageIssues(slug);
   } catch (e) {
+    if (!request.isCurrent() || seq !== readerRequestSeq) return;
     console.error(`Failed to navigate to ${slug}:`, e);
   }
 }
 
 function goBack() {
+  readerRequestSeq++;
   const prev = navHistory.value.pop();
   if (prev) {
     selectedPage.value = prev;
@@ -4651,7 +4672,27 @@ watch(obsidianGraphSettings, (settings) => {
   graphRendererController?.setObsidianSettings(settings)
 }, { deep: true })
 
-watch(() => props.knowledgeBaseId, (knowledgeBaseId, previousKnowledgeBaseId) => {
+watch(() => [props.knowledgeBaseId, props.marketplaceProductId] as const, ([knowledgeBaseId], [previousKnowledgeBaseId]) => {
+  wikiReadRevision++;
+  readerRequestSeq++;
+  selectedPage.value = null;
+  pageIssues.value = [];
+  navHistory.value = [];
+  navFromSystemView.value = "";
+  activeSystemView.value = "";
+  pages.value = [];
+  pagesByType.value = {};
+  indexAvailable.value = false;
+  indexMarkdown.value = "";
+  indexLoading.value = false;
+  collapsedDirectories.value = new Set();
+  touchedDirectories.value = new Set();
+  if (statsTimer) clearInterval(statsTimer);
+  statsTimer = null;
+  stats.value = null;
+  initialSidebarLoad = true;
+  void loadPages();
+  void loadStats();
   if (obsidianSettingsSaveTimer) {
     clearTimeout(obsidianSettingsSaveTimer)
     obsidianSettingsSaveTimer = null
@@ -4837,18 +4878,23 @@ watch(
 );
 
 watch(
-  () => route.query.slug,
-  (newSlug) => {
+  () => [props.knowledgeBaseId, props.marketplaceProductId, route.query.slug, props.view] as const,
+  ([_kbId, _productId, newSlug], previous) => {
     if (newSlug && typeof newSlug === "string") {
       if (!selectedPage.value || selectedPage.value.slug !== newSlug) {
         if (props.view === "graph") {
-          handleGraphSearchSelect(newSlug);
+          // The first graph load already opens its requested slug once the
+          // overview is ready. Only subsequent navigation needs this branch.
+          if (previous && newSlug !== previous[2]) handleGraphSearchSelect(newSlug);
         } else {
           navigateToSlug(newSlug);
         }
       }
+    } else if (props.view !== "graph" && !selectedPage.value && activeSystemView.value === "" && indexAvailable.value) {
+      void openIndexView();
     }
   },
+  { immediate: true },
 );
 
 onMounted(() => {
@@ -4861,6 +4907,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  wikiUnmounted = true;
+  readerRequestSeq++;
   disposeGraphRenderer();
   if (obsidianSettingsSaveTimer) {
     clearTimeout(obsidianSettingsSaveTimer);

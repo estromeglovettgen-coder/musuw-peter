@@ -11,8 +11,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { customerSessions, deleteCustomer, emptyCustomerProfile, newCustomerSession } from '@/api/customer'
 import { useAuthStore } from '@/stores/auth'
 import PeterTermHelp from '@/components/PeterTermHelp.vue'
-import KnowledgeBaseEditorModal from '@/views/knowledge/KnowledgeBaseEditorModal.vue'
-import KnowledgeBase from '@/views/knowledge/KnowledgeBase.vue'
+import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent'
 import CustomerTags from './CustomerTags.vue'
 import CustomerChatPaste from './CustomerChatPaste.vue'
 import { selectCustomerOverview } from './customerOverview'
@@ -26,6 +25,14 @@ const isContentTab = computed(() => ['documents', 'wiki', 'graph'].includes(tab.
 const kb = ref<any>(null), profile = ref<any>(emptyCustomerProfile()), pages = ref<any[]>([]), wiki = ref<any>(null), files = ref<any[]>([]), sessions = ref<any[]>([]), libraries = ref<any[]>([])
 const busy = ref(true), error = ref(''), detailError = ref(''), showSettings = ref(false), showRecord = ref(false), saving = ref(false), uploading = ref(false), openingChat = ref(false)
 const showDelete = ref(false), deleting = ref(false)
+const KnowledgeBase = defineRecoverableAsyncComponent(
+  () => import('@/views/knowledge/KnowledgeBase.vue'),
+  () => { void router.replace({ path: base.value, query: { tab: 'overview' } }) },
+)
+const KnowledgeBaseEditorModal = defineRecoverableAsyncComponent(
+  () => import('@/views/knowledge/KnowledgeBaseEditorModal.vue'),
+  () => { showSettings.value = false },
+)
 const deleteTarget = ref<{id:string;name:string} | null>(null)
 const record = ref({ kind: '沟通记录', title: '', content: '' })
 const fileInput = ref<HTMLInputElement>(), uploadStatus = ref('')
@@ -156,7 +163,7 @@ onBeforeUnmount(()=>{sequence++;if(refreshTimer)clearTimeout(refreshTimer)})
 
     <t-dialog v-model:visible="showRecord" header="添加目标记录" :confirm-btn="{content:'保存并整理',loading:saving}" @confirm="addRecord"><div class="customer-form"><label>记录类型<t-select v-model="record.kind" :options="['沟通记录','互动复盘','补充备注'].map(value=>({label:value,value}))"/></label><label>标题<t-input v-model="record.title" placeholder="例如：周末见面后的沟通" :maxlength="100"/></label><label>内容<t-textarea v-model="record.content" :autosize="{minRows:8,maxRows:16}" placeholder="粘贴聊天原文或记录实际发生的情况，可注明沟通时间与说话人。"/></label></div></t-dialog>
     <t-dialog v-model:visible="showDelete" header="删除目标" theme="warning" :confirm-btn="{content:'确认删除',theme:'danger',loading:deleting}" :cancel-btn="{disabled:deleting}" :close-btn="!deleting" :close-on-overlay-click="!deleting" :close-on-esc-keydown="!deleting" @confirm="confirmDelete"><p>将删除目标「{{deleteTarget?.name}}」。</p><p class="customer-muted">删除后目标将从列表移除，目标资料会由系统清理。此操作不可撤回。</p></t-dialog>
-    <KnowledgeBaseEditorModal v-if="kb" v-model:visible="showSettings" mode="edit" customer :kb-id="kb.id" @success="load"/>
+    <KnowledgeBaseEditorModal v-if="kb && showSettings" v-model:visible="showSettings" mode="edit" customer :kb-id="kb.id" @success="load"/>
   </main>
 </template>
 <style scoped>

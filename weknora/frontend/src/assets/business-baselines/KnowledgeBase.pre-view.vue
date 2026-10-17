@@ -154,9 +154,13 @@ const clearWikiStatusProbes = () => {
   wikiStatusProbeTimers = []
 }
 const fetchWikiStatusOnce = async () => {
-  if (!kbId.value || !isWiki.value) return
+  // The mounted Wiki browser owns stats while reading Wiki/graph; documents
+  // retain the native background indexing indicator without duplicate reads.
+  if (!kbId.value || !isWiki.value || activeKbTab.value !== 'documents') return
+  const targetKbId = kbId.value
   try {
-    const res: any = await getWikiStats(kbId.value)
+    const res: any = await getWikiStats(targetKbId)
+    if (targetKbId !== kbId.value || activeKbTab.value !== 'documents') return
     const data = res?.data || res
     if (!data) return
     wikiStatus.value = {
@@ -187,11 +191,11 @@ const scheduleWikiStatusProbes = () => {
     wikiStatusProbeTimers.push(timer)
   })
 }
-watch([kbId, isWiki], ([newKbId, newIsWiki]) => {
+watch([kbId, isWiki, activeKbTab], ([newKbId, newIsWiki, tab]) => {
   stopWikiStatusPolling()
   clearWikiStatusProbes()
   wikiStatus.value = { pendingTasks: 0, isActive: false, pendingIssues: 0 }
-  if (newKbId && newIsWiki) {
+  if (newKbId && newIsWiki && tab === 'documents') {
     fetchWikiStatusOnce()
   }
 }, { immediate: true })
@@ -781,7 +785,7 @@ const getTagName = (tagId?: string | number) => {
 
 let firstPageRefresh: Promise<void> | null = null;
 const loadKnowledgeFiles = (kbIdValue: string): Promise<void> => {
-  if (!kbIdValue) return Promise.resolve();
+  if (!kbIdValue || (isWiki.value && activeKbTab.value !== 'documents')) return Promise.resolve();
   const requestFilters = filterParams.value;
   if (!isFAQ.value) {
     docListLoading.value = true;
@@ -1115,25 +1119,24 @@ const loadKnowledgeBaseInfo = async (targetKbId: string, force = false) => {
     return;
   }
   kbLoading.value = true;
+  // Reset before awaiting metadata. The filter watcher skips this setup reset;
+  // the document tab below owns exactly one initial list request.
+  if (selectedTagIds.value.length) selectedTagIds.value = [];
   try {
     const data = await chatResources.fetchKnowledgeBaseById(targetKbId, force);
     if (!isCurrentKb(targetKbId)) return;
 
     kbInfo.value = data;
-    selectedTagIds.value = [];
     tagFilterCleared.value = false;
     uiStore.clearSelectedTagIds();
     // 重置store中的标签选择状态，避免上传文档时自动带上之前选择的标签
-    uiStore.clearSelectedTagIds();
-    if (!isFAQ.value) {
-      loadKnowledgeFiles(targetKbId);
-      void loadFolderTree(targetKbId);
-    } else {
+    loadDocumentViewData(targetKbId);
+    if (isFAQ.value) {
       cardList.value = [];
       total.value = 0;
       folderTree.value = null;
     }
-    loadTags(targetKbId, true);
+    if (pendingKnowledgeId.value) void tryAutoOpenDocument();
   } catch (error) {
     if (!isCurrentKb(targetKbId)) return;
 
@@ -1147,6 +1150,22 @@ const loadKnowledgeBaseInfo = async (targetKbId: string, force = false) => {
     }
   }
 };
+
+// Hidden document lists do not compete with the Wiki reader. Opening documents later
+// uses the same loaders, filters and native failure/retry state as before.
+const loadDocumentViewData = (targetKbId: string) => {
+  if (!targetKbId || (isWiki.value && activeKbTab.value !== 'documents')) return;
+  if (!isFAQ.value) {
+    void loadKnowledgeFiles(targetKbId);
+    void loadFolderTree(targetKbId);
+  }
+  void loadTags(targetKbId, true);
+};
+
+watch(activeKbTab, (tab, previousTab) => {
+  if (tab === previousTab || tab !== 'documents' || kbLoading.value || !kbInfo.value) return;
+  loadDocumentViewData(kbId.value);
+});
 
 const loadKnowledgeList = async () => {
   try {
@@ -1203,7 +1222,8 @@ watch(() => kbId.value, (newKbId, oldKbId) => {
 }, { immediate: true });
 
 watch(selectedTagIds, (newVal, oldVal) => {
-  if (oldVal === undefined) return;
+  if (oldVal === undefined || kbLoading.value) return;
+  if (newVal.length === oldVal.length && newVal.every((id, index) => id === oldVal[index])) return;
   if (kbId.value) {
     loadKnowledgeFiles(kbId.value);
   }
@@ -1255,7 +1275,7 @@ watch([selectedParseStatus, selectedSource, updatedTimeRange], () => {
 // 切换目录只改变列表范围，行为与其他筛选一致。浏览态与筛选态之间的切换由各筛选项
 // 自身的 watcher 触发刷新，这里不重复请求。
 watch(selectedFolderPath, () => {
-  if (!kbId.value || isFAQ.value) return;
+  if (!kbId.value || isFAQ.value || kbLoading.value) return;
   clearSelection();
   resetPage();
   loadKnowledgeFiles(kbId.value);

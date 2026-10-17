@@ -4,14 +4,12 @@ import { ref, shallowRef, watch, onUnmounted, nextTick, defineAsyncComponent } f
 import { previewKnowledgeFile } from '@/api/knowledge-base/index';
 import { previewTemporaryAttachment } from '@/api/chat/temporary-attachments';
 import { downloadArtifact } from '@/api/chat';
-import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 import markedKatex from 'marked-katex-extension';
 import 'katex/dist/katex.min.css';
 import { useI18n } from 'vue-i18n';
-import { sanitizeHTML, sanitizeMarkdownHTML, safeMarkdownToHTML } from '@/utils/security';
+import { sanitizeHTML, sanitizeMarkdownHTML, safeMarkdownToHTML, escapeHTML } from '@/utils/security';
 import { openMermaidFullscreen } from '@/utils/mermaidViewer';
-import { renderMermaidToSvg } from '@/utils/mermaidShared';
 import {
   FILE_PREVIEW_SNIFF_BYTES,
   getHighlightLang as resolveHighlightLang,
@@ -158,6 +156,7 @@ async function renderExcel(blob: Blob, fileType?: string) {
 }
 
 async function renderText(blob: Blob, fileType: string) {
+  const { default: hljs } = await import('highlight.js');
   let text = await blob.text();
   if (shouldPrettyPrintJson(fileType)) {
     text = prettyPrintJson(text);
@@ -190,6 +189,9 @@ async function renderMarkdown(blob: Blob) {
     gfm: true,
   });
   marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
+  let hasCode = false;
+  marked.walkTokens(marked.lexer(text), token => { if (token.type === 'code') hasCode = true; });
+  const hljs = hasCode ? (await import('highlight.js')).default : null;
   const renderer = new marked.Renderer();
   renderer.code = function ({text, lang}) {
     // 空值校验：防止 text 为 undefined 或 null
@@ -198,6 +200,7 @@ async function renderMarkdown(blob: Blob) {
     }
 
     let highlighted = '';
+    if (!hljs) return `<pre><code>${escapeHTML(text)}</code></pre>`;
     if (lang && hljs.getLanguage(lang)) {
       try { highlighted = hljs.highlight(text, { language: lang }).value; }
       catch { highlighted = hljs.highlightAuto(text).value; }
@@ -260,6 +263,7 @@ async function fetchPreviewBlob(): Promise<Blob> {
 }
 
 async function renderMermaid(blob: Blob) {
+  const { renderMermaidToSvg } = await import('@/utils/mermaidShared');
   const text = await blob.text();
   const svg = await renderMermaidToSvg(text, `file-preview-mermaid-${Date.now()}`);
   if (svg) {

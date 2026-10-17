@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   loadPreference,
   savePreference,
@@ -212,12 +213,12 @@ const lastApplied: { sans: string; mono: string; scale: string } = {
 function applyFont() {
   const root = document.documentElement
   if (!root) return
-  // The archived Musuw typefaces are declared by theme.css. Only write an
-  // inline value after a user explicitly chooses a font; otherwise the
-  // application default remains the stylesheet source of truth.
+  // Fire uses the native system option by default so first-use UI and API
+  // requests do not compete with CJK font downloads. Saved choices still win;
+  // other profiles retain their archived stylesheet typefaces.
   const savedSans = loadPreference(SANS_KEY)
   const savedMono = loadPreference(MONO_KEY)
-  const sansStack = isFontKey(savedSans)
+  const sansStack = isFontKey(savedSans) || isPeterWorkspace
     ? (SANS_STACKS[currentSans.value] ?? SANS_STACKS[DEFAULT_SANS])
     : ''
   const monoStack = isMonoFontKey(savedMono)

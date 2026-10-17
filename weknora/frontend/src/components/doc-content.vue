@@ -4,9 +4,7 @@ import { marked } from "marked";
 import markedKatex from 'marked-katex-extension';
 import 'katex/dist/katex.min.css';
 
-import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
-import mermaid from "mermaid";
 import { onMounted, ref, nextTick, onUnmounted, watch, computed } from "vue";
 import {
   downKnowledgeDetails, deleteGeneratedQuestion, getChunkByIdOnly, previewKnowledgeFile,
@@ -15,19 +13,23 @@ import {
   KNOWLEDGE_CHUNK_PAGE_SIZE,
 } from "@/api/knowledge-base/index";
 import { MessagePlugin } from "tdesign-vue-next";
-import { sanitizeHTML, safeMarkdownToHTML, createSafeImage, isValidImageURL, hydrateProtectedFileImages, isValidURL } from '@/utils/security';
+import { sanitizeHTML, safeMarkdownToHTML, createSafeImage, isValidImageURL, hydrateProtectedFileImages, isValidURL, escapeHTML } from '@/utils/security';
 import { normalizeSpuriousTablePrefixes } from '@/utils/markdownTableNormalize';
 import { openMermaidFullscreen } from '@/utils/mermaidViewer';
 import { diffWikiLines, type WikiDiffLine } from '@/utils/wikiLineDiff';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
-import DocumentPreview from '@/components/document-preview.vue';
+import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent';
 import KnowledgeProcessingTimeline from '@/components/knowledge-processing-timeline.vue';
 import { resolveKnowledgeDownloadFileName } from '@/views/knowledge/knowledgeDownloadFileName';
 import { isKnownPreviewableExt, resolveFilePreviewExt } from '@/utils/filePreview';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
+const DocumentPreview = defineRecoverableAsyncComponent(
+  () => import('@/components/document-preview.vue'),
+  () => { viewMode.value = 'merged'; },
+);
 
 // canDeleteGeneratedQuestion 对应后端 DELETE /chunks/by-id/:id/questions
 // 的 OwnedChunkKBOrAdminFromChunkID 守卫——KB 创建者或空间 Admin+
@@ -213,33 +215,37 @@ const showSummarySection = computed(() =>
 // Mermaid 初始化计数器，用于生成唯一ID
 let mermaidRenderCount = 0;
 
-// 初始化 Mermaid
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'strict',
-  fontFamily: 'PingFang SC, Microsoft YaHei, sans-serif',
-  flowchart: {
-    useMaxWidth: true,
-    htmlLabels: true,
-    curve: 'basis'
-  },
-  sequence: {
-    useMaxWidth: true,
-    diagramMarginX: 8,
-    diagramMarginY: 8,
-    actorMargin: 50,
-    width: 150,
-    height: 65
-  },
-  gantt: {
-    useMaxWidth: true,
-    leftPadding: 75,
-    gridLineStartPadding: 35,
-    barHeight: 20,
-    barGap: 4,
-    topPadding: 50
-  }
+// The diagram engine is needed only after a diagram actually reaches the DOM.
+let mermaidPromise: Promise<typeof import('mermaid').default> | undefined;
+const loadDocumentMermaid = () => mermaidPromise ??= import('mermaid').then(({ default: mermaid }) => {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'strict',
+    fontFamily: 'PingFang SC, Microsoft YaHei, sans-serif',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    },
+    sequence: {
+      useMaxWidth: true,
+      diagramMarginX: 8,
+      diagramMarginY: 8,
+      actorMargin: 50,
+      width: 150,
+      height: 65
+    },
+    gantt: {
+      useMaxWidth: true,
+      leftPadding: 75,
+      gridLineStartPadding: 35,
+      barHeight: 20,
+      barGap: 4,
+      topPadding: 50
+    }
+  });
+  return mermaid;
 });
 const props = defineProps(["visible", "details", "knowledgeType", "sourceInfo", "canEditKB", "canDownloadKB", "parse_status", "kbId"]);
 const emit = defineEmits(["closeDoc", "getDoc", "retryDoc", "questionDeleted", "summaryStateChange"]);
@@ -690,30 +696,17 @@ renderer.code = function ({ text, lang }) {
     // 生成唯一ID
     const id = `mermaid-${++mermaidRenderCount}`;
     // 返回带有 mermaid 类的 div，后续由 mermaid.run() 处理
-    return `<div class="mermaid" id="${id}">${text}</div>`;
+    return `<div class="mermaid" id="${id}">${escapeHTML(text)}</div>`;
   }
 
-  let detectedLang = lang;
-  let highlighted = '';
-  if (lang && hljs.getLanguage(lang)) {
-    try {
-      highlighted = hljs.highlight(text, { language: lang }).value;
-    } catch (e) {
-      highlighted = hljs.highlightAuto(text).value;
-      detectedLang = hljs.highlightAuto(text).language || lang;
-    }
-  } else {
-    const auto = hljs.highlightAuto(text);
-    highlighted = auto.value;
-    detectedLang = auto.language || lang;
-  }
-  const displayLang = detectedLang || 'Code';
+  // Keep readable, escaped code visible while the optional highlighter loads.
+  const displayLang = escapeHTML(lang || 'Code');
   return `
     <div class="code-block-wrapper">
       <div class="code-block-header">
         <span class="code-block-lang">${displayLang}</span>
       </div>
-      <pre class="code-block-pre"><code class="hljs language-${detectedLang || ''}">${highlighted}</code></pre>
+      <pre class="code-block-pre"><code class="hljs language-${escapeHTML(lang || '')}">${escapeHTML(text)}</code></pre>
     </div>
   `;
 };
@@ -817,8 +810,31 @@ const runMarkdownPostRenderPipeline = async () => {
       }
     })
   }
-  // 渲染 Mermaid 图表
-  await renderMermaidDiagrams();
+  await Promise.all([highlightDocumentCode(renderRoot), renderMermaidDiagrams()]);
+};
+
+const highlightDocumentCode = async (root: HTMLElement) => {
+  const nodes = [...root.querySelectorAll<HTMLElement>('.code-block-pre code')]
+    .filter(node => !node.dataset.highlighted);
+  if (!nodes.length) return;
+  try {
+    const { default: hljs } = await import('highlight.js');
+    for (const node of nodes) {
+      if (!node.isConnected || node.dataset.highlighted) continue;
+      const lang = [...node.classList].find(name => name.startsWith('language-'))?.slice(9);
+      const text = node.textContent || '';
+      let result;
+      try { result = lang && hljs.getLanguage(lang) ? hljs.highlight(text, { language: lang }) : hljs.highlightAuto(text); }
+      catch { result = hljs.highlightAuto(text); }
+      node.innerHTML = result.value;
+      node.dataset.highlighted = 'yes';
+      const label = node.closest('.code-block-wrapper')?.querySelector('.code-block-lang');
+      if (label) label.textContent = result.language || lang || 'Code';
+    }
+  } catch (error) {
+    console.error('Document code highlighting failed:', error);
+    MessagePlugin.error(t('common.resourceLoadFailed.body'));
+  }
 };
 
 watch(() => props.details.md, () => {
@@ -851,8 +867,11 @@ const renderMermaidDiagrams = async () => {
     const mermaidElements = getMarkdownRenderRoot()?.querySelectorAll('.mermaid');
     console.log('[Mermaid] Found mermaid elements:', mermaidElements?.length);
     if (mermaidElements && mermaidElements.length > 0) {
+      const mermaid = await loadDocumentMermaid();
+      const nodes = [...mermaidElements].filter(node => node.isConnected);
+      if (!nodes.length) return;
       await mermaid.run({
-        nodes: mermaidElements
+        nodes
       });
       console.log('[Mermaid] Rendering complete');
       // 渲染完成后绑定点击事件
@@ -862,6 +881,7 @@ const renderMermaidDiagrams = async () => {
     }
   } catch (error) {
     console.error('Mermaid rendering error:', error);
+    MessagePlugin.error(t('preview.loadFailed'));
   }
 };
 

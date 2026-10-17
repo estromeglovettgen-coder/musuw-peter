@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getKnowledgeBaseById } from '@/api/knowledge-base'
-import KnowledgeBase from '@/views/knowledge/KnowledgeBase.vue'
+import { useChatResourcesStore } from '@/stores/chatResources'
+import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
 import './customer.css'
 
 const route = useRoute()
 const router = useRouter()
+const chatResources = useChatResourcesStore()
+const KnowledgeBase = defineRecoverableAsyncComponent(
+  () => import('@/views/knowledge/KnowledgeBase.vue'),
+  () => { void router.replace('/platform/knowledge-bases') },
+)
 const resolving = ref(isPeterWorkspace)
 let sequence = 0
 
@@ -17,9 +22,9 @@ watch(() => route.params.kbId, async value => {
   resolving.value = isPeterWorkspace
   if (!isPeterWorkspace || !value) return
   try {
-    const response: any = await getKnowledgeBaseById(String(value))
+    const knowledgeBase = await chatResources.fetchKnowledgeBaseById(String(value))
     if (run !== sequence) return
-    if (response.data?.customer_profile) {
+    if (knowledgeBase?.customer_profile) {
       await router.replace({
         name: 'customerProject',
         params: { kbId: String(value) },

@@ -877,8 +877,6 @@ import {
   getFAQImportProgress,
   updateFAQImportResultDisplayStatus,
 } from '@/api/knowledge-base'
-import * as XLSX from 'xlsx'
-import Papa from 'papaparse'
 import FAQTagTooltip from '@/components/FAQTagTooltip.vue'
 import KBSwitcherDropdown from '@/components/KBSwitcherDropdown.vue'
 import FAQBatchBar from './FAQBatchBar.vue'
@@ -1919,6 +1917,7 @@ const parseJSONFile = async (file: File): Promise<FAQEntryPayload[]> => {
 }
 
 const parseCSVFile = async (file: File): Promise<FAQEntryPayload[]> => {
+  const { default: Papa } = await import('papaparse')
   const text = await file.text()
 
   // 使用 papaparse 解析 CSV，自动处理引号、转义、分隔符等
@@ -1973,6 +1972,7 @@ const parseCSVFile = async (file: File): Promise<FAQEntryPayload[]> => {
 }
 
 const parseExcelFile = async (file: File): Promise<FAQEntryPayload[]> => {
+  const XLSX = await import('xlsx')
   const data = await file.arrayBuffer()
   const workbook = XLSX.read(data, { type: 'array' })
   const sheetName = workbook.SheetNames[0]
@@ -2507,22 +2507,28 @@ const downloadCSVExample = () => {
 }
 
 // 下载 Excel 示例
-const downloadExcelExample = () => {
-  const worksheet = XLSX.utils.json_to_sheet(
-    workspaceBrandMessages(exampleData, isPeterWorkspace).map((item) => ({
-      '标签(必填)': item.tag_name || '',
-      '问题(必填)': item.standard_question,
-      '相似问题(选填-多个用##分隔)': item.similar_questions.join('##'),
-      '反例问题(选填-多个用##分隔)': item.negative_questions.join('##'),
-      '机器人回答(必填-多个用##分隔)': item.answers.join('##'),
-      '是否全部回复(选填-默认FALSE)': 'FALSE',
-      '是否停用(选填-默认FALSE)': 'FALSE',
-      '是否禁止被推荐(选填-默认False 可被推荐)': 'FALSE',
-    })),
-  )
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'FAQ')
-  XLSX.writeFile(workbook, 'faq_example.xlsx')
+const downloadExcelExample = async () => {
+  try {
+    const XLSX = await import('xlsx')
+    const worksheet = XLSX.utils.json_to_sheet(
+      workspaceBrandMessages(exampleData, isPeterWorkspace).map((item) => ({
+        '标签(必填)': item.tag_name || '',
+        '问题(必填)': item.standard_question,
+        '相似问题(选填-多个用##分隔)': item.similar_questions.join('##'),
+        '反例问题(选填-多个用##分隔)': item.negative_questions.join('##'),
+        '机器人回答(必填-多个用##分隔)': item.answers.join('##'),
+        '是否全部回复(选填-默认FALSE)': 'FALSE',
+        '是否停用(选填-默认FALSE)': 'FALSE',
+        '是否禁止被推荐(选填-默认False 可被推荐)': 'FALSE',
+      })),
+    )
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'FAQ')
+    XLSX.writeFile(workbook, 'faq_example.xlsx')
+  } catch (error: any) {
+    console.error('FAQ Excel example download failed:', error)
+    MessagePlugin.error(t('common.resourceLoadFailed.body'))
+  }
 }
 
 // 导出 FAQ 数据

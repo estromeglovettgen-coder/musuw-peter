@@ -33,12 +33,13 @@ const KNOWLEDGE_AI_TITLE_DISPLAY_CHANGE = 'display-materialized-ai-title'
 const KNOWLEDGE_FAILURE_REASON_CHANGE = 'surface-document-failure-reason'
 const KNOWLEDGE_UPLOAD_FEEDBACK_CHANGE = 'retain-upload-progress-and-refresh-accepted-files+surface-list-load-failures+retain-child-folders+batch-stop-parsing+expand-folder-documents+delete-folder-subtree+retain-complete-folder-view'
 const MODEL_REASONING_DEFAULT_CHANGE = 'refresh-global-model-catalog'
+const KNOWLEDGE_COLD_LOADING_CHANGE = 'fire-native-document-lazy-loading-and-single-stats-owner'
 const CREATOR_MARKETPLACE_CHANGE = 'creator-marketplace-subscriptions'
 
 const LOCKED_BUSINESS_BLOBS = {
   './business-baselines/ChatIndex.pre-view.vue': '5cf5274325a8fc8ee502974dd7602967a62d01fa',
   './business-baselines/Input-field.pre-view.vue': '48ee2472e0d9863ac5b96841aea7d05ebc6d869b',
-  './business-baselines/KnowledgeBase.pre-view.vue': 'bed8327060469d2174ac0c2624eb8fa74a9bed1d',
+  './business-baselines/KnowledgeBase.pre-view.vue': '3e2da17cdb15cc4dc42d7102da77502407ad21c2',
   './business-baselines/KnowledgeBaseList.pre-view.vue': '42d4ed67cb5f4c8fd145d67f119e4a95bf88c45e',
   './business-baselines/manual-knowledge-editor.pre-view.vue': '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e',
   './business-baselines/menu.pre-view.vue': '6b223e3da153f5ed135ca2b2b7398e32f117cf91',
@@ -67,9 +68,9 @@ const INTENTIONAL_BEHAVIOR_EVOLUTION = {
   },
   knowledgeBase: {
     commit: OPENROUTER_VIDEO_INGESTION_COMMIT,
-    change: `${CONSUMER_SURFACE_CHANGE}+${ENTITLEMENT_USAGE_REVALIDATION_CHANGE}+${KNOWLEDGE_AI_TITLE_DISPLAY_CHANGE}+${KNOWLEDGE_FAILURE_REASON_CHANGE}+${KNOWLEDGE_UPLOAD_FEEDBACK_CHANGE}`,
+    change: `${CONSUMER_SURFACE_CHANGE}+${ENTITLEMENT_USAGE_REVALIDATION_CHANGE}+${KNOWLEDGE_AI_TITLE_DISPLAY_CHANGE}+${KNOWLEDGE_FAILURE_REASON_CHANGE}+${KNOWLEDGE_UPLOAD_FEEDBACK_CHANGE}+${KNOWLEDGE_COLD_LOADING_CHANGE}`,
     resultingBlob: LOCKED_BUSINESS_BLOBS['./business-baselines/KnowledgeBase.pre-view.vue'],
-    authority: 'WeKnora main 81142df native document import flow extended with managed video file types, success-scoped usage revalidation, server-projected runtime/storage readiness, live display of a materialized AI title without changing the durable source filename, and live propagation of server-sanitized failure reasons; explicit upload bug repair adds persistent per-file progress, incremental list refresh with ordering protection, and a pending-upload reload warning; list refresh feedback remains pending until the owning request finishes and failures can be retried; sidebar expansion does not hide folder contents and selected in-flight parsing can be stopped through the existing endpoint with bounded requests and partial-failure retry; directory expansion lists child folders and documents, confirmed subtree deletion enumerates unfiltered descendants before using the existing batch deletion endpoint, and folder contents commit together after a successful navigation request',
+    authority: 'WeKnora main 81142df native document import flow extended with managed video file types, success-scoped usage revalidation, server-projected runtime/storage readiness, live display of a materialized AI title without changing the durable source filename, and live propagation of server-sanitized failure reasons; explicit upload bug repair adds persistent per-file progress, incremental list refresh with ordering protection, and a pending-upload reload warning; list refresh feedback remains pending until the owning request finishes and failures can be retried; sidebar expansion does not hide folder contents and selected in-flight parsing can be stopped through the existing endpoint with bounded requests and partial-failure retry; directory expansion lists child folders and documents, confirmed subtree deletion enumerates unfiltered descendants before using the existing batch deletion endpoint, and folder contents commit together after a successful navigation request; explicit 2026-10-17 Beijing cold-start repair defers hidden document data, removes setup tag-reset duplicate reads, and gives documents and mounted Wiki mutually exclusive stats ownership without changing native write, import, filter, folder, permission or retrieval contracts',
   },
   knowledgeBaseList: {
     resultingBlob: LOCKED_BUSINESS_BLOBS['./business-baselines/KnowledgeBaseList.pre-view.vue'],
@@ -122,7 +123,7 @@ test('upstream behavior restorations are explicit and locked, never inferred fro
   )
   assert.equal(
     INTENTIONAL_BEHAVIOR_EVOLUTION.knowledgeBase.change,
-    `${CONSUMER_SURFACE_CHANGE}+${ENTITLEMENT_USAGE_REVALIDATION_CHANGE}+${KNOWLEDGE_AI_TITLE_DISPLAY_CHANGE}+${KNOWLEDGE_FAILURE_REASON_CHANGE}+${KNOWLEDGE_UPLOAD_FEEDBACK_CHANGE}`,
+    `${CONSUMER_SURFACE_CHANGE}+${ENTITLEMENT_USAGE_REVALIDATION_CHANGE}+${KNOWLEDGE_AI_TITLE_DISPLAY_CHANGE}+${KNOWLEDGE_FAILURE_REASON_CHANGE}+${KNOWLEDGE_UPLOAD_FEEDBACK_CHANGE}+${KNOWLEDGE_COLD_LOADING_CHANGE}`,
   )
   assert.match(INTENTIONAL_BEHAVIOR_EVOLUTION.knowledgeBase.authority, /server-projected runtime\/storage readiness/)
   assert.equal(
