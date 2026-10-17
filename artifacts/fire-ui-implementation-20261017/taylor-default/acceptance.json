@@ -1,0 +1,39 @@
+{
+  "implementation": "Reuse native chatResources.ensureAgents and settings.selectAgent/toggleAgent plus native resource watchers; no extra store or persisted selection state.",
+  "scope": [
+    "Peter-only system-prompts navigation hidden and deep links redirect to general; skills and backend capabilities unchanged",
+    "New global conversation resolves enabled non-builtin named 泰勒 from current account catalog, using its actual id",
+    "Saved builtin defaults migrate through the native selection/persistence path",
+    "Explicit custom/shared/product choices and historical session restoration are retained",
+    "First send awaits native catalog and native KB watcher; catalog failure stops submission with visible feedback; leaving new chat cancels the pending first send"
+  ],
+  "tests": {
+    "method": "Actual controller loadAgents/createSession and native Vue KB watcher executed with real Pinia/settings/storage modules. Only catalog transport and DOM/message boundaries stubbed.",
+    "red": "Initial 8 acceptance failures plus added navigation-race failure observed before implementation/fix",
+    "green": "77/77 related tests including 14 actual controller actions pass, exit 0",
+    "typeCheck": "vue-tsc --build passed, exit 0",
+    "diffCheck": "passed",
+    "correctiveDelta": "Three real-action RED failures reproduced overlapping submissions, disabled-custom readiness and embed/restoration readiness; all GREEN after one scoped predicate, enabled readiness and local pending/finally guard. Failure retry releases the guard."
+  },
+  "productionFiles": [
+    "src/assets/business-baselines/Input-field.pre-view.vue",
+    "src/config/workspaceSurface.ts",
+    "src/views/settings/Settings.vue"
+  ],
+  "remainingVerification": "Parent task owns integrated production build and browser/server acceptance; subagent did not deploy or commit.",
+  "fingerprints": {
+    "inputBlob": "38818096ea1065829e45321299f71e0276ebac45",
+    "updated": [
+      "musuwBusinessBaselineFingerprint.test.mjs",
+      "musuwReferenceBusinessBaseline.test.mjs",
+      "musuwInputFieldBusinessParity.test.mjs"
+    ],
+    "reason": "Explicit user-authorized peter-taylor-global-chat-default behavior evolution, source/KB selection, awaited first send and bounded duplicate-submit guard",
+    "results": "11/13 pass; only two pre-existing ChatIndex lock failures remain",
+    "existingMismatch": {
+      "headBlob": "2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b",
+      "untouchedLock": "5cf5274325a8fc8ee502974dd7602967a62d01fa"
+    }
+  },
+  "review": "Corrective delta review complete. Embedded/restored/shared/product/non-Peter contexts bypass Taylor default requirements; late navigation cancels pending new-chat submission; disabled custom with no enabled fallback blocks; concurrent default-resolution submissions deduplicate and failure releases the local guard. Parent owns integrated build/browser acceptance."
+}

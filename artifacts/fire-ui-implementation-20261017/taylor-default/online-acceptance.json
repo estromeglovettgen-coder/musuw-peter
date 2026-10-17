@@ -1,0 +1,26 @@
+{
+  "accepted": true,
+  "checks": [
+    "Saved builtin default migrates to actual custom Taylor id, DeepSeek model and bound course KB without @",
+    "System prompt navigation is absent and old deep link redirects to general; native Skills navigation remains",
+    "Existing conversation restores its actual original agent and is not modified",
+    "Real short user prompt streams through native Taylor agent with DeepSeek Flash and course KB; persisted session records same agent and KB",
+    "Native Wiki search, source reading and a real course citation verified",
+    "Fresh final agent GET matches saved config; KB 95 documents/358 nodes/1203 edges unchanged; 32 system prompts retained",
+    "No browser page errors"
+  ],
+  "agent_id": "3afaafd1-993c-49fe-980e-fc5d21a79a84",
+  "session_id": "d63e86d9-6f17-48f7-9279-a5f28830339e",
+  "model_id": "97df96d2-ff97-4764-b2ef-c978fff90666",
+  "source_documents": 95,
+  "graph_nodes": 358,
+  "graph_edges": 1203,
+  "answer_characters": 552,
+  "native_tools_used": [
+    "grep_chunks",
+    "wiki_read_page",
+    "wiki_read_source_doc",
+    "wiki_search"
+  ],
+  "test_harness_correction": "List API includes creator_name; detail API omits it. Compared final detail against saved detail snapshot instead; no product change or extra model call."
+}

@@ -1,0 +1,50 @@
+{
+  "frontend": {
+    "released": "/opt/musuw-peter/releases/20261017-fire-10",
+    "index_sha256": "d699397025f48aaf1d9e197c52a2ae0d4c03f1e6682d62ea57dabdfab2b7cfcf",
+    "immutable_assets_shared": 1917,
+    "backend_unchanged": true,
+    "health": true,
+    "rollback": "/opt/musuw-peter/releases/20261017-fire-09"
+  },
+  "backend": {
+    "image": "musuw-peter:20261017-taylor-01",
+    "previous_image": "musuw-peter:20261017-fire-01",
+    "image_id": "sha256:35d8b0d11344cb0fbb26888da82a0c7890283d9f077608d310a63a107b279448",
+    "binary_sha256": "340b4735a967ea5f97c61d9481cf96cf9094f928d7c56f9b9937712c7ac177e9",
+    "same_binary": true,
+    "same_environment": true,
+    "same_mounts_and_resources": true,
+    "prompt_files": {
+      "system_prompt.yaml": "757a4b6529a990bd393e96e690fd765f301d83f165910f98369f29d7b2cfaf90",
+      "intent_prompts.yaml": "a3912ea01ded9106ff135d14343092dd317b70da1109232e7e2a0a1192e55a9f",
+      "agent_system_prompt.yaml": "a88068ad8ebd83cd7688273460d91b49b88156ade72bd32bc65d5dc94d80890f",
+      "fallback.yaml": "d242087cbd98766fd14307396ed72045bb097b88dfee30f55278191426a6662b"
+    },
+    "health": true
+  },
+  "persona": {
+    "accepted": true,
+    "changed_agent_fields": [
+      "config.system_prompt"
+    ],
+    "preserved_config_fields": 55,
+    "other_agents_unchanged": true,
+    "native_prompt_items": 32,
+    "custom_overrides_renamed": [],
+    "no_Peter_in_effective_or_default_prompts": true,
+    "preset_templates_audited": true,
+    "variables_preserved": true,
+    "model_id": "97df96d2-ff97-4764-b2ef-c978fff90666",
+    "knowledge_bases": [
+      "961f9976-ae42-4bc4-bafe-1dfa4506f0c9"
+    ],
+    "persona_sha256": "d8dc93494ad898976933942b64495d54ad6a56dbea7a9c60ecfe19c2d1e84046"
+  },
+  "source_commit": "e2336bb",
+  "build_with_types": "passed",
+  "go_config_tests": "passed",
+  "frontend_targeted_tests": "77/77",
+  "rollback_frontend": "/opt/musuw-peter/releases/20261017-fire-09",
+  "rollback_image": "musuw-peter:20261017-fire-01"
+}

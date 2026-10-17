@@ -18,4 +18,11 @@
 
 ## 验收
 
-待统一生产验收后补充结果：原生选择与首发竞态测试、提示模板测试、类型构建、真实浏览器默认与深链、DeepSeek Flash 课程问答、历史恢复及知识数据不变。
+已上线北京 `20261017-fire-10`，前端源码提交 `e2336bb`，原生服务镜像 `musuw-peter:20261017-taylor-01`。二进制 SHA256 仍为 `340b4735a967ea5f97c61d9481cf96cf9094f928d7c56f9b9937712c7ac177e9`。
+
+- 相关前端测试 77/77 通过，包括真实 controller/Pinia 的默认选择、KB 同步、历史恢复、迟到响应、并发首发和失败重试；类型检查及正式构建通过。Go config 测试通过。
+- 真实线上浏览器：旧 builtin 默认迁移到泰勒实际 ID，原生模型选择为 DeepSeek Flash，默认绑定课程库；系统提示词导航隐藏、深链转常规设置，Skills 仍可见；旧会话恢复原智能体，浏览器无 pageerror。
+- 使用一句自然问题实际发送，原生请求与会话保存的 agent/model/KB 一致。真实调用 `wiki_search`、`wiki_read_page`、`grep_chunks`、`wiki_read_source_doc`，返回课程回答及原文引用；引用 chunk 已通过原始课程接口核对。
+- 32 项生效提示词及默认值、模式预设均无 Peter 身份，用户自定义规则及变量保留。泰勒只改系统提示词，其余 55 项配置一致。95 份课程文档、358 个图谱节点、1203 条边保持原状。
+
+证据见 [线上验收](../artifacts/fire-ui-implementation-20261017/taylor-default/online-acceptance.json) 和 [发布记录](../artifacts/fire-ui-implementation-20261017/taylor-default/release.json)。未宣称全库测试全部通过：3 份基线指纹验证为 11/13，剩余两项是既有 ChatIndex 锁值过时，本次未修改其源码或掩盖旧锁。列表 API 包含 `creator_name`、详情 API 不含该展示字段，线上测试已校正为详情快照比对；无需额外模型调用。
