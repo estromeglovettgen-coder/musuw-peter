@@ -207,7 +207,14 @@ try {
     assert.ok(wiki, 'Shared course Wiki must be accessible under actual product gates')
     // Harmless unchanged-name write probes; no delete is attempted against shared content.
     await forbidden(a, '/api/v1/knowledge-bases/' + registry.course, 'PUT', { name: course.name })
-    await forbidden(a, '/api/v1/agents/fire-taylor', 'PUT', { name: taylor.name, config: taylor.config })
+    // Native update validates supplied sandbox config before the service's
+    // protected-agent check. A same-name-only valid request reaches that check;
+    // an unrelated 400 (for example a missing sandbox config) proves nothing.
+    const protectedAgent = await raw(a, '/api/v1/agents/fire-taylor', 'PUT', { name: taylor.name })
+    assert.equal(protectedAgent.code, 403)
+    assert.equal(protectedAgent.body?.error?.code, 1002)
+    assert.equal(protectedAgent.body?.error?.message, 'Cannot modify built-in agent')
+    assert.deepEqual(await api(a, '/api/v1/agents/fire-taylor'), taylor, 'The protected default agent must remain byte-for-byte equivalent after rejection')
     await forbidden(a, '/api/v1/system/admin/users/create', 'POST', { operation_id: randomUUID() })
     await forbidden(a, '/api/v1/system/admin/fire/plans', 'POST', planBody)
     await forbidden(a, `/api/v1/system/admin/fire/users/${b.user.id}/adjustments`, 'POST', { operation_id: randomUUID(), kind: 'topup', tokens: 1 })

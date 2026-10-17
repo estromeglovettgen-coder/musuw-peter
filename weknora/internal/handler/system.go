@@ -137,9 +137,10 @@ func NewSystemHandler(cfg *config.Config,
 }
 
 type platformAPIKeyCreateRequest struct {
-	Name         string   `json:"name"`
-	Capabilities []string `json:"capabilities"`
-	ExpiresAt    *int64   `json:"expires_at_unix"`
+	Name             string   `json:"name"`
+	Capabilities     []string `json:"capabilities"`
+	KnowledgeBaseIDs []string `json:"knowledge_base_ids"`
+	ExpiresAt        *int64   `json:"expires_at_unix"`
 }
 
 // systemTenantEntitlementResponse is the operator-facing projection of one
@@ -335,10 +336,11 @@ func (h *SystemHandler) CreatePlatformAPIKey(c *gin.Context) {
 		expiresAt = &value
 	}
 	result, err := h.apiKeySvc.CreateAPIKey(c.Request.Context(), interfaces.TenantAPIKeyCreateRequest{
-		ScopeType:    types.APIKeyScopePlatform,
-		Name:         req.Name,
-		Capabilities: []string(capabilities),
-		ExpiresAt:    expiresAt,
+		ScopeType:        types.APIKeyScopePlatform,
+		Name:             req.Name,
+		Capabilities:     []string(capabilities),
+		KnowledgeBaseIDs: req.KnowledgeBaseIDs,
+		ExpiresAt:        expiresAt,
 	})
 	if err != nil {
 		c.Error(apperrors.NewInternalServerError("Failed to create platform API key").WithDetails(err.Error()))

@@ -675,8 +675,8 @@ func (h *CustomAgentHandler) validateAgentSandboxConfig(
 	ctx context.Context, cfg types.CustomAgentConfig,
 ) error {
 	configID := strings.TrimSpace(cfg.SandboxConfigID)
-	if configID == "" || h.sandboxConfigs == nil {
-		// Empty means the deployment-wide default, which always exists.
+	if configID == "" || configID == types.SandboxConfigIDGlobalDefault || h.sandboxConfigs == nil {
+		// The native global sentinel is not a tenant-owned named config.
 		return nil
 	}
 	tenantID, ok := types.TenantIDFromContext(ctx)

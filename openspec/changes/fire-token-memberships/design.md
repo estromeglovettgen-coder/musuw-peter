@@ -26,3 +26,5 @@
 ## Verification
 
 SQLite 与 PostgreSQL 验证真实事务/并发/幂等；原生两个普通账号验证读写隔离与额度不串号；模型 fixture 验证输入/输出/缓存/思考/重试/流式/取消/后台/管理员；真实 DeepSeek 和 UI 完成有额度/无额度/到期/赠送/续费/追加。生产检查所有既有知识数据和配置不受损，验收清单通过后完成 goal。
+
+Native platform-key creation now forwards the optional knowledge_base_ids allow-list to the existing key service. A short-lived, single-KB maintenance credential is used for production exemption verification and is revoked in finally; no permanent cross-tenant user privilege is added.

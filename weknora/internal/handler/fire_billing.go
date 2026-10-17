@@ -194,7 +194,7 @@ func (h *FireBillingHandler) Overview(c *gin.Context) {
 	}
 	db := h.billing.DB().WithContext(c.Request.Context())
 	var users, active, expired, total int64
-	e := db.Table("users").Where("deleted_at IS NULL AND is_system_admin = ?", false).Count(&users).Error
+	e := db.Table("users").Where("deleted_at IS NULL").Count(&users).Error
 	if e == nil {
 		e = db.Model(&firebilling.Membership{}).Where("suspended = ? AND expires_at > CURRENT_TIMESTAMP AND token_limit > used_tokens + reserved_tokens", false).Count(&active).Error
 	}
