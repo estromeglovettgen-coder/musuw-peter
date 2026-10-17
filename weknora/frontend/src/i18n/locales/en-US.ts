@@ -2296,6 +2296,11 @@ export default {
     }
   },
   common: {
+    resourceLoadFailed: {
+      title: 'Content could not load',
+      body: 'Refresh the page, then open it again.',
+      reload: 'Refresh and retry'
+    },
     add: 'Add',
     search: 'Search',
     me: 'Me',

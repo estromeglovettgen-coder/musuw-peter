@@ -28,7 +28,8 @@
 import Menu from "@/components/menu.vue";
 import FireBrand from '@/components/fire/FireBrand.vue'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
-import { computed, ref, onMounted, onUnmounted, nextTick, provide, watch, defineAsyncComponent } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick, provide, watch } from "vue";
+import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent';
 import { useRoute, useRouter } from "vue-router";
 import UploadMask from "@/components/upload-mask.vue";
 import GlobalCommandPalette from "@/components/GlobalCommandPalette.vue";
@@ -50,7 +51,10 @@ import {
   exceedsConsumerStorageQuota,
 } from '@/utils/consumerUploadLimits'
 
-const Settings = defineAsyncComponent(() => import('@/views/settings/Settings.vue'));
+const Settings = defineRecoverableAsyncComponent(
+  () => import('@/views/settings/Settings.vue'),
+  () => uiStore.closeSettings(),
+);
 
 const route = useRoute();
 const router = useRouter();

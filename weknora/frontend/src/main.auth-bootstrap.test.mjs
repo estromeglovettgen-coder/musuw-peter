@@ -14,7 +14,7 @@ const startupEnd = mainSource.indexOf('\nbootstrap()', startupStart)
 assert.ok(startupStart >= 0 && startupEnd > startupStart)
 const startup = mainSource.slice(startupStart, startupEnd)
 const createBootstrap = new Function(
-  'createApp', 'App', 'TDesign', 'createPinia', 'useAuthStore', 'localStorage',
+  'createApp', 'App', 'installTDesignServices', 'createPinia', 'useAuthStore', 'localStorage',
   'router', 'i18n', 'installAutofillGuard', 'window', 'hasPendingOIDCCallback',
   `${startup}; return bootstrap;`,
 )
@@ -66,7 +66,7 @@ async function startPage({ hash = '', status = 200, refreshStatus } = {}) {
   }
   const app = { config: {}, use() {}, mount() { events.push('mount-app') } }
   const bootstrap = createBootstrap(
-    () => app, {}, {}, () => ({}), () => authStore, storage,
+    () => app, {}, () => {}, () => ({}), () => authStore, storage,
     { async isReady() { events.push('router-ready') } }, {}, () => {}, window,
     hasPendingOIDCCallback,
   )

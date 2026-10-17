@@ -4767,6 +4767,11 @@ export default {
     noCompatibleKbForAgent: '현재 에이전트의 도구와 범위 내 지식베이스의 기능이 일치하지 않아 참조할 수 있는 지식베이스가 없습니다.'
   },
   common: {
+    resourceLoadFailed: {
+      title: '콘텐츠를 불러오지 못했습니다',
+      body: '페이지를 새로고침한 다음 다시 열어 주세요.',
+      reload: '새로고침 후 다시 시도'
+    },
     add: '추가',
     search: '검색',
     me: '나',

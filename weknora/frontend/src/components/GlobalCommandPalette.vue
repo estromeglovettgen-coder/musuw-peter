@@ -140,6 +140,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -152,7 +153,10 @@ import { useStartChat } from './GlobalCommandPalette/useStartChat'
 import { buildCommands, filterCommands } from './GlobalCommandPalette/commands'
 import ResultGroup from './GlobalCommandPalette/ResultGroup.vue'
 import ResultItem from './GlobalCommandPalette/ResultItem.vue'
-import RetrievalSettings from '@/views/settings/RetrievalSettings.vue'
+const RetrievalSettings = defineRecoverableAsyncComponent(
+  () => import('@/views/settings/RetrievalSettings.vue'),
+  () => { drawerVisible.value = false },
+)
 import type { MessageSearchGroupItem } from '@/api/chat-history'
 
 const { t } = useI18n()

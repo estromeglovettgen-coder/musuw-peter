@@ -3,7 +3,6 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
-import TDesign from "tdesign-vue-next";
 import "tdesign-vue-next/dist/tdesign.css";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
@@ -20,6 +19,7 @@ import i18n from "./i18n";
 import { initTheme } from "@/composables/useTheme";
 import { initFont } from "@/composables/useFont";
 import { installTDesignIconOfflineGuard } from "@/utils/tdesign-icon-offline";
+import { installTDesignServices } from "@/utils/installTDesignServices";
 import { installAutofillGuard } from "@/utils/disable-autofill";
 import { installReferenceTextareaAutosize } from "@/utils/referenceTextareaAutosize";
 import { useAuthStore } from "@/stores/auth";
@@ -34,13 +34,13 @@ installReferenceTextareaAutosize();
 
 async function bootstrap() {
   const app = createApp(App);
+  installTDesignServices(app);
 
 // 全局错误处理：捕获未处理的组件错误，防止白屏
 app.config.errorHandler = (err, instance, info) => {
   console.error("[Musuw] Unhandled Vue error:", err, "\nComponent:", instance, "\nInfo:", info);
 };
 
-  app.use(TDesign);
   const pinia = createPinia();
   app.use(pinia);
 

@@ -553,12 +553,21 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
+  const deploymentCapabilities = useDeploymentCapabilitiesStore()
+
   // 检查用户认证状态
   if (to.meta.requiresAuth !== false) {
     if (!authStore.isLoggedIn) {
       const restored = await hydrateSessionFromToken(authStore)
       if (restored) {
-        await ensureProductEdition(authStore)
+        const editionReady = ensureProductEdition(authStore)
+        if (authStore.selectedTenantId != null) await editionReady
+        await Promise.all([
+          editionReady,
+          authStore.hasValidTenant || to.meta.requiresTenant === false
+            ? deploymentCapabilities.ensureLoaded()
+            : Promise.resolve(),
+        ])
         next(
           !authStore.hasValidTenant && to.meta.requiresTenant !== false
             ? '/onboarding/workspace'
@@ -573,9 +582,19 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Resolve the server-owned Edition before evaluating browser exposure. This
-  // closes both first-load discovery and stale localStorage after a Lite ↔ Standard switch.
-  await ensureProductEdition(authStore)
+  // These independent deployment probes may overlap after identity is valid;
+  // both must finish before browser exposure checks. A tenantless user keeps
+  // the existing onboarding path without hitting tenant-protected capabilities.
+  // Lite only accepts a remembered X-Tenant-ID on /system/info, so reconcile
+  // that override before another deployment request when one is present.
+  const editionReady = ensureProductEdition(authStore)
+  if (authStore.selectedTenantId != null) await editionReady
+  await Promise.all([
+    editionReady,
+    authStore.hasValidTenant || to.meta.requiresTenant === false
+      ? deploymentCapabilities.ensureLoaded()
+      : Promise.resolve(),
+  ])
 
   if (to.meta.requiresTenant !== false && !authStore.hasValidTenant) {
     next('/onboarding/workspace')
@@ -618,8 +637,6 @@ router.beforeEach(async (to, from, next) => {
 
   // 部署能力只描述“后端是否提供该功能”，不反映服务健康或是否已配置。
   // 探测失败时 Store 会 fail-open，真正的权限和可用性仍由后端接口校验。
-  const deploymentCapabilities = useDeploymentCapabilitiesStore()
-  await deploymentCapabilities.ensureLoaded()
   const requiredCapability = to.meta.requiredCapability as DeploymentCapabilityKey | undefined
   if (requiredCapability && !deploymentCapabilities.isSupported(requiredCapability)) {
     MessagePlugin.warning(i18n.global.t('settings.capabilityUnavailable'))

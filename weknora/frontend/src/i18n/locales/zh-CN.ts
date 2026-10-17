@@ -4771,6 +4771,11 @@ export default {
     noCompatibleKbForAgent: '当前智能体的工具与作用域内知识库的能力不匹配，暂无可引用的知识库。'
   },
   common: {
+    resourceLoadFailed: {
+      title: '页面内容未能加载',
+      body: '请刷新页面后重新打开。',
+      reload: '刷新重试'
+    },
     add: '添加',
     search: '搜索',
     me: '我',

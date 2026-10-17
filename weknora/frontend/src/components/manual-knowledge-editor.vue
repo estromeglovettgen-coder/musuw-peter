@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, type SetupContext } from 'vue'
+import { defineComponent, nextTick, onMounted, type SetupContext } from 'vue'
 import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import LegacyManualEditorBusiness from '@/assets/business-baselines/manual-knowledge-editor.pre-view.vue'
 
@@ -12,6 +12,17 @@ export default defineComponent({
   setup(props: Record<string, unknown>, context: SetupContext) {
     const state = legacySetup?.(props, context)
     if (state && typeof state === 'object' && typeof state.then !== 'function') {
+      // A deferred drawer mounts with visible already true, so the original
+      // change-only watcher cannot observe its first open. Reuse its exact
+      // initialization workflow; later opens still get a fresh native form.
+      onMounted(async () => {
+        if (!state.visible.value) return
+        await nextTick()
+        await state.initialize()
+        await nextTick()
+        state.attachTextareaListeners()
+        state.setSelectionRange(state.form.content?.length || 0, state.form.content?.length || 0)
+      })
       return { ...state }
     }
     return state

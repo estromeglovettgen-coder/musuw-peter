@@ -7,6 +7,8 @@ import { createHash } from 'node:crypto'
 import { defineConfig, transformWithEsbuild, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import Components from 'unplugin-vue-components/vite'
+import { TDesignResolver } from '@tdesign-vue-next/auto-import-resolver'
 import { compileScript, parse } from '@vue/compiler-sfc'
 import { nativeWorkspaceProxy } from '../../shared/nativeWorkspaceProxy'
 import { workspaceBrandCopy, NATIVE_PASSWORD_ENTRY_BOOTSTRAP } from './src/config/workspaceBrand'
@@ -236,6 +238,7 @@ export default defineConfig({
           .replace('<head>', `<head><script>${NATIVE_PASSWORD_ENTRY_BOOTSTRAP}</script>`)
           .replace('<html lang="en">', '<html lang="zh-CN" data-workspace-brand="fire">')
           .replace('href="/musuw-logo.png?v=20260822"', 'href="/brand/fire-icon-64.png"')
+          .replace('src="/musuw-logo.png"', 'src="/brand/fire-mark-256.png"')
           .replace("if(t==='system')", "if(document.documentElement.dataset.workspaceBrand==='fire'&&!savedTheme){\n    t='dark';\n    if(userId==='anon'){try{var authTheme=localStorage.getItem('Musuw_auth_theme');if(authTheme==='light'||authTheme==='dark'||authTheme==='system')t=authTheme;}catch(_){}}\n  }\n  if(t==='system')")
           .replace("var bg=t==='dark'?'#151619':'#fff';", "var bg=document.documentElement.dataset.workspaceBrand==='fire'&&t==='dark'?'#0b0b0d':t==='dark'?'#151619':'#fff';")
           .replace('</style>', 'html[data-workspace-brand="fire"][theme-mode="dark"] #musuw-startup { background:#0b0b0d; color:#f2f0f0; }</style>')
@@ -244,6 +247,13 @@ export default defineConfig({
     businessControllerPlugin(),
     vue(),
     vueJsx(),
+    // Keep the original CSS and dynamic sprite icons. Only component JavaScript
+    // follows the route/component which actually renders it, across all entries.
+    Components({
+      dirs: [],
+      dts: false,
+      resolvers: [TDesignResolver({ library: 'vue-next' })],
+    }),
     embedHtmlDevFallback(),
   ],
   resolve: {

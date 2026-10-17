@@ -3,7 +3,8 @@ import { computed, nextTick, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { MessagePlugin, NotifyPlugin } from "tdesign-vue-next";
-import ManualKnowledgeEditor from "@/components/manual-knowledge-editor.vue";
+import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent';
+import { useUIStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import { useCurrentEntitlementStore } from "@/stores/entitlement";
 import { useSettingsStore } from "@/stores/settings";
@@ -28,6 +29,11 @@ const router = useRouter();
 const authStore = useAuthStore();
 const entitlementStore = useCurrentEntitlementStore();
 const settingsStore = useSettingsStore();
+const uiStore = useUIStore();
+const ManualKnowledgeEditor = defineRecoverableAsyncComponent(
+  () => import("@/components/manual-knowledge-editor.vue"),
+  () => uiStore.closeManualEditor(),
+);
 
 const tdLocaleMap: Record<string, object> = {
   "en-US": enUSConfig,
@@ -372,7 +378,7 @@ onUnmounted(() => {
   <t-config-provider :globalConfig="tdGlobalConfig">
     <div id="app">
       <RouterView />
-      <ManualKnowledgeEditor />
+      <ManualKnowledgeEditor v-if="uiStore.manualEditorVisible" />
     </div>
   </t-config-provider>
 </template>
