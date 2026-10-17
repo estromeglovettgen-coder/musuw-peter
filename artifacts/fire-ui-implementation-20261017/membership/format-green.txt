@@ -1,0 +1,14 @@
+
+> knowledage-base@0.7.2 test
+> tsx --test src/utils/fireMembershipFormat.test.ts
+
+✔ token counts preserve exact remaining units without rounding a partial token upward (7.937334ms)
+✔ membership dates honor the caller locale and reject invalid expiry values (2.130333ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 130.253667

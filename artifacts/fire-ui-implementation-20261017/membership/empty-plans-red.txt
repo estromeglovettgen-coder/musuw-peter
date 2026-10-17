@@ -1,0 +1,49 @@
+[WebServer] (node:89544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:89562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/fire-membership.spec.ts:251:1 › an empty Go plans slice is rendered as an empty catalog without a fake service failure (6.0s)
+
+
+  1) e2e/fire-membership.spec.ts:251:1 › an empty Go plans slice is rendered as an empty catalog without a fake service failure
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('region', { name: '会员概览' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('region', { name: '会员概览' })
+
+
+      253 |   await page.route('**/api/v1/system/admin/fire/plans', route => route.fulfill({ json: { success: true, data: null } }))
+      254 |   await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+    > 255 |   await expect(page.getByRole('region', { name: '会员概览' })).toBeVisible()
+          |                                                            ^
+      256 |   await expect(page.getByRole('alert')).toHaveCount(0)
+      257 |   await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
+      258 |   await expect(page.getByText('暂无套餐，请先创建。', { exact: true })).toBeVisible()
+        at <workspace>/e2e/fire-membership.spec.ts:255:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-an-empty-G-8c9af-hout-a-fake-service-failure/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/fire-membership/fire-membership-an-empty-G-8c9af-hout-a-fake-service-failure/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-an-empty-G-8c9af-hout-a-fake-service-failure/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/fire-membership/fire-membership-an-empty-G-8c9af-hout-a-fake-service-failure/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/fire-membership.spec.ts:251:1 › an empty Go plans slice is rendered as an empty catalog without a fake service failure

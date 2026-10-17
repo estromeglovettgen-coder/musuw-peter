@@ -1,0 +1,71 @@
+
+> knowledage-base@0.7.2 test
+> tsx --test src/assets/musuwBusinessBaselineFingerprint.test.mjs src/assets/musuwInputFieldBusinessParity.test.mjs src/assets/musuwReferenceBusinessBaseline.test.mjs
+
+✖ visual rebuild cannot mutate the locked business-controller snapshots (2.285333ms)
+✔ first Musuw byte-identical controllers remain byte-identical where upstream behavior was not narrowed (0.296875ms)
+✖ upstream behavior restorations are explicit and locked, never inferred from visual code (0.838709ms)
+✔ knowledge list controller retains upstream scope behavior rather than Musuw single-scope narrowing (0.321333ms)
+✔ repository declares the audited WeKnora main 81142df upstream authority (0.460542ms)
+✔ audit record retains the official upstream blobs used for behavior review (0.091541ms)
+✔ audited Input-field controller remains locked after approved marketplace and Peter Taylor default evolution (1.654667ms)
+✔ rebuilt Input-field reuses the frozen component options and replaces only its active View (0.678458ms)
+✔ active composer keeps one concise localized invitation across every selection state (3.734458ms)
+✔ protected controllers, compatibility bridges and excluded Graph/Wiki implementations stay byte-for-byte frozen (5.472458ms)
+✔ citation hover bridge follows the rebuilt float class without restoring legacy float styling (0.24775ms)
+✔ direct script-setup views retain their load-bearing native business contracts (3.900542ms)
+✔ sidebar adapter consumes the frozen business controller instead of duplicating or replacing it (1.292125ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 11
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 116.300041
+
+✖ failing tests:
+
+test at src/assets/musuwBusinessBaselineFingerprint.test.mjs:95:1
+✖ visual rebuild cannot mutate the locked business-controller snapshots (2.285333ms)
+  AssertionError [ERR_ASSERTION]: ./business-baselines/ChatIndex.pre-view.vue business behavior baseline changed
+  + actual - expected
+
+  + '2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b'
+  - '5cf5274325a8fc8ee502974dd7602967a62d01fa'
+
+      at TestContext.<anonymous> (file://<workspace>/weknora/frontend/src/assets/musuwBusinessBaselineFingerprint.test.mjs:97:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.start (node:internal/test_runner/test:1191:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b',
+    expected: '5cf5274325a8fc8ee502974dd7602967a62d01fa',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/assets/musuwBusinessBaselineFingerprint.test.mjs:109:1
+✖ upstream behavior restorations are explicit and locked, never inferred from visual code (0.838709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '5cf5274325a8fc8ee502974dd7602967a62d01fa'
+  - '2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b'
+
+      at TestContext.<anonymous> (file://<workspace>/weknora/frontend/src/assets/musuwBusinessBaselineFingerprint.test.mjs:116:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '5cf5274325a8fc8ee502974dd7602967a62d01fa',
+    expected: '2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

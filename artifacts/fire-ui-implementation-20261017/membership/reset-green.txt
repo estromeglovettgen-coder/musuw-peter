@@ -1,0 +1,10 @@
+[WebServer] (node:94726) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:94730) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/fire-membership.spec.ts:263:1 › lost account credentials recover through the native admin password reset without persisting secrets (3.6s)
+
+  1 passed (6.9s)

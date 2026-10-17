@@ -182,7 +182,7 @@ export default defineComponent({
         void nextTick(() => createSession(text))
       }
       const openModelPicker = () => {
-        modelPickerView.value = isPeterWorkspace ? 'reasoning' : 'overview'
+        modelPickerView.value = 'overview'
         if (!isPeterWorkspace) void loadSubscribedAgents()
         ;(state as any).toggleModelSelector?.()
       }
@@ -370,12 +370,12 @@ export default defineComponent({
             data-guide="chat-picker"
             :class="{ 'is-open': showModelSelector }"
             :aria-expanded="showModelSelector"
-            :aria-label="isPeterWorkspace ? `${$t('input.reasoningEffort')} ${selectedReasoningLabel}` : `${selectedAgentDisplayName} ${selectedModelCapsuleName} ${selectedReasoningLabel}`"
+            :aria-label="isPeterWorkspace ? `${selectedAgentDisplayName} ${$t('input.reasoningEffort')} ${selectedReasoningLabel}` : `${selectedAgentDisplayName} ${selectedModelCapsuleName} ${selectedReasoningLabel}`"
             @click.stop="openModelPicker"
           >
             <span class="visual-chat-composer__combined-picker-copy">
               <template v-if="isPeterWorkspace">
-                <span class="visual-chat-composer__combined-picker-agent">{{ $t('input.reasoningEffort') }}</span>
+                <span class="visual-chat-composer__combined-picker-agent" :title="selectedAgentDisplayName">{{ selectedAgentDisplayName }}</span>
                 <span class="visual-chat-composer__combined-picker-dot" aria-hidden="true">·</span>
                 <span class="visual-chat-composer__combined-picker-effort" :title="selectedReasoningLabel">{{ selectedReasoningLabel }}</span>
               </template>
@@ -414,7 +414,7 @@ export default defineComponent({
               <ModelSelector
                 class="visual-chat-composer__native-model-selector"
                 mode="chat"
-                :reasoning-only="isPeterWorkspace"
+                :hide-model-selection="isPeterWorkspace"
                 :models="availableModels"
                 :scene-options="sceneOptionsFor(effectiveConsumerScene)"
                 :selected-model-id="selectedModelId"

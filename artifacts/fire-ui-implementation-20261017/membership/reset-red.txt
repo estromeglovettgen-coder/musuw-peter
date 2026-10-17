@@ -1,0 +1,44 @@
+[WebServer] (node:94230) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:94237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/fire-membership.spec.ts:263:1 › lost account credentials recover through the native admin password reset without persisting secrets (20.2s)
+
+
+  1) e2e/fire-membership.spec.ts:263:1 › lost account credentials recover through the native admin password reset without persisting secrets
+
+    Test timeout of 20000ms exceeded.
+
+    Error: locator.click: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '重置密码', exact: true })
+
+
+      281 |   await createDialog.getByRole('button', { name: '我已保存，关闭' }).click()
+      282 |   await page.getByRole('button', { name: '详情', exact: true }).click()
+    > 283 |   await page.getByRole('button', { name: '重置密码', exact: true }).click()
+          |                                                                 ^
+      284 |   const resetDialog = page.getByRole('dialog', { name: '重置密码', exact: true })
+      285 |   await expect(resetDialog).toContainText(recoveredUser.email)
+      286 |   await expect(resetDialog).toContainText('已有登录将失效')
+        at <workspace>/e2e/fire-membership.spec.ts:283:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-lost-accou-631b5--without-persisting-secrets/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/fire-membership/fire-membership-lost-accou-631b5--without-persisting-secrets/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-lost-accou-631b5--without-persisting-secrets/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/fire-membership/fire-membership-lost-accou-631b5--without-persisting-secrets/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/fire-membership.spec.ts:263:1 › lost account credentials recover through the native admin password reset without persisting secrets

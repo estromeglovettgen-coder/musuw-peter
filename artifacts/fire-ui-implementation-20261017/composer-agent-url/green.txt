@@ -1,0 +1,19 @@
+[WebServer] (node:60295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+(node:60300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/composer-depth.spec.ts:31:34 › Peter 1440px exposes native agent and depth entries only and changes real store without changing model or agent (1.5s)
+  ✓  2 e2e/composer-depth.spec.ts:31:34 › Peter 390px exposes native agent and depth entries only and changes real store without changing model or agent (1.7s)
+  ✓  3 e2e/composer-depth.spec.ts:73:1 › Peter does not invent an off option for a model with mandatory reasoning (751ms)
+  -  4 e2e/composer-depth.spec.ts:82:1 › other profiles retain their native agent and model picker
+  ✓  5 e2e/composer-depth.spec.ts:93:34 › Peter 1440px switches agents through the real native handler without exposing models (1.2s)
+  ✓  6 e2e/composer-depth.spec.ts:93:34 › Peter 390px switches agents through the real native handler without exposing models (1.3s)
+  ✓  7 e2e/composer-depth.spec.ts:115:1 › hidden model selection cannot be restored by an externally supplied models view (678ms)
+  ✓  8 e2e/composer-depth.spec.ts:125:1 › upload entry keeps local files, folders and manual content while Peter hides URL import (1.6s)
+  ✓  9 e2e/composer-depth.spec.ts:164:3 › touch devices › Peter opens both native entries on the first tap (1.4s)
+
+  1 skipped
+  8 passed (12.2s)

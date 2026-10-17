@@ -1,0 +1,63 @@
+{
+  "production_files": [
+    "weknora/frontend/src/components/Input-field.vue",
+    "weknora/frontend/src/components/ModelSelector.vue",
+    "weknora/frontend/src/views/knowledge/components/KbUploadSourceDropdown.vue"
+  ],
+  "test_files": [
+    "e2e/composer-depth.spec.ts",
+    "weknora/frontend/e2e/composer-depth-harness.ts"
+  ],
+  "acceptance": [
+    "Peter composer displays selected agent and native reasoning depth, without model names in body/title/aria.",
+    "Peter selector has exactly two native entries: agents and reasoning. Models view is hidden even when supplied externally, and model selection event is blocked.",
+    "Actual native agent handler switches Taylor to writer and back through real Pinia; model remains configured fixture.",
+    "Native low/high/max/none reasoning options change real Pinia without changing model or agent; mandatory reasoning models do not gain an invented off choice.",
+    "Desktop first click after hover and actual mobile/touch first tap both work; keyboard depth selection and Escape return work.",
+    "Peter URL entry is absent; exposed openUrlDialog cannot reopen it. Existing workspaceSurface upload visibility is reused.",
+    "Actual local file and folder content still emit native file selection; manual entry still emits native manual event.",
+    "Non-Peter retains agent/model/depth overview and URL dialog."
+  ],
+  "verification": {
+    "red": {
+      "exit_code": 1,
+      "failed": 7,
+      "skipped": 1
+    },
+    "peter_browser": {
+      "exit_code": 0,
+      "passed": 8,
+      "skipped_other_profile": 1,
+      "seconds": 12.2
+    },
+    "standard_browser": {
+      "exit_code": 0,
+      "passed": 3,
+      "skipped_peter": 6,
+      "seconds": 9.6
+    },
+    "targeted_regressions": {
+      "exit_code": 0,
+      "passed": 52
+    },
+    "broader_regressions": {
+      "exit_code": 1,
+      "passed": 61,
+      "failed": 1,
+      "existing_failure": "musuwLiteOnboarding.test.mjs expects WeKnora_ preference namespace, but HEAD preferenceStorage.ts already returns Musuw_. Neither file is changed by this delta."
+    },
+    "diff_check": {
+      "exit_code": 0
+    }
+  },
+  "visual_review": "Desktop and 390px screenshots inspected; native agent/depth surfaces stay in the viewport without model names.",
+  "isolation": "All API calls are local fixtures; no business writes, model generation, uploads to a server or credentials. File tests use test output directories.",
+  "not_changed": [
+    "Native Taylor default and knowledge-base binding controller",
+    "Session restore",
+    "Backend model selection and permissions",
+    "Skills and sandbox",
+    "Other profiles"
+  ],
+  "remaining_validation": "Parent owns unified type/build, full application default Taylor/@course and production API/deployment acceptance."
+}

@@ -1,0 +1,30 @@
+[WebServer] (node:95051) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 21 tests using 1 worker
+
+(node:95054) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/fire-membership.spec.ts:43:1 › left sidebar shows exact membership balance and native usage detail without billing links (1.0s)
+  ✓   2 e2e/fire-membership.spec.ts:69:125 › membership not_activated remains visible without blocking history (867ms)
+  ✓   3 e2e/fire-membership.spec.ts:69:125 › membership expired remains visible without blocking history (887ms)
+  ✓   4 e2e/fire-membership.spec.ts:69:125 › membership exhausted remains visible without blocking history (801ms)
+  ✓   5 e2e/fire-membership.spec.ts:69:125 › membership suspended remains visible without blocking history (893ms)
+  ✓   6 e2e/fire-membership.spec.ts:79:1 › membership read failure is honest and retryable without a fake free plan (1.3s)
+  ✓   7 e2e/fire-membership.spec.ts:90:1 › non-admin management page renders no users or mutation controls and calls no admin API (725ms)
+  ✓   8 e2e/fire-membership.spec.ts:98:1 › administrator creates a plan, creates an account with retry-safe operation ID, and adjusts native membership (4.0s)
+  ✓   9 e2e/fire-membership.spec.ts:149:1 › account creation requires an enabled plan instead of advertising an unsupported unactivated account (936ms)
+  ✓  10 e2e/fire-membership.spec.ts:160:1 › a late membership response from a previous identity cannot replace the new account snapshot (716ms)
+  ✓  11 e2e/fire-membership.spec.ts:183:1 › mobile user usage stays within the viewport and preserves exact Token values (990ms)
+  ✓  12 e2e/fire-membership.spec.ts:193:71 › administrator grant sends only applicable fields using the native adjustment API (2.5s)
+  ✓  13 e2e/fire-membership.spec.ts:193:71 › administrator renew sends only applicable fields using the native adjustment API (2.7s)
+  ✓  14 e2e/fire-membership.spec.ts:193:71 › administrator extend sends only applicable fields using the native adjustment API (2.4s)
+  ✓  15 e2e/fire-membership.spec.ts:193:71 › administrator suspend sends only applicable fields using the native adjustment API (2.5s)
+  ✓  16 e2e/fire-membership.spec.ts:193:71 › administrator resume sends only applicable fields using the native adjustment API (2.5s)
+  ✓  17 e2e/fire-membership.spec.ts:212:1 › native HTTP deployment without crypto.randomUUID can still provision accounts safely (1.2s)
+  ✓  18 e2e/fire-membership.spec.ts:224:1 › administrator read denial remains an error and recovers through the existing retry control (927ms)
+  ✓  19 e2e/fire-membership.spec.ts:237:1 › administrator edits native plan settings including its active flag (2.1s)
+  ✓  20 e2e/fire-membership.spec.ts:252:1 › an empty Go plans slice is rendered as an empty catalog without a fake service failure (916ms)
+  ✓  21 e2e/fire-membership.spec.ts:263:1 › lost account credentials recover through the native admin password reset without persisting secrets (3.2s)
+
+  21 passed (47.9s)

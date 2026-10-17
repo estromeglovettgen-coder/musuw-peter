@@ -1,0 +1,39 @@
+
+> knowledage-base@0.7.2 test
+> tsx --test src/utils/fireMembershipFormat.test.ts
+
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<workspace>/weknora/frontend/src/utils/fireMembershipFormat' imported from <workspace>/weknora/frontend/src/utils/fireMembershipFormat.test.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+    at nextStep (node:internal/modules/customization_hooks:189:26)
+    at resolveBaseSync (file://<workspace>/weknora/frontend/node_modules/tsx/dist/register-zZ7SWseA.mjs:2:9102)
+    at resolveDirectorySync (file://<workspace>/weknora/frontend/node_modules/tsx/dist/register-zZ7SWseA.mjs:2:10315)
+    at resolveTsPathsSync (file://<workspace>/weknora/frontend/node_modules/tsx/dist/register-zZ7SWseA.mjs:2:11547)
+    at resolve (file://<workspace>/weknora/frontend/node_modules/tsx/dist/register-zZ7SWseA.mjs:2:13365) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file://<workspace>/weknora/frontend/src/utils/fireMembershipFormat'
+}
+
+Node.js v24.18.0
+✖ src/utils/fireMembershipFormat.test.ts (108.355542ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 113.261042
+
+✖ failing tests:
+
+test at src/utils/fireMembershipFormat.test.ts:1:1
+✖ src/utils/fireMembershipFormat.test.ts (108.355542ms)
+  'test failed'

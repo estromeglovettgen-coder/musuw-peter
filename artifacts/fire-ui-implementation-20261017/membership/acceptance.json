@@ -1,0 +1,96 @@
+{
+  "scope": "Peter native bearer membership card, user token usage and administrator membership management. No payment or cross-environment operations gateway.",
+  "browser": {
+    "passed": 21,
+    "exit_code": 0,
+    "reported_duration": "47.9s",
+    "backend": "deterministic local API fixtures through the real Axios bearer adapter; no business server mutations or model calls"
+  },
+  "type_check": {
+    "command": "npm --prefix weknora/frontend run type-check",
+    "exit_code": 0
+  },
+  "targeted_regressions": {
+    "passed": 24,
+    "exit_code": 0
+  },
+  "test_first_evidence": [
+    "format-red.txt: missing implementation fails",
+    "no-plan-red.txt: unsupported unactivated option fails before enforcing enabled plan",
+    "http-red.txt: missing crypto.randomUUID fails before reusing existing native fallback",
+    "empty-plans-red.txt: empty Go slice originally caused a fake service failure before list normalization",
+    "reset-red.txt: account response-loss recovery reaches missing reset-password button, green through native API after corrective UI"
+  ],
+  "covered": [
+    "Exact integer Token display including 1 and 0; no currency or fake free membership",
+    "All membership statuses and honest unavailable/retry state",
+    "Native usage table and estimated labeling; local date/locale formatting",
+    "No client membership gate on history browsing",
+    "Native Bearer headers on fire/member/admin APIs",
+    "Non-admin view offers no records or mutations and sends no admin request",
+    "Enabled-plan requirement for account creation",
+    "Create, edit and disable a plan",
+    "Account creation and top-up failures retain operation UUID and body on retry",
+    "One-time generated credentials stay in memory, disappear on close and do not enter localStorage/sessionStorage",
+    "Grant, renew, topup, extend, suspend and resume send applicable fields only",
+    "Late previous-account membership responses cannot replace new identity snapshot",
+    "HTTP-compatible native UUID fallback",
+    "Admin read permission denial and retry recovery",
+    "390px components fit viewport",
+    "Lost create response → idempotent retry without password → native admin reset; server-denial retry uses same in-memory password; default Ty + 6 digits and custom 8–32-character passwords; close clears credentials"
+  ],
+  "review": "One bounded corrective review of account identity/request races, credential lifecycle, false balances, expiry/error states, native response shape, HTTP context and payload field applicability. The current corrective blockers were fixed and rerun.",
+  "source_files": [
+    "weknora/frontend/src/api/fire-membership.ts",
+    "weknora/frontend/src/stores/fireMembership.ts",
+    "weknora/frontend/src/utils/fireMembershipFormat.ts",
+    "weknora/frontend/src/components/fire/FireMembershipCard.vue",
+    "weknora/frontend/src/components/fire/FireUsageTable.vue",
+    "weknora/frontend/src/views/fire/FireUsage.vue",
+    "weknora/frontend/src/views/fire/FireManagement.vue",
+    "weknora/frontend/src/components/UserMenu.vue",
+    "weknora/frontend/src/components/menu.vue",
+    "weknora/frontend/src/router/index.ts",
+    "weknora/frontend/src/views/chat/index.vue"
+  ],
+  "test_files": [
+    "weknora/frontend/src/utils/fireMembershipFormat.test.ts",
+    "e2e/fire-membership.spec.ts",
+    "playwright.fire-membership.config.ts",
+    "weknora/frontend/e2e/fire-membership-harness.html",
+    "weknora/frontend/e2e/fire-membership-harness.ts"
+  ],
+  "not_claimed": [
+    "Production/native backend integration and authorization enforcement",
+    "Real model accounting/settlement correctness",
+    "Full application/router integration and deployment"
+  ],
+  "handoff": "Parent owns final backend/production auth, real model, app-route acceptance and unified build/release. Isolated browser fixture checks native components and native HTTP adapter, not backend security. New membership endpoint operations are server-authorized.",
+  "build": {
+    "command": "VITE_WORKSPACE_PROFILE=peter VITE_AUTH_MODE=native NODE_OPTIONS=--max-old-space-size=3072 npm --prefix weknora/frontend run build-with-types",
+    "exit_code": 0,
+    "vite_seconds": 59.19,
+    "previous_attempt": "An intentionally limited 2048MiB V8 heap hit OOM during transformation (build-only 134). Single-build retry with 3072MiB succeeded; no source change was needed.",
+    "warning": "Existing >500kB chunk-size advisory remains; no new dependency added.",
+    "auth_public_assets": "This is the frontend build only. Parent owns rebuilding changed auth source before final release.",
+    "includes_password_recovery_delta": false,
+    "scope": "Recorded successful frontend build preceded the final password-recovery UI patch. A fresh typed build runs after this selective source commit."
+  },
+  "baselines": {
+    "passed": 11,
+    "failed": 2,
+    "exit_code": 1,
+    "classification": "pre-existing unchanged ChatIndex frozen snapshot lock mismatch",
+    "head_and_working_blob": "2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b",
+    "stale_expected_blob": "5cf5274325a8fc8ee502974dd7602967a62d01fa",
+    "files_not_modified": "ChatIndex.pre-view.vue and its fingerprint lock are unchanged."
+  },
+  "api_correction_review": [
+    "Confirmed current/usage/admin routes and success/data envelope against handler/fire_billing.go; create is the existing bare 201/200 response.",
+    "Normalized successful null Go plan slices to the empty catalog without suppressing a failed request. Red and green DOM evidence retained.",
+    "Nullable expiry/starts timestamps and identity versus membership response typing aligned.",
+    "Usage endpoint returns settled records only. Estimated tooltip and visible usage note explicitly include incomplete calls conservatively settled at reservation limit after cancellation/disconnect/restart. Displayed Token counts are ledger values, not a claim that estimated usage is exact.",
+    "Current recovery blocker fixed: reuses existing POST /system/admin/users/reset-password {email,new_password}, admin-only controls, no self-reset, existing sessions-revoked notice, crypto.getRandomValues default password and no persisted secret. Native server reset does not generate passwords, so client supplies it; no backend contract added."
+  ],
+  "remaining_validation": "Parent owns final real backend accounting/auth checks, full app route integration, rebuilding auth assets and deployment. No production acceptance is claimed by isolated fixtures."
+}

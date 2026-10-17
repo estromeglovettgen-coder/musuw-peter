@@ -1,0 +1,49 @@
+[WebServer] (node:87362) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:87367) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/fire-membership.spec.ts:208:1 › native HTTP deployment without crypto.randomUUID can still provision accounts safely (6.2s)
+
+
+  1) e2e/fire-membership.spec.ts:208:1 › native HTTP deployment without crypto.randomUUID can still provision accounts safely
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog', { name: '新建账号', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '新建账号', exact: true })
+
+
+      212 |   await page.getByRole('button', { name: '新建账号', exact: true }).click()
+      213 |   const dialog = page.getByRole('dialog', { name: '新建账号', exact: true })
+    > 214 |   await expect(dialog).toBeVisible()
+          |                        ^
+      215 |   await dialog.getByRole('button', { name: '创建账号', exact: true }).click()
+      216 |   await expect(dialog.getByTestId('generated-password')).toHaveText('Ty123456')
+      217 |   expect(mock.writes.find(write => write.path.endsWith('/users/create'))?.body.operation_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+        at <workspace>/e2e/fire-membership.spec.ts:214:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-native-HTT-8a543-l-provision-accounts-safely/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/fire-membership/fire-membership-native-HTT-8a543-l-provision-accounts-safely/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-native-HTT-8a543-l-provision-accounts-safely/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/fire-membership/fire-membership-native-HTT-8a543-l-provision-accounts-safely/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/fire-membership.spec.ts:208:1 › native HTTP deployment without crypto.randomUUID can still provision accounts safely

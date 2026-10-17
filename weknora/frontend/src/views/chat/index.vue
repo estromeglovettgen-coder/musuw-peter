@@ -13,6 +13,7 @@ import MessageTimestamp from '@/components/chat/MessageTimestamp.vue'
 import { shouldShowConversationTimestamp } from '@/utils/messageTimestamp'
 import ChatHeader from '@/components/ChatHeader.vue'
 import { useCurrentEntitlementStore } from '@/stores/entitlement'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 
 const legacy = LegacyChatBusiness as any
 const legacySetup = legacy.setup
@@ -37,7 +38,10 @@ export default defineComponent({
             entitlementStore.invalidate()
             return
           }
-          if (wasReplying) void entitlementStore.ensureFresh()
+          if (wasReplying) {
+            void entitlementStore.ensureFresh()
+            if (isPeterWorkspace && !props.embeddedMode) window.dispatchEvent(new Event('fire-membership-updated'))
+          }
         },
         { flush: 'sync' },
       )

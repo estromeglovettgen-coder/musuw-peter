@@ -1,0 +1,95 @@
+
+> knowledage-base@0.7.2 test
+> tsx --test src/components/ModelSelector.chat.test.mjs src/components/ModelSelector.consumerStyle.test.mjs src/components/ModelSelector.consumerStyleConsumers.test.mjs src/components/ModelSelector.sourceInteraction.test.mjs src/components/ModelSelector.marketplace.test.ts src/components/Input-field.marketplace-navigation.test.ts src/components/Input-field.agent-switch.test.mjs src/config/workspaceSurface.test.ts src/views/knowledge/KnowledgeBaseEditorModal.consumer-plan.test.mjs src/config/musuwLiteOnboarding.test.mjs src/utils/consumer-plan-url-import.test.mjs
+
+✔ managed chat keeps web search enabled while Lite hides the toggle (1.665709ms)
+✔ shared-agent web search button waits for source readiness metadata (0.166417ms)
+✔ platform agents keep image upload visible while the agent catalog loads (0.110792ms)
+✔ empty new workspaces are not mislabeled as knowledge capability mismatches (0.330792ms)
+✔ consumer chat can select a native agent and sends model-specific reasoning effort (1.283334ms)
+✔ visual adapter waits for model refresh and repairs mandatory reasoning before first send (0.478709ms)
+✔ consumer chat routes the downstream request through the selected native agent (0.217166ms)
+✔ combined selector mechanically preserves native labels, hover entry, and the source capsule shape (0.34175ms)
+✔ model overview always renders the complete selected model name (0.132334ms)
+✔ model selector controller distinguishes the initial catalog load from missing configuration (0.112917ms)
+✔ changing a historical service uses the existing authorized new-chat entry and preserves draft (2.151625ms)
+✔ owned selection leaves the old session before applying its native agent context (0.851959ms)
+✔ the same subscription and model/reasoning changes remain inside the current conversation (0.427875ms)
+✔ an unavailable subscription cannot be selected and native selection cancels a pending market entry (0.226875ms)
+✔ Standard native agent switching retains its existing in-session navigation behavior (0.123458ms)
+✔ Lite owned-to-owned switching preserves the native conversation and draft (0.112791ms)
+✔ chat picker mirrors the compact native agent/model/reasoning listbox contract (0.808875ms)
+✔ chat picker preserves the native business state and keeps catalog mode intact (0.809792ms)
+✔ chat picker keeps locked scene options visible and opens the shared upgrade prompt without selecting them (0.37975ms)
+✔ chat picker keeps long names in a single aligned column and adapts to narrow screens (0.295083ms)
+✔ chat picker owns complete light and dark surface tokens (0.645709ms)
+✔ composer capsule keeps the model label visible and never replaces it with a loading spinner (0.273084ms)
+✔ agent candidates reuse the model flyout shell, rows, checkmark, placement, and open state (0.368ms)
+✔ non-chat catalog selectors can reuse the scene-model surface without dropping catalog actions (1.198417ms)
+✔ consumer-style selectors still load a normal catalog when no scene projection is supplied (0.079375ms)
+✔ all non-homepage ModelSelector catalog consumers opt into the scene-model surface (4.126542ms)
+✔ the homepage composer remains on its frozen chat picker branch (0.331125ms)
+✔ plain non-chat selects opt into the same trigger tokens without changing TDesign behavior (6.456167ms)
+✔ chat picker includes each usable subscription once and hides inactive subscriptions (3.344708ms)
+✔ product scope distinguishes a subscribed agent from an owned agent with the same id (1.124875ms)
+✔ chat selector preserves the source hover flyout and viewport placement contract (0.649542ms)
+✔ combined Agent/model/reasoning capsule keeps the source pill geometry while open (0.198209ms)
+✔ chat popup uses the source right-aligned fixed anchor without legacy 280px overrides (0.062709ms)
+✔ chat submenu cards retain source dimensions, timing, placement, and locked-plan affordance (0.264125ms)
+✔ source row and option typography stays literal without changing catalog surfaces (0.533292ms)
+✔ chat overview and flyout rows retain the source DOM geometry and compact height (0.545958ms)
+✔ chat overview keyboard follows the same source flyout path and Lucide glyphs as pointer input (0.062458ms)
+✔ catalog add-model affordance is unavailable in Lite and rejects forged events (0.052292ms)
+✔ consumer scene catalog uses the reference CustomSelect surface (0.9745ms)
+✔ compact catalog appearance can reuse caller-supplied catalog models (0.189291ms)
+✔ scene-style catalog without a scene projection still loads its model catalog (0.157ms)
+✔ consumer scene dropdown raises its open selector above sibling rows in dark and light themes (1.203459ms)
+✔ consumer scene dropdown flips above when the settings scroll viewport would clip it (0.2175ms)
+✔ Lite onboarding follows the shortest current Musuw activation path (2.222875ms)
+✔ guide completion is isolated per signed-in account (0.256375ms)
+✖ guide storage namespace follows the active account at runtime (9.587625ms)
+✔ Lite users do not get a replay control that the consumer surface cannot support (0.281833ms)
+✔ Lite agent creation guide stays inside the compact editor (0.207084ms)
+✔ tenantless Lite fallback explains automatic personal-space preparation (0.246625ms)
+✔ an empty Lite knowledge base introduces RAG and Wiki before both ingestion actions (0.402ms)
+✔ Lite new resource defaults use loaded names and fill the first available suffix (1.549334ms)
+✔ Lite home chat guide starts with the combined picker and preserves the native composer (0.679375ms)
+✔ all supported locales carry the complete Lite onboarding copy (14.434ms)
+✔ Peter keeps normal settings while hiding model management and platform administration (0.56525ms)
+✔ direct links cannot reopen hidden Peter billing, market or administration pages (0.091334ms)
+✔ Peter knowledge-base and customer editors keep business settings while hiding managed processing (0.06075ms)
+✔ Peter upload confirmation only shows tags and media repair controls when configuration is broken (0.047834ms)
+✔ Free URL import denial has an explicit upgrade mapping (1.480708ms)
+✔ knowledge-base creation limit uses the shared upgrade prompt instead of a toast (0.653667ms)
+✔ agent save errors use the same upgrade prompt contract when a plan gate is returned (0.178708ms)
+✔ the plan error classifier recognizes the server knowledge-base limit message (0.047292ms)
+✔ knowledge-base uploads use the shared upgrade prompt for storage exhaustion (0.09575ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 61
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 856.123791
+
+✖ failing tests:
+
+test at src/config/musuwLiteOnboarding.test.mjs:44:1
+✖ guide storage namespace follows the active account at runtime (9.587625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'Musuw_lite-user-a_musuw:new-user-guide-done:v2'
+  - 'WeKnora_lite-user-a_musuw:new-user-guide-done:v2'
+
+      at TestContext.<anonymous> (<workspace>/weknora/frontend/src/config/musuwLiteOnboarding.test.mjs:62:12)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Musuw_lite-user-a_musuw:new-user-guide-done:v2',
+    expected: 'WeKnora_lite-user-a_musuw:new-user-guide-done:v2',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

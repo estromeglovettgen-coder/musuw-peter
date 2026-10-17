@@ -1,0 +1,327 @@
+[WebServer] (node:57350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:57356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/composer-depth.spec.ts:29:34 › Peter 1440px exposes native agent and depth entries only and changes real store without changing model or agent (5.8s)
+(node:57416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/composer-depth.spec.ts:29:34 › Peter 390px exposes native agent and depth entries only and changes real store without changing model or agent (5.8s)
+(node:57474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/composer-depth.spec.ts:71:1 › Peter does not invent an off option for a model with mandatory reasoning (30.1s)
+(node:57778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  4 e2e/composer-depth.spec.ts:80:1 › other profiles retain their native agent and model picker
+  ✘  5 e2e/composer-depth.spec.ts:91:34 › Peter 1440px switches agents through the real native handler without exposing models (5.7s)
+(node:57829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 e2e/composer-depth.spec.ts:91:34 › Peter 390px switches agents through the real native handler without exposing models (5.7s)
+(node:57874) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 e2e/composer-depth.spec.ts:113:1 › hidden model selection cannot be restored by an externally supplied models view (5.7s)
+(node:57939) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  8 e2e/composer-depth.spec.ts:123:1 › upload entry keeps local files, folders and manual content while Peter hides URL import (5.7s)
+
+
+  1) e2e/composer-depth.spec.ts:29:34 › Peter 1440px exposes native agent and depth entries only and changes real store without changing model or agent
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.visual-chat-composer__combined-picker')
+    Expected substring: "泰勒"
+    Received string:    "推理强度·高"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.visual-chat-composer__combined-picker')
+        14 × locator resolved to <button type="button" data-v-f1025c33="" aria-label="推理强度 高" aria-expanded="false" data-guide="chat-picker" class="visual-chat-composer__combined-picker">…</button>
+           - unexpected value "推理强度·高"
+
+
+      35 |   await page.goto('/e2e/composer-depth-harness.html')
+      36 |   const capsule = page.locator('.visual-chat-composer__combined-picker')
+    > 37 |   await expect(capsule).toContainText('泰勒')
+         |                         ^
+      38 |   await expect(capsule).toContainText('高')
+      39 |   await expectNoModelLeaks(page)
+      40 |   const before = await snapshot(page)
+        at <workspace>/e2e/composer-depth.spec.ts:37:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-1440p-9fd50-out-changing-model-or-agent/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-Peter-1440p-9fd50-out-changing-model-or-agent/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-1440p-9fd50-out-changing-model-or-agent/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-Peter-1440p-9fd50-out-changing-model-or-agent/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/composer-depth.spec.ts:29:34 › Peter 390px exposes native agent and depth entries only and changes real store without changing model or agent
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.visual-chat-composer__combined-picker')
+    Expected substring: "泰勒"
+    Received string:    "推理强度·高"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.visual-chat-composer__combined-picker')
+        14 × locator resolved to <button type="button" data-v-f1025c33="" aria-label="推理强度 高" aria-expanded="false" data-guide="chat-picker" class="visual-chat-composer__combined-picker">…</button>
+           - unexpected value "推理强度·高"
+
+
+      35 |   await page.goto('/e2e/composer-depth-harness.html')
+      36 |   const capsule = page.locator('.visual-chat-composer__combined-picker')
+    > 37 |   await expect(capsule).toContainText('泰勒')
+         |                         ^
+      38 |   await expect(capsule).toContainText('高')
+      39 |   await expectNoModelLeaks(page)
+      40 |   const before = await snapshot(page)
+        at <workspace>/e2e/composer-depth.spec.ts:37:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-390px-e8842-out-changing-model-or-agent/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-Peter-390px-e8842-out-changing-model-or-agent/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-390px-e8842-out-changing-model-or-agent/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-Peter-390px-e8842-out-changing-model-or-agent/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/composer-depth.spec.ts:71:1 › Peter does not invent an off option for a model with mandatory reasoning
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '推理强度 高', exact: true })
+        - locator resolved to <button type="button" data-v-f1025c33="" aria-label="推理强度 高" aria-expanded="true" data-guide="chat-picker" class="visual-chat-composer__combined-picker is-open">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div data-v-f1025c33="" class="visual-chat-composer__overlay is-visible">…</div> intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div data-v-f1025c33="" class="visual-chat-composer__overlay is-visible">…</div> intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        57 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <div data-v-f1025c33="" class="visual-chat-composer__overlay is-visible">…</div> intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      74 |   await page.goto('/e2e/composer-depth-harness.html')
+      75 |   await page.locator('.visual-chat-composer__combined-picker').click()
+    > 76 |   await page.getByRole('button', { name: '推理强度 高', exact: true }).click()
+         |                                                                   ^
+      77 |   await expect(page.getByRole('listbox', { name: '推理强度', exact: true }).getByRole('option')).toHaveText(['低', '高', '最高'])
+      78 | })
+      79 |
+        at <workspace>/e2e/composer-depth.spec.ts:76:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-does--89606-el-with-mandatory-reasoning/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-Peter-does--89606-el-with-mandatory-reasoning/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-does--89606-el-with-mandatory-reasoning/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-Peter-does--89606-el-with-mandatory-reasoning/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) e2e/composer-depth.spec.ts:91:34 › Peter 1440px switches agents through the real native handler without exposing models
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.visual-chat-composer__combined-picker')
+    Expected substring: "泰勒"
+    Received string:    "推理强度·高"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.visual-chat-composer__combined-picker')
+        14 × locator resolved to <button type="button" data-v-f1025c33="" aria-label="推理强度 高" aria-expanded="false" data-guide="chat-picker" class="visual-chat-composer__combined-picker">…</button>
+           - unexpected value "推理强度·高"
+
+
+       95 |   await page.goto('/e2e/composer-depth-harness.html')
+       96 |   const capsule = page.locator('.visual-chat-composer__combined-picker')
+    >  97 |   await expect(capsule).toContainText('泰勒')
+          |                         ^
+       98 |   await capsule.click()
+       99 |   await page.locator('.visual-model-selector__chat-row.is-agent').click()
+      100 |   const agents = page.getByRole('listbox', { name: '智能体', exact: true })
+        at <workspace>/e2e/composer-depth.spec.ts:97:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-1440p-7bd61-ler-without-exposing-models/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-Peter-1440p-7bd61-ler-without-exposing-models/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-1440p-7bd61-ler-without-exposing-models/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-Peter-1440p-7bd61-ler-without-exposing-models/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) e2e/composer-depth.spec.ts:91:34 › Peter 390px switches agents through the real native handler without exposing models
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.visual-chat-composer__combined-picker')
+    Expected substring: "泰勒"
+    Received string:    "推理强度·高"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.visual-chat-composer__combined-picker')
+        14 × locator resolved to <button type="button" data-v-f1025c33="" aria-label="推理强度 高" aria-expanded="false" data-guide="chat-picker" class="visual-chat-composer__combined-picker">…</button>
+           - unexpected value "推理强度·高"
+
+
+       95 |   await page.goto('/e2e/composer-depth-harness.html')
+       96 |   const capsule = page.locator('.visual-chat-composer__combined-picker')
+    >  97 |   await expect(capsule).toContainText('泰勒')
+          |                         ^
+       98 |   await capsule.click()
+       99 |   await page.locator('.visual-model-selector__chat-row.is-agent').click()
+      100 |   const agents = page.getByRole('listbox', { name: '智能体', exact: true })
+        at <workspace>/e2e/composer-depth.spec.ts:97:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-390px-93717-ler-without-exposing-models/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-Peter-390px-93717-ler-without-exposing-models/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-Peter-390px-93717-ler-without-exposing-models/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-Peter-390px-93717-ler-without-exposing-models/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) e2e/composer-depth.spec.ts:113:1 › hidden model selection cannot be restored by an externally supplied models view
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.visual-model-selector__chat-row')
+    Expected: 2
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('.visual-model-selector__chat-row')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      114 |   await installApi(page)
+      115 |   await page.goto('/e2e/composer-depth-harness.html?selector=models')
+    > 116 |   await expect(page.locator('.visual-model-selector__chat-row')).toHaveCount(2)
+          |                                                                  ^
+      117 |   await expect(page.getByRole('option')).toHaveCount(0)
+      118 |   await expect(page.locator('body')).not.toContainText('DeepSeek secret')
+      119 |   const labels = await page.locator('[title], [aria-label]').evaluateAll(nodes => nodes.map(node => `${node.getAttribute('title')} ${node.getAttribute('aria-label')}`).join(' '))
+        at <workspace>/e2e/composer-depth.spec.ts:116:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-hidden-mode-7e93c-rnally-supplied-models-view/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-hidden-mode-7e93c-rnally-supplied-models-view/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-hidden-mode-7e93c-rnally-supplied-models-view/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-hidden-mode-7e93c-rnally-supplied-models-view/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) e2e/composer-depth.spec.ts:123:1 › upload entry keeps local files, folders and manual content while Peter hides URL import
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-guide="kb-detail-import-url"]')
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('[data-guide="kb-detail-import-url"]')
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      125 |   await page.goto('/e2e/composer-depth-harness.html?upload')
+      126 |   const urlButton = page.locator('[data-guide="kb-detail-import-url"]')
+    > 127 |   await expect(urlButton).toHaveCount(peter ? 0 : 1)
+          |                           ^
+      128 |   if (peter) {
+      129 |     await page.evaluate(() => (window as any).__depthFixture.uploadRef.value.openUrlDialog('https://example.com'))
+      130 |     await expect(page.getByRole('dialog')).toHaveCount(0)
+        at <workspace>/e2e/composer-depth.spec.ts:127:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-upload-entr-bf76c-hile-Peter-hides-URL-import/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/composer-depth/peter/composer-depth-upload-entr-bf76c-hile-Peter-hides-URL-import/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/composer-depth/peter/composer-depth-upload-entr-bf76c-hile-Peter-hides-URL-import/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/composer-depth/peter/composer-depth-upload-entr-bf76c-hile-Peter-hides-URL-import/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7 failed
+    e2e/composer-depth.spec.ts:29:34 › Peter 1440px exposes native agent and depth entries only and changes real store without changing model or agent
+    e2e/composer-depth.spec.ts:29:34 › Peter 390px exposes native agent and depth entries only and changes real store without changing model or agent
+    e2e/composer-depth.spec.ts:71:1 › Peter does not invent an off option for a model with mandatory reasoning
+    e2e/composer-depth.spec.ts:91:34 › Peter 1440px switches agents through the real native handler without exposing models
+    e2e/composer-depth.spec.ts:91:34 › Peter 390px switches agents through the real native handler without exposing models
+    e2e/composer-depth.spec.ts:113:1 › hidden model selection cannot be restored by an externally supplied models view
+    e2e/composer-depth.spec.ts:123:1 › upload entry keeps local files, folders and manual content while Peter hides URL import
+  1 skipped

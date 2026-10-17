@@ -7,7 +7,7 @@
         :aria-label="chatPanelLabel"
         @keydown="handlePanelKeydown"
       >
-        <template v-if="view === 'overview' && !reasoningOnly">
+        <template v-if="chatView === 'overview'">
           <button
             ref="overviewFirstRef"
             type="button"
@@ -25,6 +25,7 @@
             </div>
           </button>
           <button
+            v-if="!hideModelSelection"
             type="button"
             class="visual-model-selector__chat-row"
             aria-haspopup="listbox"
@@ -60,15 +61,15 @@
 
         <template v-else>
           <header class="visual-model-selector__chat-header">
-            <button v-if="!reasoningOnly" type="button" class="visual-model-selector__chat-back" :aria-label="backLabel" @click="openView('overview')">
+            <button type="button" class="visual-model-selector__chat-back" :aria-label="backLabel" @click="openView('overview')">
               <t-icon name="chevron-left" aria-hidden="true" />
             </button>
-            <span class="visual-model-selector__chat-title">{{ view === 'models' && !reasoningOnly ? modelLabel : reasoningLabel }}</span>
+            <span class="visual-model-selector__chat-title">{{ chatView === 'models' ? modelLabel : reasoningLabel }}</span>
             <span class="visual-model-selector__chat-header-spacer" aria-hidden="true" />
           </header>
 
           <div
-            v-if="view === 'models' && !reasoningOnly"
+            v-if="chatView === 'models'"
             :id="modelListId"
             ref="modelListRef"
             class="visual-model-selector__chat-list"
@@ -139,7 +140,7 @@
 
         <Transition name="visual-model-selector__chat-flyout">
           <div
-            v-if="view === 'overview' && hoveredSubmenu && !reasoningOnly"
+            v-if="chatView === 'overview' && hoveredSubmenu && !(hideModelSelection && hoveredSubmenu === 'models')"
             :key="hoveredSubmenu"
             class="visual-model-selector__chat-flyout"
             :class="[`is-${submenuPlacement}`, `is-${hoveredSubmenu}`]"
@@ -441,7 +442,7 @@ interface Props {
   selectedReasoningLabel?: string
   reasoningOptions?: Array<{ value: string; label: string }>
   reasoningEffort?: string
-  reasoningOnly?: boolean
+  hideModelSelection?: boolean
   agents?: CustomAgent[]
   sharedAgents?: SharedAgentInfo[]
   subscribedAgents?: MarketplaceLibraryEntry[]
@@ -467,7 +468,7 @@ const props = withDefaults(defineProps<Props>(), {
   selectedReasoningLabel: '',
   reasoningOptions: () => [],
   reasoningEffort: 'none',
-  reasoningOnly: false,
+  hideModelSelection: false,
   agents: () => [],
   sharedAgents: () => [],
   subscribedAgents: () => [],
@@ -650,7 +651,8 @@ const handleModelChange = handleCatalogModelChange
 const agentLabel = computed(() => t('agent.title'))
 const modelLabel = computed(() => t('input.modelLabel'))
 const reasoningLabel = computed(() => t('input.reasoningEffort'))
-const chatPanelLabel = computed(() => props.reasoningOnly ? reasoningLabel.value : `${agentLabel.value} / ${modelLabel.value} / ${reasoningLabel.value}`)
+const chatView = computed(() => props.hideModelSelection && props.view === 'models' ? 'overview' : props.view)
+const chatPanelLabel = computed(() => props.hideModelSelection ? `${agentLabel.value} / ${reasoningLabel.value}` : `${agentLabel.value} / ${modelLabel.value} / ${reasoningLabel.value}`)
 const backLabel = computed(() => t('input.back'))
 const noAgentsLabel = computed(() => t('agent.noAgents'))
 const noModelsLabel = computed(() => t('input.noModel'))
@@ -729,6 +731,7 @@ const updateSubmenuPlacement = () => {
 }
 
 const hoverOpen = (nextView: 'agents' | 'models' | 'reasoning') => {
+  if (props.hideModelSelection && nextView === 'models') return
   // Touch browsers can synthesize mouseenter immediately before click.
   // Let the click own the toggle so the first tap does not close it again.
   if (window.matchMedia('(hover: none)').matches) return
@@ -741,12 +744,18 @@ const hoverOpen = (nextView: 'agents' | 'models' | 'reasoning') => {
 }
 
 const toggleHover = (nextView: 'agents' | 'models' | 'reasoning') => {
+  if (props.hideModelSelection && nextView === 'models') return
   hoverTask += 1
-  if (hoveredSubmenu.value === nextView) {
+  // Desktop hover may already have opened this submenu before its click.
+  // Peter keeps that first click open; touch still uses the native toggle.
+  if (hoveredSubmenu.value === nextView && (!props.hideModelSelection || window.matchMedia('(hover: none)').matches)) {
     hoveredSubmenu.value = null
     return
   }
   hoveredSubmenu.value = nextView
+  if (props.hideModelSelection && nextView === 'reasoning') {
+    activeReasoningIndex.value = Math.max(0, props.reasoningOptions.findIndex(option => option.value === props.reasoningEffort))
+  }
   nextTick(() => {
     updateSubmenuPlacement()
     if (nextView === 'agents') flyoutAgentListRef.value?.focus()
@@ -756,7 +765,7 @@ const toggleHover = (nextView: 'agents' | 'models' | 'reasoning') => {
 }
 
 const openView = (nextView: 'overview' | 'models' | 'reasoning') => {
-  if (props.reasoningOnly && nextView !== 'reasoning') return
+  if (props.hideModelSelection && nextView === 'models') return
   hoveredSubmenu.value = null
   emit('update:view', nextView)
   nextTick(() => {
@@ -772,6 +781,7 @@ const selectChatAgent = (option: ChatAgentOption) => {
   emit('select-agent', option.agent, option.sourceTenantId)
 }
 const selectChatModel = (value: string) => {
+  if (props.hideModelSelection) return
   const option = chatModels.value.find(model => model.id === value)
   if (!option) return
   const isSceneOption = option.locked !== undefined || option.selectable !== undefined
@@ -858,19 +868,21 @@ const handleReasoningKeydown = (event: KeyboardEvent) => {
     if (option) selectChatReasoning(option.value)
   } else if (event.key === 'Escape') {
     event.preventDefault()
-    if (props.reasoningOnly) emit('close')
-    else emit('update:view', 'overview')
+    if (props.hideModelSelection && hoveredSubmenu.value === 'reasoning') {
+      hoveredSubmenu.value = null
+      nextTick(() => overviewFirstRef.value?.focus())
+    } else emit('update:view', 'overview')
   }
 }
 const handlePanelKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     event.preventDefault()
-    if (props.reasoningOnly || props.view === 'overview') emit('close')
+    if (chatView.value === 'overview') emit('close')
     else emit('update:view', 'overview')
   }
 }
 
-watch(() => props.view, (view) => {
+watch(chatView, (view) => {
   if (view !== 'overview') hoveredSubmenu.value = null
   if (view === 'overview') {
     nextTick(() => overviewFirstRef.value?.focus())

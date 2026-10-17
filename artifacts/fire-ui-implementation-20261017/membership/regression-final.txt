@@ -1,0 +1,36 @@
+
+> knowledage-base@0.7.2 test
+> tsx --test src/utils/fireMembershipFormat.test.ts src/components/Input-field.marketplace-navigation.test.ts src/components/ModelSelector.chat.test.mjs src/components/ModelSelector.marketplace.test.ts src/config/workspaceSurface.test.ts src/stores/entitlementRevalidation.test.mjs
+
+✔ changing a historical service uses the existing authorized new-chat entry and preserves draft (6.022417ms)
+✔ owned selection leaves the old session before applying its native agent context (0.953084ms)
+✔ the same subscription and model/reasoning changes remain inside the current conversation (0.513708ms)
+✔ an unavailable subscription cannot be selected and native selection cancels a pending market entry (0.514709ms)
+✔ Standard native agent switching retains its existing in-session navigation behavior (0.405167ms)
+✔ Lite owned-to-owned switching preserves the native conversation and draft (0.296334ms)
+✔ chat picker mirrors the compact native agent/model/reasoning listbox contract (1.938083ms)
+✔ chat picker preserves the native business state and keeps catalog mode intact (0.716666ms)
+✔ chat picker keeps locked scene options visible and opens the shared upgrade prompt without selecting them (0.30875ms)
+✔ chat picker keeps long names in a single aligned column and adapts to narrow screens (0.469083ms)
+✔ chat picker owns complete light and dark surface tokens (0.198916ms)
+✔ composer capsule keeps the model label visible and never replaces it with a loading spinner (0.176333ms)
+✔ agent candidates reuse the model flyout shell, rows, checkmark, placement, and open state (0.212375ms)
+✔ chat picker includes each usable subscription once and hides inactive subscriptions (4.872375ms)
+✔ product scope distinguishes a subscribed agent from an owned agent with the same id (1.542417ms)
+✔ Peter keeps normal settings while hiding model management and platform administration (1.106417ms)
+✔ direct links cannot reopen hidden Peter billing, market or administration pages (0.299458ms)
+✔ Peter knowledge-base and customer editors keep business settings while hiding managed processing (0.14975ms)
+✔ Peter upload confirmation only shows tags and media repair controls when configuration is broken (0.108959ms)
+✔ activity revalidation stays scoped, visible-only, and low frequency (1.588958ms)
+✔ activity listeners are installed once and removed with the store scope (0.112334ms)
+✔ activity revalidation reuses the existing request dedupe and keeps snapshots intact (0.161917ms)
+✔ token counts preserve exact remaining units without rounding a partial token upward (47.523417ms)
+✔ membership dates honor the caller locale and reject invalid expiry values (7.474083ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1029.097166

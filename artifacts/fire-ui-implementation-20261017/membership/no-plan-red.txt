@@ -1,0 +1,53 @@
+[WebServer] (node:79825) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:79829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/fire-membership.spec.ts:146:1 › account creation requires an enabled plan instead of advertising an unsupported unactivated account (6.1s)
+
+
+  1) e2e/fire-membership.spec.ts:146:1 › account creation requires an enabled plan instead of advertising an unsupported unactivated account
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('dialog', { name: '新建账号', exact: true })
+    Expected substring: "暂无可用套餐"
+    Received string:    "新建账号可留空用户名、邮箱和密码，系统将自动生成。用户名邮箱密码套餐暂不开通天数覆盖（0 使用默认）Token 覆盖（0 使用默认）取消创建账号"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('dialog', { name: '新建账号', exact: true })
+        5 × locator resolved to <div role="dialog" aria-modal="true" aria-label="新建账号" class="t-dialog__ctx t-dialog__ctx--fixed t-dialog-zoom__vue-enter-active t-dialog-zoom__vue-enter-to">…</div>
+          - unexpected value "新建账号可留空用户名、邮箱和密码，系统将自动生成。用户名邮箱密码套餐暂不开通天数覆盖（0 使用默认）Token 覆盖（0 使用默认）取消创建账号"
+        9 × locator resolved to <div role="dialog" aria-modal="true" aria-label="新建账号" class="t-dialog__ctx t-dialog__ctx--fixed">…</div>
+          - unexpected value "新建账号可留空用户名、邮箱和密码，系统将自动生成。用户名邮箱密码套餐暂不开通天数覆盖（0 使用默认）Token 覆盖（0 使用默认）取消创建账号"
+
+
+      149 |   await page.getByRole('button', { name: '新建账号', exact: true }).click()
+      150 |   const dialog = page.getByRole('dialog', { name: '新建账号', exact: true })
+    > 151 |   await expect(dialog).toContainText('暂无可用套餐')
+          |                        ^
+      152 |   await expect(dialog.getByRole('button', { name: '创建账号', exact: true })).toBeDisabled()
+      153 |   await expect(dialog.getByRole('option', { name: '暂不开通' })).toHaveCount(0)
+      154 |   expect(mock.writes.filter(write => write.path.endsWith('/users/create'))).toEqual([])
+        at <workspace>/e2e/fire-membership.spec.ts:151:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-account-cr-a0029-pported-unactivated-account/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/fire-membership/fire-membership-account-cr-a0029-pported-unactivated-account/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fire-membership/fire-membership-account-cr-a0029-pported-unactivated-account/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/fire-membership/fire-membership-account-cr-a0029-pported-unactivated-account/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/fire-membership.spec.ts:146:1 › account creation requires an enabled plan instead of advertising an unsupported unactivated account

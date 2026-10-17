@@ -54,6 +54,7 @@
     </t-popup>
 
     <button
+      v-if="isWorkspaceUploadSectionVisible('url')"
       type="button"
       :class="['visual-upload-source__trigger', 'visual-upload-source__link-trigger', triggerClass]"
       data-guide="kb-detail-import-url"
@@ -171,6 +172,7 @@ import douyinLogo from '@/assets/img/douyin-logo.svg'
 import { getCurrentEntitlement, type ConsumerEntitlement } from '@/api/entitlement'
 import { exceedsConsumerStorageQuota } from '@/utils/consumerUploadLimits'
 import { useAuthStore } from '@/stores/auth'
+import { isWorkspaceUploadSectionVisible } from '@/config/workspaceSurface'
 import { useConsumerUpgradePrompt } from '@/hooks/useConsumerUpgradePrompt'
 import { filterUploadFiles, partitionFilesForConsumerPlan } from '../utils/uploadSources'
 
@@ -401,6 +403,7 @@ const handleUrlDialogCancel = () => {
 }
 
 const openUrlDialog = (initialValue = '') => {
+  if (!isWorkspaceUploadSectionVisible('url')) return
   urlInputValue.value = initialValue
   urlDialogVisible.value = true
 }

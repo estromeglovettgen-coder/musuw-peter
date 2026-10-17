@@ -1,0 +1,64 @@
+
+> knowledage-base@0.7.2 test
+> tsx --test src/components/ModelSelector.chat.test.mjs src/components/ModelSelector.consumerStyle.test.mjs src/components/ModelSelector.consumerStyleConsumers.test.mjs src/components/ModelSelector.sourceInteraction.test.mjs src/components/ModelSelector.marketplace.test.ts src/components/Input-field.marketplace-navigation.test.ts src/components/Input-field.agent-switch.test.mjs src/config/workspaceSurface.test.ts src/views/knowledge/KnowledgeBaseEditorModal.consumer-plan.test.mjs src/utils/consumer-plan-url-import.test.mjs
+
+✔ managed chat keeps web search enabled while Lite hides the toggle (1.364625ms)
+✔ shared-agent web search button waits for source readiness metadata (0.181459ms)
+✔ platform agents keep image upload visible while the agent catalog loads (0.146208ms)
+✔ empty new workspaces are not mislabeled as knowledge capability mismatches (0.216958ms)
+✔ consumer chat can select a native agent and sends model-specific reasoning effort (1.432208ms)
+✔ visual adapter waits for model refresh and repairs mandatory reasoning before first send (1.558458ms)
+✔ consumer chat routes the downstream request through the selected native agent (0.468708ms)
+✔ combined selector mechanically preserves native labels, hover entry, and the source capsule shape (0.745625ms)
+✔ model overview always renders the complete selected model name (0.918417ms)
+✔ model selector controller distinguishes the initial catalog load from missing configuration (1.89275ms)
+✔ changing a historical service uses the existing authorized new-chat entry and preserves draft (2.279542ms)
+✔ owned selection leaves the old session before applying its native agent context (0.455375ms)
+✔ the same subscription and model/reasoning changes remain inside the current conversation (0.177542ms)
+✔ an unavailable subscription cannot be selected and native selection cancels a pending market entry (0.16875ms)
+✔ Standard native agent switching retains its existing in-session navigation behavior (0.113875ms)
+✔ Lite owned-to-owned switching preserves the native conversation and draft (0.107959ms)
+✔ chat picker mirrors the compact native agent/model/reasoning listbox contract (0.802375ms)
+✔ chat picker preserves the native business state and keeps catalog mode intact (0.450458ms)
+✔ chat picker keeps locked scene options visible and opens the shared upgrade prompt without selecting them (0.09825ms)
+✔ chat picker keeps long names in a single aligned column and adapts to narrow screens (0.27525ms)
+✔ chat picker owns complete light and dark surface tokens (0.08575ms)
+✔ composer capsule keeps the model label visible and never replaces it with a loading spinner (0.136583ms)
+✔ agent candidates reuse the model flyout shell, rows, checkmark, placement, and open state (0.194792ms)
+✔ non-chat catalog selectors can reuse the scene-model surface without dropping catalog actions (1.190958ms)
+✔ consumer-style selectors still load a normal catalog when no scene projection is supplied (0.170917ms)
+✔ all non-homepage ModelSelector catalog consumers opt into the scene-model surface (23.598333ms)
+✔ the homepage composer remains on its frozen chat picker branch (0.138ms)
+✔ plain non-chat selects opt into the same trigger tokens without changing TDesign behavior (2.320542ms)
+✔ chat picker includes each usable subscription once and hides inactive subscriptions (2.942417ms)
+✔ product scope distinguishes a subscribed agent from an owned agent with the same id (1.035416ms)
+✔ chat selector preserves the source hover flyout and viewport placement contract (0.672417ms)
+✔ combined Agent/model/reasoning capsule keeps the source pill geometry while open (0.512292ms)
+✔ chat popup uses the source right-aligned fixed anchor without legacy 280px overrides (0.185458ms)
+✔ chat submenu cards retain source dimensions, timing, placement, and locked-plan affordance (0.470084ms)
+✔ source row and option typography stays literal without changing catalog surfaces (0.969833ms)
+✔ chat overview and flyout rows retain the source DOM geometry and compact height (1.459958ms)
+✔ chat overview keyboard follows the same source flyout path and Lucide glyphs as pointer input (0.152375ms)
+✔ catalog add-model affordance is unavailable in Lite and rejects forged events (0.103459ms)
+✔ consumer scene catalog uses the reference CustomSelect surface (0.619583ms)
+✔ compact catalog appearance can reuse caller-supplied catalog models (0.110125ms)
+✔ scene-style catalog without a scene projection still loads its model catalog (0.054709ms)
+✔ consumer scene dropdown raises its open selector above sibling rows in dark and light themes (0.429916ms)
+✔ consumer scene dropdown flips above when the settings scroll viewport would clip it (0.180792ms)
+✔ Peter keeps normal settings while hiding model management and platform administration (0.883417ms)
+✔ direct links cannot reopen hidden Peter billing, market or administration pages (0.2875ms)
+✔ Peter knowledge-base and customer editors keep business settings while hiding managed processing (0.233625ms)
+✔ Peter upload confirmation only shows tags and media repair controls when configuration is broken (0.136666ms)
+✔ Free URL import denial has an explicit upgrade mapping (1.12525ms)
+✔ knowledge-base creation limit uses the shared upgrade prompt instead of a toast (0.612792ms)
+✔ agent save errors use the same upgrade prompt contract when a plan gate is returned (0.168125ms)
+✔ the plan error classifier recognizes the server knowledge-base limit message (0.042833ms)
+✔ knowledge-base uploads use the shared upgrade prompt for storage exhaustion (0.079042ms)
+ℹ tests 52
+ℹ suites 0
+ℹ pass 52
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 626.345917

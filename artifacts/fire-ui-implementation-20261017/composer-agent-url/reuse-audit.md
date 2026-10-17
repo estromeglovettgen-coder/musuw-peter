@@ -1,0 +1,6 @@
+# Read-only reuse audit
+
+- UserMenu.vue already renders current plan and remaining percentage through useCurrentEntitlementStore. Both the menu and store are disabled for Peter today. Existing fields are OpenRouter amounts and Paddle billing, not token counters. Reuse layout and account/tenant-scoped cache patterns after the Tokenplan API is defined; do not reinterpret money fields as tokens.
+- UsageBillingSettings.vue has native plan label, percent meters, loading, unavailable, refresh and portal states. Reuse visual rows only; Peter should not inherit payment links or unrelated product-limit rows.
+- operations/OperationsApp.vue and operations/pages/UsersPage.vue provide native user search, pagination, table, detail drawer and managed mutations. operations/api.ts already implements CSRF/session recovery and /admin-api requests. Reuse the shell/table/state patterns against an authorized Peter endpoint rather than exposing the existing Musuw multi-environment operations gateway.
+- Existing operations entitlement data is OpenRouter/Paddle/storage oriented. A token-plan request/response contract and authoritative counters are needed before implementing user usage and admin adjustments. No speculative store or admin feature was added in this delta.
