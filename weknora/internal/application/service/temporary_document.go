@@ -196,7 +196,7 @@ func (s *temporaryDocumentService) Create(
 			return nil, fmt.Errorf("bind attachment resource: %w", err)
 		}
 	}
-	payload, _ := json.Marshal(types.TemporaryDocumentTaskPayload{TenantID: tenantID, DocumentID: document.ID})
+	payload, _ := json.Marshal(types.TemporaryDocumentTaskPayload{TenantID: tenantID, DocumentID: document.ID, Initiator: types.TaskInitiatorFromContext(ctx)})
 	queue, _ := types.QueueForTaskType(types.TypeTemporaryDocumentProcess)
 	if _, err := s.taskEnqueuer.Enqueue(
 		asynq.NewTask(types.TypeTemporaryDocumentProcess, payload),
@@ -282,6 +282,7 @@ func (s *temporaryDocumentService) Process(ctx context.Context, task *asynq.Task
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("decode temporary document task: %w", err)
 	}
+	ctx = payload.Initiator.Apply(ctx)
 	document, err := s.repo.GetByID(ctx, payload.TenantID, payload.DocumentID)
 	if err != nil || document == nil {
 		return err

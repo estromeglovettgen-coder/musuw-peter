@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Tencent/WeKnora/internal/models/tokenmeter"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,7 +53,7 @@ func GetOllamaService() (*OllamaService, error) {
 			MaxIdleConns:        10,
 		},
 	}
-	client := api.NewClient(parsedURL, ollamaHTTPClient)
+	client := api.NewClient(parsedURL, tokenmeter.Client(ollamaHTTPClient, "chat"))
 
 	// Check if Ollama is set as optional
 	isOptional := false

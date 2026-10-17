@@ -810,6 +810,7 @@ func (s *knowledgeService) processChunks(ctx context.Context,
 		// If there are no multimodal tasks, enqueue the post process task immediately
 		lang := types.LanguageFromContextOrDefault(ctx)
 		postProcessPayload := types.KnowledgePostProcessPayload{
+			Initiator:       types.TaskInitiatorFromContext(ctx),
 			TenantID:        knowledge.TenantID,
 			KnowledgeID:     knowledge.ID,
 			KnowledgeBaseID: knowledge.KnowledgeBaseID,
@@ -1223,6 +1224,7 @@ func (s *knowledgeService) ProcessSummaryGeneration(ctx context.Context, t *asyn
 
 	// Set tenant and language context
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -1772,6 +1774,7 @@ func (s *knowledgeService) processQuestionGenerationForKnowledge(ctx context.Con
 
 	// Set tenant context
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -2038,6 +2041,7 @@ func (s *knowledgeService) processQuestionGenerationForChunks(ctx context.Contex
 	superseded := false
 
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -2834,6 +2838,7 @@ func (s *knowledgeService) ReparseKnowledge(
 
 		lang := types.LanguageFromContextOrDefault(ctx)
 		taskPayload := types.DocumentProcessPayload{
+			Initiator:                types.TaskInitiatorFromContext(ctx),
 			TenantID:                 tenantID,
 			KnowledgeID:              existing.ID,
 			KnowledgeBaseID:          existing.KnowledgeBaseID,
@@ -2888,6 +2893,7 @@ func (s *knowledgeService) ReparseKnowledge(
 
 		lang := types.LanguageFromContextOrDefault(ctx)
 		taskPayload := types.DocumentProcessPayload{
+			Initiator:                types.TaskInitiatorFromContext(ctx),
 			TenantID:                 tenantID,
 			KnowledgeID:              existing.ID,
 			KnowledgeBaseID:          existing.KnowledgeBaseID,
@@ -2941,6 +2947,7 @@ func (s *knowledgeService) ReparseKnowledge(
 
 		lang := types.LanguageFromContextOrDefault(ctx)
 		taskPayload := types.DocumentProcessPayload{
+			Initiator:                types.TaskInitiatorFromContext(ctx),
 			TenantID:                 tenantID,
 			KnowledgeID:              existing.ID,
 			KnowledgeBaseID:          existing.KnowledgeBaseID,
@@ -3381,6 +3388,7 @@ func (s *knowledgeService) ProcessManualUpdate(ctx context.Context, t *asynq.Tas
 	ctx = logger.WithRequestID(ctx, payload.RequestId)
 	ctx = logger.WithField(ctx, "manual_process", payload.KnowledgeID)
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 
 	tenantInfo, err := s.tenantRepo.GetTenantByID(ctx, payload.TenantID)
 	if err != nil {
@@ -3478,6 +3486,7 @@ func (s *knowledgeService) ProcessDocument(ctx context.Context, t *asynq.Task) e
 	ctx = logger.WithRequestID(ctx, payload.RequestId)
 	ctx = logger.WithField(ctx, "document_process", payload.KnowledgeID)
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -4277,6 +4286,7 @@ func (s *knowledgeService) enqueueImageMultimodalTasks(
 
 		lang := types.LanguageFromContextOrDefault(ctx)
 		payload := types.ImageMultimodalPayload{
+			Initiator:       types.TaskInitiatorFromContext(ctx),
 			TenantID:        knowledge.TenantID,
 			KnowledgeID:     knowledge.ID,
 			KnowledgeBaseID: kb.ID,
@@ -4337,6 +4347,7 @@ func (s *knowledgeService) ProcessKnowledgeListReparse(ctx context.Context, t *a
 	}
 
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	ctx = context.WithValue(ctx, types.TenantInfoContextKey, tenant)
 
 	outcome, err := runKnowledgeListReparseSubmissions(payload.KnowledgeIDs, func(id string) error {

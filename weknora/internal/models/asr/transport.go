@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/models/tokenmeter"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -21,5 +22,5 @@ func validateASRBaseURL(baseURL string) error {
 func newASRHTTPClient(timeout time.Duration) *http.Client {
 	cfg := secutils.DefaultSSRFSafeHTTPClientConfig()
 	cfg.Timeout = timeout
-	return secutils.NewSSRFSafeHTTPClient(cfg)
+	return tokenmeter.Client(secutils.NewSSRFSafeHTTPClient(cfg), "asr")
 }

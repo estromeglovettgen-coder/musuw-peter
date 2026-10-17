@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/models/tokenmeter"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -33,5 +34,5 @@ var sharedRerankHTTPTransport = secutils.NewSSRFSafeTransport(
 func newRerankHTTPClient(timeout time.Duration) *http.Client {
 	cfg := secutils.DefaultSSRFSafeHTTPClientConfig()
 	cfg.Timeout = timeout
-	return secutils.NewSSRFSafeHTTPClientWithTransport(cfg, sharedRerankHTTPTransport)
+	return tokenmeter.Client(secutils.NewSSRFSafeHTTPClientWithTransport(cfg, sharedRerankHTTPTransport), "rerank")
 }

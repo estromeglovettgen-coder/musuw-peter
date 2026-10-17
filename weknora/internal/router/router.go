@@ -55,6 +55,7 @@ type RouterParams struct {
 	MessageHandler               *handler.MessageHandler
 	MessageSuggestionHandler     *handler.MessageSuggestionHandler
 	ModelHandler                 *handler.ModelHandler
+	FireBillingHandler           *handler.FireBillingHandler `optional:"true"`
 	EntitlementHandler           *handler.EntitlementHandler
 	MarketplaceHandler           *handler.MarketplaceHandler
 	ModelCredentialsHandler      *handler.ModelCredentialsHandler
@@ -301,6 +302,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterMessageRoutes(v1, params.MessageHandler, rbacGuards)
 		RegisterModelRoutes(v1, params.ModelHandler, params.ModelCredentialsHandler, rbacGuards)
 		v1.GET("/entitlements/current", params.EntitlementHandler.Current)
+		RegisterFireBillingRoutes(v1, params.FireBillingHandler, rbacGuards)
 		RegisterMarketplaceRoutes(v1, params.MarketplaceHandler, rbacGuards)
 		RegisterMarketplaceLibraryRoutes(v1, params.MarketplaceHandler, params.WikiPageHandler, rbacGuards)
 		v1.POST("/billing/paddle/portal-session", rbacGuards.Admin(), params.EntitlementHandler.PaddlePortalSession)

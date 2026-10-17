@@ -269,17 +269,23 @@ func (s *userService) Register(ctx context.Context, req *types.RegisterRequest) 
 // Login authenticates a user and returns tokens
 func (s *userService) Login(ctx context.Context, req *types.LoginRequest) (*types.LoginResponse, error) {
 	logger.Info(ctx, "Start user login")
-	// Get user by email
-	user, err := s.userRepo.GetUserByEmail(ctx, req.Email)
+	identity := strings.TrimSpace(req.Email)
+	var user *types.User
+	var err error
+	if strings.Contains(identity, "@") {
+		user, err = s.userRepo.GetUserByEmail(ctx, strings.ToLower(identity))
+	} else {
+		user, err = s.userRepo.GetUserByUsername(ctx, identity)
+	}
 	if err != nil {
-		logger.Errorf(ctx, "Failed to get user by email: %v", err)
+		logger.Errorf(ctx, "Failed to get login identity: %v", err)
 		return &types.LoginResponse{
 			Success: false,
 			Message: "Invalid email or password",
 		}, nil
 	}
 	if user == nil {
-		logger.Warn(ctx, "User not found for email")
+		logger.Warn(ctx, "Login identity not found")
 		return &types.LoginResponse{
 			Success: false,
 			Message: "Invalid email or password",

@@ -376,6 +376,9 @@ func (s *wikiIngestService) ProcessWikiIngest(ctx context.Context, t *asynq.Task
 		followUpScheduled = s.scheduleStaleClaimRecheck(ctx, payload)
 		return nil
 	}
+	// The durable per-document rows, never the last debounce trigger, own
+	// model attribution. Loading selects only one initiator's rows per batch.
+	ctx = pendingOps[0].Initiator.Apply(ctx)
 
 	logger.Infof(ctx, "wiki ingest: batch processing %d ops for KB %s", len(pendingOps), payload.KnowledgeBaseID)
 
@@ -986,6 +989,10 @@ func (s *wikiIngestService) ProcessWikiFinalize(ctx context.Context, t *asynq.Ta
 	if len(rows) == 0 {
 		return nil
 	}
+	rows, _ = oneWikiInitiatorRows(rows, false)
+	var actorRow wikiFinalizeRow
+	_ = json.Unmarshal(rows[0].Payload, &actorRow)
+	ctx = actorRow.Initiator.Apply(ctx)
 
 	kb, err := s.kbService.GetKnowledgeBaseByIDOnly(ctx, payload.KnowledgeBaseID)
 	if errors.Is(err, apprepo.ErrKnowledgeBaseNotFound) || (err == nil && kb == nil) {

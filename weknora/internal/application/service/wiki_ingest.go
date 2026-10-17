@@ -272,6 +272,7 @@ type wikiFinalizeChange struct {
 // finalize lane. Exactly one of {Slug, Change, FolderIDs} is set,
 // distinguished by the row's Op column.
 type wikiFinalizeRow struct {
+	Initiator types.TaskInitiator `json:"initiator,omitempty"`
 	Slug      string              `json:"slug,omitempty"`
 	Title     string              `json:"title,omitempty"`
 	Change    *wikiFinalizeChange `json:"change,omitempty"`
@@ -329,8 +330,9 @@ const (
 // unexported and excluded from JSON so the persisted payload does not
 // duplicate the column.
 type WikiPendingOp struct {
-	Op          string `json:"op"`
-	KnowledgeID string `json:"knowledge_id"`
+	Initiator   types.TaskInitiator `json:"initiator,omitempty"`
+	Op          string              `json:"op"`
+	KnowledgeID string              `json:"knowledge_id"`
 	// Ingest fields
 	Language string `json:"language,omitempty"`
 	// Retract fields
@@ -585,6 +587,7 @@ func newWikiIngestPendingOp(
 ) (*types.TaskPendingOp, error) {
 	lang := types.LanguageFromContextOrDefault(ctx)
 	op := WikiPendingOp{
+		Initiator:   types.TaskInitiatorFromContext(ctx),
 		Op:          WikiOpIngest,
 		KnowledgeID: knowledgeID,
 		Language:    lang,
@@ -653,6 +656,7 @@ func EnqueueWikiRetract(
 	payload WikiRetractPayload,
 ) {
 	op := WikiPendingOp{
+		Initiator:   types.TaskInitiatorFromContext(ctx),
 		Op:          WikiOpRetract,
 		KnowledgeID: payload.KnowledgeID,
 		DocTitle:    payload.DocTitle,
@@ -759,7 +763,7 @@ func (s *wikiIngestService) enqueueFinalize(
 	}
 	acceptedAny := false
 	for _, slug := range affectedSlugs {
-		row := wikiFinalizeRow{Slug: slug, Title: freshTitleBySlug[slug]}
+		row := wikiFinalizeRow{Initiator: types.TaskInitiatorFromContext(ctx), Slug: slug, Title: freshTitleBySlug[slug]}
 		b, err := json.Marshal(row)
 		if err != nil {
 			continue
@@ -777,7 +781,7 @@ func (s *wikiIngestService) enqueueFinalize(
 		}
 	}
 	for i := range changes {
-		row := wikiFinalizeRow{Change: &changes[i]}
+		row := wikiFinalizeRow{Initiator: types.TaskInitiatorFromContext(ctx), Change: &changes[i]}
 		b, err := json.Marshal(row)
 		if err != nil {
 			continue
@@ -795,7 +799,7 @@ func (s *wikiIngestService) enqueueFinalize(
 		}
 	}
 	if len(folderIDs) > 0 {
-		row := wikiFinalizeRow{FolderIDs: uniqueWikiFolderIDs(folderIDs)}
+		row := wikiFinalizeRow{Initiator: types.TaskInitiatorFromContext(ctx), FolderIDs: uniqueWikiFolderIDs(folderIDs)}
 		if b, err := json.Marshal(row); err == nil {
 			if s.enqueueFinalizeRow(ctx, &types.TaskPendingOp{
 				TenantID: payload.TenantID,
@@ -902,6 +906,7 @@ func (s *wikiIngestService) peekPendingList(ctx context.Context, kbID string, li
 		// as a false success and strand the pending list.
 		return nil, nil, err
 	}
+	rows, _ = oneWikiInitiatorRows(rows, true)
 	ops, peekedIDs = s.decodePendingRows(ctx, rows)
 	return ops, peekedIDs, nil
 }
@@ -929,7 +934,20 @@ func (s *wikiIngestService) claimPendingList(ctx context.Context, kbID string, l
 		// as a false "no pending ops" success and stranding the queue.
 		return nil, nil, err
 	}
-	ops, peekedIDs = s.decodePendingRows(ctx, rows)
+	selected, deferred := oneWikiInitiatorRows(rows, true)
+	if len(deferred) > 0 {
+		if err := s.pendingRepo.ReleaseByIDs(ctx, deferred); err != nil {
+			cleanup, cancel := wikiIngestCleanupContext(ctx)
+			defer cancel()
+			ids := make([]int64, 0, len(rows))
+			for _, row := range rows {
+				ids = append(ids, row.ID)
+			}
+			_ = s.pendingRepo.ReleaseByIDs(cleanup, ids)
+			return nil, nil, fmt.Errorf("release other Wiki initiators: %w", err)
+		}
+	}
+	ops, peekedIDs = s.decodePendingRows(ctx, selected)
 	return ops, peekedIDs, nil
 }
 

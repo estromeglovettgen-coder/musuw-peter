@@ -147,7 +147,9 @@ type AuthToken struct {
 
 // LoginRequest represents a login request
 type LoginRequest struct {
-	Email    string `json:"email"    binding:"required,email"`
+	// Email retains the native wire name; password login accepts an email or
+	// an exact username. Registration and recovery remain email-only.
+	Email    string `json:"email"    binding:"required,max=255"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
@@ -216,9 +218,13 @@ type RegisterRequest struct {
 // random one and returns it exactly once. Any provided value, the
 // empty string included, is subject to the password policy.
 type AdminCreateUserRequest struct {
-	Username string  `json:"username" binding:"required,min=2,max=50"`
-	Email    string  `json:"email"    binding:"required,email"`
-	Password *string `json:"password"`
+	Username         string  `json:"username" binding:"omitempty,min=2,max=50"`
+	Email            string  `json:"email"    binding:"omitempty,email"`
+	Password         *string `json:"password"`
+	OperationID      string  `json:"operation_id,omitempty"`
+	FirePlanID       string  `json:"fire_plan_id,omitempty"`
+	FireDurationDays int     `json:"fire_duration_days,omitempty"`
+	FireTokens       int64   `json:"fire_tokens,omitempty"`
 }
 
 // TenantProvisioningMode controls what UserService.Register does after it

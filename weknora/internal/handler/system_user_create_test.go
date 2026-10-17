@@ -108,6 +108,18 @@ func TestCreateSystemUserCreatesUserWithExplicitPassword(t *testing.T) {
 	}
 }
 
+func TestCreateSystemUserDoesNotSilentlySkipUnconfiguredFireResources(t *testing.T) {
+	users := &createUserService{}
+	r := createSystemUserRouter(&SystemHandler{userSvc: users}, "admin-user")
+	w := performCreateSystemUser(t, r, map[string]string{"username": "taylor001", "email": "taylor001@example.test", "operation_id": "fire-operation", "fire_plan_id": "plan-one"})
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+	if users.gotReq != nil {
+		t.Fatal("a bare user was created without requested Fire resources")
+	}
+}
+
 func TestCreateSystemUserAutoGeneratesPasswordWhenEmpty(t *testing.T) {
 	users := &createUserService{
 		createdUser: &types.User{ID: "u2", Username: "bob", Email: "bob@example.com"},

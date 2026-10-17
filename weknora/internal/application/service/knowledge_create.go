@@ -630,6 +630,7 @@ func (s *knowledgeService) persistKnowledgeAndEnqueue(
 		questionCount = 3
 	}
 	taskPayload := types.DocumentProcessPayload{
+		Initiator:                types.TaskInitiatorFromContext(ctx),
 		TenantID:                 knowledge.TenantID,
 		KnowledgeID:              knowledge.ID,
 		KnowledgeBaseID:          knowledge.KnowledgeBaseID,
@@ -933,6 +934,7 @@ func (s *knowledgeService) CreateKnowledgeFromURL(ctx context.Context,
 
 	lang := types.LanguageFromContextOrDefault(ctx)
 	taskPayload := types.DocumentProcessPayload{
+		Initiator:                types.TaskInitiatorFromContext(ctx),
 		TenantID:                 tenantID,
 		KnowledgeID:              knowledge.ID,
 		KnowledgeBaseID:          kbID,
@@ -1261,6 +1263,7 @@ func (s *knowledgeService) createKnowledgeFromFileURL(
 
 	lang := types.LanguageFromContextOrDefault(ctx)
 	taskPayload := types.DocumentProcessPayload{
+		Initiator:                types.TaskInitiatorFromContext(ctx),
 		TenantID:                 tenantID,
 		KnowledgeID:              knowledge.ID,
 		KnowledgeBaseID:          kbID,
@@ -1588,6 +1591,7 @@ func (s *knowledgeService) createKnowledgeFromPassageInternal(ctx context.Contex
 
 		lang := types.LanguageFromContextOrDefault(ctx)
 		taskPayload := types.DocumentProcessPayload{
+			Initiator:                types.TaskInitiatorFromContext(ctx),
 			TenantID:                 tenantID,
 			KnowledgeID:              knowledge.ID,
 			KnowledgeBaseID:          kbID,
@@ -1796,6 +1800,7 @@ func (s *knowledgeService) enqueueManualProcessing(ctx context.Context,
 ) (string, error) {
 	requestID, _ := types.RequestIDFromContext(ctx)
 	payload := types.ManualProcessPayload{
+		Initiator:       types.TaskInitiatorFromContext(ctx),
 		RequestId:       requestID,
 		TenantID:        knowledge.TenantID,
 		KnowledgeID:     knowledge.ID,

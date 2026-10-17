@@ -74,12 +74,14 @@ func NewModelResponse(ctx context.Context, m *types.Model) *ModelResponse {
 		AppID:               m.Parameters.AppID,
 	}
 	canManageBuiltin := m.IsBuiltin && types.IsSystemAdminFromContext(ctx)
+	callerTenantID, _ := types.TenantIDFromContext(ctx)
+	foreignManaged := m.TenantID != callerTenantID && !types.IsSystemAdminFromContext(ctx)
 	if !CanViewIntegrationSecrets(ctx) && !canManageBuiltin {
 		params.ExtraConfig = nil
 		params.CustomHeaders = nil
 		params.BaseURL = ""
 	}
-	if m.IsBuiltin && !canManageBuiltin {
+	if (m.IsBuiltin && !canManageBuiltin) || foreignManaged {
 		// Builtin: strip everything that could reveal per-tenant config.
 		// EmbeddingParameters and ParameterSize / Provider / InterfaceType /
 		// SupportsVision are intentionally preserved (they describe the
@@ -90,7 +92,7 @@ func NewModelResponse(ctx context.Context, m *types.Model) *ModelResponse {
 		params.AppID = ""
 	}
 	var creds map[string]CredentialFieldMetadata
-	if !m.IsBuiltin || canManageBuiltin {
+	if (!m.IsBuiltin || canManageBuiltin) && !foreignManaged {
 		creds = map[string]CredentialFieldMetadata{
 			"api_key":    {Configured: m.Parameters.APIKey != ""},
 			"app_secret": {Configured: m.Parameters.AppSecret != ""},

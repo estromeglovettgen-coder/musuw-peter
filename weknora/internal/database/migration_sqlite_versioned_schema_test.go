@@ -16,6 +16,11 @@ import (
 // 000024 creator marketplace billing, 000025 free reviewed products,
 // and 000026 marketplace preview examples.
 var versionedSQLiteTables = []string{
+	"fire_token_plans",
+	"fire_token_memberships",
+	"fire_token_adjustments",
+	"fire_model_calls",
+	"fire_workspace_accounts",
 	"task_pending_ops",
 	"task_dead_letters",
 	"system_settings",
@@ -49,7 +54,7 @@ var versionedSQLiteColumns = map[string][]string{
 	"marketplace_products":   {"sample_conversations"},                                            // 000026
 }
 
-const expectedSQLiteMigrationVersion = 30
+const expectedSQLiteMigrationVersion = 32
 
 func TestSQLiteMigrationsCreateVersionedSchema(t *testing.T) {
 	repoRoot := sqliteRepoRoot(t)

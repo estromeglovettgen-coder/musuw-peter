@@ -290,7 +290,8 @@ func RegisterSystemAdminRoutes(
 		adminRoutes.POST("/revoke", handler.RevokeSystemAdmin)
 		adminRoutes.GET("/list", handler.ListSystemAdmins)
 		adminRoutes.POST("/users/reset-password", handler.ResetUserPassword)
-		adminRoutes.POST("/users/create", handler.CreateSystemUser)
+		g.apiKeyRoute(adminRoutes, http.MethodPost, "/users/create",
+			apiKeyPlatform(types.APIKeyCapabilitySystemTenantsManage), handler.CreateSystemUser)
 		adminRoutes.GET("/api-keys", handler.ListPlatformAPIKeys)
 		adminRoutes.POST("/api-keys", handler.CreatePlatformAPIKey)
 		adminRoutes.DELETE("/api-keys/:key_id", handler.DeletePlatformAPIKey)

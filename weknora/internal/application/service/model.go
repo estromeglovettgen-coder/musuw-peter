@@ -33,6 +33,35 @@ type modelService struct {
 	tenantService    interfaces.TenantService
 	entitlement      interfaces.EntitlementService
 	consumerResolver interfaces.ConsumerModelResolver
+	fireWorkspace    *FireWorkspaceService
+}
+
+func NewModelServiceWithFireWorkspace(repo interfaces.ModelRepository, kbRepo interfaces.KnowledgeBaseRepository,
+	agentRepo interfaces.CustomAgentRepository, ollamaService *ollama.OllamaService, pooler embedding.EmbedderPooler,
+	tenantService interfaces.TenantService, entitlement interfaces.EntitlementService,
+	consumerResolver interfaces.ConsumerModelResolver, fire *FireWorkspaceService) interfaces.ModelService {
+	s := newModelService(repo, kbRepo, agentRepo, ollamaService, pooler, tenantService, entitlement, consumerResolver).(*modelService)
+	s.fireWorkspace = fire
+	return s
+}
+
+// Only read/runtime paths use explicit managed grants. Mutation and credential
+// operations continue querying the native owner-scoped repository directly.
+func (s *modelService) readAccessibleModel(ctx context.Context, tenantID uint64, id string) (*types.Model, error) {
+	model, err := s.repo.GetByID(ctx, tenantID, id)
+	if model != nil && err == nil {
+		return model, nil
+	}
+	if s.fireWorkspace != nil {
+		managed, matched, grantErr := s.fireWorkspace.ResolveManagedModel(ctx, tenantID, id)
+		if grantErr != nil {
+			return nil, grantErr
+		}
+		if matched {
+			return managed, nil
+		}
+	}
+	return model, err
 }
 
 // NewModelService creates a new model service instance
@@ -221,7 +250,7 @@ func (s *modelService) GetModelByID(ctx context.Context, id string) (*types.Mode
 	tenantID := types.MustTenantIDFromContext(ctx)
 
 	// Fetch model from repository
-	model, err := s.repo.GetByID(ctx, tenantID, id)
+	model, err := s.readAccessibleModel(ctx, tenantID, id)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{
 			"model_id":  id,
@@ -278,6 +307,24 @@ func (s *modelService) ListModels(ctx context.Context) ([]*types.Model, error) {
 			"tenant_id": tenantID,
 		})
 		return nil, err
+	}
+	if s.fireWorkspace != nil {
+		managed, grantErr := s.fireWorkspace.ManagedModels(ctx, tenantID)
+		if grantErr != nil {
+			return nil, grantErr
+		}
+		for _, candidate := range managed {
+			exists := false
+			for _, own := range models {
+				if own.ID == candidate.ID {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				models = append(models, candidate)
+			}
+		}
 	}
 	allowedModels := models[:0]
 	for _, model := range models {
@@ -637,7 +684,7 @@ func (s *modelService) GetChatModel(ctx context.Context, modelId string) (chat.C
 	tenantID := types.MustTenantIDFromContext(ctx)
 
 	// Get the model directly from repository to avoid status checks
-	model, err := s.repo.GetByID(ctx, tenantID, modelId)
+	model, err := s.readAccessibleModel(ctx, tenantID, modelId)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{
 			"model_id":  modelId,
@@ -684,7 +731,7 @@ func (s *modelService) GetVLMModel(ctx context.Context, modelId string) (vlm.VLM
 
 	tenantID := types.MustTenantIDFromContext(ctx)
 
-	model, err := s.repo.GetByID(ctx, tenantID, modelId)
+	model, err := s.readAccessibleModel(ctx, tenantID, modelId)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{
 			"model_id":  modelId,
@@ -733,7 +780,7 @@ func (s *modelService) GetASRModel(ctx context.Context, modelId string) (asr.ASR
 
 	tenantID := types.MustTenantIDFromContext(ctx)
 
-	model, err := s.repo.GetByID(ctx, tenantID, modelId)
+	model, err := s.readAccessibleModel(ctx, tenantID, modelId)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{
 			"model_id":  modelId,

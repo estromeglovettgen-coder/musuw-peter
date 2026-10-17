@@ -22,6 +22,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/config"
 	"github.com/Tencent/WeKnora/internal/database"
 	apperrors "github.com/Tencent/WeKnora/internal/errors"
+	"github.com/Tencent/WeKnora/internal/firebilling"
 	"github.com/Tencent/WeKnora/internal/infrastructure/docparser"
 	"github.com/Tencent/WeKnora/internal/logger"
 	modellimiter "github.com/Tencent/WeKnora/internal/models/limiter"
@@ -81,6 +82,8 @@ type SystemHandler struct {
 	sandboxConfigSvc sandboxConfigService
 	// startup snapshot for GET /system/capabilities; bound in router.NewRouter.
 	deploymentCapabilities DeploymentCapabilitiesData
+	fireWorkspace          *service.FireWorkspaceService
+	fireBilling            *firebilling.Service
 }
 
 // NewSystemHandler creates a new system handler
@@ -104,6 +107,8 @@ func NewSystemHandler(cfg *config.Config,
 	deadLetterRepo interfaces.TaskDeadLetterRepository,
 	modelRepo interfaces.ModelRepository,
 	sandboxConfigSvc *service.TenantSandboxConfigService,
+	fireWorkspace *service.FireWorkspaceService,
+	fireBilling *firebilling.Service,
 ) *SystemHandler {
 	return &SystemHandler{
 		cfg:                cfg,
@@ -126,6 +131,8 @@ func NewSystemHandler(cfg *config.Config,
 		deadLetterRepo:     deadLetterRepo,
 		modelRepo:          modelRepo,
 		sandboxConfigSvc:   sandboxConfigSvc,
+		fireWorkspace:      fireWorkspace,
+		fireBilling:        fireBilling,
 	}
 }
 
@@ -1774,7 +1781,8 @@ type CreateSystemUserResponse struct {
 	User *types.UserInfo `json:"user"`
 	// GeneratedPassword is the plaintext password when the server
 	// auto-generated one. Absent when the caller supplied the password.
-	GeneratedPassword string `json:"generated_password,omitempty"`
+	GeneratedPassword string              `json:"generated_password,omitempty"`
+	Membership        *firebilling.Status `json:"membership,omitempty"`
 }
 
 // CreateSystemUser godoc
@@ -1806,6 +1814,14 @@ func (h *SystemHandler) CreateSystemUser(c *gin.Context) {
 	}
 	req.Username = secutils.SanitizeForLog(strings.TrimSpace(req.Username))
 	req.Email = secutils.SanitizeForLog(strings.TrimSpace(req.Email))
+	if h.fireWorkspace != nil && h.fireWorkspace.Enabled() {
+		h.createFireAccount(c, ctx, &req)
+		return
+	}
+	if req.OperationID != "" || req.FirePlanID != "" || req.FireDurationDays != 0 || req.FireTokens != 0 {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "火种开户资源尚未配置，未创建账号"})
+		return
+	}
 	// Password is intentionally NOT trimmed or sanitized.
 	if req.Username == "" || req.Email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username and email are required"})

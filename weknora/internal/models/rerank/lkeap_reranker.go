@@ -3,6 +3,8 @@ package rerank
 import (
 	"context"
 	"fmt"
+	"github.com/Tencent/WeKnora/internal/models/tokenmeter"
+	"net/http"
 	"strings"
 	"unicode/utf8"
 
@@ -60,6 +62,7 @@ func NewLKEAPReranker(config *RerankerConfig) (*LKEAPReranker, error) {
 		return nil, fmt.Errorf("create LKEAP client: %w", err)
 	}
 
+	client.WithHttpTransport(tokenmeter.Wrap(http.DefaultTransport, "rerank"))
 	modelName := strings.TrimSpace(config.ModelName)
 	if modelName == "" {
 		modelName = LKEAPDefaultRerankModel

@@ -61,6 +61,8 @@ describe("auth shell localized copy", () => {
     expect(html).toContain('class="fire-auth-showcase"');
     expect(html).toContain('src="/brand/fire-mark-256.png"');
     expect(html).toContain('name="email"');
+    expect(html).toContain('type="text"');
+    expect(html).toMatch(/Username or email|用户名或邮箱/);
     expect(html).toContain('name="password"');
     expect(html).toContain('type="submit"');
     expect(html).not.toContain("auth-forgot");

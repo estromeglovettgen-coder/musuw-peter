@@ -45,6 +45,18 @@ func TestModelResponse_OmitsSecrets(t *testing.T) {
 	assert.Contains(t, s, `"display_name":"Support QA"`)
 }
 
+func TestModelResponse_ForeignManagedGrantNeverExposesProviderConfigurationToOwner(t *testing.T) {
+	ctx := context.WithValue(ownerContext(), types.TenantIDContextKey, uint64(42))
+	model := &types.Model{ID: "source-model", TenantID: 100, Parameters: types.ModelParameters{APIKey: "source-key", BaseURL: "https://private-gateway.test", AppID: "private-app", CustomHeaders: map[string]string{"X-Private": "secret"}, ExtraConfig: map[string]string{"secret": "value"}}}
+	response := NewModelResponse(ctx, model)
+	body, err := json.Marshal(response)
+	require.NoError(t, err)
+	for _, forbidden := range []string{"source-key", "private-gateway", "private-app", "X-Private", "secret"} {
+		require.NotContains(t, string(body), forbidden)
+	}
+	require.Nil(t, response.Credentials)
+}
+
 func TestModelResponse_BuiltinStripsTenantConfig(t *testing.T) {
 	m := &types.Model{
 		ID:        "builtin-1",

@@ -101,6 +101,7 @@ func NewChunkExtractTask(
 		return false, nil
 	}
 	taskPayload := types.ExtractChunkPayload{
+		Initiator:   types.TaskInitiatorFromContext(ctx),
 		TenantID:    tenantID,
 		ChunkID:     chunkID,
 		ModelID:     modelID,
@@ -134,6 +135,7 @@ func NewDataTableSummaryTask(
 	embeddingModel string,
 ) error {
 	taskPayload := DataTableSummaryPayload{
+		Initiator:      types.TaskInitiatorFromContext(ctx),
 		TenantID:       tenantID,
 		KnowledgeID:    knowledgeID,
 		SummaryModel:   summaryModel,
@@ -232,6 +234,7 @@ func (s *ChunkExtractService) Handle(ctx context.Context, t *asynq.Task) error {
 	ctx = logger.WithRequestID(ctx, uuid.New().String())
 	ctx = logger.WithField(ctx, "extract", p.ChunkID)
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, p.TenantID)
+	ctx = p.Initiator.Apply(ctx)
 
 	// A newer attempt (re-upload / edit / reparse) has superseded this one:
 	// skip before opening the span or registering the FinalizeSubtask defer.
@@ -425,6 +428,7 @@ func (s *ChunkExtractService) Handle(ctx context.Context, t *asynq.Task) error {
 
 // DataTableExtractPayload represents the table extract task payload
 type DataTableSummaryPayload struct {
+	Initiator types.TaskInitiator `json:"initiator,omitempty"`
 	types.TracingContext
 	TenantID       uint64 `json:"tenant_id"`
 	KnowledgeID    string `json:"knowledge_id"`
@@ -486,6 +490,7 @@ func (s *DataTableSummaryService) Handle(ctx context.Context, t *asynq.Task) err
 	ctx = logger.WithRequestID(ctx, uuid.New().String())
 	ctx = logger.WithField(ctx, "knowledge", payload.KnowledgeID)
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 
 	logger.Infof(ctx, "Processing table extraction for knowledge: %s", payload.KnowledgeID)
 

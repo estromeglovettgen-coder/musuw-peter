@@ -972,7 +972,7 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
         ) : screen === "login" ? (
           <form className="auth-form" key="password-login" noValidate onSubmit={(event) => void signInWithPassword(event)}>
             <div className="auth-field-group">
-              <label htmlFor="email">{copy.email}</label>
+              <label htmlFor="email">{passwordOnly ? (locale === "zh-CN" ? "用户名或邮箱" : "Username or email") : copy.email}</label>
               <input
                 aria-describedby={error === copy.errors.invalidEmail ? "auth-error" : undefined}
                 aria-invalid={error === copy.errors.invalidEmail}
@@ -983,9 +983,9 @@ export function AuthApp({ runtime, passwordOnly = false }: Readonly<{ runtime: A
                   setEmail(event.target.value);
                   if (error !== null) setError(null);
                 }}
-                placeholder={copy.emailPlaceholder}
+                placeholder={passwordOnly ? (locale === "zh-CN" ? "输入用户名或邮箱" : "Enter your username or email") : copy.emailPlaceholder}
                 required
-                type="email"
+                type={passwordOnly ? "text" : "email"}
                 value={email}
               />
             </div>

@@ -84,6 +84,7 @@ func (s *KnowledgePostProcessService) Handle(ctx context.Context, task *asynq.Ta
 	logger.Infof(ctx, "[KnowledgePostProcess] Orchestrating post processing for knowledge: %s", payload.KnowledgeID)
 
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -511,6 +512,7 @@ func (s *KnowledgePostProcessService) enqueueAutoTagTask(
 		return false
 	}
 	taskPayload := types.KnowledgeAutoTagPayload{
+		Initiator:       types.TaskInitiatorFromContext(ctx),
 		TenantID:        payload.TenantID,
 		KnowledgeBaseID: payload.KnowledgeBaseID,
 		KnowledgeID:     payload.KnowledgeID,
@@ -542,6 +544,7 @@ func (s *KnowledgePostProcessService) enqueueSummaryGenerationTask(ctx context.C
 	}
 
 	taskPayload := types.SummaryGenerationPayload{
+		Initiator:       types.TaskInitiatorFromContext(ctx),
 		TenantID:        payload.TenantID,
 		KnowledgeBaseID: payload.KnowledgeBaseID,
 		KnowledgeID:     payload.KnowledgeID,
@@ -626,6 +629,7 @@ func (s *KnowledgePostProcessService) enqueueQuestionGenerationTasks(
 		}
 
 		taskPayload := types.QuestionGenerationPayload{
+			Initiator:       types.TaskInitiatorFromContext(ctx),
 			TenantID:        payload.TenantID,
 			KnowledgeBaseID: payload.KnowledgeBaseID,
 			KnowledgeID:     payload.KnowledgeID,

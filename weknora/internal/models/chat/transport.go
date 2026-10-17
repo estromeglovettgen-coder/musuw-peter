@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/models/tokenmeter"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -53,7 +54,7 @@ var rawHTTPTransport = &http.Transport{
 	MaxIdleConnsPerHost: 5,
 }
 
-var rawHTTPClient = secutils.NewSSRFSafeHTTPClientWithTransport(
+var rawHTTPClient = tokenmeter.Client(secutils.NewSSRFSafeHTTPClientWithTransport(
 	secutils.SSRFSafeHTTPClientConfig{Timeout: 0, MaxRedirects: 10},
 	rawHTTPTransport,
-)
+), "chat")

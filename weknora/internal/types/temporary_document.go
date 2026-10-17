@@ -87,8 +87,9 @@ type TemporaryDocumentImage struct {
 }
 
 type TemporaryDocumentTaskPayload struct {
-	TenantID   uint64 `json:"tenant_id"`
-	DocumentID string `json:"document_id"`
+	TenantID   uint64        `json:"tenant_id"`
+	DocumentID string        `json:"document_id"`
+	Initiator  TaskInitiator `json:"initiator,omitempty"`
 }
 
 type TemporaryDocumentCreateOptions struct {

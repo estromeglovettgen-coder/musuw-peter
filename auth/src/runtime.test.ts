@@ -754,6 +754,17 @@ describe("Supabase to WeKnora authorization continuation", () => {
 });
 
 describe("password identity continuation", () => {
+  it("accepts a username only for the native password service", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async (_url, init) => {
+      expect(JSON.parse(String(init?.body))).toEqual({ email: "Taylor001", password: " PlainPass9 " });
+      return response({ success: true, token: "native-access", refresh_token: "native-refresh" });
+    });
+    const runtime = createAuthRuntime({ localMusuwPasswordAuth: true, nativeStorage: storage(), storage: storage(),
+      location: { origin: "https://62.234.188.55", assign: vi.fn() }, fetch });
+    await expect(runtime.signInWithPassword(" Taylor001 ", " PlainPass9 ")).resolves.toEqual({ state: "identity_complete" });
+    const hosted = runtimeFor(identity()).runtime;
+    await expect(hosted.signInWithPassword("Taylor001", "PlainPass9")).resolves.toEqual({ code: "email_invalid", state: "identity_error" });
+  });
   it("uses the private server account API without any hosted identity configuration", async () => {
     const assigned = vi.fn();
     const nativeStore = storage();

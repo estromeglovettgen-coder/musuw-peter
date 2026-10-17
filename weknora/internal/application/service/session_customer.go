@@ -25,7 +25,17 @@ func (s *sessionService) resolveCustomerKnowledge(ctx context.Context, req *type
 			continue
 		}
 		shared, e := s.knowledgeBaseService.GetKnowledgeBaseByID(ctx, sharedID)
-		if e == nil && shared != nil && shared.CustomerProfile == nil && !shared.IsTemporary && shared.TenantID == req.Session.TenantID {
+		if e != nil || shared == nil || shared.CustomerProfile != nil || shared.IsTemporary {
+			continue
+		}
+		canRead := shared.TenantID == req.Session.TenantID
+		if !canRead && s.kbShareService != nil {
+			canRead, e = s.kbShareService.HasTenantKBPermission(ctx, sharedID, req.Session.TenantID, types.TenantRoleFromContext(ctx), types.OrgRoleViewer)
+			if e != nil {
+				return nil, nil, e
+			}
+		}
+		if canRead {
 			allowed[sharedID] = true
 			ids = append(ids, sharedID)
 		}

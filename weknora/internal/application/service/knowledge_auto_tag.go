@@ -114,6 +114,7 @@ func (s *KnowledgeAutoTagService) Handle(ctx context.Context, task *asynq.Task) 
 		return fmt.Errorf("unmarshal knowledge auto tag payload: %w", err)
 	}
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}

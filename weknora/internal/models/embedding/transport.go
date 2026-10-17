@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/models/tokenmeter"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -35,5 +36,5 @@ func validateEmbeddingBaseURL(baseURL string) error {
 func newEmbeddingHTTPClient(timeout time.Duration) *http.Client {
 	cfg := secutils.DefaultSSRFSafeHTTPClientConfig()
 	cfg.Timeout = timeout
-	return secutils.NewSSRFSafeHTTPClientWithTransport(cfg, sharedEmbeddingHTTPTransport)
+	return tokenmeter.Client(secutils.NewSSRFSafeHTTPClientWithTransport(cfg, sharedEmbeddingHTTPTransport), "embedding")
 }

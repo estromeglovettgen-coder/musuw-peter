@@ -135,6 +135,7 @@ func enqueueSummaryRefresh(
 	}
 	language := types.LanguageFromContextOrDefault(ctx)
 	payload := types.SummaryGenerationPayload{
+		Initiator:       types.TaskInitiatorFromContext(ctx),
 		TenantID:        knowledge.TenantID,
 		KnowledgeBaseID: knowledge.KnowledgeBaseID,
 		KnowledgeID:     knowledge.ID,

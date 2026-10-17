@@ -1016,12 +1016,15 @@ export function createAuthRuntime(options: RuntimeOptions) {
     },
 
     async signInWithPassword(emailInput: string, password: string): Promise<IdentityCompletionView> {
+      if (options.localMusuwPasswordAuth === true) {
+        const identifier = emailInput.trim();
+        if (identifier === "" || identifier.length > 255) return identityError("email_invalid");
+        if (password === "") return identityError("password_invalid");
+        return signInToLocalMusuw(identifier.includes("@") ? identifier.toLowerCase() : identifier, password);
+      }
       const email = normalizeEmailAddress(emailInput);
       if (email === null) return identityError("email_invalid");
       if (password === "") return identityError("password_invalid");
-      if (options.localMusuwPasswordAuth === true) {
-        return signInToLocalMusuw(email, password);
-      }
       try {
         const result = await withinRequestDeadline(
           identity().signInWithPassword({ email, password }),

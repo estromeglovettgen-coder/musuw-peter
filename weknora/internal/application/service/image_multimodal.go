@@ -150,6 +150,7 @@ func (s *ImageMultimodalService) Handle(ctx context.Context, task *asynq.Task) e
 		payload.ChunkID, payload.ImageURL, payload.EnableOCR, payload.EnableCaption)
 
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}
@@ -761,6 +762,7 @@ func (s *ImageMultimodalService) enqueueKnowledgePostProcessTask(ctx context.Con
 	}
 
 	taskPayload := types.KnowledgePostProcessPayload{
+		Initiator:       types.TaskInitiatorFromContext(ctx),
 		TenantID:        payload.TenantID,
 		KnowledgeID:     payload.KnowledgeID,
 		KnowledgeBaseID: payload.KnowledgeBaseID,

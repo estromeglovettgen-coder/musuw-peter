@@ -145,6 +145,9 @@ func NewCustomAgentService(
 
 // CreateAgent creates a new custom agent
 func (s *customAgentService) CreateAgent(ctx context.Context, agent *types.CustomAgent) (*types.CustomAgent, error) {
+	if agent.ID == types.FireDefaultAgentID {
+		return nil, ErrCannotModifyBuiltin
+	}
 	// Validate required fields
 	if strings.TrimSpace(agent.Name) == "" {
 		return nil, ErrAgentNameRequired
@@ -359,6 +362,9 @@ func (s *customAgentService) ListAgents(ctx context.Context) ([]*types.CustomAge
 
 // UpdateAgent updates an agent's information
 func (s *customAgentService) UpdateAgent(ctx context.Context, agent *types.CustomAgent) (*types.CustomAgent, error) {
+	if agent.ID == types.FireDefaultAgentID && !types.IsSystemAdminFromContext(ctx) {
+		return nil, ErrCannotModifyBuiltin
+	}
 	if agent.ID == "" {
 		logger.Error(ctx, "Agent ID is empty")
 		return nil, errors.New("agent ID cannot be empty")
@@ -522,6 +528,9 @@ func (s *customAgentService) updateBuiltinAgent(ctx context.Context, agent *type
 
 // DeleteAgent deletes an agent
 func (s *customAgentService) DeleteAgent(ctx context.Context, id string) error {
+	if id == types.FireDefaultAgentID && !types.IsSystemAdminFromContext(ctx) {
+		return ErrCannotDeleteBuiltin
+	}
 	if id == "" {
 		logger.Error(ctx, "Agent ID is empty")
 		return errors.New("agent ID cannot be empty")

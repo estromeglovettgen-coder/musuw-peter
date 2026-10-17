@@ -147,6 +147,7 @@ func (s *Service) enqueueExtraction(
 	delay time.Duration,
 ) {
 	payload := types.MemoryExtractPayload{
+		Initiator:   types.TaskInitiatorFromContext(ctx),
 		TenantID:    scope.TenantID,
 		SubjectID:   scope.SubjectID,
 		SessionID:   sessionID,
@@ -262,6 +263,7 @@ func (s *Service) Handle(ctx context.Context, task *asynq.Task) error {
 	// downstream repository filters on, and the model service reads it from
 	// the context to pick the workspace's model.
 	ctx = context.WithValue(ctx, types.TenantIDContextKey, payload.TenantID)
+	ctx = payload.Initiator.Apply(ctx)
 	if payload.Language != "" {
 		ctx = context.WithValue(ctx, types.LanguageContextKey, payload.Language)
 	}

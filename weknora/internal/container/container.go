@@ -66,6 +66,7 @@ import (
 	rssConnector "github.com/Tencent/WeKnora/internal/datasource/connector/rss"
 	yuqueConnector "github.com/Tencent/WeKnora/internal/datasource/connector/yuque"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/firebilling"
 	"github.com/Tencent/WeKnora/internal/handler"
 	"github.com/Tencent/WeKnora/internal/handler/session"
 	imPkg "github.com/Tencent/WeKnora/internal/im"
@@ -207,6 +208,9 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	logger.Debugf(ctx, "[Container] Registering business services...")
 	must(container.Provide(service.NewTenantService))
 	must(container.Provide(service.NewEntitlementService))
+	must(container.Provide(newFireBillingService))
+	// Install accounting before schedulers and async workers can issue inference.
+	must(container.Invoke(func(*firebilling.Service) {}))
 	must(container.Provide(service.NewMarketplaceService))
 	must(container.Provide(service.NewTenantAPIKeyService))
 	must(container.Provide(service.NewTenantMemberService))
@@ -223,7 +227,8 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(service.NewKnowledgeTagService))
 	must(container.Provide(embedding.NewBatchEmbedder))
 	must(container.Provide(service.NewConsumerModelResolver))
-	must(container.Provide(service.NewModelServiceWithConsumerResolver))
+	must(container.Provide(service.NewFireWorkspaceService))
+	must(container.Provide(service.NewModelServiceWithFireWorkspace))
 	must(container.Provide(service.NewDatasetService))
 	must(container.Provide(service.NewEvaluationService))
 	must(container.Provide(service.NewUserService))
@@ -375,6 +380,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	// Account erasure recovery resolves marketplace billing before HTTP handlers
 	// are registered, so its shared Paddle transport must already be provided.
 	must(container.Provide(handler.NewEntitlementHandler))
+	must(container.Provide(handler.NewFireBillingHandler))
 	must(container.Provide(handler.NewMarketplacePaymentGateway))
 	must(container.Provide(service.NewHousekeepingService))
 	must(container.Invoke(configureAccountErasureRecovery))
