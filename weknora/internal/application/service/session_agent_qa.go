@@ -10,6 +10,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/models/rerank"
+	"github.com/Tencent/WeKnora/internal/sandbox"
 	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
@@ -339,6 +340,13 @@ func (s *sessionService) buildAgentConfig(
 		)
 	}
 	agentConfig.TenantSkills = tenantSkills
+	// The deployment-default Docker backend still runs preloaded skills through
+	// the native host-upload path. Named configs must keep their own image-only
+	// catalog, including when an existing session pin overrides the agent.
+	if agentConfig.SkillsEnabled && skillConfigID == types.SandboxConfigIDGlobalDefault &&
+		s.sandboxMgr != nil && s.sandboxMgr.GetType() == sandbox.SandboxTypeDocker {
+		agentConfig.SkillDirs = []string{getPreloadedSkillsDir()}
+	}
 	if len(tenantSkills) > 0 {
 		// The config named here is the one the skills came from, which is the
 		// pinned one whenever it differs from the agent's - the only case the
@@ -617,9 +625,9 @@ func dedupPreservingOrder(values []string) []string {
 }
 
 // configureSkillsFromAgent turns the agent's skill picker into runtime flags.
-// The skills themselves come from the sandbox image (TenantSkills), not from
-// the deployment's skills/preloaded directory — that host copy is not what
-// execute_skill_script would find inside the sandbox.
+// Named sandbox skills come from the installed image (TenantSkills). The
+// deployment-default Docker compatibility catalog is resolved after the
+// effective session pin is known in buildAgentConfig.
 func (s *sessionService) configureSkillsFromAgent(
 	ctx context.Context,
 	agentConfig *types.AgentConfig,
