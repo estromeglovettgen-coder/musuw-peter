@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "checks": [
+    "1440px: no model text/tooltips or model/agent picker; actual native max/off/low state changes preserve Taylor and official Flash",
+    "390px: no model text/tooltips or model/agent picker; actual native max/off/low state changes preserve Taylor and official Flash",
+    "English homepage retains depth-only presentation without provider names",
+    "Actual native low-depth request streams successfully using Taylor, official deepseek-flash alias and the course KB; saved session preserves same model/depth",
+    "Model credentials/config, agents, prompt catalog, course Wiki/graph resources unchanged; zero pageerrors"
+  ],
+  "errors": [],
+  "session_id": "5a760092-7201-4ed9-898b-c2a821733d47",
+  "model_alias": "deepseek-flash",
+  "official_version": "DeepSeek-V4.1-Flash-1017",
+  "version_authority": "https://api-docs.deepseek.com/zh-cn/updates/",
+  "model_database_changed": false,
+  "reasoning_effort": "low",
+  "answer_characters": 69
+}

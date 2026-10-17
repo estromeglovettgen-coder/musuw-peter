@@ -1,0 +1,27 @@
+{
+  "released": "/opt/musuw-peter/releases/20261017-fire-11",
+  "index_sha256": "01259009c5eb861c3045c3049e1db7188a5057d7f532a189b152952901a91f81",
+  "immutable_assets_shared": 1975,
+  "backend_unchanged": true,
+  "health": true,
+  "rollback": "/opt/musuw-peter/releases/20261017-fire-10",
+  "source_commit": "7cb1c24",
+  "typed_build": "passed",
+  "controller_and_model_regressions": "59/59",
+  "selector_regressions": "43/43",
+  "browser_fixture": {
+    "peter": 3,
+    "other_profile": 1
+  },
+  "model_routing": {
+    "actual_model_id": "97df96d2-ff97-4764-b2ef-c978fff90666",
+    "actual_provider": "deepseek",
+    "actual_model_alias": "deepseek-flash",
+    "actual_base_url": "https://api.deepseek.com/v1",
+    "version": "DeepSeek-V4.1-Flash-1017",
+    "version_authority": "https://api-docs.deepseek.com/zh-cn/updates/",
+    "reasoning_authority": "https://api-docs.deepseek.com/guides/thinking_mode/",
+    "database_changed": false,
+    "reason": "Official deepseek-flash alias was already configured and automatically serves the October 17 update; no credentials or other model routes changed."
+  }
+}

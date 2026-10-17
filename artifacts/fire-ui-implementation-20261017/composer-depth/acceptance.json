@@ -1,0 +1,48 @@
+{
+  "scope": "Peter composer uses existing native reasoning picker only; all other profiles keep full native agent/model picker.",
+  "production_files": [
+    "weknora/frontend/src/components/Input-field.vue",
+    "weknora/frontend/src/components/ModelSelector.vue"
+  ],
+  "test_files": [
+    "weknora/frontend/src/components/Input-field.agent-switch.test.mjs",
+    "weknora/frontend/src/components/Input-field.marketplace-navigation.test.ts",
+    "e2e/composer-depth.spec.ts",
+    "playwright.composer-depth.config.ts",
+    "weknora/frontend/e2e/composer-depth-harness.html",
+    "weknora/frontend/e2e/composer-depth-harness.ts"
+  ],
+  "verification": {
+    "peter_browser": {
+      "exit_code": 0,
+      "passed": 3,
+      "skipped_other_profile": 1,
+      "seconds": 5.0
+    },
+    "standard_browser": {
+      "exit_code": 0,
+      "passed": 1,
+      "skipped_peter": 3,
+      "seconds": 3.7
+    },
+    "related_regressions": {
+      "exit_code": 0,
+      "passed": 43
+    },
+    "diff_check": {
+      "exit_code": 0
+    }
+  },
+  "acceptance": [
+    "Peter desktop and 390px show only native reasoning label and current effort, including none.",
+    "No model/agent names in visible composer or rendered title/aria-label attributes.",
+    "Native reasoning options include Off only when current model supports disabling reasoning.",
+    "Real Pinia state changes from high to max to none to low, while selected agent and model remain unchanged.",
+    "Keyboard Escape closes depth-only popup and restores capsule focus.",
+    "Non-Peter retains original three-row agent/model/reasoning overview.",
+    "No browser pageerrors during tested Peter interactions."
+  ],
+  "isolation": "API responses are local fixtures; no model generation or business data writes. Fixture model name is deliberately visible for non-Peter and hidden for Peter. Parent verifies official online model alias.",
+  "visual_review": "Desktop and 390px screenshots inspected: native picker fits viewport without overflow, matches existing dark component styling.",
+  "not_claimed": "Parent owns unified type/build and online release/API validation; these tests exercise native components and real Pinia with deterministic mocked network."
+}

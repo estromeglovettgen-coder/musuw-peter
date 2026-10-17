@@ -26,3 +26,16 @@
 - 32 项生效提示词及默认值、模式预设均无 Peter 身份，用户自定义规则及变量保留。泰勒只改系统提示词，其余 55 项配置一致。95 份课程文档、358 个图谱节点、1203 条边保持原状。
 
 证据见 [线上验收](../artifacts/fire-ui-implementation-20261017/taylor-default/online-acceptance.json) 和 [发布记录](../artifacts/fire-ui-implementation-20261017/taylor-default/release.json)。未宣称全库测试全部通过：3 份基线指纹验证为 11/13，剩余两项是既有 ChatIndex 锁值过时，本次未修改其源码或掩盖旧锁。列表 API 包含 `creator_name`、详情 API 不含该展示字段，线上测试已校正为详情快照比对；无需额外模型调用。
+
+
+## 首页仅选择思考深度（2026-10-17 后续发布）
+
+当前前端为 `20261017-fire-11`，源码提交 `7cb1c24`，入口 SHA256 `01259009c5eb861c3045c3049e1db7188a5057d7f532a189b152952901a91f81`。后端镜像和容器保持本页前一轮 Taylor 发布原值。
+
+Peter 聊天输入区的胶囊仅显示「推理强度 · 当前档位」，点击直接进入原生深度菜单，没有模型/智能体选择、返回上层菜单或模型名称 tooltip/ARIA。沿用服务器元数据支持的低、高、最高、关闭，其他产品仍使用原来的完整选择器，智能体编辑配置不变。新全局对话使用本账号原生智能体的配置模型，忽略过期浏览器模型偏好；历史恢复、嵌入式对话和其他产品保留原来的模型。
+
+实际模型已配置为官方 `https://api.deepseek.com/v1` 的 `deepseek-flash`。官方 [10月17日更新](https://api-docs.deepseek.com/zh-cn/updates/) 说明该别名自动对应 DeepSeek-V4.1-Flash-1017，因此不杜撰一个日期模型 ID，也不修改凭证、解析模型或现有模型数据。
+
+验收：59 项 controller/模型/默认选择回归、43 项选择器相关回归、3 项 Peter 浏览器与 1 项其他产品浏览器测试通过，类型检查及正式构建通过。线上 1440px/390px 和英文页面均没有模型名称泄漏；选择最高、关闭、低实际改变原生状态，模型与智能体保持正确。一次真实低深度问题的请求与持久化会话均记录 Taylor、官方 Flash 模型和 low；返回正常回答。模型配置、智能体、系统提示词和课程 Wiki/图谱快照一致，0 个浏览器 pageerror。
+
+[线上验收](../artifacts/fire-ui-implementation-20261017/composer-depth/online-acceptance.json) · [发布及模型路由记录](../artifacts/fire-ui-implementation-20261017/composer-depth/release.json)。回滚前端可切回 fire-10；本轮未重启或修改后端。前文记录的两项旧 ChatIndex 基线锁不属于这次变更，未改动。
