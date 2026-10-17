@@ -1,0 +1,90 @@
+{
+  "accepted_at": "2026-10-17T17:08:23.423397+00:00",
+  "origin": "https://62.234.188.55",
+  "backend": "musuw-peter:20261017-membership-02",
+  "backend_commit": "9570ae2",
+  "backend_binary_sha256": "214e6d47e955766a393bbde75366c31fa2b6fddb673def40ba74d238051649c0",
+  "frontend_release": "20261017-fire-12",
+  "migration": 113,
+  "real_api_scenarios": [
+    {
+      "name": "Native username login, independent tenants, default credentials, atomic account replay and conflict rejection",
+      "at": "2026-10-17T16:36:22.658Z"
+    },
+    {
+      "name": "Invalid plan atomically rolls back the entire account without an orphan user",
+      "at": "2026-10-17T16:36:22.758Z"
+    },
+    {
+      "name": "Each user receives local Taylor plus the same native read-only course; admin mutations and source model secrets are denied",
+      "at": "2026-10-17T16:36:23.503Z"
+    },
+    {
+      "name": "Targets, conversations and messages stay private; insufficient allowance blocks a provider call without charging",
+      "at": "2026-10-17T16:36:24.372Z"
+    },
+    {
+      "name": "A short natural-language question with the real @course answers through local Taylor and settles user Token usage",
+      "at": "2026-10-17T16:36:42.053Z",
+      "tokens": 61838
+    },
+    {
+      "name": "An own Markdown file passes the real document→summary→embedding pipeline and bills its actual initiator",
+      "at": "2026-10-17T16:36:48.476Z",
+      "tokens": 1440
+    },
+    {
+      "name": "Top-up, suspend/resume, renewal, invalid mutation rollback and idempotent/conflicting retries preserve exact balances",
+      "at": "2026-10-17T16:36:49.445Z"
+    },
+    {
+      "name": "A truly expired test account cannot generate; native renewal and replay restore exactly one allowance period",
+      "at": "2026-10-17T16:40:41.858Z"
+    },
+    {
+      "name": "Native administrator password recovery revokes existing sessions and restores username login",
+      "at": "2026-10-17T16:54:34.560Z"
+    },
+    {
+      "name": "Real native read_skill plus execute_skill_script runs preloaded analyzer successfully: sum 60 and mean 20",
+      "at": "2026-10-17T17:02:53.182Z"
+    },
+    {
+      "name": "A scoped short-lived native platform key completes administrator Markdown summary/vector maintenance without charging the user, then is revoked and rejected",
+      "at": "2026-10-17T17:03:32.192Z"
+    },
+    {
+      "name": "Native default-agent copy can save full global-sandbox configuration; protected Taylor still rejects edits",
+      "at": "2026-10-17T17:03:40.812Z"
+    },
+    {
+      "name": "Only this run’s disposable sessions, targets and accounts were deleted/requested for erasure; own plan deactivated",
+      "at": "2026-10-17T17:04:36.020Z"
+    }
+  ],
+  "disposable_account_cleanup": true,
+  "credentials_or_raw_responses_included": false,
+  "real_browser_scope": "existing administrator homepage and membership console; ordinary-user UI separately covered by 21 DOM fixture journeys",
+  "existing_frontend_baseline_failures": "two pre-existing ChatIndex hash assertions left intact",
+  "remaining_limits": [
+    "Provider usage missing: explicitly estimated Tokens; interrupted requests may conservatively settle reservation.",
+    "40 GB server system disk has approximately 2.3 GB free; expand before large attachment growth."
+  ],
+  "protected_source_snapshot_comparison": {
+    "documents": 95,
+    "document_chunks": 2346,
+    "wiki_pages": 358,
+    "wiki_outgoing_links": 1203,
+    "all_stable_content_hashes_equal": true,
+    "snapshot_restored_only_to_disposable_database": true,
+    "temporary_database_dropped_and_verified": true
+  },
+  "production_browser_check": "production-browser.txt",
+  "default_plan": {
+    "name": "标准套餐",
+    "duration_days": 30,
+    "tokens": 1000000,
+    "editable": true,
+    "automatic_payment": false
+  }
+}

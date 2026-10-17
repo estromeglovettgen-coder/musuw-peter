@@ -1,0 +1,7 @@
+2026-10-17, real Chrome browser, Beijing production membership02 / fire12.
+Observed with native accessibility and screenshot:
+- /platform/manage: overview 4 users, user table 4, no disposable accounts, zero active/reserved usage after native fixture erasure.
+- New account form: blank optional username/email/password, enabled standard plan selected, override day/token fields, cancel closes form. No user account was created through this read-only UI check.
+- /platform/creatChat: I am Taylor, native authorized course already @-selected; capsule says Taylor and depth only. Expanded menu exposes agent and reasoning-depth controls and no model/provider labels.
+- Existing administrator session preserved, management console left open.
+Ordinary-user component states and interaction checks are separate local DOM fixtures; real multi-user account/model/permission/usage checks are production API evidence.

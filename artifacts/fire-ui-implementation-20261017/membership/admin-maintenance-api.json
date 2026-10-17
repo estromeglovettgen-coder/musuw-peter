@@ -1,0 +1,38 @@
+{
+  "accepted": true,
+  "origin": "https://62.234.188.55",
+  "backend_release": "membership02",
+  "source": "9570ae2",
+  "fixture": "existing disposable A target only; A/B accounts retained",
+  "capabilities": [
+    "system_tenants_manage",
+    "ingest",
+    "retrieve"
+  ],
+  "knowledge_base_scope_count": 1,
+  "full_access": false,
+  "ttl_seconds": 900,
+  "scope_checks": {
+    "allowed_target": 200,
+    "other_fixture_target": 403,
+    "source_course": 403
+  },
+  "document": {
+    "parse": "completed",
+    "summary": "completed",
+    "pending": 0
+  },
+  "chunk_count": 1,
+  "vector_only_matches": 2,
+  "vector_match_types": [
+    0
+  ],
+  "user_allowance_delta": {
+    "used_tokens": 0,
+    "reserved_tokens": 0
+  },
+  "temporary_key_revoked": true,
+  "revoked_credential_probe_http": 401,
+  "completed_at": "2026-10-17T17:03:32.192Z",
+  "changes_to_existing_account_permissions": false
+}

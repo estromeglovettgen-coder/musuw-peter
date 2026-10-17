@@ -18,7 +18,7 @@
 
 ## 4. Commercial acceptance and release
 
-- [ ] 4.1 Consolidated adversarial review, focused regression, typed builds and migrations
-- [ ] 4.2 Real two-account normal/abnormal/recovery journeys and concurrent quota/adjustment tests
-- [ ] 4.3 Snapshot Beijing data/config, deploy verified release, test actual model usage and protect existing KB/user data
-- [ ] 4.4 Operator documentation, release evidence and complete checklist before goal completion
+- [x] 4.1 Consolidated adversarial review, focused regression, typed builds and migrations
+- [x] 4.2 Real two-account normal/abnormal/recovery journeys and concurrent quota/adjustment tests
+- [x] 4.3 Snapshot Beijing data/config, deploy verified release, test actual model usage and protect existing KB/user data
+- [x] 4.4 Operator documentation, release evidence and complete checklist before goal completion

@@ -1,0 +1,31 @@
+{
+  "accepted": true,
+  "snapshot_sha256": "613202aa926194e6353ad025dacd7dcd3b94679bad38090c215cbbaf24b99839",
+  "isolated_restore_verified": true,
+  "matches": {
+    "wiki": true,
+    "documents": true,
+    "document_chunks": true,
+    "out_links_total": true
+  },
+  "production": {
+    "wiki": {
+      "count": 358,
+      "sha256": "9cb0e107fcfdc3cb320c91406e3f3f5698dcde4c30bfd3df604791bb96636f32",
+      "bytes_compared": 563126
+    },
+    "documents": {
+      "count": 95,
+      "sha256": "5f07d55b9393bbc6a7de6582e94c2be77e29de8116e489d557b4a5ed37dc44f9",
+      "bytes_compared": 2583542
+    },
+    "document_chunks": {
+      "count": 2346,
+      "sha256": "2fac0a717b7ab96e6a6a40406ef6808916fe903585923058cfd529d45c4c9206",
+      "bytes_compared": 6738058
+    },
+    "out_links_total": 1203
+  },
+  "production_writes": false,
+  "temporary_database_dropped": true
+}
