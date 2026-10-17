@@ -69,12 +69,12 @@
   "build": {
     "command": "VITE_WORKSPACE_PROFILE=peter VITE_AUTH_MODE=native NODE_OPTIONS=--max-old-space-size=3072 npm --prefix weknora/frontend run build-with-types",
     "exit_code": 0,
-    "vite_seconds": 59.19,
+    "vite_seconds": 57.77,
     "previous_attempt": "An intentionally limited 2048MiB V8 heap hit OOM during transformation (build-only 134). Single-build retry with 3072MiB succeeded; no source change was needed.",
     "warning": "Existing >500kB chunk-size advisory remains; no new dependency added.",
     "auth_public_assets": "This is the frontend build only. Parent owns rebuilding changed auth source before final release.",
-    "includes_password_recovery_delta": false,
-    "scope": "Recorded successful frontend build preceded the final password-recovery UI patch. A fresh typed build runs after this selective source commit."
+    "includes_password_recovery_delta": true,
+    "scope": "Fresh typed frontend build after source commit 5ac83a3, including final native password-recovery UI patch."
   },
   "baselines": {
     "passed": 11,
@@ -92,5 +92,6 @@
     "Usage endpoint returns settled records only. Estimated tooltip and visible usage note explicitly include incomplete calls conservatively settled at reservation limit after cancellation/disconnect/restart. Displayed Token counts are ledger values, not a claim that estimated usage is exact.",
     "Current recovery blocker fixed: reuses existing POST /system/admin/users/reset-password {email,new_password}, admin-only controls, no self-reset, existing sessions-revoked notice, crypto.getRandomValues default password and no persisted secret. Native server reset does not generate passwords, so client supplies it; no backend contract added."
   ],
-  "remaining_validation": "Parent owns final real backend accounting/auth checks, full app route integration, rebuilding auth assets and deployment. No production acceptance is claimed by isolated fixtures."
+  "remaining_validation": "Parent owns final real backend accounting/auth checks, full app route integration, rebuilding auth assets and deployment. No production acceptance is claimed by isolated fixtures.",
+  "source_commit": "5ac83a3"
 }
