@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-17",
+  "source_commit": "1a0da03",
+  "backend_image": "musuw-peter:20261017-membership-03",
+  "frontend_release": "/opt/musuw-peter/releases/20261017-fire-13",
+  "migration": 113,
+  "health": true,
+  "menu": {
+    "native_avatar_dropdown_only": true,
+    "ordinary_percentage_and_expiry_only": true,
+    "ordinary_no_token_word_or_exact_counts": true,
+    "ordinary_no_usage_detail_link": true,
+    "ordinary_usage_route_redirects_home": true,
+    "admin_no_persistent_bottom_card": true,
+    "admin_exact_ledger_retained": true,
+    "live_browser_verified": true,
+    "dom_fixture_scenarios_passed": 21,
+    "unit_scenarios_passed": 18,
+    "type_check": true,
+    "production_build": true
+  },
+  "execution_pause": {
+    "flag": "FIRE_USER_EXECUTION_PAUSED=true",
+    "ordinary_api_status": 403,
+    "admin_api_status": 200,
+    "code_config_images_preserved": true,
+    "unit_test_flag_restore": true,
+    "ordinary_model_tools_with_web_search": 17,
+    "ordinary_model_tools_without_web_search": 15,
+    "paused_tools_absent": [
+      "read_skill",
+      "execute_skill_script",
+      "list_sandbox_files",
+      "read_sandbox_file",
+      "write_sandbox_file",
+      "edit_sandbox_file",
+      "shell_exec"
+    ],
+    "retrieval_settings_unchanged": true
+  },
+  "observed_hello_main_call": {
+    "query": "你好",
+    "web_search_enabled": true,
+    "before": {
+      "input_tokens": 13932,
+      "output_tokens": 93,
+      "total_tokens": 14025
+    },
+    "after": {
+      "input_tokens": 8655,
+      "output_tokens": 114,
+      "total_tokens": 8769,
+      "estimated": false
+    },
+    "reduction_pct": 37.48,
+    "note": "Two live observations using the default Taylor agent; output is nondeterministic. Not a universal saving guarantee."
+  },
+  "course_retrieval": {
+    "actual_tools": [
+      "knowledge_search",
+      "wiki_search",
+      "wiki_read_page",
+      "wiki_read_source_doc",
+      "grep_chunks"
+    ],
+    "answer_has_native_citations": true,
+    "error_events": 0
+  },
+  "quota_denial": {
+    "native_stream_reports_error": true,
+    "clean_copy_unit_test": true,
+    "calls_charged": 0,
+    "reserved_tokens": 0
+  },
+  "protected_source_after_cleanup": {
+    "docs": 95,
+    "wiki": 358,
+    "users": 5,
+    "reserved_tokens": 0
+  },
+  "disposable_accounts_deleted": 2,
+  "snapshots_preserved": true,
+  "runtime_config_and_auth_page_preserved": true,
+  "old_assets_preserved": true
+}
