@@ -23,6 +23,12 @@ export function userFacingAIError(
     return creditsFallback || fallback
   }
   const raw = String(message ?? '').trim()
+  if (raw.includes('token_allowance')) {
+    try {
+      const value = JSON.parse(raw.slice(raw.indexOf('{')))
+      if (value?.error?.code === 'token_allowance' && typeof value.error.message === 'string') return value.error.message
+    } catch { /* Keep unrelated/malformed provider errors on the normal path. */ }
+  }
   if (!raw || PROVIDER_INTERNAL_ERROR.test(raw)) return fallback
   return raw
 }

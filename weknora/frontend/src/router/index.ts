@@ -235,7 +235,7 @@ const router = createRouter({
       children: [
         {
           path: 'usage', name: 'fireUsage', component: () => import('../views/fire/FireUsage.vue'),
-          beforeEnter: () => isPeterWorkspace || { path: '/platform/creatChat' },
+          beforeEnter: () => (isPeterWorkspace && useAuthStore().isSystemAdmin) || { path: '/platform/creatChat' },
           meta: { requiresInit: true, requiresAuth: true },
         },
         {

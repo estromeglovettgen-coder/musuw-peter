@@ -26,8 +26,17 @@ export const membershipStatusLabel: Record<FireMembership['status'], string> = {
 }
 export function membershipNotice(membership: FireMembership): string {
   if (membership.unlimited) return '管理账户'
-  return ({ active: '', not_activated: '尚未开通会员，请联系管理员。', expired: '会员已到期，请联系管理员续期。', exhausted: 'Token 额度已用完，请联系管理员补充。', suspended: '会员已暂停，请联系管理员。' })[membership.status]
+  return ({ active: '', not_activated: '尚未开通会员，请联系管理员。', expired: '会员已到期，请联系管理员续期。', exhausted: '剩余额度不足，请联系管理员追加额度。', suspended: '会员已暂停，请联系管理员。' })[membership.status]
 }
 export function fireError(error: unknown): string {
   return error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : '请求失败，请重试'
+}
+
+/** User-facing allowance presentation; exact counters remain admin-only. */
+export function remainingUsageLabel(remaining: TokenCount, total: TokenCount, locale = 'zh-CN'): string {
+ const available=exactTokens(remaining),limit=exactTokens(total)
+ if(available===null||limit===null||limit===0n)return '—'
+ const percent=tokenPercent(remaining,total)
+ if(percent>0&&percent<1)return '<1%'
+ return new Intl.NumberFormat(locale,{maximumFractionDigits:1}).format(percent)+'%'
 }

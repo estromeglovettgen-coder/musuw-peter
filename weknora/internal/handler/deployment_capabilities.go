@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/Tencent/WeKnora/internal/firebilling"
 	"net/http"
 	"strings"
 
@@ -98,9 +99,17 @@ func (h *SystemHandler) BindDeploymentCapabilities(data DeploymentCapabilitiesDa
 // @Success      200  {object}  map[string]interface{}  "标准 code/msg/data 包装，data 为 DeploymentCapabilitiesData"
 // @Router       /system/capabilities [get]
 func (h *SystemHandler) GetDeploymentCapabilities(c *gin.Context) {
+	data := h.deploymentCapabilities
+	if firebilling.UserExecutionPauseEnabled() && data.Capabilities["settings.sandbox"].Supported {
+		data.Capabilities = make(map[string]DeploymentCapability, len(h.deploymentCapabilities.Capabilities))
+		for k, v := range h.deploymentCapabilities.Capabilities {
+			data.Capabilities[k] = v
+		}
+		data.Capabilities["settings.sandbox"] = DeploymentCapability{Supported: false, Reason: "fire_user_execution_paused"}
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,
 		"msg":  "success",
-		"data": h.deploymentCapabilities,
+		"data": data,
 	})
 }

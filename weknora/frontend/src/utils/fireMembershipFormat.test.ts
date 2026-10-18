@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { formatTokens, tokenPercent, formatMembershipDate } from './fireMembershipFormat'
+import { formatTokens, tokenPercent, formatMembershipDate, remainingUsageLabel } from './fireMembershipFormat'
 
 test('token counts preserve exact remaining units without rounding a partial token upward', () => {
   assert.equal(formatTokens(0, 'en-US'), '0')
@@ -18,4 +18,13 @@ test('membership dates honor the caller locale and reject invalid expiry values'
   assert.equal(formatMembershipDate('', 'zh-CN'), '—')
   assert.equal(formatMembershipDate('not-a-date', 'zh-CN'), '—')
   assert.match(formatMembershipDate('2026-10-17T12:00:00Z', 'en-US'), /2026/)
+})
+
+test('user allowance shows percentage only with honest near-zero and unknown states',()=>{
+ assert.equal(remainingUsageLabel(15813,30000),'52.7%')
+ assert.equal(remainingUsageLabel(1,1000000),'<1%')
+ assert.equal(remainingUsageLabel(0,1000000),'0%')
+ assert.equal(remainingUsageLabel(10,10),'100%')
+ assert.equal(remainingUsageLabel(2,0),'—')
+ assert.equal(remainingUsageLabel('unknown',10),'—')
 })

@@ -27,9 +27,10 @@ export type DeploymentCapabilityMap = Partial<Record<DeploymentCapabilityKey, De
 export function isDeploymentCapabilitySupported(
   capabilities: DeploymentCapabilityMap,
   key?: DeploymentCapabilityKey,
-  options?: { liteMode?: boolean; edition?: string },
+  options?: { liteMode?: boolean; edition?: string; systemAdmin?: boolean },
 ): boolean {
   if (!key) return true
+  if (key === 'settings.sandbox' && options?.systemAdmin && capabilities[key]?.reason === 'fire_user_execution_paused') return true
   if (key === 'organizations') {
     const isLite =
       options?.liteMode === true ||

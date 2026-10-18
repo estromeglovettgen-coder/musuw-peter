@@ -40,45 +40,41 @@ async function api(page: Page, options: { admin?: boolean; status?: string; unav
   return { state, writes, calls }
 }
 
-test('left sidebar shows exact membership balance and native usage detail without billing links', async ({ page }, info) => {
-  const mock = await api(page)
-  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
-  await page.goto('/e2e/fire-membership-harness.html')
-  const card = page.locator('.fixture-sidebar').getByRole('region', { name: '会员套餐' })
-  await expect(card).toContainText('火种月度')
-  await expect(card).toContainText('1Token 剩余')
-  await expect(card).toContainText('2026')
-  await expect(card).toContainText('含估算用量')
-  await expect(card.locator('[title]')).toHaveAttribute('title', /未完成调用/)
-  await expect(card).not.toContainText(/\$|¥|美元|OpenRouter|Paddle|管理账户/)
-  await expect(page.getByRole('link', { name: '会员管理' })).toHaveCount(0)
-  await card.getByRole('link', { name: '用量明细' }).click()
-  await expect(page.getByRole('heading', { name: '套餐与用量' })).toBeVisible()
-  await expect(page.getByRole('table')).toContainText('1,000')
-  await expect(page.getByRole('table')).toContainText('估算')
-  mock.state.membership.remaining_tokens = 0
-  mock.state.membership.used_tokens = 1000000
-  await page.evaluate(() => window.dispatchEvent(new Event('fire-membership-updated')))
-  await expect(card).toContainText('0Token 剩余')
-  expect(mock.calls.filter(path => /\/fire\/membership/.test(path)).every(path => path === '/api/v1/fire/membership')).toBe(true)
-  expect(mock.writes.filter(write => write.path !== '/api/v1/client-diagnostics')).toEqual([])
-  expect(errors).toEqual([])
-  await page.screenshot({ path: info.outputPath('member-usage.png'), fullPage: true })
+test('membership stays inside the avatar menu and exposes percentages without user details', async ({ page }, info) => {
+ const mock=await api(page)
+ await page.goto('/e2e/fire-membership-harness.html')
+ await expect(page.getByRole('region',{name:'会员套餐'})).toHaveCount(0)
+ await page.locator('.visual-user-menu__trigger').click()
+ const card=page.getByRole('region',{name:'会员套餐'})
+ await expect(card).toContainText('火种月度')
+ await expect(card).toContainText('<1%')
+ await expect(card).toContainText('2026')
+ await expect(card).not.toContainText(/Token|明细|999,999|1,000,000|管理账户/i)
+ await expect(page.getByRole('link',{name:'用量明细'})).toHaveCount(0)
+ mock.state.membership.remaining_tokens=0
+ await page.evaluate(()=>window.dispatchEvent(new Event('fire-membership-updated')))
+ await expect(card).toContainText('0%')
+ await page.locator('.visual-user-menu__trigger').click()
+ await expect(card).toHaveCount(0)
+ expect(mock.calls.filter(path=>path==='/api/v1/fire/usage')).toEqual([])
+ await page.screenshot({path:info.outputPath('member-usage.png'),fullPage:true})
 })
 
 for (const [status, label] of [['not_activated', '未开通'], ['expired', '已到期'], ['exhausted', '额度已用完'], ['suspended', '已暂停']]) test(`membership ${status} remains visible without blocking history`, async ({ page }) => {
   await api(page, { status })
   await page.goto('/e2e/fire-membership-harness.html')
+  await page.locator('.visual-user-menu__trigger').click()
   const card = page.locator('.fixture-sidebar').getByRole('region', { name: '会员套餐' })
   await expect(card).toContainText(label)
   await expect(page.getByText('历史和新对话入口', { exact: true })).toBeVisible()
-  await card.getByRole('link', { name: '用量明细' }).click()
-  await expect(page.getByRole('table')).toBeVisible()
+  await expect(card.getByRole('link')).toHaveCount(0)
+  await expect(page.getByRole('table')).toHaveCount(0)
 })
 
 test('membership read failure is honest and retryable without a fake free plan', async ({ page }) => {
   const mock = await api(page, { unavailable: true })
   await page.goto('/e2e/fire-membership-harness.html')
+  await page.locator('.visual-user-menu__trigger').click()
   const card = page.locator('.fixture-sidebar').getByRole('region', { name: '会员套餐' })
   await expect(card).toContainText('套餐读取失败')
   await expect(card).not.toContainText('免费')
@@ -99,8 +95,7 @@ test('administrator creates a plan, creates an account with retry-safe operation
   const mock = await api(page, { admin: true })
   await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
   const card = page.locator('.fixture-sidebar').getByRole('region', { name: '会员套餐' })
-  await expect(card).toContainText('管理账户')
-  await expect(card).not.toContainText('Token 剩余')
+  await expect(card).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '会员管理', exact: true })).toBeVisible()
   await expect(page.locator('.fire-management__table')).toContainText('Taylor学员')
   await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
@@ -160,6 +155,7 @@ test('account creation requires an enabled plan instead of advertising an unsupp
 test('a late membership response from a previous identity cannot replace the new account snapshot', async ({ page }) => {
   await api(page)
   await page.goto('/e2e/fire-membership-harness.html')
+  await page.locator('.visual-user-menu__trigger').click()
   const card = page.locator('.fixture-sidebar').getByRole('region', { name: '会员套餐' })
   await expect(card).toContainText('火种月度')
   let release!: () => void, started!: () => void
@@ -177,17 +173,21 @@ test('a late membership response from a previous identity cannot replace the new
   release(); await oldResponse
   await page.evaluate(async () => { await (window as any).__fireFixture.pending })
   await expect(card).not.toContainText('旧账号私有套餐')
-  await expect(card).toContainText('42Token 剩余')
+  await expect(card).toContainText('<1%')
+  await expect(card).not.toContainText(/Token/i)
 })
 
-test('mobile user usage stays within the viewport and preserves exact Token values', async ({ page }, info) => {
-  await page.setViewportSize({ width: 390, height: 844 })
-  await api(page)
-  await page.goto('/e2e/fire-membership-harness.html?page=usage')
-  await expect(page.getByRole('table')).toBeVisible()
-  await expect(page.locator('.fixture-sidebar .fire-membership__balance')).toContainText('1Token 剩余')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
-  await page.screenshot({ path: info.outputPath('member-mobile.png'), fullPage: true })
+test('mobile avatar menu shows allowance percentage without a detail page',async({page},info)=>{
+ await page.setViewportSize({width:390,height:844})
+ const mock=await api(page)
+ await page.goto('/e2e/fire-membership-harness.html?page=usage')
+ await expect(page.getByRole('table')).toHaveCount(0)
+ await page.locator('.visual-user-menu__trigger').click()
+ await expect(page.getByRole('region',{name:'会员套餐'})).toContainText('<1%')
+ await expect(page.getByRole('region',{name:'会员套餐'})).not.toContainText(/Token|明细/i)
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+ expect(mock.calls.filter(path=>path==='/api/v1/fire/usage')).toEqual([])
+ await page.screenshot({path:info.outputPath('member-mobile.png'),fullPage:true})
 })
 
 for (const kind of ['grant', 'renew', 'extend', 'suspend', 'resume']) test(`administrator ${kind} sends only applicable fields using the native adjustment API`, async ({ page }) => {

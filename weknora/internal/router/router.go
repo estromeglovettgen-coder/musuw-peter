@@ -244,6 +244,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 		// rejects hidden management capabilities even when the caller would
 		// otherwise be a tenant Owner or SystemAdmin. Standard is a no-op.
 		v1.Use(liteProductGate())
+		v1.Use(fireUserExecutionGate())
 
 		// API-key gate: single authority for X-API-Key principals. Runs
 		// first on every /api/v1 route after the product exposure boundary

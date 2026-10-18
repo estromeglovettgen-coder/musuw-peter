@@ -289,7 +289,6 @@ onUnmounted(() => {
 
 <template>
   <div ref="menuRef" class="visual-user-menu" :class="{ 'is-collapsed': uiStore.sidebarCollapsed }">
-    <FireMembershipCard v-if="isPeterWorkspace && !uiStore.sidebarCollapsed" />
     <button type="button" class="visual-user-menu__trigger" data-guide="user-menu" :aria-expanded="menuVisible" @click="handleTriggerClick">
       <span class="visual-user-menu__avatar">
         <img v-if="userAvatar && !authStore.isLiteMode" :src="userAvatar" :alt="$t('common.avatar')" />
@@ -324,6 +323,8 @@ onUnmounted(() => {
           <button v-if="!isPeterWorkspace && !authStore.isLiteMode" type="button" class="visual-user-menu__guide" :title="$t('newUserGuide.reopen')" :aria-label="$t('newUserGuide.reopen')" @click.stop="reopenGuide"><t-icon name="help-circle" /></button>
         </div>
 
+        <FireMembershipCard v-if="isPeterWorkspace && !authStore.isSystemAdmin" />
+
         <div
           v-if="!isPeterWorkspace && !authStore.isLiteMode"
           ref="tenantMenuItemRef"
@@ -338,7 +339,7 @@ onUnmounted(() => {
         </div>
 
         <div class="visual-user-menu__divider visual-user-menu__divider--dashed" />
-        <button v-if="isPeterWorkspace" type="button" class="visual-user-menu__item" @click="closeAll(); router.push(authStore.isSystemAdmin ? '/platform/manage' : '/platform/usage')"><t-icon name="chart-line" /><span>{{ authStore.isSystemAdmin ? '会员管理' : '套餐与用量' }}</span></button>
+        <button v-if="isPeterWorkspace && authStore.isSystemAdmin" type="button" class="visual-user-menu__item" @click="closeAll(); router.push('/platform/manage')"><t-icon name="chart-line" /><span>会员管理</span></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-user-menu__item visual-user-menu__usage-item" @click="handleQuickNav('usage')">
           <t-icon name="chart-line" />
           <span>{{ $t('entitlement.usageMenu') }}</span>

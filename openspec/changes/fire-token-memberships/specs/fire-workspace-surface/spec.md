@@ -8,8 +8,15 @@ The Peter workspace SHALL offer agent selection and native reasoning depth while
 - **THEN** the actual selected agent/depth changes, the model remains managed and no model name appears in text, title or accessible labels
 
 ### Requirement: Membership and management use real protected data
-The homepage SHALL show readable plan expiry and Token consumption with loading/error/expired/exhausted states. Only SystemAdmin SHALL access the management console, create accounts/plans or adjust a user's package. The UI SHALL reuse Musuw patterns, avoid amounts/count-based quota and provide copyable creation credentials without later plaintext retrieval.
+The homepage SHALL keep only the avatar entry; clicking it SHALL reveal plan expiry and remaining-allowance percentage with loading/error/expired/exhausted states. Ordinary-user UI SHALL NOT display Token counts, Token wording, or a usage-detail page; exact ledger usage SHALL remain available in the protected SystemAdmin console. Only SystemAdmin SHALL access the management console, create accounts/plans or adjust a user's package. The UI SHALL reuse Musuw patterns, avoid amounts/count-based quota and provide copyable creation credentials without later plaintext retrieval.
 
 #### Scenario: Expired member opening history
 - **WHEN** an expired user logs in and opens a previous conversation
 - **THEN** content is readable and the quota card explains why new model work requires renewal
+
+### Requirement: User sandbox and skill pause is reversible
+When FIRE_USER_EXECUTION_PAUSED is enabled in Fire, ordinary-user agent runs SHALL omit sandbox and skill tools and skill metadata, and related endpoints and UI entries SHALL be unavailable. Stored agent configuration, code, skills and files SHALL remain intact. SystemAdmin maintenance SHALL retain its capabilities. Wiki, RAG and graph retrieval SHALL retain their tools, parameters and result budgets.
+
+#### Scenario: Restore execution capabilities
+- **WHEN** the operator disables the pause flag and restarts the application
+- **THEN** existing saved sandbox and skill settings become effective again without reprovisioning user accounts

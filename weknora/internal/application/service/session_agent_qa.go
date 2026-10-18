@@ -7,6 +7,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/agent/tools"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/firebilling"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/models/rerank"
@@ -174,7 +175,7 @@ func (s *sessionService) AgentQA(
 	// filesystem capability so provider-neutral remote wiring stays here.
 	var stagedAttachments []stagedSessionAttachment
 	stager, ok := s.agentService.(sessionAttachmentStager)
-	if isLiteProductEdition() {
+	if isLiteProductEdition() || firebilling.UserExecutionPaused(ctx) {
 		stager = nil
 		ok = false
 	}
@@ -324,6 +325,10 @@ func (s *sessionService) buildAgentConfig(
 
 	// Configure skills based on CustomAgentConfig
 	s.configureSkillsFromAgent(ctx, agentConfig, customAgent)
+	if firebilling.UserExecutionPaused(ctx) {
+		agentConfig.SkillsEnabled = false
+		agentConfig.PinnedSkillNames = nil
+	}
 
 	// Then add the skills installed into the sandbox config this run boots.
 	//
@@ -332,7 +337,7 @@ func (s *sessionService) buildAgentConfig(
 	// picks the config the same way the sandbox resolution does.
 	var skillConfigID string
 	var tenantSkills []*types.TenantSkillEntity
-	if !isLiteProductEdition() {
+	if !isLiteProductEdition() && !firebilling.UserExecutionPaused(ctx) {
 		sandboxTenantID, _ := types.TenantIDFromContext(ctx)
 		skillConfigID, tenantSkills = skillsForRun(
 			ctx, s.sandboxPinner, s.sandboxConfigRepo, s.tenantSkillRepo,

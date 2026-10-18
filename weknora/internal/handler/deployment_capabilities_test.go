@@ -1,6 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -70,4 +74,26 @@ func readFrontendDeploymentCapabilityKeys() ([]string, error) {
 		keys = append(keys, line)
 	}
 	return keys, nil
+}
+
+func TestFirePauseCapabilityIsReversibleWithoutMutatingStartupSnapshot(t *testing.T) {
+	t.Setenv("PETER_TOKEN_BILLING_ENABLED", "true")
+	t.Setenv("FIRE_USER_EXECUTION_PAUSED", "true")
+	h := &SystemHandler{}
+	h.BindDeploymentCapabilities(BuildDeploymentCapabilities("standard", DeploymentFeatureAvailability{Sandbox: true}))
+	r := gin.New()
+	r.GET("/capabilities", h.GetDeploymentCapabilities)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/capabilities", nil))
+	var out struct {
+		Data DeploymentCapabilitiesData `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	require.Equal(t, "fire_user_execution_paused", out.Data.Capabilities["settings.sandbox"].Reason)
+	require.True(t, h.deploymentCapabilities.Capabilities["settings.sandbox"].Supported)
+	t.Setenv("FIRE_USER_EXECUTION_PAUSED", "false")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/capabilities", nil))
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	require.True(t, out.Data.Capabilities["settings.sandbox"].Supported)
 }

@@ -84,7 +84,7 @@ func TestReservationsCannotOversellAndSettlementIsOnce(t *testing.T) {
 	_, e = s.Apply(ctx, "alice", Mutation{OperationID: "pause", Kind: "suspend"})
 	require.NoError(t, e)
 	_, e = s.Reserve(userCtx, "chat", "m", 1)
-	require.ErrorIs(t, e, ErrUnavailable)
+	require.ErrorIs(t, e, ErrSuspended)
 	for _, id := range ids[1:] {
 		require.NoError(t, s.Settle(context.Background(), id, 0, 0, false, true))
 	}
@@ -133,5 +133,21 @@ func TestStartedCallSettlesAfterExpiryAndActualOverrunRemainsVisible(t *testing.
 	require.Zero(t, st.ReservedTokens)
 	require.Equal(t, "expired", st.Status)
 	_, e = s.Reserve(uctx, "chat", "m", 1)
-	require.ErrorIs(t, e, ErrUnavailable)
+	require.ErrorIs(t, e, ErrExpired)
+}
+
+func TestQuotaDenialKeepsActionableStateSpecificCopy(t *testing.T) {
+	s, ctx := fixture(t)
+	user := context.WithValue(ctx, types.UserIDContextKey, "alice")
+	_, _, err := s.Begin(user, "chat", "m", 1, 2)
+	require.ErrorIs(t, err, ErrNotActivated)
+	_, err = s.Apply(ctx, "alice", Mutation{OperationID: "grant-copy", Kind: "grant", DurationDays: 1, Tokens: 10})
+	require.NoError(t, err)
+	_, _, err = s.Begin(user, "chat", "m", 11, 12)
+	require.ErrorIs(t, err, ErrUnavailable)
+	require.Equal(t, "剩余额度不足，请联系管理员追加额度", err.Error())
+	_, err = s.Apply(ctx, "alice", Mutation{OperationID: "pause-copy", Kind: "suspend"})
+	require.NoError(t, err)
+	_, _, err = s.Begin(user, "chat", "m", 1, 2)
+	require.ErrorIs(t, err, ErrSuspended)
 }

@@ -42,6 +42,7 @@ export const useDeploymentCapabilitiesStore = defineStore('deploymentCapabilitie
     const authStore = useAuthStore()
     return isDeploymentCapabilitySupported(capabilities.value, key, {
       liteMode: authStore.isLiteMode,
+      systemAdmin: authStore.isSystemAdmin,
       edition: edition.value,
     })
   }

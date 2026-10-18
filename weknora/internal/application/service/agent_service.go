@@ -14,6 +14,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/application/repository"
 	"github.com/Tencent/WeKnora/internal/config"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/firebilling"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/mcp"
 	"github.com/Tencent/WeKnora/internal/models/chat"
@@ -184,6 +185,14 @@ func (s *agentService) CreateAgentEngine(
 	sessionID, assistantMessageID string,
 ) (interfaces.AgentEngine, error) {
 	logger.Infof(ctx, "Creating agent engine with custom EventBus")
+	if config != nil && firebilling.UserExecutionPaused(ctx) {
+		runtimeConfig := *config
+		config = &runtimeConfig
+		config.SkillsEnabled = false
+		config.SkillDirs = nil
+		config.TenantSkills = nil
+		config.PinnedSkillNames = nil
+	}
 
 	// 1. Validate config
 	if err := s.ValidateConfig(config); err != nil {
@@ -203,7 +212,7 @@ func (s *agentService) CreateAgentEngine(
 	}
 	s.registerMCPTools(ctx, toolRegistry, config, eventBus, sessionID, assistantMessageID)
 
-	if !isLiteProductEdition() {
+	if !isLiteProductEdition() && !firebilling.UserExecutionPaused(ctx) {
 		// File tools are a pure sandbox capability independent of the
 		// skill switch: register them whenever the workspace sandbox supports a
 		// session filesystem, even when skills are disabled.

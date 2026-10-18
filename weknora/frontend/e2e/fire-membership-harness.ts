@@ -22,7 +22,7 @@ const user = { id: admin ? 'admin-fixture' : 'member-fixture', username: admin ?
 auth.setUser(user as any); auth.setTenant({ id: 42, name: '火种', owner_id: user.id } as any); auth.setToken('membership-fixture-token'); auth.setLiteMode(false)
 const router = createRouter({ history: createMemoryHistory(), routes: [
   { path: '/platform/creatChat', component: { render: () => h('div', { class: 'fixture-home' }, '历史和新对话入口') } },
-  { path: '/platform/usage', component: FireUsage },
+  { path: '/platform/usage', component: FireUsage, beforeEnter: () => admin || '/platform/creatChat' },
   { path: '/platform/manage', component: FireManagement },
   { path: '/platform/settings', component: { render: () => null } },
 ] })

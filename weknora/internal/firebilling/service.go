@@ -22,10 +22,13 @@ import (
 )
 
 var (
-	ErrForbidden   = &AccessError{"无权执行此操作", 403}
-	ErrConflict    = &AccessError{"操作冲突，请刷新后重试", 409}
-	ErrUnavailable = &AccessError{"套餐未开通、已到期、额度不足或已暂停，请联系管理员", 402}
-	sqliteMu       sync.Mutex
+	ErrForbidden    = &AccessError{"无权执行此操作", 403}
+	ErrConflict     = &AccessError{"操作冲突，请刷新后重试", 409}
+	ErrUnavailable  = &AccessError{"剩余额度不足，请联系管理员追加额度", 402}
+	ErrNotActivated = &AccessError{"尚未开通套餐，请联系管理员", 402}
+	ErrExpired      = &AccessError{"套餐已到期，请联系管理员续期", 402}
+	ErrSuspended    = &AccessError{"套餐已暂停，请联系管理员", 402}
+	sqliteMu        sync.Mutex
 )
 
 type AccessError struct {
@@ -210,7 +213,18 @@ func (s *Service) Begin(ctx context.Context, purpose, model string, input, reque
 		if st.Unlimited {
 			return "", requested, nil
 		}
-		if st.Status != "active" || st.RemainingTokens < input || (requested > input && st.RemainingTokens == input) {
+		if st.Status != "active" {
+			switch st.Status {
+			case "not_activated":
+				return "", 0, ErrNotActivated
+			case "expired":
+				return "", 0, ErrExpired
+			case "suspended":
+				return "", 0, ErrSuspended
+			}
+			return "", 0, ErrUnavailable
+		}
+		if st.RemainingTokens < input || (requested > input && st.RemainingTokens == input) {
 			return "", 0, ErrUnavailable
 		}
 		requested = min(requested, st.RemainingTokens)
@@ -424,9 +438,18 @@ func (s *Service) Reserve(ctx context.Context, purpose, model string, amount int
 	e = s.transaction(ctx, func(tx *gorm.DB) error {
 		var m Membership
 		if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", uid).Take(&m).Error; e != nil {
-			return ErrUnavailable
+			if errors.Is(e, gorm.ErrRecordNotFound) {
+				return ErrNotActivated
+			}
+			return e
 		}
-		if m.Suspended || !m.ExpiresAt.After(time.Now()) || m.TokenLimit-m.UsedTokens-m.ReservedTokens < amount {
+		if m.Suspended {
+			return ErrSuspended
+		}
+		if !m.ExpiresAt.After(time.Now()) {
+			return ErrExpired
+		}
+		if m.TokenLimit-m.UsedTokens-m.ReservedTokens < amount {
 			return ErrUnavailable
 		}
 		result := tx.Model(&Membership{}).Where("user_id = ? AND reserved_tokens = ? AND used_tokens = ?", uid, m.ReservedTokens, m.UsedTokens).Update("reserved_tokens", gorm.Expr("reserved_tokens + ?", amount))

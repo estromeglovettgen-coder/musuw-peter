@@ -42,3 +42,7 @@ test('maps exhausted AI credits by stable code instead of provider copy', () => 
     'Monthly AI allowance exhausted; upgrade or wait for reset',
   )
 })
+
+test('shows native token allowance denial without exposing provider JSON', () => {
+ assert.equal(userFacingAIError('API request failed with status 402: {"error":{"code":"token_allowance","message":"剩余额度不足，请联系管理员追加额度","type":"token_allowance"}}','服务暂不可用'),'剩余额度不足，请联系管理员追加额度')
+})

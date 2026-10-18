@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/Tencent/WeKnora/internal/agent"
 	"github.com/Tencent/WeKnora/internal/agent/tools"
 	"github.com/Tencent/WeKnora/internal/config"
@@ -126,6 +127,47 @@ func TestLegacySkillCatalogNeverFallsBackAcrossNamedOrUnavailableSandboxes(t *te
 			cfg, err := svc.buildAgentConfig(ctx, legacySkillQARequest(tc.agentConfig, tc.mode), &types.Tenant{ID: 7}, 7)
 			require.NoError(t, err)
 			require.Equal(t, tc.wantCatalog, len(cfg.SkillDirs) > 0)
+		})
+	}
+}
+
+func TestFireUserSandboxPausePreservesConfigAndAdministratorCapabilities(t *testing.T) {
+	t.Setenv("PETER_TOKEN_BILLING_ENABLED", "true")
+	t.Setenv("FIRE_USER_EXECUTION_PAUSED", "true")
+	t.Setenv("MUSUW_PRODUCT_EDITION", "standard")
+	t.Setenv("WEKNORA_SKILLS_DIR", t.TempDir())
+	for _, admin := range []bool{false, true} {
+		t.Run(fmt.Sprint(admin), func(t *testing.T) {
+			ctx := types.WithSessionID(context.WithValue(context.WithValue(t.Context(), types.TenantIDContextKey, uint64(7)), types.SystemAdminContextKey, admin), "s-1")
+			backend := &legacySkillExecutionManager{capableManager: capableManager{typ: sandbox.SandboxTypeDocker, files: stubSessionFileStore{}}}
+			req := legacySkillQARequest("-", "all")
+			req.CustomAgent.Config.AllowedTools = []string{tools.ToolThinking, tools.ToolReadSkill, tools.ToolExecuteSkillScript, tools.ToolShellExec}
+			original := req.CustomAgent.Config
+			svc := &sessionService{cfg: &config.Config{}, sandboxMgr: backend, webSearchProviderRepo: &sharedAgentWebSearchRepo{}}
+			cfg, err := svc.buildAgentConfig(ctx, req, &types.Tenant{ID: 7}, 7)
+			require.NoError(t, err)
+			require.Equal(t, admin, cfg.SkillsEnabled)
+			model := &legacySkillProbeModel{}
+			built, err := (&agentService{sandboxMgr: backend}).CreateAgentEngine(ctx, cfg, model, nil, nil, "s-1", "m-1")
+			require.NoError(t, err)
+			_, err = built.Execute(ctx, "s-1", "m-1", "你好", nil)
+			require.NoError(t, err)
+			require.Contains(t, model.lastToolNames, tools.ToolThinking)
+			for _, name := range []string{tools.ToolListSandboxFiles, tools.ToolReadSandboxFile, tools.ToolWriteSandboxFile, tools.ToolEditSandboxFile} {
+				if admin {
+					require.Contains(t, model.lastToolNames, name)
+				} else {
+					require.NotContains(t, model.lastToolNames, name)
+				}
+			}
+			if !admin {
+				require.NotContains(t, model.lastToolNames, tools.ToolShellExec)
+				require.Empty(t, cfg.SkillDirs)
+				require.Empty(t, cfg.TenantSkills)
+				require.NotContains(t, model.lastToolNames, tools.ToolReadSkill)
+				require.NotContains(t, model.lastToolNames, tools.ToolExecuteSkillScript)
+			}
+			require.Equal(t, original, req.CustomAgent.Config, "runtime pause must never erase saved settings")
 		})
 	}
 }

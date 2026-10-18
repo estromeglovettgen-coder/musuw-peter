@@ -52,3 +52,10 @@ test('the skill catalog follows the sandbox capability', () => {
   assert.equal(SETTINGS_SECTION_CAPABILITY.skills, 'settings.sandbox')
   assert.equal(SETTINGS_SECTION_CAPABILITY.skills, SETTINGS_SECTION_CAPABILITY.sandbox)
 })
+
+test('paused user execution remains available to system administrators only', () => {
+ const caps:DeploymentCapabilityMap={'settings.sandbox':{supported:false,reason:'fire_user_execution_paused'}}
+ assert.equal(isDeploymentCapabilitySupported(caps,'settings.sandbox'),false)
+ assert.equal(isDeploymentCapabilitySupported(caps,'settings.sandbox',{systemAdmin:true}),true)
+ assert.equal(isDeploymentCapabilitySupported({'settings.sandbox':{supported:false,reason:'route_not_registered'}},'settings.sandbox',{systemAdmin:true}),false)
+})

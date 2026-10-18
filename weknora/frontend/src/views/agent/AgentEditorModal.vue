@@ -1343,7 +1343,7 @@
                 </div>
 
                 <!-- 技能：脚本跑在所选沙箱里，可用列表也来自这份配置 -->
-                <div v-show="currentSection === 'skills' && isAgentMode" class="section">
+                <div v-if="sandboxSkillsAvailable" v-show="currentSection === 'skills' && isAgentMode" class="section">
                   <div class="section-header">
                     <h2>{{ $t('agent.editor.skillsConfig') }}
                       <PeterTermHelp v-if="isPeterWorkspace"
@@ -1898,6 +1898,7 @@ import {
 } from '@/api/system';
 import { useUIStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
+import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities';
 import { useOrganizationStore } from '@/stores/organization';
 import { useChatResourcesStore } from '@/stores/chatResources';
 import { useEditorResourcesStore } from '@/stores/editorResources';
@@ -1927,6 +1928,8 @@ const CHAT_PARSER_EXTENSIONS = [
 
 const uiStore = useUIStore();
 const authStore = useAuthStore();
+const deploymentCapabilities = useDeploymentCapabilitiesStore();
+const sandboxSkillsAvailable = computed(() => deploymentCapabilities.isSupported('settings.sandbox'));
 const router = useRouter();
 const orgStore = useOrganizationStore();
 const chatResources = useChatResourcesStore();
@@ -1994,6 +1997,7 @@ const LITE_EDITOR_VISIBLE_SECTIONS = new Set(['basic', 'knowledge', 'prompts', '
 
 function resolveEditorSection(section?: string | null): string {
   const key = AGENT_EDITOR_SECTION_ALIASES[section || 'basic'] || section || 'basic';
+  if (key === 'skills' && !sandboxSkillsAvailable.value) return 'basic';
   if (isPeterWorkspace && (key === 'websearch' || key === 'multimodal')) return 'basic';
   const visibleSections = authStore.isLiteMode
     ? LITE_EDITOR_VISIBLE_SECTIONS
@@ -2700,7 +2704,7 @@ const navItems = computed(() => {
   if (isAgentMode.value) {
     items.push({ key: 'tools', icon: 'tools', label: t('agent.editor.toolsConfig') });
     items.push({ key: 'mcp', icon: 'server', label: t('agentEditor.mcp.label') });
-    items.push({ key: 'skills', icon: SKILL_ICON, label: t('agent.editor.skillsConfig') });
+    if (sandboxSkillsAvailable.value) items.push({ key: 'skills', icon: SKILL_ICON, label: t('agent.editor.skillsConfig') });
   }
   if (editorMode.value === 'edit' && editorAgent.value?.id && !editorAgent.value?.is_builtin && !authStore.isLiteMode) {
     items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') });
@@ -3985,6 +3989,7 @@ const applyPromptTemplateDefaults = (cfg: PromptTemplatesConfig | null) => {
 // 加载依赖数据（复用空间级缓存，避免重复请求）
 const loadDependencies = async () => {
   try {
+    await deploymentCapabilities.ensureLoaded();
     await Promise.all([
       authStore.isLiteMode ? Promise.resolve() : chatResources.ensureModels(),
       authStore.isLiteMode ? chatResources.ensureConsumerSceneOptions('rag') : Promise.resolve(),
@@ -3993,7 +3998,7 @@ const loadDependencies = async () => {
       authStore.isLiteMode ? chatResources.ensureConsumerSceneOptions('asr') : Promise.resolve(),
       chatResources.ensureKnowledgeBases(),
       authStore.isLiteMode ? Promise.resolve() : chatResources.ensureWebSearchProviders(),
-      authStore.isLiteMode ? Promise.resolve() : chatResources.ensureSandboxConfigs(),
+      authStore.isLiteMode || !sandboxSkillsAvailable.value ? Promise.resolve() : chatResources.ensureSandboxConfigs(),
       editorResources.prefetchAgentEditorDeps(),
     ]);
 
