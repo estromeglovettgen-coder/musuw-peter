@@ -46,3 +46,10 @@ test('maps exhausted AI credits by stable code instead of provider copy', () => 
 test('shows native token allowance denial without exposing provider JSON', () => {
  assert.equal(userFacingAIError('API request failed with status 402: {"error":{"code":"token_allowance","message":"剩余额度不足，请联系管理员追加额度","type":"token_allowance"}}','服务暂不可用'),'剩余额度不足，请联系管理员追加额度')
 })
+
+
+test('HTTP refusals never expose provider model names or transport status as user copy', () => {
+  for (const message of ['DeepSeek Flash is unavailable', 'Gemini rejected the request', 'Claude model quota', 'GPT-4 response failed', 'HTTP 402']) {
+    assert.equal(userFacingAIError(message, '服务暂不可用'), '服务暂不可用')
+  }
+})

@@ -29,4 +29,4 @@
 - [x] 5.2 Reserve one question per user turn atomically; settle delivered answers once; release unanswered failures and recover interrupted reservations
 - [x] 5.3 Reuse native management UI, account creation and percentage menu for both limits
 - [x] 5.4 Verify migrations, concurrency, limits, failure recovery, tenant/admin boundaries and original token-only plans
-- [ ] 5.5 Back up and deploy Beijing, complete real counted-question/exhaustion/top-up journey, clean test data and record evidence
+- [x] 5.5 Back up and deploy Beijing, complete real counted-question/exhaustion/top-up journey, clean test data and record evidence

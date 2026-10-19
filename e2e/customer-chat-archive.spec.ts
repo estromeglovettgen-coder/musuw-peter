@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 
-type FixtureOptions = { archive?: boolean; failArchive?: 'http' | 'body'; failTemporary?: boolean; unbound?: boolean; home?: boolean; slow?: boolean; savedCustom?: boolean }
+type FixtureOptions = { archive?: boolean; failArchive?: 'http' | 'body'; failTemporary?: boolean; unbound?: boolean; home?: boolean; slow?: boolean; savedCustom?: boolean; quick?: boolean; imPending?: boolean }
 
 async function openChat(page: Page, options: FixtureOptions = {}) {
-  const requests = { archive: [] as Array<{ path: string; body: string }>, temporary: 0, chat: [] as any[], chatPaths: [] as string[], created: 0, failPrepare: false, failCreate: false, failChat: false, failSession: false }
+  const requests = { archive: [] as Array<{ path: string; body: string }>, temporary: 0, chat: [] as any[], chatPaths: [] as string[], created: 0, failPrepare: false, failCreate: false, failChat: false, failSession: false, historyReads: 0, continued: 0 }
   await page.route('**/api/v1/**', async route => {
     const request = route.request()
     const path = new URL(request.url()).pathname
@@ -27,6 +27,13 @@ async function openChat(page: Page, options: FixtureOptions = {}) {
     }
     if (path.startsWith('/api/v1/messages/') && path.endsWith('/load')) {
       const sid = path.split('/')[4]
+      if (options.imPending) {
+        requests.historyReads++
+        return route.fulfill({ json: { success: true, data: [
+          { id: 'im-user', role: 'user', content: 'IM里的问题', is_completed: true, channel: 'im' },
+          { id: 'im-assistant', role: 'assistant', content: requests.historyReads > 1 ? '这是IM最终答复。' : '', is_completed: requests.historyReads > 1, channel: 'im' },
+        ] } })
+      }
       const saved = requests.chat.flatMap((body, index) => requests.chatPaths[index].endsWith('/'+sid) ? [
         { id: `user-${index}`, role: 'user', content: body.query, is_completed: true, mentioned_items: body.mentioned_items, created_at: '2026-10-18T10:00:00Z' },
         { id: `saved-${index}`, role: 'assistant', content: '已结合课程和目标资料完成分析。', is_completed: true, created_at: '2026-10-18T10:00:01Z' },
@@ -67,6 +74,10 @@ async function openChat(page: Page, options: FixtureOptions = {}) {
       if (options.failTemporary) return route.fulfill({ status: 500, json: { success: false, message: '测试附件上传故障' } })
       return route.fulfill({ json: { success: true, data: { id: `temp-${requests.temporary}`, status: 'uploaded' } } })
     }
+    if (path.startsWith('/api/v1/sessions/continue-stream/') && method === 'GET') {
+      requests.continued++
+      return route.fulfill({ status: 404, json: { error: { code: 'not_found', message: 'Stream cursor missing' } } })
+    }
     if (/^\/api\/v1\/agent-chat\/[^/]+$/.test(path) && method === 'POST') {
       requests.chat.push(request.postDataJSON())
       requests.chatPaths.push(path)
@@ -77,7 +88,11 @@ async function openChat(page: Page, options: FixtureOptions = {}) {
     }
     return route.fulfill({ json: { success: true, data: [], total: 0 } })
   })
-  await page.goto('/e2e/customer-chat-archive-harness.html'+(options.home ? '?home=1'+(options.savedCustom ? '&saved-custom=1' : '') : ''))
+  const query = new URLSearchParams()
+  if (options.home) query.set('home', '1')
+  if (options.savedCustom) query.set('saved-custom', '1')
+  if (options.quick) query.set('quick', '1')
+  await page.goto('/e2e/customer-chat-archive-harness.html?' + query)
   await expect(page.locator(options.home ? '.visual-new-chat-view' : '.visual-chat-view')).toBeVisible()
   await page.waitForFunction(() => typeof (window as any).sendSyntheticCustomerChat === 'function')
   return requests
@@ -280,4 +295,41 @@ test('a fresh conversation defaults to Taylor despite a previous custom pick, an
   await expect.poll(() => page.evaluate(() => (window as any).targetAgentSelection())).toBe('agent-peter')
   await page.evaluate(() => (window as any).pickPersonalAgent())
   await expect.poll(() => page.evaluate(() => (window as any).targetAgentSelection())).toBe('agent-personal')
+})
+
+
+for (const quick of [false, true]) test(`HTTP 402 quota refusal appears immediately as one persistent ${quick ? 'knowledge' : 'agent'} answer without retry`, async ({ page }) => {
+  const requests = await openChat(page, { quick })
+  let attempts = 0
+  const endpoint = quick ? 'knowledge-chat' : 'agent-chat'
+  await page.route(`**/api/v1/${endpoint}/*`, async route => {
+    attempts++
+    return route.fulfill({ status: 402, json: { error: { code: 'token_allowance', type: 'token_allowance', message: '剩余额度不足，请联系管理员追加额度' } } })
+  })
+  await sendText(page, targetA, '继续问一下')
+  const answer = page.locator('.visual-chat-message-row.is-assistant')
+  await expect(answer).toHaveCount(1)
+  await expect(answer).toContainText('剩余额度不足，请联系管理员追加额度')
+  await expect(answer).not.toContainText(/HTTP|DeepSeek|Error:/i)
+  await expect.poll(() => page.evaluate(() => (window as any).customerChatReplying())).toBe(false)
+  await expect(page.getByRole('textbox', { name: '随心输入' })).toBeEnabled()
+  expect(attempts).toBe(1)
+  expect(requests.continued).toBe(0)
+  await page.route('**/api/v1/messages/customer-session/load**', route => route.fulfill({ json: { success: true, data: [
+    { id: 'denied-user', role: 'user', content: '继续问一下', is_completed: true },
+    { id: 'denied-assistant', role: 'assistant', content: '剩余额度不足，请联系管理员追加额度', is_completed: true },
+  ] } }))
+  await page.reload()
+  await expect(answer).toHaveCount(1)
+  await expect(answer).toContainText('剩余额度不足，请联系管理员追加额度')
+  expect(attempts).toBe(1)
+})
+
+test('IM continue-stream rejection still recovers quietly by reading saved messages', async ({ page }) => {
+  const requests = await openChat(page, { imPending: true })
+  await expect.poll(() => requests.continued).toBe(1)
+  await expect(page.locator('.visual-chat-message-row.is-assistant')).toContainText('这是IM最终答复。')
+  await expect(page.locator('.visual-chat-message-row.is-assistant')).toHaveCount(1)
+  await expect(page.locator('.t-message')).toHaveCount(0)
+  expect(requests.chat).toHaveLength(0)
 })

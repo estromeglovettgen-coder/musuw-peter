@@ -3,6 +3,7 @@ import { ref, onUnmounted } from 'vue';
 import { generateRandomString } from '@/utils/index';
 import i18n from '@/i18n';
 import { getApiBaseUrl } from '@/utils/api-base';
+import { userFacingAIError } from '@/utils/userFacingAIError';
 import {
   sanitizeStreamRequestBody,
   type StreamRequestMeta,
@@ -73,6 +74,7 @@ export function useStream() {
     const sentAt = performance.now();
     const requestID = generateRandomString(12);
     let firstAnswerLogged = false;
+    let rejectedResponse: { id: string; response_type: 'error'; content: string; error_code?: string } | undefined;
 
     try {
       let url =
@@ -176,7 +178,19 @@ export function useStream() {
         openWhenHidden: true,
 
         onopen: async (res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (!res.ok) {
+            const payload = await res.json().catch(() => null);
+            const details = payload?.error;
+            const code = typeof details?.code === 'string' ? details.code : typeof payload?.error_code === 'string' ? payload.error_code : undefined;
+            const message = typeof details?.message === 'string' ? details.message : typeof details === 'string' ? details : typeof payload?.message === 'string' ? payload.message : undefined;
+            rejectedResponse = {
+              id: requestID,
+              response_type: 'error',
+              content: userFacingAIError(message, i18n.global.t('chat.aiServiceUnavailable'), code, i18n.global.t('chat.billingRenewalPending'), i18n.global.t('chat.aiCreditsExhausted')),
+              ...(code ? { error_code: code } : {}),
+            };
+            throw new Error(rejectedResponse.content);
+          }
           console.log(`[TTFB] response:headers request_id=${requestID} elapsed_ms=${(performance.now() - sentAt).toFixed(1)}`);
           isLoading.value = false;
         },
@@ -207,7 +221,16 @@ export function useStream() {
         },
       });
     } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err)
+      if (myGeneration !== streamGeneration) return
+      if (rejectedResponse && params.method === 'POST' && chunkHandler) {
+        // A rejected send has no SSE events. Materialize its terminal error via
+        // the same reducer as an in-stream error, once and without another POST.
+        chunkHandler(rejectedResponse)
+      } else {
+        // GET continue-stream failures keep the error-ref contract: the main
+        // chat uses it to recover IM replies quietly from saved messages.
+        error.value = rejectedResponse?.content || (err instanceof Error ? err.message : String(err))
+      }
       stopStream()
     }
   }

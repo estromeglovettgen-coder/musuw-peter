@@ -56,7 +56,7 @@ const app = createApp({
       }
     })
     return () => h('div', { style: 'display:flex;flex-direction:column;height:100%;min-height:0' },
-      [h(RouterView, null, { default: ({ Component }: any) => h(Component, { ref: chat }) })])
+      [h(RouterView, null, { default: ({ Component }: any) => h(Component, { ref: chat, ...(new URLSearchParams(location.search).has('quick') ? { embeddedMode: true, agentId: 'builtin-quick-answer', kbIds: ['course-KB'] } : {}) }) })])
   },
 })
 app.use(pinia).use(router).use(i18n).use(TDesign)

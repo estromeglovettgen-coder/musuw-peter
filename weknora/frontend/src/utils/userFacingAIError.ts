@@ -1,5 +1,5 @@
 const PROVIDER_INTERNAL_ERROR =
-  /OPENROUTER_[A-Z_]*|openrouter\.ai|create chat completion|LLM call failed/i
+  /OPENROUTER_[A-Z_]*|openrouter\.ai|create chat completion|LLM call failed|\b(?:DeepSeek|Gemini|Claude|Grok|GPT(?:-[\w.]+)?)\b|^HTTP \d{3}\b/i
 
 export const BILLING_RENEWAL_PENDING_CODE = 'billing_renewal_pending'
 export const OPENROUTER_CREDITS_EXHAUSTED_CODE = 'openrouter_credits_exhausted'

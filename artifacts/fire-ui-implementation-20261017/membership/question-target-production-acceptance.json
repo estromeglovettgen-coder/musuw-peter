@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-19",
+  "environment": "Beijing Fire private deployment",
+  "release": {
+    "backend": "musuw-peter:thin-current-20261019-capacity",
+    "backend_source": "2ad551b",
+    "frontend": "20261019-fire-17",
+    "profile": "peter",
+    "postgres_schema": 114,
+    "schema_dirty": false,
+    "healthy": true
+  },
+  "target_chat": {
+    "real_home_joint_send": true,
+    "real_followup": true,
+    "real_reload_history": true,
+    "real_route_reuse_joint_send": true,
+    "native_course_citations": true,
+    "native_authorization_kept": true,
+    "temporary_account_removed": true
+  },
+  "workspace": {
+    "default_taylor": true,
+    "existing_accounts_explicitly_provisioned": true,
+    "custom_agents_preserved": true,
+    "default_new_name": "我的智能体",
+    "model_choices_hidden": true,
+    "skills_settings_hidden": true,
+    "onboarding_no_model_setup": true,
+    "usage_in_avatar_percent_only": true
+  },
+  "question_allowance": {
+    "optional_plan_and_user_cap": true,
+    "zero_unlimited": true,
+    "counted_per_turn": true,
+    "token_cap_still_applies": true,
+    "ten_question_plan_inherited_on_signup": true,
+    "real_final_slot_used_once": true,
+    "real_denial_without_provider_charge": true,
+    "real_question_only_topup_restored_answer": true,
+    "immediate_http402_bubble": true,
+    "reload_no_duplicate": true,
+    "api_principal_maps_to_owner_billing_tested": true,
+    "live_tenant_api_key_generation_tested": false
+  },
+  "verification": {
+    "target_chat_dom": 21,
+    "history_dom": 5,
+    "model_editor_dom": 12,
+    "membership_dom": 25,
+    "total_dom_scenarios": 63,
+    "http_error_unit_tests": 14,
+    "postgres114_integration": true,
+    "sqlite33_upgrade": true,
+    "core_question_concurrency_repeated_rounds": 5,
+    "backend_five_packages": true,
+    "typecheck": true,
+    "peter_build_seconds": 47.22,
+    "fixture_evidence_separate_from_live": true
+  },
+  "cleanup": {
+    "qa_user_exists": 0,
+    "qa_plan_exists": 0,
+    "active_users": 6,
+    "managed_accounts": 5,
+    "reserved_tokens": 0,
+    "reserved_questions": 0,
+    "docs": 95,
+    "wiki": 358,
+    "chunks": 2346
+  },
+  "capacity": {
+    "available_before_bytes": 540053504,
+    "available_after_bytes": 4617244672,
+    "approximately_reclaimed_bytes": 4077191168,
+    "original_ext4_reserved_blocks_restored": 445577,
+    "replaced_image_app_entries_equal": 406,
+    "non_label_execution_config_equal": true,
+    "service_mounts_and_images_preserved": true,
+    "snapshots_and_user_volumes_preserved": true,
+    "compatible_rollback": "musuw-peter:thin-rollback-20261019-capacity",
+    "paid_expansion": false
+  },
+  "protected_source": {
+    "documents": 95,
+    "wiki_pages": 358,
+    "chunks": 2346,
+    "chunk_content_md5": "2de6a96416c5a152f03519b756b315e5",
+    "wiki_content_md5": "a7315761fedc93f2978cb21333860d17"
+  },
+  "limits": [
+    "Question failure releases the question slot, but actual provider usage remains billed.",
+    "The compatible previous binary cannot enforce question caps; prefer forward repair, or suspend capped users before rollback.",
+    "Provider usage without a returned count remains explicitly estimated.",
+    "40GB system disk has about4.6GB available; large future uploads may require expansion."
+  ]
+}
