@@ -238,7 +238,7 @@ const customerTurnPreparing = ref(false);
 // 嵌入式（embeddedMode）由宿主页面注入 agent/KB，所以跳过整套恢复逻辑，
 // 避免污染宿主的 settings store。
 const loadSessionAndHydrate = async (sid) => {
-    if (!sid || props.embeddedMode) return;
+    if (!sid || props.embeddedMode) return false;
     try {
         const sessionRes = await getSession(sid);
         if (sessionRes?.data && sid === session_id.value) {
@@ -259,10 +259,12 @@ const loadSessionAndHydrate = async (sid) => {
                 const publicIds = useSettingsStoreInstance.settings.selectedKnowledgeBases.filter(id => !customerIds.has(id));
                 useSettingsStoreInstance.selectKnowledgeBases([...publicIds, sessionRes.data.customer_knowledge_base_id]);
             }
+            return true;
         }
     } catch (error) {
         console.error('Failed to load session data:', error);
     }
+    return false;
 };
 const inputFieldRef = ref();
 const created_at = ref('');
@@ -497,6 +499,7 @@ watch([() => route.params], async (newvalue) => {
 
         await loadSessionAndHydrate(session_id.value);
         if (requestId !== historyRequestId) return;
+        if (await sendPendingFirstQuery()) return;
         let data = {
             session_id: session_id.value,
             created_at: '',
@@ -719,7 +722,10 @@ const handleStopGeneration = () => {
 };
 
 const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = [], attachmentFiles = [], thinkingEnabled = useSettingsStoreInstance.conversationModels.thinkingEnabled !== false, reasoningEffort = useSettingsStoreInstance.conversationModels.reasoningEffort || '') => {
-    if (customerTurnPreparing.value) return;
+    if (customerTurnPreparing.value) {
+        inputFieldRef.value?.restoreDraft?.(value);
+        return;
+    }
     const turnSessionID = session_id.value;
     const selectedAgentId = props.embeddedMode ? props.agentId : (useSettingsStoreInstance.selectedAgentId || '');
     const selectedAgentSourceTenantId = props.embeddedMode
@@ -730,7 +736,9 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
     if (isPeterWorkspace && !props.embeddedMode) {
         customerTurnPreparing.value = true;
         try {
-            if (!currentSession.value) await loadSessionAndHydrate(turnSessionID);
+            if (!currentSession.value && !await loadSessionAndHydrate(turnSessionID)) {
+                throw new Error('会话加载失败，请重试');
+            }
             const selected = await mentionedCustomer(mentionedItems);
             if (selected && selected.id !== currentSession.value?.customer_knowledge_base_id) {
                 const nextSession = await newCustomerSession(selected.id, selected.name);
@@ -755,6 +763,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
                 archiveCustomerSources = agent.config.archive_customer_sources !== false;
             }
         } catch (error) {
+            if (turnSessionID === session_id.value) inputFieldRef.value?.restoreDraft?.(value);
             MessagePlugin.error(error?.message || '目标会话准备失败，请重试');
             return;
         } finally { customerTurnPreparing.value = false; }
@@ -896,7 +905,7 @@ const sendMsg = async (value, modelId = '', mentionedItems = [], imageFiles = []
 
     // Get knowledge_base_ids from settings store (selected by user via KnowledgeBaseSelector)
     // Merge @mentioned KB/file IDs so retrieval uses the same targets user @mentioned (including shared KBs)
-    const sidebarKbIds = customer ? [customer.id, ...(customer.customer_profile.shared_knowledge_base_ids || [])] : props.embeddedMode ? props.kbIds : (useSettingsStoreInstance.settings.selectedKnowledgeBases || []);
+    const sidebarKbIds = customer ? [customer.id, ...(customer.customer_profile.shared_knowledge_base_ids || []), ...(useSettingsStoreInstance.settings.selectedKnowledgeBases || [])] : props.embeddedMode ? props.kbIds : (useSettingsStoreInstance.settings.selectedKnowledgeBases || []);
     const sidebarFileIds = customer || props.embeddedMode ? [] : (useSettingsStoreInstance.settings.selectedFiles || []);
     const kbIdSet = new Set(sidebarKbIds);
     const fileIdSet = new Set(sidebarFileIds);
@@ -1065,6 +1074,25 @@ onBeforeMount(async () => {
     await loadSessionAndHydrate(session_id.value);
 });
 
+// A route parameter change reuses this component. Consume the handoff on both
+// mount and session switches, before loading history can replace the new turn.
+const sendPendingFirstQuery = async () => {
+    if (!firstQuery.value) return false;
+    const pending = [firstQuery.value, firstModelId.value || '', firstMentionedItems.value || [], firstImageFiles.value || [], firstAttachmentFiles.value || [], firstThinking.value, firstReasoningEffort.value];
+    usemenuStore.changeFirstQuery('', [], '', [], [], true);
+    scrollLock.value = true;
+    historyLoading.value = false;
+    if (pending[1]) {
+        useSettingsStoreInstance.updateConversationModels({
+            summaryModelId: pending[1],
+            selectedChatModelId: pending[1],
+            rerankModelId: '',
+        });
+    }
+    await sendMsg(...pending);
+    return true;
+};
+
 onMounted(async () => {
     window.addEventListener(SESSION_MUTATION_EVENT, handleSessionMutation);
     messagesList.splice(0);
@@ -1073,19 +1101,7 @@ onMounted(async () => {
     loading.value = false;
     isReplying.value = false;
 
-    if (firstQuery.value) {
-        scrollLock.value = true;
-        historyLoading.value = false;
-        if (firstModelId.value) {
-            useSettingsStoreInstance.updateConversationModels({
-                summaryModelId: firstModelId.value,
-                selectedChatModelId: firstModelId.value,
-                rerankModelId: '',
-            });
-        }
-        sendMsg(firstQuery.value, firstModelId.value || '', firstMentionedItems.value || [], firstImageFiles.value || [], firstAttachmentFiles.value || [], firstThinking.value, firstReasoningEffort.value);
-        usemenuStore.changeFirstQuery('', [], '', [], [], true);
-    } else {
+    if (!await sendPendingFirstQuery()) {
         scrollLock.value = false;
         hasMoreHistory.value = true;
         historyLoadingMore.value = false;

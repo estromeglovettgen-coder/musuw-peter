@@ -39,7 +39,9 @@ test('homepage and chat parent forward the first message depth without an unrela
   for (const call of ['createNewSession', 'navigateToSession', 'changeFirstQuery']) {
     assert.match(home, new RegExp(`${call}\\([^;]+thinking, reasoningEffort\\)`));
   }
-  assert.match(chat, /sendMsg\(firstQuery\.value,[^;]+firstThinking\.value, firstReasoningEffort\.value\)/);
+  assert.match(chat, /const pending = \[firstQuery\.value,[^;]+firstThinking\.value, firstReasoningEffort\.value\]/);
+  assert.match(chat, /await sendMsg\(\.\.\.pending\)/);
+  assert.match(chat, /if \(await sendPendingFirstQuery\(\)\) return/);
   assert.doesNotMatch(chat, /reasoningEffort = [^\n]+\|\| 'high'/);
 });
 

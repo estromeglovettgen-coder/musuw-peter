@@ -263,10 +263,13 @@ const handleSuggestedQuestionClick = (question: string) => {
 };
 
 const sendMsg = (value: string, modelId: string, mentionedItems: any[], imageFiles: any[] = [], attachmentFiles: any[] = [], thinking: boolean = true, reasoningEffort: string = '') => {
-    createNewSession(value, modelId, mentionedItems, imageFiles, attachmentFiles, thinking, reasoningEffort);
+    return createNewSession(value, modelId, mentionedItems, imageFiles, attachmentFiles, thinking, reasoningEffort);
 }
 
+let creatingSession = false;
 async function createNewSession(value: string, modelId: string, mentionedItems: any[] = [], imageFiles: any[] = [], attachmentFiles: any[] = [], thinking: boolean = true, reasoningEffort: string = '') {
+    if (creatingSession) { inputFieldRef.value?.restoreDraft?.(value); return; }
+    creatingSession = true;
     const selectedKbs = settingsStore.settings.selectedKnowledgeBases || [];
     const selectedFiles = settingsStore.settings.selectedFiles || [];
     const sessionData: any = {};
@@ -288,13 +291,17 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
         if (res.data && res.data.id) {
             await navigateToSession(res.data.id, value, modelId, mentionedItems, imageFiles, attachmentFiles, thinking, reasoningEffort);
         } else {
+            inputFieldRef.value?.restoreDraft?.(value);
             console.error('[createChat] Failed to create session');
             MessagePlugin.error(t('createChat.messages.createFailed'));
         }
     } catch (error) {
+        inputFieldRef.value?.restoreDraft?.(value);
         console.error('[createChat] Create session error:', error);
-        MessagePlugin.error(t('createChat.messages.createError'));
-    }
+        const detail = error instanceof Error && error.message.startsWith('一次会话只能选择一个目标')
+            ? error.message : t('createChat.messages.createError');
+        MessagePlugin.error(detail);
+    } finally { creatingSession = false; }
 }
 
 const navigateToSession = async (sessionId: string, value: string, modelId: string, mentionedItems: any[], imageFiles: any[] = [], attachmentFiles: any[] = [], thinking: boolean = true, reasoningEffort: string = '') => {
@@ -311,7 +318,7 @@ const navigateToSession = async (sessionId: string, value: string, modelId: stri
     usemenuStore.updataMenuChildren(obj);
     usemenuStore.changeIsFirstSession(true);
     usemenuStore.changeFirstQuery(value, mentionedItems, modelId, imageFiles, attachmentFiles, thinking, reasoningEffort);
-    router.push(`/platform/chat/${sessionId}`);
+    await router.push(`/platform/chat/${sessionId}`);
 }
 
 const handleKBEditorSuccess = (kbId: string) => {

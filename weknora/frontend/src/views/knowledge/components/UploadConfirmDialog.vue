@@ -386,7 +386,7 @@
                             <t-switch v-model="uiState.multimodalConfig.enabled" size="medium" />
                           </div>
                         </div>
-                        <div v-if="uiState.multimodalConfig.enabled" class="setting-row">
+                        <div v-if="!isPeterWorkspace && uiState.multimodalConfig.enabled" class="setting-row">
                           <div class="setting-info">
                             <label>{{ t('knowledgeEditor.advanced.multimodal.vllmLabel') }} <span class="required">*</span></label>
                             <p class="desc">{{ t('knowledgeEditor.advanced.multimodal.vllmDescription') }}</p>
@@ -462,7 +462,7 @@
                             <t-switch v-model="uiState.asrConfig.enabled" size="medium" />
                           </div>
                         </div>
-                        <div v-if="uiState.asrConfig.enabled" class="setting-row">
+                        <div v-if="!isPeterWorkspace && uiState.asrConfig.enabled" class="setting-row">
                           <div class="setting-info">
                             <label>{{ t('knowledgeEditor.asr.modelLabel') }} <span class="required">*</span></label>
                             <p class="desc">{{ t('knowledgeEditor.asr.modelDescription') }}</p>
@@ -1455,26 +1455,26 @@ const handleNodeExtractUpdate = (config: UploadUIState['nodeExtractConfig']) => 
 const validateBeforeConfirm = (): boolean => {
   if (!authStore.isLiteMode && hasImages.value) {
     if (!uiState.value.multimodalConfig.enabled || !uiState.value.multimodalConfig.vllmModelId) {
-      MessagePlugin.warning(t('uploadConfirm.vlmModelRequired'))
+      MessagePlugin.warning(isPeterWorkspace ? '图片处理暂不可用，请联系管理员。' : t('uploadConfirm.vlmModelRequired'))
       uiState.value.multimodalConfig.enabled = true
       goToSection('multimodal')
       return false
     }
   } else if (!authStore.isLiteMode && !usesManagedMediaRouting.value && showMultimodalModelError.value) {
-    MessagePlugin.warning(t('uploadConfirm.vlmModelSelectRequired'))
+    MessagePlugin.warning(isPeterWorkspace ? '图片处理暂不可用，请联系管理员。' : t('uploadConfirm.vlmModelSelectRequired'))
     goToSection('multimodal')
     return false
   }
 
   if (!authStore.isLiteMode && hasAudio.value) {
     if (!uiState.value.asrConfig.enabled || !uiState.value.asrConfig.modelId) {
-      MessagePlugin.warning(t('uploadConfirm.asrModelRequired'))
+      MessagePlugin.warning(isPeterWorkspace ? '语音处理暂不可用，请联系管理员。' : t('uploadConfirm.asrModelRequired'))
       uiState.value.asrConfig.enabled = true
       goToSection('asr')
       return false
     }
   } else if (!authStore.isLiteMode && showAsrModelError.value) {
-    MessagePlugin.warning(t('uploadConfirm.asrModelSelectRequired'))
+    MessagePlugin.warning(isPeterWorkspace ? '语音处理暂不可用，请联系管理员。' : t('uploadConfirm.asrModelSelectRequired'))
     goToSection('asr')
     return false
   }

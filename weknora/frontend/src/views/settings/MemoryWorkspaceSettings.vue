@@ -140,7 +140,7 @@
           </div>
         </div>
 
-        <div
+        <div v-if="!isPeterWorkspace"
           class="setting-row"
           :class="{ 'is-disabled': advancedDisabled || !config.vector_recall }"
         >
@@ -164,7 +164,7 @@
           </div>
         </div>
 
-        <div
+        <div v-if="!isPeterWorkspace"
           class="setting-row"
           :class="{ 'is-disabled': advancedDisabled || config.write_mode !== 'auto' }"
         >
@@ -279,6 +279,7 @@ import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import ModelSelector from '@/components/ModelSelector.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { getTenantMemoryConfig, updateTenantMemoryConfig, type MemoryConfig } from '@/api/memory'

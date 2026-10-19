@@ -14,6 +14,7 @@ import {
   isGlobalUserGuideDone,
 } from '@/config/contextualGuides'
 import type { SpotlightGuideStep } from '@/types/spotlightGuide'
+import { workspaceGuideSteps } from '@/config/workspaceGuides'
 
 const props = defineProps<{
   when: boolean
@@ -161,7 +162,7 @@ const guideSteps = computed<SpotlightGuideStep[]>(() => {
     interact: true,
   })
 
-  return authStore.isLiteMode ? liteSteps : standardSteps
+  return workspaceGuideSteps(authStore.isLiteMode ? liteSteps : standardSteps, 'kbCreate')
 })
 
 let openTimer: ReturnType<typeof setTimeout> | null = null

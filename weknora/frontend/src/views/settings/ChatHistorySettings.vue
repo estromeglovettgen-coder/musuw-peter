@@ -21,7 +21,7 @@
       </div>
 
       <!-- Embedding 模型选择 -->
-      <div v-if="localEnabled" class="setting-row">
+      <div v-if="localEnabled && !isPeterWorkspace" class="setting-row">
         <div class="setting-info">
           <label>{{ t('chatHistorySettings.embeddingModelLabel') }}</label>
           <p class="desc">{{ t('chatHistorySettings.embeddingModelDescription') }}</p>
@@ -63,6 +63,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import ModelSelector from '@/components/ModelSelector.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   getTenantChatHistoryConfig,
   updateTenantChatHistoryConfig,

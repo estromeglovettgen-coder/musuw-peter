@@ -30,7 +30,7 @@ test('Lite knowledge creation never renders the FAQ type control and always norm
 })
 
 test('Lite technical section deep links fall back to Basic while Advanced remains reachable', () => {
-  assert.match(editor, /const normalizeKnowledgeBaseSection\s*=\s*\(section\?: string \| null\)[\s\S]*?return section === 'advanced' \? 'advanced' : 'basic'/)
+  assert.match(editor, /const normalizeKnowledgeBaseSection\s*=\s*\(section\?: string \| null\)[\s\S]*?return resolved === 'advanced' \? 'advanced' : 'basic'/)
   assert.match(editor, /currentSection\.value\s*=\s*normalizeKnowledgeBaseSection\(/)
   assert.match(editor, /if \(!navItems\.value\.some\(\(item\) => item\.key === currentSection\.value\)\) \{[\s\S]*?currentSection\.value = 'basic'/)
   for (const section of ['models', 'vectorStore', 'parser', 'multimodal', 'asr', 'chunking', 'storage', 'datasource', 'share', 'activity']) {
@@ -57,7 +57,7 @@ test('Lite knowledge editor does not expose model, embedding, or parser selector
   assert.doesNotMatch(basic, /<ModelSelector/)
   assert.match(template, /<KBAdvancedSettings[\s\S]*?:consumer-mode="authStore\.isLiteMode"/)
   assert.doesNotMatch(template, /kb-create-embedding/)
-  assert.match(template, /v-if="!authStore\.isLiteMode && currentSection === 'models'"[\s\S]*?<KBModelConfig/)
+  assert.match(template, /v-if="!isPeterWorkspace && !authStore\.isLiteMode && currentSection === 'models'"[\s\S]*?<KBModelConfig/)
   assert.match(editor, /consumerSceneModelsForCreate/)
   assert.match(editor, /settingsStore\.getConsumerSceneModel\('rag'\)/)
 })

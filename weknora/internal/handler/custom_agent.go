@@ -220,7 +220,7 @@ func (h *CustomAgentHandler) ListAgents(c *gin.Context) {
 		callerUserIDStr, _ := callerUserID.(string)
 		filtered := make([]*types.CustomAgent, 0, len(agents))
 		for _, ag := range agents {
-			if ag.IsBuiltin {
+			if ag.IsBuiltin || ag.ID == types.FireDefaultAgentID {
 				filtered = append(filtered, ag)
 				continue
 			}

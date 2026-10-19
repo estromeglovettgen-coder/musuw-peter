@@ -120,6 +120,25 @@ type customAgentService struct {
 	wikiPageRepo   interfaces.WikiPageRepository
 	tagRepo        interfaces.KnowledgeTagRepository
 	knowledgeRepo  interfaces.KnowledgeRepository
+	fireWorkspace  *FireWorkspaceService
+}
+
+// NewCustomAgentServiceWithFireWorkspace installs the managed Taylor default
+// behind the native agent interface. The original constructor remains useful
+// for non-Fire deployments and tests.
+func NewCustomAgentServiceWithFireWorkspace(
+	repo interfaces.CustomAgentRepository,
+	chunkRepo interfaces.ChunkRepository,
+	kbService interfaces.KnowledgeBaseService,
+	kbShareService interfaces.KBShareService,
+	wikiPageRepo interfaces.WikiPageRepository,
+	tagRepo interfaces.KnowledgeTagRepository,
+	knowledgeRepo interfaces.KnowledgeRepository,
+	fire *FireWorkspaceService,
+) interfaces.CustomAgentService {
+	s := NewCustomAgentService(repo, chunkRepo, kbService, kbShareService, wikiPageRepo, tagRepo, knowledgeRepo).(*customAgentService)
+	s.fireWorkspace = fire
+	return s
 }
 
 // NewCustomAgentService creates a new custom agent service
@@ -232,6 +251,19 @@ func (s *customAgentService) GetAgentByID(ctx context.Context, id string) (*type
 	if !ok {
 		return nil, ErrInvalidTenantID
 	}
+	if s.fireWorkspace != nil && (id == types.FireDefaultAgentID || id == s.fireWorkspace.config.AgentID) {
+		agent, managed, err := s.fireWorkspace.DefaultAgent(ctx, tenantID)
+		if err != nil {
+			return nil, err
+		}
+		if managed && agent.ID == id {
+			agent.EnsureDefaults()
+			return redactLiteAgent(agent), nil
+		}
+		if id == types.FireDefaultAgentID && s.fireWorkspace.Enabled() {
+			return nil, ErrAgentNotFound
+		}
+	}
 
 	// Check if it's a built-in agent using the registry
 	if types.IsBuiltinAgentID(id) {
@@ -280,6 +312,17 @@ func (s *customAgentService) GetAgentByIDAndTenant(ctx context.Context, id strin
 	if isLiteHiddenBuiltinAgentID(id) {
 		return nil, ErrAgentNotFound
 	}
+	if id == types.FireDefaultAgentID && s.fireWorkspace != nil && s.fireWorkspace.Enabled() {
+		agent, managed, err := s.fireWorkspace.DefaultAgent(ctx, tenantID)
+		if err != nil {
+			return nil, err
+		}
+		if !managed || agent.ID != id {
+			return nil, ErrAgentNotFound
+		}
+		agent.EnsureDefaults()
+		return redactLiteAgent(agent), nil
+	}
 	agent, err := s.repo.GetAgentByID(ctx, id, tenantID)
 	if err != nil {
 		if errors.Is(err, repository.ErrCustomAgentNotFound) {
@@ -305,6 +348,25 @@ func (s *customAgentService) ListAgents(ctx context.Context) ([]*types.CustomAge
 			"tenant_id": tenantID,
 		})
 		return nil, err
+	}
+	if s.fireWorkspace != nil {
+		defaultAgent, managed, err := s.fireWorkspace.DefaultAgent(ctx, tenantID)
+		if err != nil {
+			return nil, err
+		}
+		if managed {
+			defaultAgent.EnsureDefaults()
+			result := []*types.CustomAgent{redactLiteAgent(defaultAgent)}
+			for _, agent := range allAgents {
+				if agent.ID == defaultAgent.ID || agent.ID == types.FireDefaultAgentID ||
+					types.IsBuiltinAgentID(agent.ID) || types.IsHiddenBuiltinAgentID(agent.ID) {
+					continue
+				}
+				agent.EnsureDefaults()
+				result = append(result, redactLiteAgent(agent))
+			}
+			return result, nil
+		}
 	}
 
 	// Track which built-in agents exist in database
@@ -362,7 +424,7 @@ func (s *customAgentService) ListAgents(ctx context.Context) ([]*types.CustomAge
 
 // UpdateAgent updates an agent's information
 func (s *customAgentService) UpdateAgent(ctx context.Context, agent *types.CustomAgent) (*types.CustomAgent, error) {
-	if agent.ID == types.FireDefaultAgentID && !types.IsSystemAdminFromContext(ctx) {
+	if agent.ID == types.FireDefaultAgentID {
 		return nil, ErrCannotModifyBuiltin
 	}
 	if agent.ID == "" {
@@ -528,7 +590,7 @@ func (s *customAgentService) updateBuiltinAgent(ctx context.Context, agent *type
 
 // DeleteAgent deletes an agent
 func (s *customAgentService) DeleteAgent(ctx context.Context, id string) error {
-	if id == types.FireDefaultAgentID && !types.IsSystemAdminFromContext(ctx) {
+	if id == types.FireDefaultAgentID {
 		return ErrCannotDeleteBuiltin
 	}
 	if id == "" {

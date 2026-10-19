@@ -7,7 +7,7 @@
 
     <div class="settings-group">
       <!-- Rerank Model -->
-      <div class="setting-item">
+      <div v-if="!isPeterWorkspace" class="setting-item">
         <div class="setting-label">
           <span>{{ t('retrievalSettings.rerankModelLabel') }} <span class="required-mark">*</span></span>
         </div>
@@ -114,6 +114,7 @@ import { reactive, computed, onMounted, nextTick } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import ModelSelector from '@/components/ModelSelector.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import {
   getTenantRetrievalConfig,
   updateTenantRetrievalConfig,

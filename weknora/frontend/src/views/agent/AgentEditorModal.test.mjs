@@ -291,7 +291,7 @@ test('consumer agent editor keeps the compact Lite tabs while Standard exposes m
   assert.match(basicSection, /:all-models="authStore\.isLiteMode \? \[\] : allModels"/)
   assert.match(basicSection, /:show-add-model="!authStore\.isLiteMode"/)
   assert.match(basicSection, /:scene-options="authStore\.isLiteMode \? agentModelSceneOptions : \[\]"/)
-  assert.match(source, /v-if="!authStore\.isLiteMode && agentMode === 'smart-reasoning' && !isBuiltinAgent"[^>]*data-guide="agent-create-agent-type"/)
+  assert.match(source, /v-if="!isPeterWorkspace && !authStore\.isLiteMode && agentMode === 'smart-reasoning' && !isBuiltinAgent"[^>]*data-guide="agent-create-agent-type"/)
 })
 
 test('an unreadable tenant storage config cannot discard public agent defaults', () => {
@@ -331,7 +331,7 @@ test('quick agents retain hidden context validation and model errors return to B
   assert.match(saveBlock, /modelRequired[\s\S]*?currentSection\.value = 'basic'/)
   assert.match(
     saveBlock,
-    /audio_upload_enabled && !formData\.value\.config\.asr_model_id[\s\S]*?asrModelRequired[\s\S]*?currentSection\.value = authStore\.isLiteMode \? 'basic' : 'multimodal'/,
+    /audio_upload_enabled && !formData\.value\.config\.asr_model_id[\s\S]*?asrModelRequired[\s\S]*?currentSection\.value = authStore\.isLiteMode \|\| isPeterWorkspace \? 'basic' : 'multimodal'/,
   )
 })
 

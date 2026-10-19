@@ -6,7 +6,7 @@ const editor = readFileSync(new URL('./KnowledgeBaseEditorModal.vue', import.met
 test('consumer editor keeps Lite scene ownership while exposing full main settings to Standard', () => {
   const template = editor.slice(0, editor.indexOf('<script setup'))
   assert.match(template, /KBModelConfig/)
-  assert.match(template, /v-if="!authStore\.isLiteMode && currentSection === 'models'"/)
+  assert.match(template, /v-if="!isPeterWorkspace && !authStore\.isLiteMode && currentSection === 'models'"/)
   assert.doesNotMatch(template, /wiki-scene-options|wikiSynthesisModelId/)
   assert.doesNotMatch(editor, /syncWikiSceneCandidate/)
   assert.match(editor, /resolveConsumerSceneCandidate/)

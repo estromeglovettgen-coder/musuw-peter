@@ -1,3 +1,4 @@
+// Approved 2026-10-19: fresh Fire conversations default to Taylor once; explicit picks and historical sessions remain native.
 // Peter customer-workspace + server delivery: approved native model catalog,
 // customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
@@ -12,7 +13,7 @@ const scriptOf = (path) => read(path).match(/<script setup(?: lang="ts")?>([\s\S
 // creator-marketplace-subscriptions: consumer agent models/readiness follow the buyer membership catalog; source defaults cannot override explicit selection.
 // peter-taylor-global-chat-default: approved account-local Taylor default migration and awaited, deduplicated first send; explicit/native session, embed and other-profile choices remain authoritative.
 const frozen = new Map([
-  ['./business-baselines/Input-field.pre-view.vue', '374059e8d616a9bd64778f13836e0d10873e6834'],
+  ['./business-baselines/Input-field.pre-view.vue', 'fd31ddb35eacbbc2272407e9014c64fca8b718d0'],
   ['./business-baselines/KnowledgeBase.pre-view.vue', '3e2da17cdb15cc4dc42d7102da77502407ad21c2'],
   ['./business-baselines/manual-knowledge-editor.pre-view.vue', '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e'],
   // creator-marketplace-subscriptions: approved message-scoped snippets-only drawer and hover behavior.

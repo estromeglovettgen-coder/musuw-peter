@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	stdlog "log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -33,7 +32,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/Tencent/WeKnora/internal/agent/approval"
 	"github.com/Tencent/WeKnora/internal/application/repository"
@@ -260,7 +258,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	must(container.Provide(service.NewMessageSuggestionService))
 	must(container.Provide(service.NewMCPServiceService))
 	must(container.Provide(service.NewMCPToolApprovalService))
-	must(container.Provide(service.NewCustomAgentService))
+	must(container.Provide(service.NewCustomAgentServiceWithFireWorkspace))
 	must(container.Provide(service.NewUserResourceFavoriteService))
 	must(container.Provide(service.NewWikiPageService))
 	must(container.Provide(service.NewWikiIngestService, dig.Name("wikiIngest")))
@@ -669,16 +667,7 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 	switch os.Getenv("DB_DRIVER") {
 	case "postgres":
 		// DSN for GORM (key-value format)
-		gormDSN := fmt.Sprintf(
-			"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC",
-			os.Getenv("DB_HOST"),
-			os.Getenv("DB_PORT"),
-			os.Getenv("DB_USER"),
-			os.Getenv("DB_PASSWORD"),
-			os.Getenv("DB_NAME"),
-			"disable",
-		)
-		dialector = postgres.Open(gormDSN)
+		dialector = postgres.Open(configuredPostgresDSN())
 
 		// DSN for golang-migrate (URL format)
 		// URL-encode password to handle special characters like !@#
@@ -729,21 +718,7 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 	default:
 		return nil, fmt.Errorf("unsupported database driver: %s", os.Getenv("DB_DRIVER"))
 	}
-	db, err := gorm.Open(dialector, &gorm.Config{
-		// Keep SQL values out of trace and slow-query logs. Auth tokens are
-		// query parameters in the authentication repository and must never be
-		// rendered into application logs.
-		Logger: gormlogger.New(stdlog.New(os.Stdout, "\r\n", stdlog.LstdFlags), gormlogger.Config{
-			SlowThreshold:             200 * time.Millisecond,
-			Colorful:                  true,
-			IgnoreRecordNotFoundError: false,
-			ParameterizedQueries:      true,
-			LogLevel:                  gormlogger.Warn,
-		}),
-		NowFunc: func() time.Time {
-			return time.Now().UTC()
-		},
-	})
+	db, err := gorm.Open(dialector, configuredGormDBConfig())
 	if err != nil {
 		return nil, err
 	}

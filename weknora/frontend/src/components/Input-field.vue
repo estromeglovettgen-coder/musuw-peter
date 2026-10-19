@@ -236,6 +236,10 @@ export default defineComponent({
       context.expose({
         ...legacyExposed,
         triggerSend,
+        restoreDraft(text: string) {
+          const queryRef = (state as any).query
+          if (queryRef && !queryRef.value) queryRef.value = text
+        },
       })
       return {
         ...state,

@@ -13,7 +13,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   outputDir: 'test-results/customer-chat-archive',
-  use: { baseURL, locale: 'zh-CN', screenshot: 'only-on-failure', trace: 'retain-on-failure' },
+  use: { baseURL, channel: process.env.PLAYWRIGHT_CHANNEL, locale: 'zh-CN', screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   webServer: {
     command: `VITE_WORKSPACE_PROFILE=peter npm run dev -- --host ${host} --port ${port} --strictPort`,
     cwd: 'weknora/frontend',

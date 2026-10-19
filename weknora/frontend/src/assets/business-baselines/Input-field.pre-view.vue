@@ -1066,6 +1066,7 @@ const usesPeterNewChatDefault = () => isPeterWorkspace && route.name === "global
   && !props.embeddedMode && !settingsStore._defaultsSnapshot && !settingsStore._isApplyingSessionState
   && !settingsStore.selectedAgentSourceTenantId && !settingsStore.settings.marketplaceProductId
   && !marketplaceEntryPending.value;
+let peterDefaultResolved = false;
 
 const loadAgents = async (force = false) => {
   try {
@@ -1092,10 +1093,11 @@ const ensureSelectedAgentNotDisabled = () => {
   // Historical sessions, shared/product entries and explicit custom picks keep
   // their native selection. Reuse selectAgent so the normal resource watchers run.
   const defaultTaylor = usesPeterNewChatDefault()
-    && (!current || current.is_builtin || disabledOwnAgentIds.value.includes(currentId))
+    && (!peterDefaultResolved || !current || current.is_builtin || disabledOwnAgentIds.value.includes(currentId))
     ? agents.value.find((agent) => !agent.is_builtin && agent.name.trim() === "泰勒"
       && !disabledOwnAgentIds.value.includes(agent.id))
     : undefined;
+  if (defaultTaylor) peterDefaultResolved = true;
   if (!defaultTaylor && !disabledOwnAgentIds.value.includes(currentId)) return;
 
   const isEnabled = (id: string) =>

@@ -123,7 +123,7 @@
                       </div>
                     </div>
 
-                    <div v-if="!authStore.isLiteMode && agentMode === 'smart-reasoning' && !isBuiltinAgent" class="setting-row" data-guide="agent-create-agent-type">
+                    <div v-if="!isPeterWorkspace && !authStore.isLiteMode && agentMode === 'smart-reasoning' && !isBuiltinAgent" class="setting-row" data-guide="agent-create-agent-type">
                       <div class="setting-info">
                         <label>{{ $t('agentEditor.agentType.label') }}</label>
                         <p class="desc">{{ $t('agentEditor.agentType.desc') }}</p>
@@ -168,8 +168,8 @@
                       </div>
                     </div>
 
-                    <!-- 模型（对用户只暴露主对话模型；其余模型参数保留原生默认/旧值） -->
-                    <div
+                    <!-- 模型由火种服务端统一维护，保存时保留原生配置。 -->
+                    <div v-if="!isPeterWorkspace"
                       class="setting-row setting-row--basic-model"
                       data-guide="agent-create-model"
                       data-agent-field="summary_model"
@@ -608,7 +608,7 @@
                 </div>
 
                 <!-- 模型高级参数保留原生默认/旧值，但不向 C 端暴露 -->
-                <div v-if="!authStore.isLiteMode" v-show="currentSection === 'model'" data-agent-section="model" class="section">
+                <div v-if="!isPeterWorkspace && !authStore.isLiteMode" v-show="currentSection === 'model'" data-agent-section="model" class="section">
                   <div class="section-header">
                     <h2>{{ $t('agent.editor.modelConfig') }}</h2>
                     <p class="section-description">{{ $t('agent.editor.modelConfigDesc') }}</p>
@@ -1105,7 +1105,7 @@
                         </div>
                       </div>
 
-                      <div v-if="formData.config.question_suggestions.follow_ups.mode !== 'knowledge'"
+                      <div v-if="!isPeterWorkspace && formData.config.question_suggestions.follow_ups.mode !== 'knowledge'"
                         class="setting-row">
                         <div class="setting-info">
                           <label>{{ $t('agentEditor.questionSuggestions.model') }}</label>
@@ -1929,7 +1929,7 @@ const CHAT_PARSER_EXTENSIONS = [
 const uiStore = useUIStore();
 const authStore = useAuthStore();
 const deploymentCapabilities = useDeploymentCapabilitiesStore();
-const sandboxSkillsAvailable = computed(() => deploymentCapabilities.isSupported('settings.sandbox'));
+const sandboxSkillsAvailable = computed(() => isWorkspaceSettingsSectionVisible('skills') && deploymentCapabilities.isSupported('settings.sandbox'));
 const router = useRouter();
 const orgStore = useOrganizationStore();
 const chatResources = useChatResourcesStore();
@@ -1998,7 +1998,7 @@ const LITE_EDITOR_VISIBLE_SECTIONS = new Set(['basic', 'knowledge', 'prompts', '
 function resolveEditorSection(section?: string | null): string {
   const key = AGENT_EDITOR_SECTION_ALIASES[section || 'basic'] || section || 'basic';
   if (key === 'skills' && !sandboxSkillsAvailable.value) return 'basic';
-  if (isPeterWorkspace && (key === 'websearch' || key === 'multimodal')) return 'basic';
+  if (isPeterWorkspace && (key === 'model' || key === 'websearch' || key === 'multimodal')) return 'basic';
   const visibleSections = authStore.isLiteMode
     ? LITE_EDITOR_VISIBLE_SECTIONS
     : EDITOR_VISIBLE_SECTIONS;
@@ -2228,6 +2228,7 @@ function namedSandboxConfigs(): SandboxConfigRecord[] {
 
 function autoBindSoleSandbox() {
   if (authStore.isLiteMode) return
+  if (!sandboxSkillsAvailable.value) return
   if (skillsSelectionMode.value === 'none') return
   if (formData.value.config.sandbox_config_id) return
   const configs = namedSandboxConfigs()
@@ -2243,6 +2244,8 @@ function openSkillSettings() {
 }
 
 function pruneSelectedSkills() {
+  // Hidden settings must not be rewritten using an empty or inaccessible catalog.
+  if (!sandboxSkillsAvailable.value) return
   if (!catalogReady.value) return
   const names = new Set(catalogSkillRows.value.filter((skill) => skill.selectable).map((skill) => skill.name))
   const selected: string[] = formData.value.config.selected_skills || []
@@ -2254,6 +2257,7 @@ function pruneSelectedSkills() {
 
 async function syncInstalledSkills(force = false) {
   if (authStore.isLiteMode) return
+  if (!sandboxSkillsAvailable.value) return
   autoBindSoleSandbox()
   const configId = effectiveSkillSandboxId.value
   await editorResources.ensureSkills(configId, force)
@@ -2689,7 +2693,7 @@ const navItems = computed(() => {
     return isPeterWorkspace ? items.map(withPeterNavLabel) : items;
   }
 
-  items.splice(1, 0, { key: 'model', icon: 'cpu', label: t('agent.editor.modelConfig') });
+  if (!isPeterWorkspace) items.splice(1, 0, { key: 'model', icon: 'cpu', label: t('agent.editor.modelConfig') });
 
   // 多轮对话（两种模式都需要：Agent 模式同样按 history_turns 截断历史）
   items.push({ key: 'conversation', icon: 'chat', label: t('agent.editor.conversationSettings') });
@@ -3235,6 +3239,7 @@ const agentTypeSelectOptions = computed(() => {
 // 为每个预设生成"我的 <label>"的默认名称，让用户可以一键保存
 // custom 类型默认名为空（让用户自己想）
 const getPresetDefaultName = (preset: AgentTypePreset | null): string => {
+  if (isPeterWorkspace) return t('agentEditor.defaultName');
   if (!preset || preset.id === 'custom') return '';
   return t('agentEditor.agentType.defaultNamePattern', { label: agentTypePresetLabel(preset) });
 };
@@ -3646,6 +3651,9 @@ watch(() => props.visible, async (val) => {
           }
         }
       }
+      if (isPeterWorkspace && !formData.value.name) {
+        formData.value.name = t('agentEditor.defaultName');
+      }
       // Lite always starts a personal agent with a saveable name, regardless
       // of whether the compact form defaults to quick answers or reasoning.
       if (authStore.isLiteMode && !formData.value.name) {
@@ -3792,7 +3800,7 @@ function stopCatalogPoll() {
 watch(
   [() => props.visible, catalogSkillRows],
   () => {
-    if (authStore.isLiteMode) {
+    if (authStore.isLiteMode || !sandboxSkillsAvailable.value) {
       stopCatalogPoll()
       return
     }
@@ -3813,6 +3821,7 @@ watch(
 
 // 监听 Skills 选择模式变化
 watch(skillsSelectionMode, (mode) => {
+  if (!sandboxSkillsAvailable.value) return
   formData.value.config.skills_selection_mode = mode;
   if (mode === 'none') {
     // 不使用 Skills，清空相关配置
@@ -4907,25 +4916,23 @@ const handleSave = async () => {
   }
 
   if (!formData.value.config.model_id) {
-    MessagePlugin.error(t('agent.editor.modelRequired'));
+    MessagePlugin.error(isPeterWorkspace ? peterCopy('回答服务暂不可用，请联系管理员。', 'The response service is unavailable. Please contact your administrator.') : t('agent.editor.modelRequired'));
     currentSection.value = 'basic';
     return;
   }
 
   // 校验 VLM 模型（当图片上传启用时必填）
   if (formData.value.config.image_upload_enabled && !formData.value.config.vlm_model_id) {
-    MessagePlugin.error(t('agentEditor.imageUpload.vlmModelRequired'));
+    MessagePlugin.error(isPeterWorkspace ? peterCopy('图片处理暂不可用，请联系管理员。', 'Image processing is unavailable. Please contact your administrator.') : t('agentEditor.imageUpload.vlmModelRequired'));
     currentSection.value = authStore.isLiteMode || isPeterWorkspace ? 'basic' : 'multimodal';
-    if (isPeterWorkspace) uiStore.openSettings('models', 'vllm');
     return;
   }
 
   // 音频上传同样必须在保存前绑定可用的 ASR，避免配置看似成功、
   // 用户首次上传音频时才收到后端拒绝。
   if (formData.value.config.audio_upload_enabled && !formData.value.config.asr_model_id) {
-    MessagePlugin.error(t('uploadConfirm.asrModelRequired'));
+    MessagePlugin.error(isPeterWorkspace ? peterCopy('语音处理暂不可用，请联系管理员。', 'Audio processing is unavailable. Please contact your administrator.') : t('uploadConfirm.asrModelRequired'));
     currentSection.value = authStore.isLiteMode || isPeterWorkspace ? 'basic' : 'multimodal';
-    if (isPeterWorkspace) uiStore.openSettings('models', 'asr');
     return;
   }
 

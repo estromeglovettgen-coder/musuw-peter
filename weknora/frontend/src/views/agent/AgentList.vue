@@ -668,12 +668,12 @@
                 <span class="shared-detail-label">{{ $t('agent.shareScope.knowledgeBase') }}</span>
                 <span class="shared-detail-value">{{ sharedAgentKbScopeText }}</span>
               </div>
-              <div class="shared-detail-row">
+              <div v-if="!isPeterWorkspace" class="shared-detail-row">
                 <span class="shared-detail-label">{{ $t('agent.shareScope.chatModel') }}</span>
                 <span class="shared-detail-value">{{ currentSharedAgent.agent.config.model_id ?
                   $t('agent.shareScope.modelConfigured') : $t('agent.shareScope.modelNotSet') }}</span>
               </div>
-              <div v-if="sharedAgentUsesKb" class="shared-detail-row">
+              <div v-if="!isPeterWorkspace && sharedAgentUsesKb" class="shared-detail-row">
                 <span class="shared-detail-label">{{ $t('agent.shareScope.rerankModel') }}</span>
                 <span class="shared-detail-value">{{ currentSharedAgent.agent.config.rerank_model_id ?
                   $t('agent.shareScope.modelConfigured') : $t('agent.shareScope.modelNotSet') }}</span>
@@ -897,13 +897,14 @@ const recentsAgentList = computed<DisplayAgent[]>(() => {
 })
 
 const matchesAgentSearch = (agent: any) => {
-  if (isPeterWorkspace && agent?.is_builtin) return false
+  if (isPeterWorkspace && agent?.is_builtin && agent.id !== 'fire-taylor') return false
   const query = agentSearchQuery.value.trim().toLowerCase()
   if (!query) return true
   const name = String(agent?.name || '').toLowerCase()
   const description = String(agent?.description || '').toLowerCase()
   const model = String(agent?.config?.model_id || '').toLowerCase()
-  return [name, description, model].some((value) => value.includes(query))
+  const searchable = isPeterWorkspace ? [name, description] : [name, description, model]
+  return searchable.some((value) => value.includes(query))
 }
 
 const filteredAgents = computed<DisplayAgent[]>(() => {
@@ -1022,7 +1023,7 @@ const showAgentListEmpty = computed(() => {
 })
 
 const showAgentTenantModelsGuide = computed(
-  () => modelsReadyLoaded.value && showAgentListEmpty.value && !isReadyForAgent.value,
+  () => !isPeterWorkspace && modelsReadyLoaded.value && showAgentListEmpty.value && !isReadyForAgent.value,
 )
 
 const applyAgentListData = (res: { data: CustomAgent[]; disabled_own_agent_ids: string[] }) => {
@@ -1442,6 +1443,11 @@ const openCreateModal = () => {
 
 // 创建智能体
 const handleCreateAgent = async () => {
+  if (isPeterWorkspace) {
+    markContextualGuideDone('agentList')
+    openCreateModal()
+    return
+  }
   try {
     await refreshModelReadiness()
   } catch {

@@ -198,7 +198,7 @@
       </div>
 
             <!-- Standard-tier settings remain available through the compact section navigator. -->
-            <div v-if="!authStore.isLiteMode && currentSection === 'models'" class="kb-config-section">
+            <div v-if="!isPeterWorkspace && !authStore.isLiteMode && currentSection === 'models'" class="kb-config-section">
               <KBModelConfig
                 ref="modelConfigRef"
                 v-if="formData"
@@ -293,7 +293,7 @@
                   </div>
                   <t-switch v-model="formData.multimodalConfig.enabled" @change="handleMultimodalToggle" />
                 </div>
-                <div v-if="formData.multimodalConfig.enabled" class="kb-config-setting-row">
+                <div v-if="!isPeterWorkspace && formData.multimodalConfig.enabled" class="kb-config-setting-row">
                   <div class="kb-config-setting-info">
                     <label>{{ $t('knowledgeEditor.advanced.multimodal.vllmLabel') }} <span class="is-required">*</span></label>
                     <p>{{ $t('knowledgeEditor.advanced.multimodal.vllmDescription') }}</p>
@@ -343,7 +343,7 @@
                   </div>
                   <t-switch v-model="formData.asrConfig.enabled" />
                 </div>
-                <div v-if="formData.asrConfig.enabled" class="kb-config-setting-row">
+                <div v-if="!isPeterWorkspace && formData.asrConfig.enabled" class="kb-config-setting-row">
                   <div class="kb-config-setting-info">
                     <label>{{ $t('knowledgeEditor.asr.modelLabel') }} <span class="is-required">*</span></label>
                     <p>{{ $t('knowledgeEditor.asr.modelDescription') }}</p>
@@ -524,7 +524,7 @@ const currentSection = ref<string>('basic')
  */
 const normalizeKnowledgeBaseSection = (section?: string | null): string => {
   const resolved = section || 'basic'
-  if (isPeterWorkspace && !isWorkspaceKnowledgeBaseSectionVisible(resolved, true)) return 'basic'
+  if (isPeterWorkspace && (resolved === 'models' || !isWorkspaceKnowledgeBaseSectionVisible(resolved, true))) return 'basic'
   if (!authStore.isLiteMode) return resolved
   return resolved === 'advanced' ? 'advanced' : 'basic'
 }
@@ -1343,28 +1343,28 @@ const validateForm = (): boolean => {
   // 验证模型配置 - embedding 模型仅在检索索引启用时必须
   const needsEmbedding = formData.value.indexingStrategy?.vectorEnabled || formData.value.indexingStrategy?.keywordEnabled
   if (needsEmbedding && !formData.value.modelConfig.embeddingModelId) {
-    MessagePlugin.warning(t('knowledgeEditor.indexing.embeddingRequired'))
-    currentSection.value = 'models'
+    MessagePlugin.warning(isPeterWorkspace ? '资料检索暂不可用，请联系管理员。' : t('knowledgeEditor.indexing.embeddingRequired'))
+    currentSection.value = isPeterWorkspace ? 'basic' : 'models'
     return false
   }
 
   if (!formData.value.modelConfig.llmModelId) {
-    MessagePlugin.warning(t('knowledgeEditor.messages.summaryRequired'))
-    currentSection.value = 'models'
+    MessagePlugin.warning(isPeterWorkspace ? '资料处理暂不可用，请联系管理员。' : t('knowledgeEditor.messages.summaryRequired'))
+    currentSection.value = isPeterWorkspace ? 'basic' : 'models'
     return false
   }
 
   // 验证多模态配置（如果启用）
   if (!isFAQ.value && formData.value.multimodalConfig.enabled &&
       (!formData.value.multimodalConfig.vllmModelId || (isPeterWorkspace && !hasActivePeterMediaModel('multimodal')))) {
-    MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
+    MessagePlugin.warning(isPeterWorkspace ? '图片处理暂不可用，请联系管理员。' : t('knowledgeEditor.messages.multimodalInvalid'))
     currentSection.value = 'multimodal'
     return false
   }
 
   if (!isFAQ.value && formData.value.asrConfig.enabled &&
       (!formData.value.asrConfig.modelId || (isPeterWorkspace && !hasActivePeterMediaModel('asr')))) {
-    MessagePlugin.warning(t('knowledgeEditor.asr.modelPlaceholder'))
+    MessagePlugin.warning(isPeterWorkspace ? '语音处理暂不可用，请联系管理员。' : t('knowledgeEditor.asr.modelPlaceholder'))
     currentSection.value = 'asr'
     return false
   }

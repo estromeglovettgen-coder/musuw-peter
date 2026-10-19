@@ -1,4 +1,4 @@
-// Peter customer-workspace + server delivery: approved native model catalog and target-facing copy,
+// Approved target-session handoff fix (2026-10-19): approved native model catalog and target-facing copy,
 // customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -11,7 +11,7 @@ const blobSha = (text) => createHash('sha1').update(`blob ${Buffer.byteLength(te
 test('audited chat parent controller remains locked after server-authorized marketplace chat integration', () => {
   assert.equal(
     blobSha(read('./business-baselines/ChatIndex.pre-view.vue')),
-    '2a0a8cedc30f7bead17e9c9d8aec02c3de1d080b',
+    'fffab57ca0496f5036c2ca4737abaf0070daec98',
   )
 })
 

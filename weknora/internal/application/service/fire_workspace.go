@@ -23,6 +23,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var ErrFireCreateConflict = errors.New("account operation or identity already exists with different inputs")
@@ -69,6 +70,85 @@ type FireCreateAccountResult struct {
 	User              *types.User
 	GeneratedPassword string
 	Existing          bool
+}
+
+type FireExistingAccountResult struct {
+	UserID   string `json:"user_id"`
+	TenantID uint64 `json:"tenant_id"`
+	Existing bool   `json:"existing"`
+}
+
+// ProvisionExistingAccount is an explicit operator action, never a read-path
+// bootstrap. It changes only managed default resources, not identity or plans.
+func (s *FireWorkspaceService) ProvisionExistingAccount(ctx context.Context, actorUserID, targetUserID string) (*FireExistingAccountResult, error) {
+	if !s.Enabled() {
+		return nil, errors.New("Fire workspace provisioning is not configured")
+	}
+	actorID, authenticated := types.UserIDFromContext(ctx)
+	if !authenticated || actorID != actorUserID || !types.IsSystemAdminFromContext(ctx) {
+		return nil, ErrFireProvisionForbidden
+	}
+	if _, apiKey := types.TenantAPIKeyScopeFromContext(ctx); apiKey {
+		return nil, ErrFireProvisionForbidden
+	}
+	if strings.TrimSpace(targetUserID) == "" || len(actorUserID) > 36 || len(targetUserID) > 36 {
+		return nil, ErrFireInvalidRequest
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var result FireExistingAccountResult
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if tx.Dialector.Name() == "postgres" {
+			if err := tx.Exec("SELECT pg_advisory_xact_lock(?)", int64(706406741)).Error; err != nil {
+				return err
+			}
+		}
+		// Lock and re-check the real identities inside the write transaction. A
+		// caller-supplied context flag or an API key cannot impersonate an admin.
+		users := repository.NewUserRepository(tx.Clauses(clause.Locking{Strength: "UPDATE"}))
+		actor, err := users.GetUserByID(ctx, actorUserID)
+		if err != nil || actor == nil || !actor.IsSystemAdmin || !actor.IsActive || actor.DeletionRequestedAt != nil {
+			return ErrFireProvisionForbidden
+		}
+		target, err := users.GetUserByID(ctx, targetUserID)
+		if err != nil || target == nil || !target.IsActive || target.DeletionRequestedAt != nil || target.TenantID == 0 || target.TenantID == s.config.SourceTenantID {
+			return fmt.Errorf("%w: an active existing non-source account is required", ErrFireInvalidRequest)
+		}
+		var tenant types.Tenant
+		if err := tx.Where("id = ?", target.TenantID).First(&tenant).Error; err != nil {
+			return fmt.Errorf("%w: target workspace is unavailable", ErrFireInvalidRequest)
+		}
+		var existing types.FireWorkspaceAccount
+		err = tx.Where("user_id = ? OR tenant_id = ?", target.ID, target.TenantID).First(&existing).Error
+		if err == nil {
+			if existing.TenantID != target.TenantID || existing.SourceTenantID != s.config.SourceTenantID ||
+				existing.CourseKnowledgeBaseID != s.config.CourseKnowledgeBaseID || existing.SourceAgentID != s.config.AgentID ||
+				existing.DefaultAgentID != types.FireDefaultAgentID {
+				return ErrFireCreateConflict
+			}
+			result = FireExistingAccountResult{UserID: target.ID, TenantID: target.TenantID, Existing: true}
+			return nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		grant, err := s.ensureAccountResources(ctx, tx, target)
+		if err != nil {
+			return err
+		}
+		grant.OperationID = "existing:" + target.ID
+		fingerprint := sha256.Sum256([]byte(fmt.Sprintf("%s:%d:%s:%s", grant.OperationID, grant.SourceTenantID, grant.CourseKnowledgeBaseID, grant.SourceAgentID)))
+		grant.RequestFingerprint = hex.EncodeToString(fingerprint[:])
+		if err := tx.Create(grant).Error; err != nil {
+			return err
+		}
+		result = FireExistingAccountResult{UserID: target.ID, TenantID: target.TenantID}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 // CreateAccount keeps native identity creation, reference grants and the
@@ -238,7 +318,7 @@ func (s *FireWorkspaceService) ensureAccountResources(ctx context.Context, tx *g
 	} else if err != nil {
 		return nil, err
 	}
-	if err := orgService.AddTenantMember(ctx, orgID, user.TenantID, user.ID, types.OrgRoleViewer); err != nil {
+	if err := orgService.AddTenantMember(ctx, orgID, user.TenantID, user.ID, types.OrgRoleViewer); err != nil && !errors.Is(err, repository.ErrOrgMemberAlreadyExists) {
 		return nil, err
 	}
 	projected, modelIDs, err := projectFireTaylor(agent, user.TenantID, kb)
@@ -251,7 +331,12 @@ func (s *FireWorkspaceService) ensureAccountResources(ctx context.Context, tx *g
 			return nil, errors.New("a configured Fire model is unavailable")
 		}
 	}
-	if err := repository.NewCustomAgentRepository(tx).CreateAgent(ctx, projected); err != nil {
+	agents := repository.NewCustomAgentRepository(tx)
+	if _, err := agents.GetAgentByID(ctx, projected.ID, user.TenantID); errors.Is(err, repository.ErrCustomAgentNotFound) {
+		if err := agents.CreateAgent(ctx, projected); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
 		return nil, err
 	}
 	modelJSON, _ := json.Marshal(modelIDs)
@@ -272,14 +357,22 @@ func projectFireTaylor(source *types.CustomAgent, tenantID uint64, kb *types.Kno
 	cfg.KBSelectionMode, cfg.KnowledgeBases = "selected", []string{kb.ID}
 	cfg.MCPSelectionMode, cfg.MCPServices = "none", nil
 	cfg.SandboxConfigID = types.SandboxConfigIDGlobalDefault
-	cfg.SkillsSelectionMode, cfg.SelectedSkills = "all", nil
+	if cfg.SkillsSelectionMode == "" {
+		cfg.SkillsSelectionMode = "all"
+	}
 	cfg.WebSearchProviderID, cfg.ImageStorageProvider = "", ""
-	cfg.QueryUnderstandModelID = cfg.ModelID
-	if cfg.QuestionSuggestions != nil {
+	if cfg.QueryUnderstandModelID == "" {
+		cfg.QueryUnderstandModelID = cfg.ModelID
+	}
+	if cfg.QuestionSuggestions != nil && cfg.QuestionSuggestions.FollowUps.ModelID == "" {
 		cfg.QuestionSuggestions.FollowUps.ModelID = cfg.ModelID
 	}
 	ids := []string{}
-	for _, id := range []string{cfg.ModelID, cfg.RerankModelID, cfg.VLMModelID, cfg.ASRModelID, kb.EmbeddingModelID, kb.SummaryModelID, kb.VLMConfig.ModelID, kb.ASRConfig.ModelID} {
+	modelIDs := []string{cfg.ModelID, cfg.QueryUnderstandModelID, cfg.RerankModelID, cfg.VLMModelID, cfg.ASRModelID, kb.EmbeddingModelID, kb.SummaryModelID, kb.VLMConfig.ModelID, kb.ASRConfig.ModelID}
+	if cfg.QuestionSuggestions != nil {
+		modelIDs = append(modelIDs, cfg.QuestionSuggestions.FollowUps.ModelID)
+	}
+	for _, id := range modelIDs {
 		if id != "" && !slices.Contains(ids, id) {
 			ids = append(ids, id)
 		}
@@ -288,29 +381,78 @@ func projectFireTaylor(source *types.CustomAgent, tenantID uint64, kb *types.Kno
 	return &types.CustomAgent{ID: types.FireDefaultAgentID, TenantID: tenantID, Name: "泰勒", Description: source.Description, Avatar: source.Avatar, IsBuiltin: false, Config: cfg, CreatedAt: now, UpdatedAt: now}, ids, nil
 }
 
+// managedSource resolves only the explicit server-issued resource binding.
+// Reading an agent never enrolls an arbitrary tenant in the source workspace or
+// broadens its shared-course permissions.
+func (s *FireWorkspaceService) managedSource(ctx context.Context, tenantID uint64) (*types.CustomAgent, *types.KnowledgeBase, bool, error) {
+	if !s.Enabled() {
+		return nil, nil, false, nil
+	}
+	if tenantID != s.config.SourceTenantID {
+		var grant types.FireWorkspaceAccount
+		err := s.db.WithContext(ctx).Where("tenant_id = ?", tenantID).First(&grant).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, false, nil
+		}
+		if err != nil {
+			return nil, nil, false, err
+		}
+		if grant.SourceTenantID != s.config.SourceTenantID || grant.SourceAgentID != s.config.AgentID ||
+			grant.CourseKnowledgeBaseID != s.config.CourseKnowledgeBaseID || grant.DefaultAgentID != types.FireDefaultAgentID {
+			return nil, nil, false, errors.New("invalid Fire managed resource binding")
+		}
+	}
+	kb, err := repository.NewKnowledgeBaseRepository(s.db).GetKnowledgeBaseByID(ctx, s.config.CourseKnowledgeBaseID)
+	if err != nil || kb == nil || kb.TenantID != s.config.SourceTenantID || kb.CustomerProfile != nil || kb.IsTemporary {
+		return nil, nil, false, errors.New("configured Fire course knowledge base is unavailable")
+	}
+	source, err := repository.NewCustomAgentRepository(s.db).GetAgentByID(ctx, s.config.AgentID, s.config.SourceTenantID)
+	if err != nil || source == nil || strings.TrimSpace(source.Config.ModelID) == "" {
+		return nil, nil, false, errors.New("configured Fire Taylor agent is unavailable")
+	}
+	return source, kb, true, nil
+}
+
+// DefaultAgent is a live view of the administrator's Taylor configuration.
+// Receiver snapshots remain stored for rollback, but are never the runtime
+// authority. The source owner keeps its real editable ID; receivers keep the
+// protected tenant-local ID and their own runtime credentials.
+func (s *FireWorkspaceService) DefaultAgent(ctx context.Context, tenantID uint64) (*types.CustomAgent, bool, error) {
+	source, kb, managed, err := s.managedSource(ctx, tenantID)
+	if err != nil || !managed {
+		return nil, managed, err
+	}
+	if tenantID == s.config.SourceTenantID {
+		source.Name = "泰勒"
+		return source, true, nil
+	}
+	projected, _, err := projectFireTaylor(source, tenantID, kb)
+	if err != nil {
+		return nil, true, err
+	}
+	projected.CreatedAt, projected.UpdatedAt = source.CreatedAt, source.UpdatedAt
+	return projected, true, nil
+}
+
 // ManagedModels returns exact provisioned model references without changing
 // caller identity. Callers still apply their normal plan / runtime policies.
 func (s *FireWorkspaceService) ManagedModels(ctx context.Context, tenantID uint64) ([]*types.Model, error) {
 	if !s.Enabled() {
 		return nil, nil
 	}
-	var grant types.FireWorkspaceAccount
-	err := s.db.WithContext(ctx).Where("tenant_id = ?", tenantID).First(&grant).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
+	source, kb, managed, err := s.managedSource(ctx, tenantID)
+	if err != nil || !managed {
 		return nil, err
 	}
-	var ids []string
-	if err := json.Unmarshal([]byte(grant.ModelIDsJSON), &ids); err != nil {
+	_, ids, err := projectFireTaylor(source, tenantID, kb)
+	if err != nil {
 		return nil, err
 	}
 	var models []*types.Model
 	if len(ids) == 0 {
 		return models, nil
 	}
-	err = s.db.WithContext(ctx).Where("id IN ? AND (tenant_id = ? OR is_builtin = ?)", ids, grant.SourceTenantID, true).Find(&models).Error
+	err = s.db.WithContext(ctx).Where("id IN ? AND (tenant_id = ? OR is_builtin = ?)", ids, s.config.SourceTenantID, true).Find(&models).Error
 	return models, err
 }
 
@@ -318,21 +460,17 @@ func (s *FireWorkspaceService) ResolveManagedModel(ctx context.Context, tenantID
 	if !s.Enabled() {
 		return nil, false, nil
 	}
-	var grant types.FireWorkspaceAccount
-	err := s.db.WithContext(ctx).Where("tenant_id = ?", tenantID).First(&grant).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, false, nil
-	}
-	if err != nil {
+	source, kb, managed, err := s.managedSource(ctx, tenantID)
+	if err != nil || !managed {
 		return nil, false, err
 	}
-	var ids []string
-	if err := json.Unmarshal([]byte(grant.ModelIDsJSON), &ids); err != nil {
+	_, ids, err := projectFireTaylor(source, tenantID, kb)
+	if err != nil {
 		return nil, false, err
 	}
 	if !slices.Contains(ids, modelID) {
 		return nil, false, nil
 	}
-	model, err := repository.NewModelRepository(s.db).GetByID(ctx, grant.SourceTenantID, modelID)
+	model, err := repository.NewModelRepository(s.db).GetByID(ctx, s.config.SourceTenantID, modelID)
 	return model, err == nil && model != nil, err
 }

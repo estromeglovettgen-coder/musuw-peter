@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 import { isWorkspaceKnowledgeBaseSectionVisible, isWorkspaceSettingsSectionVisible, isWorkspaceUploadSectionVisible, workspaceRouteRedirect } from './workspaceSurface'
 
 test('Peter keeps normal settings while hiding model management and platform administration', () => {
-  for (const key of ['general', 'userprofile', 'memory', 'mymemory', 'chathistory', 'mcp', 'integration-im', 'integration-embed', 'skills']) {
+  for (const key of ['general', 'userprofile', 'memory', 'mymemory', 'chathistory', 'mcp', 'integration-im', 'integration-embed']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), true, key)
   }
-  for (const key of ['models', 'usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'envvars', 'runtime-queues', 'system-prompts']) {
+  for (const key of ['models', 'usage', 'weknoracloud', 'tenant', 'members', 'system-global', 'storage', 'vectorstore', 'parser', 'sandbox', 'skills', 'envvars', 'runtime-queues', 'system-prompts']) {
     assert.equal(isWorkspaceSettingsSectionVisible(key, true), false, key)
     assert.equal(isWorkspaceSettingsSectionVisible(key, false), true, key)
   }
@@ -22,7 +22,8 @@ test('direct links cannot reopen hidden Peter billing, market or administration 
   assert.equal(workspaceRouteRedirect('/platform/settings', 'models', false), null)
   assert.equal(workspaceRouteRedirect('/platform/settings', 'chathistory', true), null)
   for (const section of ['skills']) {
-    assert.equal(workspaceRouteRedirect('/platform/settings', section, true), null)
+    assert.equal(workspaceRouteRedirect('/platform/settings', section, true), '/platform/settings?section=general')
+    assert.equal(workspaceRouteRedirect('/platform/settings', section, false), null)
   }
   assert.equal(workspaceRouteRedirect('/platform/settings', 'system-prompts', true), '/platform/settings?section=general')
   assert.equal(workspaceRouteRedirect('/platform/settings', 'system-prompts', false), null)
@@ -33,10 +34,10 @@ test('direct links cannot reopen hidden Peter billing, market or administration 
 })
 
 test('Peter knowledge-base and customer editors keep business settings while hiding managed processing', () => {
-  for (const key of ['customer', 'sources', 'basic', 'models', 'faq']) {
+  for (const key of ['customer', 'sources', 'basic', 'faq']) {
     assert.equal(isWorkspaceKnowledgeBaseSectionVisible(key, true), true, key)
   }
-  for (const key of ['vectorStore', 'parser', 'storage', 'chunking', 'multimodal', 'asr', 'graph', 'advanced', 'datasource', 'share', 'activity']) {
+  for (const key of ['models', 'vectorStore', 'parser', 'storage', 'chunking', 'multimodal', 'asr', 'graph', 'advanced', 'datasource', 'share', 'activity']) {
     assert.equal(isWorkspaceKnowledgeBaseSectionVisible(key, true), false, key)
     assert.equal(isWorkspaceKnowledgeBaseSectionVisible(key, false), true, key)
   }

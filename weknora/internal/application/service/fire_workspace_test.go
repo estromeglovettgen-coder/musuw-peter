@@ -174,6 +174,129 @@ func TestFireDefaultAgentCannotBeOverwrittenByTenantOwner(t *testing.T) {
 	_, err = svc.UpdateAgent(ctx, &types.CustomAgent{ID: types.FireDefaultAgentID, Name: "replacement"})
 	require.ErrorIs(t, err, ErrCannotModifyBuiltin)
 	require.ErrorIs(t, svc.DeleteAgent(ctx, types.FireDefaultAgentID), ErrCannotDeleteBuiltin)
+	// Administrators edit the source Taylor row rather than a receiver's
+	// projected copy; allowing the latter would appear to save but be ignored.
+	_, err = svc.UpdateAgent(fireAdminContext(), &types.CustomAgent{ID: types.FireDefaultAgentID, Name: "replacement"})
+	require.ErrorIs(t, err, ErrCannotModifyBuiltin)
+	require.ErrorIs(t, svc.DeleteAgent(fireAdminContext(), types.FireDefaultAgentID), ErrCannotDeleteBuiltin)
+}
+
+func TestFireTaylorIsTheOnlyManagedDefaultAndTracksSourceEdits(t *testing.T) {
+	s := fireFixture(t)
+	require.NoError(t, types.LoadBuiltinAgentsConfig("../../../config"))
+	result, err := s.CreateAccount(fireAdminContext(), &types.AdminCreateUserRequest{OperationID: "live-default"}, nil)
+	require.NoError(t, err)
+	ctx := context.WithValue(context.Background(), types.TenantIDContextKey, result.User.TenantID)
+	repo := repository.NewCustomAgentRepository(s.db)
+	svc := NewCustomAgentServiceWithFireWorkspace(repo, nil, nil, nil, nil, nil, nil, s)
+	personal := &types.CustomAgent{ID: "personal-agent", TenantID: result.User.TenantID, Name: "我的智能体", Config: types.CustomAgentConfig{SystemPrompt: "my private prompt"}}
+	require.NoError(t, repo.CreateAgent(ctx, personal))
+	other := &types.CustomAgent{ID: "foreign-agent", TenantID: 777, Name: "foreign"}
+	require.NoError(t, repo.CreateAgent(ctx, other))
+	listed, err := svc.ListAgents(ctx)
+	require.NoError(t, err)
+	require.Len(t, listed, 2, "only Taylor and the user's own agents belong in the picker")
+	require.Equal(t, types.FireDefaultAgentID, listed[0].ID)
+	require.Equal(t, "泰勒", listed[0].Name)
+	require.Equal(t, personal.ID, listed[1].ID)
+
+	source, err := repo.GetAgentByID(ctx, "source-taylor", 100)
+	require.NoError(t, err)
+	source.Config.SystemPrompt = "updated administrator Taylor prompt"
+	source.Config.AllowedTools = []string{"knowledge_search", "wiki_search"}
+	source.Config.EmbeddingTopK = 31
+	source.Config.SkillsSelectionMode = "none"
+	source.Config.QuestionSuggestions = &types.QuestionSuggestionConfig{Starters: types.StarterSuggestionConfig{Enabled: true, Items: []string{"new starter"}}}
+	require.NoError(t, repo.UpdateAgent(ctx, source))
+	fresh, err := svc.GetAgentByID(ctx, types.FireDefaultAgentID)
+	require.NoError(t, err)
+	require.Equal(t, source.Config.SystemPrompt, fresh.Config.SystemPrompt)
+	require.Equal(t, source.Config.AllowedTools, fresh.Config.AllowedTools)
+	require.Equal(t, 31, fresh.Config.EmbeddingTopK)
+	require.Equal(t, "none", fresh.Config.SkillsSelectionMode)
+	require.Equal(t, []string{"new starter"}, fresh.Config.QuestionSuggestions.Starters.Items)
+	sharedView, err := svc.GetAgentByIDAndTenant(ctx, types.FireDefaultAgentID, result.User.TenantID)
+	require.NoError(t, err)
+	require.Equal(t, fresh.Config, sharedView.Config)
+	require.Equal(t, result.User.TenantID, fresh.TenantID, "using Taylor must not switch the user's tenant")
+	require.Equal(t, []string{"public-course"}, fresh.Config.KnowledgeBases)
+	require.Equal(t, "none", fresh.Config.MCPSelectionMode)
+	require.Empty(t, fresh.Config.MCPServices)
+	require.Equal(t, types.SandboxConfigIDGlobalDefault, fresh.Config.SandboxConfigID)
+	fresh.Config.AllowedTools[0] = "mutated"
+	sourceAgain, err := repo.GetAgentByID(ctx, "source-taylor", 100)
+	require.NoError(t, err)
+	require.Equal(t, "knowledge_search", sourceAgain.Config.AllowedTools[0])
+	personalAgain, err := repo.GetAgentByID(ctx, personal.ID, result.User.TenantID)
+	require.NoError(t, err)
+	require.Equal(t, "my private prompt", personalAgain.Config.SystemPrompt)
+
+	// Existing built-in IDs remain resolvable for old conversation records.
+	legacy, err := svc.GetAgentByID(ctx, types.BuiltinQuickAnswerID)
+	require.NoError(t, err)
+	require.Equal(t, types.BuiltinQuickAnswerID, legacy.ID)
+}
+
+func TestFireTaylorDefaultSourceOwnerAndUnprovisionedTenants(t *testing.T) {
+	s := fireFixture(t)
+	require.NoError(t, types.LoadBuiltinAgentsConfig("../../../config"))
+	repo := repository.NewCustomAgentRepository(s.db)
+	svc := NewCustomAgentServiceWithFireWorkspace(repo, nil, nil, nil, nil, nil, nil, s)
+	ownerCtx := context.WithValue(fireAdminContext(), types.TenantIDContextKey, uint64(100))
+	listed, err := svc.ListAgents(ownerCtx)
+	require.NoError(t, err)
+	require.Len(t, listed, 1)
+	require.Equal(t, "source-taylor", listed[0].ID, "administrator edits must target the original authoritative row")
+	require.False(t, listed[0].IsBuiltin)
+	source, err := svc.GetAgentByID(ownerCtx, "source-taylor")
+	require.NoError(t, err)
+	require.Equal(t, "original Taylor prompt", source.Config.SystemPrompt)
+	require.Equal(t, "private-sandbox", source.Config.SandboxConfigID, "source workspace settings stay intact")
+
+	strangerCtx := context.WithValue(context.Background(), types.TenantIDContextKey, uint64(777))
+	_, err = svc.GetAgentByID(strangerCtx, types.FireDefaultAgentID)
+	require.ErrorIs(t, err, ErrAgentNotFound)
+	listed, err = svc.ListAgents(strangerCtx)
+	require.NoError(t, err)
+	for _, agent := range listed {
+		require.NotEqual(t, types.FireDefaultAgentID, agent.ID)
+		require.NotEqual(t, "source-taylor", agent.ID)
+	}
+	var grants int64
+	require.NoError(t, s.db.Model(&types.FireWorkspaceAccount{}).Count(&grants).Error)
+	require.Zero(t, grants, "read paths must not silently provision or share source resources")
+}
+
+func TestFireTaylorSourceModelRotationUpdatesExistingReceiversWithoutRegrant(t *testing.T) {
+	s := fireFixture(t)
+	result, err := s.CreateAccount(fireAdminContext(), &types.AdminCreateUserRequest{OperationID: "rotate-default-model"}, nil)
+	require.NoError(t, err)
+	repo := repository.NewCustomAgentRepository(s.db)
+	source, err := repo.GetAgentByID(context.Background(), "source-taylor", 100)
+	require.NoError(t, err)
+	source.Config.ModelID = "private-model"
+	source.Config.QueryUnderstandModelID = "private-model"
+	require.NoError(t, repo.UpdateAgent(context.Background(), source))
+	model, allowed, err := s.ResolveManagedModel(context.Background(), result.User.TenantID, "private-model")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.Equal(t, "private-model", model.ID)
+	_, allowed, err = s.ResolveManagedModel(context.Background(), result.User.TenantID, "approved-model")
+	require.NoError(t, err)
+	require.False(t, allowed, "a retired source model cannot remain available through stale signup metadata")
+	models, err := s.ManagedModels(context.Background(), result.User.TenantID)
+	require.NoError(t, err)
+	require.Len(t, models, 1)
+	require.Equal(t, "private-model", models[0].ID)
+
+	var grant types.FireWorkspaceAccount
+	require.NoError(t, s.db.Where("tenant_id = ?", result.User.TenantID).First(&grant).Error)
+	require.Contains(t, grant.ModelIDsJSON, "approved-model", "the original grant snapshot is preserved for rollback")
+	_, _, err = s.DefaultAgent(context.Background(), result.User.TenantID)
+	require.NoError(t, err)
+	require.NoError(t, repo.DeleteAgent(context.Background(), source.ID, source.TenantID))
+	_, _, err = s.DefaultAgent(context.Background(), result.User.TenantID)
+	require.Error(t, err, "a missing source must fail honestly instead of executing a stale persona")
 }
 
 func TestFireAccountRejectsNonAdminBeforePersistence(t *testing.T) {

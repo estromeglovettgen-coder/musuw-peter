@@ -1,5 +1,5 @@
 <template>
-  <div class="visual-model-selector" :class="{ 'visual-model-selector--chat': mode === 'chat', 'visual-model-selector--consumer-scene': isConsumerSceneSelector, 'is-open': isConsumerSceneSelector && consumerSelectOpen }">
+  <div v-if="!isPeterWorkspace || mode === 'chat'" class="visual-model-selector" :class="{ 'visual-model-selector--chat': mode === 'chat', 'visual-model-selector--consumer-scene': isConsumerSceneSelector, 'is-open': isConsumerSceneSelector && consumerSelectOpen }">
     <template v-if="mode === 'chat'">
       <section
         ref="chatPanelRef"
@@ -25,7 +25,7 @@
             </div>
           </button>
           <button
-            v-if="!hideModelSelection"
+            v-if="!modelsHidden"
             type="button"
             class="visual-model-selector__chat-row"
             aria-haspopup="listbox"
@@ -140,7 +140,7 @@
 
         <Transition name="visual-model-selector__chat-flyout">
           <div
-            v-if="chatView === 'overview' && hoveredSubmenu && !(hideModelSelection && hoveredSubmenu === 'models')"
+            v-if="chatView === 'overview' && hoveredSubmenu && !(modelsHidden && hoveredSubmenu === 'models')"
             :key="hoveredSubmenu"
             class="visual-model-selector__chat-flyout"
             :class="[`is-${submenuPlacement}`, `is-${hoveredSubmenu}`]"
@@ -408,6 +408,7 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { filterModelsByType } from './modelSelectorFilter'
 import { useAuthStore } from '@/stores/auth'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 import { useConsumerUpgradePrompt } from '@/hooks/useConsumerUpgradePrompt'
 import { type CustomAgent, BUILTIN_QUICK_ANSWER_ID, BUILTIN_SMART_REASONING_ID } from '@/api/agent'
 import type { SharedAgentInfo } from '@/api/organization'
@@ -478,6 +479,8 @@ const props = withDefaults(defineProps<Props>(), {
   selectedAgentDisplayName: '',
   view: 'overview',
 })
+
+const modelsHidden = computed(() => isPeterWorkspace || props.hideModelSelection)
 
 const emit = defineEmits<{
   'update:selectedModelId': [value: string]
@@ -551,6 +554,7 @@ const selectedCatalogModel = computed(() => {
 void selectedCatalogModel
 
 const loadModels = async () => {
+  if (isPeterWorkspace && props.mode === 'catalog') return
   // Compact scene selectors receive the safe scene projection used by the
   // settings page. A caller that only opts into the scene CustomSelect surface
   // still owns a normal catalog, so it must load the same catalog as before.
@@ -651,8 +655,8 @@ const handleModelChange = handleCatalogModelChange
 const agentLabel = computed(() => t('agent.title'))
 const modelLabel = computed(() => t('input.modelLabel'))
 const reasoningLabel = computed(() => t('input.reasoningEffort'))
-const chatView = computed(() => props.hideModelSelection && props.view === 'models' ? 'overview' : props.view)
-const chatPanelLabel = computed(() => props.hideModelSelection ? `${agentLabel.value} / ${reasoningLabel.value}` : `${agentLabel.value} / ${modelLabel.value} / ${reasoningLabel.value}`)
+const chatView = computed(() => modelsHidden.value && props.view === 'models' ? 'overview' : props.view)
+const chatPanelLabel = computed(() => modelsHidden.value ? `${agentLabel.value} / ${reasoningLabel.value}` : `${agentLabel.value} / ${modelLabel.value} / ${reasoningLabel.value}`)
 const backLabel = computed(() => t('input.back'))
 const noAgentsLabel = computed(() => t('agent.noAgents'))
 const noModelsLabel = computed(() => t('input.noModel'))
@@ -731,7 +735,7 @@ const updateSubmenuPlacement = () => {
 }
 
 const hoverOpen = (nextView: 'agents' | 'models' | 'reasoning') => {
-  if (props.hideModelSelection && nextView === 'models') return
+  if (modelsHidden.value && nextView === 'models') return
   // Touch browsers can synthesize mouseenter immediately before click.
   // Let the click own the toggle so the first tap does not close it again.
   if (window.matchMedia('(hover: none)').matches) return
@@ -744,16 +748,16 @@ const hoverOpen = (nextView: 'agents' | 'models' | 'reasoning') => {
 }
 
 const toggleHover = (nextView: 'agents' | 'models' | 'reasoning') => {
-  if (props.hideModelSelection && nextView === 'models') return
+  if (modelsHidden.value && nextView === 'models') return
   hoverTask += 1
   // Desktop hover may already have opened this submenu before its click.
   // Peter keeps that first click open; touch still uses the native toggle.
-  if (hoveredSubmenu.value === nextView && (!props.hideModelSelection || window.matchMedia('(hover: none)').matches)) {
+  if (hoveredSubmenu.value === nextView && (!modelsHidden.value || window.matchMedia('(hover: none)').matches)) {
     hoveredSubmenu.value = null
     return
   }
   hoveredSubmenu.value = nextView
-  if (props.hideModelSelection && nextView === 'reasoning') {
+  if (modelsHidden.value && nextView === 'reasoning') {
     activeReasoningIndex.value = Math.max(0, props.reasoningOptions.findIndex(option => option.value === props.reasoningEffort))
   }
   nextTick(() => {
@@ -765,7 +769,7 @@ const toggleHover = (nextView: 'agents' | 'models' | 'reasoning') => {
 }
 
 const openView = (nextView: 'overview' | 'models' | 'reasoning') => {
-  if (props.hideModelSelection && nextView === 'models') return
+  if (modelsHidden.value && nextView === 'models') return
   hoveredSubmenu.value = null
   emit('update:view', nextView)
   nextTick(() => {
@@ -781,7 +785,7 @@ const selectChatAgent = (option: ChatAgentOption) => {
   emit('select-agent', option.agent, option.sourceTenantId)
 }
 const selectChatModel = (value: string) => {
-  if (props.hideModelSelection) return
+  if (modelsHidden.value) return
   const option = chatModels.value.find(model => model.id === value)
   if (!option) return
   const isSceneOption = option.locked !== undefined || option.selectable !== undefined
@@ -868,7 +872,7 @@ const handleReasoningKeydown = (event: KeyboardEvent) => {
     if (option) selectChatReasoning(option.value)
   } else if (event.key === 'Escape') {
     event.preventDefault()
-    if (props.hideModelSelection && hoveredSubmenu.value === 'reasoning') {
+    if (modelsHidden.value && hoveredSubmenu.value === 'reasoning') {
       hoveredSubmenu.value = null
       nextTick(() => overviewFirstRef.value?.focus())
     } else emit('update:view', 'overview')

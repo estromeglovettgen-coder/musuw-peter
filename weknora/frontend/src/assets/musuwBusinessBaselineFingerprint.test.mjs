@@ -1,3 +1,4 @@
+// Approved 2026-10-19: fresh Fire conversations default to Taylor once; explicit picks and historical sessions remain native.
 // Peter customer-workspace + server delivery: approved native model catalog,
 // customer binding/archival and separated navigation; renewed immutable baseline.
 import assert from 'node:assert/strict'
@@ -38,8 +39,8 @@ const CREATOR_MARKETPLACE_CHANGE = 'creator-marketplace-subscriptions'
 const PETER_TAYLOR_DEFAULT_CHANGE = 'peter-taylor-global-chat-default+peter-depth-only-agent-model'
 
 const LOCKED_BUSINESS_BLOBS = {
-  './business-baselines/ChatIndex.pre-view.vue': '5cf5274325a8fc8ee502974dd7602967a62d01fa',
-  './business-baselines/Input-field.pre-view.vue': '374059e8d616a9bd64778f13836e0d10873e6834',
+  './business-baselines/ChatIndex.pre-view.vue': 'fffab57ca0496f5036c2ca4737abaf0070daec98',
+  './business-baselines/Input-field.pre-view.vue': 'fd31ddb35eacbbc2272407e9014c64fca8b718d0',
   './business-baselines/KnowledgeBase.pre-view.vue': '3e2da17cdb15cc4dc42d7102da77502407ad21c2',
   './business-baselines/KnowledgeBaseList.pre-view.vue': '42d4ed67cb5f4c8fd145d67f119e4a95bf88c45e',
   './business-baselines/manual-knowledge-editor.pre-view.vue': '4b6090b0ee24ffbcc97ccdd3f70220cd44966a8e',

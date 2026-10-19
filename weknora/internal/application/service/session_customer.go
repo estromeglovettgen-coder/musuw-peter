@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	apperrors "github.com/Tencent/WeKnora/internal/errors"
 	"github.com/Tencent/WeKnora/internal/types"
 )
@@ -20,6 +21,11 @@ func (s *sessionService) resolveCustomerKnowledge(ctx context.Context, req *type
 	if req.CustomAgent != nil {
 		candidates = append(candidates, req.CustomAgent.Config.KnowledgeBases...)
 	}
+	// A user may combine this one immutable target with explicitly selected
+	// reference KBs without changing the target profile or the reusable agent.
+	// These candidates still pass the native owner / organization-share checks
+	// below. Another target can never become a reference, even in the same tenant.
+	candidates = append(candidates, req.KnowledgeBaseIDs...)
 	for _, sharedID := range candidates {
 		if allowed[sharedID] {
 			continue
@@ -42,7 +48,7 @@ func (s *sessionService) resolveCustomerKnowledge(ctx context.Context, req *type
 	}
 	for _, requestedID := range req.KnowledgeBaseIDs {
 		if !allowed[requestedID] {
-			return nil, nil, apperrors.NewBadRequestError("此会话已绑定目标，请切换目标会话或先关联公共知识库")
+			return nil, nil, apperrors.NewBadRequestError("此会话只能引用当前目标和有权访问的知识库，请检查所选资料")
 		}
 	}
 	for _, scope := range req.TagScopes {

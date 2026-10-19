@@ -18,6 +18,7 @@ import {
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import type { SpotlightGuideStep } from '@/types/spotlightGuide'
+import { workspaceGuideSteps } from '@/config/workspaceGuides'
 
 const uiStore = useUIStore()
 const authStore = useAuthStore()
@@ -92,7 +93,7 @@ const steps = computed<SpotlightGuideStep[]>(() => {
     },
     { key: 'done' },
   ]
-  return authStore.isLiteMode ? liteSteps : standardSteps
+  return workspaceGuideSteps(authStore.isLiteMode ? liteSteps : standardSteps, 'global')
 })
 
 const active = ref(false)

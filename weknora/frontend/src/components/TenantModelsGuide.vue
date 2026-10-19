@@ -14,6 +14,7 @@ import {
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import type { SpotlightGuideStep } from '@/types/spotlightGuide'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 
 const props = withDefaults(
   defineProps<{
@@ -72,7 +73,7 @@ const onStepChange = ({ toKey }: { toKey: string }) => {
 let waitGlobalTimer: ReturnType<typeof setTimeout> | null = null
 
 const tryOpen = () => {
-  if (active.value || !props.when || authStore.isLiteMode || isContextualGuideDone('tenantModels')) return
+  if (isPeterWorkspace || active.value || !props.when || authStore.isLiteMode || isContextualGuideDone('tenantModels')) return
   openTimer = setTimeout(() => {
     if (!props.when || authStore.isLiteMode || isContextualGuideDone('tenantModels')) return
     active.value = true
@@ -88,7 +89,7 @@ const scheduleOpen = () => {
     clearTimeout(waitGlobalTimer)
     waitGlobalTimer = null
   }
-  if (!props.when || authStore.isLiteMode || isContextualGuideDone('tenantModels')) return
+  if (isPeterWorkspace || !props.when || authStore.isLiteMode || isContextualGuideDone('tenantModels')) return
   if (isGlobalUserGuideDone()) {
     tryOpen()
     return
@@ -107,7 +108,7 @@ const scheduleOpen = () => {
 watch(
   () => [props.when, authStore.isLiteMode] as const,
   ([val, isLite]) => {
-    if (!val || isLite) {
+    if (isPeterWorkspace || !val || isLite) {
       if (openTimer) clearTimeout(openTimer)
       if (waitGlobalTimer) clearTimeout(waitGlobalTimer)
       openTimer = null

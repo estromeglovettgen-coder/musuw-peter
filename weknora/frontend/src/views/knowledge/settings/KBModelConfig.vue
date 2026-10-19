@@ -1,5 +1,5 @@
 <template>
-  <div class="kb-model-config">
+  <div v-if="!isPeterWorkspace" class="kb-model-config">
     <div class="section-header">
       <h2>{{ $t(isPeterWorkspace ? 'knowledgeEditor.models.peter.title' : 'knowledgeEditor.models.title') }}</h2>
       <p class="section-description">{{ $t(isPeterWorkspace

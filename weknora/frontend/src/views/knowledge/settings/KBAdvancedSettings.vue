@@ -76,7 +76,7 @@
       </div>
 
       <div v-if="!consumerMode && localAutoTag.enabled" class="subsection">
-        <div class="setting-row setting-row-vertical">
+        <div v-if="!isPeterWorkspace" class="setting-row setting-row-vertical">
           <div class="setting-info">
             <label>{{ $t('knowledgeEditor.advanced.autoTag.modelLabel') }}</label>
             <p class="desc">{{ $t('knowledgeEditor.advanced.autoTag.modelDescription') }}</p>
@@ -144,6 +144,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import ModelSelector from '@/components/ModelSelector.vue'
+import { isPeterWorkspace } from '@/config/workspaceSurface'
 
 interface QuestionGenerationConfig {
   enabled: boolean
