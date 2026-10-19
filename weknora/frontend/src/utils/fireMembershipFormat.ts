@@ -40,3 +40,22 @@ export function remainingUsageLabel(remaining: TokenCount, total: TokenCount, lo
  if(percent>0&&percent<1)return '<1%'
  return new Intl.NumberFormat(locale,{maximumFractionDigits:1}).format(percent)+'%'
 }
+
+/** Optional question caps constrain the same public allowance meter; counters stay admin-only. */
+export function membershipUsagePercent(membership: FireMembership): number {
+  const tokens = tokenPercent(membership.remaining_tokens, membership.token_limit)
+  const questions = exactTokens(membership.question_limit ?? 0)
+  return questions !== null && questions > 0n
+    ? Math.min(tokens, tokenPercent(membership.remaining_questions ?? 0, membership.question_limit!))
+    : tokens
+}
+export function membershipUsageLabel(membership: FireMembership, locale = 'zh-CN'): string {
+  const tokens = remainingUsageLabel(membership.remaining_tokens, membership.token_limit, locale)
+  const questionLimit = exactTokens(membership.question_limit ?? 0)
+  if (questionLimit === null) return '—'
+  if (questionLimit === 0n) return tokens
+  const questions = remainingUsageLabel(membership.remaining_questions!, membership.question_limit!, locale)
+  if (tokens === '—' || questions === '—') return '—'
+  const percent = membershipUsagePercent(membership)
+  return percent > 0 && percent < 1 ? '<1%' : new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(percent) + '%'
+}

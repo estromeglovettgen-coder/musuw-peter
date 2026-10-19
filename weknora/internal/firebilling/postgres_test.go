@@ -38,9 +38,26 @@ func TestPostgresNativeMigrationAndConcurrentLedger(t *testing.T) {
 	require.NoError(t, e)
 	require.NoError(t, scoped.Exec("CREATE TABLE users (id VARCHAR(36) PRIMARY KEY, tenant_id BIGINT, is_system_admin BOOLEAN, is_active BOOLEAN)").Error)
 	require.NoError(t, scoped.Exec("INSERT INTO users VALUES ('admin',1,true,true),('alice',2,false,true),('bob',3,false,true)").Error)
-	migration, e := os.ReadFile(filepath.Join("..", "..", "migrations", "versioned", "000112_fire_token_memberships.up.sql"))
+	require.NoError(t, scoped.Exec("CREATE TABLE tenants (id BIGINT PRIMARY KEY)").Error)
+	for _, name := range []string{"000112_fire_token_memberships", "000113_fire_workspace_accounts"} {
+		migration, err := os.ReadFile(filepath.Join("..", "..", "migrations", "versioned", name+".up.sql"))
+		require.NoError(t, err)
+		require.NoError(t, scoped.Exec(string(migration)).Error)
+	}
+	// The upgrade must retain an existing paid cycle and its actual usage.
+	require.NoError(t, scoped.Exec("INSERT INTO fire_token_memberships (user_id,tenant_id,period_id,starts_at,expires_at,token_limit,used_tokens) VALUES ('bob',3,'old-period',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP + INTERVAL '1 day',700,123)").Error)
+	migration, e := os.ReadFile(filepath.Join("..", "..", "migrations", "versioned", "000114_fire_question_allowances.up.sql"))
 	require.NoError(t, e)
 	require.NoError(t, scoped.Exec(string(migration)).Error)
+	var prior Membership
+	require.NoError(t, scoped.Where("user_id = ?", "bob").Take(&prior).Error)
+	require.Equal(t, "old-period", prior.PeriodID)
+	require.EqualValues(t, 123, prior.UsedTokens)
+	require.Zero(t, prior.QuestionLimit)
+	require.Zero(t, prior.ReservedQuestions)
+	require.NoError(t, scoped.Exec("CREATE TABLE sessions (id VARCHAR(36) PRIMARY KEY, user_id VARCHAR(36), tenant_id BIGINT, deleted_at TIMESTAMPTZ)").Error)
+	require.NoError(t, scoped.Exec("CREATE TABLE messages (id VARCHAR(36) PRIMARY KEY, session_id VARCHAR(36), role TEXT, content TEXT, is_fallback BOOLEAN NOT NULL DEFAULT FALSE, deleted_at TIMESTAMPTZ)").Error)
+	require.NoError(t, scoped.Exec("INSERT INTO sessions VALUES ('alice-session','alice',2,NULL)").Error)
 	s := NewService(scoped)
 	ctx := context.WithValue(context.Background(), types.UserIDContextKey, "admin")
 	_, e = s.Apply(ctx, "alice", Mutation{OperationID: "grant", Kind: "grant", DurationDays: 1, Tokens: 1000})
@@ -106,5 +123,62 @@ func TestPostgresNativeMigrationAndConcurrentLedger(t *testing.T) {
 	// A caller-selected user ID cannot authorize another user's mutations.
 	_, e = s.Apply(userCtx, "bob", Mutation{OperationID: "forged", Kind: "grant", DurationDays: 1, Tokens: 1})
 	require.ErrorIs(t, e, ErrForbidden)
-	t.Log(fmt.Sprintf("PostgreSQL migration, 40 concurrent reserves, 30 duplicate settles, 10 idempotent adjustments, recovery passed"))
+	// Native PG row locks must admit exactly one last question. Provider
+	// billing remains active while that question owns its reservation.
+	one := int64(1)
+	_, e = s.Apply(ctx, "alice", Mutation{OperationID: "question-cap", Kind: "set_question_limit", QuestionLimit: &one})
+	require.NoError(t, e)
+	questionIDs := []string{}
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			id, err := s.BeginQuestion(userCtx, fmt.Sprintf("assistant-%d", i), "alice-session")
+			if err == nil {
+				mu.Lock()
+				questionIDs = append(questionIDs, id)
+				mu.Unlock()
+			} else {
+				require.ErrorIs(t, err, ErrUnavailable)
+			}
+		}(i)
+	}
+	wg.Wait()
+	require.Len(t, questionIDs, 1)
+	st, e = s.Status(ctx, "alice")
+	require.NoError(t, e)
+	require.Equal(t, "active", st.Status)
+	providerID, e := s.Reserve(userCtx, "chat", "fixture", 20)
+	require.NoError(t, e)
+	require.NoError(t, s.Settle(ctx, providerID, 4, 6, false, false))
+	require.NoError(t, s.SettleQuestion(ctx, questionIDs[0], false))
+	require.NoError(t, s.SettleQuestion(ctx, questionIDs[0], true))
+	st, e = s.Status(ctx, "alice")
+	require.NoError(t, e)
+	require.Zero(t, st.UsedQuestions)
+	require.Zero(t, st.ReservedQuestions)
+	questionID, e := s.BeginQuestion(userCtx, "delivered-question", "alice-session")
+	require.NoError(t, e)
+	require.NoError(t, scoped.Exec("INSERT INTO messages (id,session_id,role,content) VALUES ('delivered-question','alice-session','assistant','  部分正文  ')").Error)
+	require.NoError(t, scoped.Model(&QuestionCall{}).Where("id = ?", questionID).Update("created_at", time.Now().Add(-time.Hour)).Error)
+	require.NoError(t, s.RecoverPending(ctx))
+	require.NoError(t, s.RecoverPending(ctx))
+	st, e = s.Status(ctx, "alice")
+	require.NoError(t, e)
+	require.EqualValues(t, 1, st.UsedQuestions)
+	require.Zero(t, st.ReservedQuestions)
+	require.Equal(t, "exhausted", st.Status)
+	// New periods keep the old call history without reviving old charges.
+	require.NoError(t, scoped.Model(&Membership{}).Where("user_id = ?", "alice").Update("expires_at", time.Now().Add(-time.Hour)).Error)
+	_, e = s.Apply(ctx, "alice", Mutation{OperationID: "question-renew", Kind: "renew", DurationDays: 1, Tokens: 500, Questions: &one})
+	require.NoError(t, e)
+	require.NoError(t, s.SettleQuestion(ctx, questionID, true))
+	st, e = s.Status(ctx, "alice")
+	require.NoError(t, e)
+	require.Zero(t, st.UsedQuestions)
+	require.EqualValues(t, 1, st.RemainingQuestions)
+	var history int64
+	require.NoError(t, scoped.Model(&QuestionCall{}).Count(&history).Error)
+	require.EqualValues(t, 2, history)
+	t.Log("PostgreSQL 113→114 preserves paid usage; token concurrency, question final-slot concurrency, idempotency, release, recovery and renewal passed")
 }

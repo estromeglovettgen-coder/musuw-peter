@@ -22,3 +22,11 @@
 - [x] 4.2 Real two-account normal/abnormal/recovery journeys and concurrent quota/adjustment tests
 - [x] 4.3 Snapshot Beijing data/config, deploy verified release, test actual model usage and protect existing KB/user data
 - [x] 4.4 Operator documentation, release evidence and complete checklist before goal completion
+
+## 5. Optional question allowances (2026-10-19)
+
+- [x] 5.1 Add optional plan/user question caps and auditable grant, renewal, top-up and cap adjustments without changing existing token accounting
+- [x] 5.2 Reserve one question per user turn atomically; settle delivered answers once; release unanswered failures and recover interrupted reservations
+- [x] 5.3 Reuse native management UI, account creation and percentage menu for both limits
+- [x] 5.4 Verify migrations, concurrency, limits, failure recovery, tenant/admin boundaries and original token-only plans
+- [ ] 5.5 Back up and deploy Beijing, complete real counted-question/exhaustion/top-up journey, clean test data and record evidence

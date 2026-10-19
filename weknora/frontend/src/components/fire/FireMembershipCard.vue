@@ -4,13 +4,13 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useFireMembershipStore } from '@/stores/fireMembership'
-import { formatMembershipDate, membershipNotice, membershipStatusLabel, tokenPercent, remainingUsageLabel } from '@/utils/fireMembershipFormat'
+import { formatMembershipDate, membershipNotice, membershipStatusLabel, membershipUsagePercent, membershipUsageLabel } from '@/utils/fireMembershipFormat'
 const auth=useAuthStore(),store=useFireMembershipStore()
 const {membership,error,loading}=storeToRefs(store)
 const {locale}=useI18n()
 const expires=computed(()=>formatMembershipDate(membership.value?.expires_at,locale.value))
 const notice=computed(()=>membership.value?membershipNotice(membership.value):'')
-const remaining=computed(()=>membership.value?remainingUsageLabel(membership.value.remaining_tokens,membership.value.token_limit,locale.value):'—')
+const remaining=computed(()=>membership.value?membershipUsageLabel(membership.value,locale.value):'—')
 watch(()=>auth.currentUserId,()=>{void store.refresh(false)},{immediate:true})
 </script>
 <template>
@@ -19,9 +19,9 @@ watch(()=>auth.currentUserId,()=>{void store.refresh(false)},{immediate:true})
    <div class="fire-membership__heading"><strong>{{ membership.plan_name||'未开通会员' }}</strong><span :class="{'is-warning':membership.status!=='active'}">{{ membershipStatusLabel[membership.status]||'状态未知' }}</span></div>
    <p v-if="notice" class="fire-membership__notice" role="status">{{ notice }}</p>
    <p class="fire-membership__balance"><span>剩余额度</span><strong>{{ membership.unlimited?'不限额度':remaining }}</strong></p>
-   <div v-if="!membership.unlimited && remaining!=='—'" class="fire-membership__meter" role="progressbar" aria-label="剩余额度比例" :aria-valuenow="tokenPercent(membership.remaining_tokens,membership.token_limit)" aria-valuemin="0" aria-valuemax="100"><span :style="{width:`${tokenPercent(membership.remaining_tokens,membership.token_limit)}%`}" /></div>
+   <div v-if="!membership.unlimited && remaining!=='—'" class="fire-membership__meter" role="progressbar" aria-label="剩余额度比例" :aria-valuenow="membershipUsagePercent(membership)" aria-valuemin="0" aria-valuemax="100"><span :style="{width:`${membershipUsagePercent(membership)}%`}" /></div>
    <p class="fire-membership__expiry">{{ expires==='—'?'到期时间未设置':`${expires} 到期` }}</p>
-   <p v-if="Number(membership.reserved_tokens)>0" class="fire-membership__expiry">用量更新中…</p>
+   <p v-if="Number(membership.reserved_tokens)>0 || Number(membership.reserved_questions)>0" class="fire-membership__expiry">用量更新中…</p>
    <p v-if="Number(membership.estimated_tokens)>0" class="fire-membership__expiry" title="部分调用未返回完整统计，用量包含估算。">含估算用量 ⓘ</p>
   </template>
   <p v-else-if="loading" class="fire-membership__expiry">正在读取套餐…</p>

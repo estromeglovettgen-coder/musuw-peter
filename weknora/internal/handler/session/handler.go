@@ -7,6 +7,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/application/service"
 	"github.com/Tencent/WeKnora/internal/config"
 	"github.com/Tencent/WeKnora/internal/errors"
+	"github.com/Tencent/WeKnora/internal/firebilling"
 	"github.com/Tencent/WeKnora/internal/infrastructure/docparser"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
@@ -38,6 +39,7 @@ type Handler struct {
 	// not support artifact collection; handlers must check before using.
 	artifactCollector *service.ArtifactCollector
 	memoryService     interfaces.MemoryService // Service for cross-session long-term memory
+	questionBilling   questionAllowanceBilling // Optional Fire question cap, separate from provider-call metering
 }
 
 // NewHandler creates a new instance of Handler with all necessary dependencies
@@ -61,8 +63,10 @@ func NewHandler(
 	artifactCollector *service.ArtifactCollector,
 	memoryService interfaces.MemoryService,
 	marketplaceService interfaces.MarketplaceService,
+	billing *firebilling.Service,
 ) *Handler {
 	return &Handler{
+		questionBilling:      billing,
 		marketplaceService:   marketplaceService,
 		sessionService:       sessionService,
 		messageService:       messageService,

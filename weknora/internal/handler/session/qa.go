@@ -1024,6 +1024,18 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 		return
 	}
 	reqCtx.assistantMessage = assistantMessagePtr
+	// Use the real native message ID, which is assigned by its creation hook.
+	// This precedes title generation and every QA model/tool invocation.
+	questionID, allowed := h.reserveQuestionAllowance(reqCtx)
+	if !allowed {
+		return
+	}
+	questionHandedOff := false
+	defer func() {
+		if !questionHandedOff {
+			h.settleQuestionAllowance(ctx, questionID, nil)
+		}
+	}()
 
 	if mode == qaModeNormal {
 		logger.Infof(ctx, "Using knowledge bases: %v", reqCtx.knowledgeBaseIDs)
@@ -1087,9 +1099,15 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 		})
 	}
 
+	// The async owner settles only after native answer persistence. Failures
+	// before this handoff release the reservation through the outer defer.
+	questionHandedOff = true
 	// Execute QA asynchronously
 	go func() {
 		defer func() {
+			defer func() {
+				h.settleQuestionAllowance(streamCtx.asyncCtx, questionID, streamCtx.assistantMessage)
+			}()
 			if r := recover(); r != nil {
 				buf := make([]byte, 10240)
 				runtime.Stack(buf, true)

@@ -97,8 +97,8 @@ func (h *FireBillingHandler) SavePlan(c *gin.Context) {
 		return
 	}
 	var p firebilling.Plan
-	if c.ShouldBindJSON(&p) != nil || strings.TrimSpace(p.Name) == "" || len(p.Name) > 100 || p.DurationDays < 1 || p.DurationDays > 36500 || p.TokenLimit < 1 || p.TokenLimit > firebilling.MaxTokens {
-		c.JSON(400, gin.H{"success": false, "message": "请输入有效名称、1–36500天和正数Token额度"})
+	if c.ShouldBindJSON(&p) != nil || strings.TrimSpace(p.Name) == "" || len(p.Name) > 100 || p.DurationDays < 1 || p.DurationDays > 36500 || p.TokenLimit < 1 || p.TokenLimit > firebilling.MaxTokens || p.QuestionLimit < 0 || p.QuestionLimit > firebilling.MaxQuestions {
+		c.JSON(400, gin.H{"success": false, "message": "请输入有效名称、1–36500天、正数Token额度和非负问答条数"})
 		return
 	}
 	db := h.billing.DB().WithContext(c.Request.Context())
@@ -114,6 +114,7 @@ func (h *FireBillingHandler) SavePlan(c *gin.Context) {
 			existing.Name = strings.TrimSpace(p.Name)
 			existing.DurationDays = p.DurationDays
 			existing.TokenLimit = p.TokenLimit
+			existing.QuestionLimit = p.QuestionLimit
 			existing.Active = p.Active
 			e = db.Save(&existing).Error
 			p = existing
@@ -196,7 +197,7 @@ func (h *FireBillingHandler) Overview(c *gin.Context) {
 	var users, active, expired, total int64
 	e := db.Table("users").Where("deleted_at IS NULL").Count(&users).Error
 	if e == nil {
-		e = db.Model(&firebilling.Membership{}).Where("suspended = ? AND expires_at > CURRENT_TIMESTAMP AND token_limit > used_tokens + reserved_tokens", false).Count(&active).Error
+		e = db.Model(&firebilling.Membership{}).Where("suspended = ? AND expires_at > CURRENT_TIMESTAMP AND token_limit > used_tokens + reserved_tokens AND (question_limit = 0 OR question_limit > used_questions)", false).Count(&active).Error
 	}
 	if e == nil {
 		e = db.Model(&firebilling.Membership{}).Where("expires_at <= CURRENT_TIMESTAMP").Count(&expired).Error

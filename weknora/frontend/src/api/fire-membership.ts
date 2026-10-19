@@ -15,6 +15,10 @@ export interface FireMembership {
   input_tokens: TokenCount
   output_tokens: TokenCount
   estimated_tokens: TokenCount
+  question_limit?: TokenCount
+  used_questions?: TokenCount
+  reserved_questions?: TokenCount
+  remaining_questions?: TokenCount
 }
 export interface FireUsage {
   id?: string
@@ -26,13 +30,13 @@ export interface FireUsage {
   purpose: string
   created_at: string
 }
-export interface FirePlan { id: string; name: string; duration_days: number; token_limit: number; active: boolean }
+export interface FirePlan { id: string; name: string; duration_days: number; token_limit: number; question_limit?: number; active: boolean }
 export interface FireUser { id: string; username: string; email: string; tenant_id: number; created_at: string; is_system_admin: boolean; membership: FireMembership }
 export interface FirePage<T> { items: T[]; total: number; page: number; page_size: number }
-export interface FireAdjustment { operation_id: string; kind: 'grant' | 'renew' | 'topup' | 'extend' | 'suspend' | 'resume'; plan_id?: string; duration_days?: number; tokens?: number; note?: string }
+export interface FireAdjustment { operation_id: string; kind: 'grant' | 'renew' | 'topup' | 'extend' | 'suspend' | 'resume' | 'set_question_limit'; plan_id?: string; duration_days?: number; tokens?: number; questions?: number; question_limit?: number; note?: string }
 export interface FireAdjustmentRecord extends FireAdjustment { created_at?: string }
 export interface FireUserDetail { user: Omit<FireUser, 'membership'>; membership: FireMembership; usage: FireUsage[]; adjustments: FireAdjustmentRecord[] }
-export interface FireCreateUser { operation_id: string; username?: string; email?: string; password?: string; fire_plan_id?: string; fire_duration_days?: number; fire_tokens?: number }
+export interface FireCreateUser { operation_id: string; username?: string; email?: string; password?: string; fire_plan_id?: string; fire_duration_days?: number; fire_tokens?: number; fire_questions?: number }
 export interface FireCreatedUser { user: Omit<FireUser, 'membership'>; generated_password?: string; membership: FireMembership }
 export interface FireOverview { users_total: number; active_users: number; expired_users: number; total_tokens: TokenCount }
 interface Response<T> { success: boolean; data: T; message?: string; error?: string | { message?: string } }

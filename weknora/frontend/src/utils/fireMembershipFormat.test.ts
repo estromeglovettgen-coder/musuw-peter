@@ -28,3 +28,16 @@ test('user allowance shows percentage only with honest near-zero and unknown sta
  assert.equal(remainingUsageLabel(2,0),'—')
  assert.equal(remainingUsageLabel('unknown',10),'—')
 })
+
+test('membership percentage follows the smaller of token and optional question allowances', async () => {
+  const { membershipUsageLabel, membershipUsagePercent } = await import('./fireMembershipFormat')
+  const tokenOnly = { token_limit: 100, remaining_tokens: 80 } as any
+  assert.equal(membershipUsageLabel(tokenOnly), '80%')
+  assert.equal(membershipUsageLabel({ ...tokenOnly, question_limit: 0, remaining_questions: 0 }), '80%')
+  assert.equal(membershipUsageLabel({ ...tokenOnly, question_limit: 10, remaining_questions: 2 }), '20%')
+  assert.equal(membershipUsagePercent({ ...tokenOnly, question_limit: 10, remaining_questions: 2 }), 20)
+  assert.equal(membershipUsageLabel({ ...tokenOnly, remaining_tokens: 10, question_limit: 10, remaining_questions: 9 }), '10%')
+  assert.equal(membershipUsageLabel({ ...tokenOnly, question_limit: '10', remaining_questions: '0' }), '0%')
+  assert.equal(membershipUsageLabel({ ...tokenOnly, question_limit: '1000000', remaining_questions: '1' }), '<1%')
+  assert.equal(membershipUsageLabel({ ...tokenOnly, question_limit: 10 }), '—')
+})

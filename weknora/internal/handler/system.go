@@ -1820,7 +1820,7 @@ func (h *SystemHandler) CreateSystemUser(c *gin.Context) {
 		h.createFireAccount(c, ctx, &req)
 		return
 	}
-	if req.OperationID != "" || req.FirePlanID != "" || req.FireDurationDays != 0 || req.FireTokens != 0 {
+	if req.OperationID != "" || req.FirePlanID != "" || req.FireDurationDays != 0 || req.FireTokens != 0 || req.FireQuestions != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "火种开户资源尚未配置，未创建账号"})
 		return
 	}

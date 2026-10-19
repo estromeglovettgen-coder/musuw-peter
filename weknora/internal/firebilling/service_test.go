@@ -18,7 +18,7 @@ func fixture(t *testing.T) (*Service, context.Context) {
 	require.NoError(t, err)
 	require.NoError(t, db.Exec("CREATE TABLE users (id TEXT PRIMARY KEY, tenant_id INTEGER, is_system_admin BOOLEAN, is_active BOOLEAN)").Error)
 	require.NoError(t, db.Exec("INSERT INTO users VALUES ('admin',1,true,true),('alice',2,false,true),('bob',3,false,true)").Error)
-	require.NoError(t, db.AutoMigrate(&Plan{}, &Membership{}, &Adjustment{}, &Call{}))
+	require.NoError(t, db.AutoMigrate(&Plan{}, &Membership{}, &Adjustment{}, &Call{}, &QuestionCall{}))
 	ctx := context.WithValue(context.Background(), types.UserIDContextKey, "admin")
 	return NewService(db), ctx
 }

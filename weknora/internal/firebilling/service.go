@@ -40,44 +40,51 @@ func (e *AccessError) Error() string   { return e.Message }
 func (e *AccessError) HTTPStatus() int { return e.Code }
 
 const MaxTokens int64 = 1_000_000_000_000
+const MaxQuestions int64 = 1_000_000_000
 
 type Plan struct {
-	ID           string    `json:"id" gorm:"primaryKey"`
-	Name         string    `json:"name"`
-	DurationDays int       `json:"duration_days"`
-	TokenLimit   int64     `json:"token_limit"`
-	Active       bool      `json:"active"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID            string    `json:"id" gorm:"primaryKey"`
+	Name          string    `json:"name"`
+	DurationDays  int       `json:"duration_days"`
+	TokenLimit    int64     `json:"token_limit"`
+	QuestionLimit int64     `json:"question_limit" gorm:"not null;default:0"`
+	Active        bool      `json:"active"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 func (Plan) TableName() string { return "fire_token_plans" }
 
 type Membership struct {
-	UserID         string `gorm:"primaryKey"`
-	TenantID       uint64
-	PeriodID       string
-	PlanID         string
-	PlanName       string
-	StartsAt       time.Time
-	ExpiresAt      time.Time
-	TokenLimit     int64
-	UsedTokens     int64
-	ReservedTokens int64
-	Suspended      bool
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	UserID            string `gorm:"primaryKey"`
+	TenantID          uint64
+	PeriodID          string
+	PlanID            string
+	PlanName          string
+	StartsAt          time.Time
+	ExpiresAt         time.Time
+	TokenLimit        int64
+	UsedTokens        int64
+	ReservedTokens    int64
+	QuestionLimit     int64 `gorm:"not null;default:0"`
+	UsedQuestions     int64 `gorm:"not null;default:0"`
+	ReservedQuestions int64 `gorm:"not null;default:0"`
+	Suspended         bool
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 func (Membership) TableName() string { return "fire_token_memberships" }
 
 type Mutation struct {
-	OperationID  string `json:"operation_id"`
-	Kind         string `json:"kind"`
-	PlanID       string `json:"plan_id,omitempty"`
-	DurationDays int    `json:"duration_days,omitempty"`
-	Tokens       int64  `json:"tokens,omitempty"`
-	Note         string `json:"note,omitempty"`
+	OperationID   string `json:"operation_id"`
+	Kind          string `json:"kind"`
+	PlanID        string `json:"plan_id,omitempty"`
+	DurationDays  int    `json:"duration_days,omitempty"`
+	Tokens        int64  `json:"tokens,omitempty"`
+	Questions     *int64 `json:"questions,omitempty"`
+	QuestionLimit *int64 `json:"question_limit,omitempty"`
+	Note          string `json:"note,omitempty"`
 }
 type Adjustment struct {
 	ID           string    `json:"id" gorm:"primaryKey"`
@@ -87,6 +94,7 @@ type Adjustment struct {
 	ActorID      string    `json:"actor_id"`
 	Kind         string    `json:"kind"`
 	Tokens       int64     `json:"tokens"`
+	Questions    int64     `json:"questions" gorm:"not null;default:0"`
 	DurationDays int       `json:"duration_days"`
 	Note         string    `json:"note"`
 	Before       string    `json:"-"`
@@ -115,19 +123,23 @@ type Call struct {
 func (Call) TableName() string { return "fire_model_calls" }
 
 type Status struct {
-	Managed         bool       `json:"managed"`
-	Unlimited       bool       `json:"unlimited"`
-	PlanName        string     `json:"plan_name"`
-	Status          string     `json:"status"`
-	StartsAt        *time.Time `json:"starts_at"`
-	ExpiresAt       *time.Time `json:"expires_at"`
-	TokenLimit      int64      `json:"token_limit"`
-	UsedTokens      int64      `json:"used_tokens"`
-	ReservedTokens  int64      `json:"reserved_tokens"`
-	RemainingTokens int64      `json:"remaining_tokens"`
-	InputTokens     int64      `json:"input_tokens"`
-	OutputTokens    int64      `json:"output_tokens"`
-	EstimatedTokens int64      `json:"estimated_tokens"`
+	Managed            bool       `json:"managed"`
+	Unlimited          bool       `json:"unlimited"`
+	PlanName           string     `json:"plan_name"`
+	Status             string     `json:"status"`
+	StartsAt           *time.Time `json:"starts_at"`
+	ExpiresAt          *time.Time `json:"expires_at"`
+	TokenLimit         int64      `json:"token_limit"`
+	UsedTokens         int64      `json:"used_tokens"`
+	ReservedTokens     int64      `json:"reserved_tokens"`
+	RemainingTokens    int64      `json:"remaining_tokens"`
+	QuestionLimit      int64      `json:"question_limit"`
+	UsedQuestions      int64      `json:"used_questions"`
+	ReservedQuestions  int64      `json:"reserved_questions"`
+	RemainingQuestions int64      `json:"remaining_questions"`
+	InputTokens        int64      `json:"input_tokens"`
+	OutputTokens       int64      `json:"output_tokens"`
+	EstimatedTokens    int64      `json:"estimated_tokens"`
 }
 type Service struct{ db *gorm.DB }
 
@@ -262,11 +274,15 @@ func (s *Service) Status(ctx context.Context, id string) (*Status, error) {
 }
 func statusOf(m Membership) *Status {
 	st := &Status{Managed: true, Status: "active", PlanName: m.PlanName, StartsAt: &m.StartsAt, ExpiresAt: &m.ExpiresAt, TokenLimit: m.TokenLimit, UsedTokens: m.UsedTokens, ReservedTokens: m.ReservedTokens, RemainingTokens: max(int64(0), m.TokenLimit-m.UsedTokens-m.ReservedTokens)}
+	st.QuestionLimit, st.UsedQuestions, st.ReservedQuestions = m.QuestionLimit, m.UsedQuestions, m.ReservedQuestions
+	if m.QuestionLimit > 0 {
+		st.RemainingQuestions = max(int64(0), m.QuestionLimit-m.UsedQuestions-m.ReservedQuestions)
+	}
 	if m.Suspended {
 		st.Status = "suspended"
 	} else if !m.ExpiresAt.After(time.Now()) {
 		st.Status = "expired"
-	} else if st.RemainingTokens <= 0 {
+	} else if st.RemainingTokens <= 0 || (m.QuestionLimit > 0 && m.UsedQuestions >= m.QuestionLimit) {
 		st.Status = "exhausted"
 	}
 	return st
@@ -277,6 +293,11 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 	}
 	if len(req.OperationID) < 1 || len(req.OperationID) > 128 || len(req.Note) > 1000 || req.DurationDays < 0 || req.DurationDays > 36500 || req.Tokens < 0 || req.Tokens > MaxTokens {
 		return nil, fmt.Errorf("invalid adjustment")
+	}
+	if (req.Questions != nil && (*req.Questions < 0 || *req.Questions > MaxQuestions)) ||
+		(req.QuestionLimit != nil && (*req.QuestionLimit < 0 || *req.QuestionLimit > MaxQuestions)) ||
+		(req.QuestionLimit != nil && req.Kind != "set_question_limit") {
+		return nil, fmt.Errorf("invalid question allowance")
 	}
 	raw, _ := json.Marshal(struct {
 		UserID   string
@@ -322,6 +343,7 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 		before, _ := json.Marshal(m)
 		now := time.Now().UTC()
 		days, tokens := req.DurationDays, req.Tokens
+		questions := int64(0)
 		var plan Plan
 		if req.PlanID != "" {
 			if e := tx.Where("id = ? AND active = ?", req.PlanID, true).Take(&plan).Error; e != nil {
@@ -329,12 +351,19 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 			}
 			days = plan.DurationDays
 			tokens = plan.TokenLimit
+			questions = plan.QuestionLimit
 			if req.DurationDays > 0 {
 				days = req.DurationDays
 			}
 			if req.Tokens > 0 {
 				tokens = req.Tokens
 			}
+		}
+		if req.Questions != nil {
+			questions = *req.Questions
+		}
+		if questions < 0 || questions > MaxQuestions {
+			return fmt.Errorf("问答额度超过上限")
 		}
 		if !exists {
 			m = Membership{UserID: id, TenantID: u.TenantID, PeriodID: uuid.NewString(), StartsAt: now, ExpiresAt: now, PlanName: "自定义套餐"}
@@ -345,7 +374,7 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				return fmt.Errorf("套餐天数和Token必须大于0")
 			}
 			if !m.ExpiresAt.After(now) {
-				if m.ReservedTokens > 0 {
+				if m.ReservedTokens > 0 || m.ReservedQuestions > 0 {
 					return ErrConflict
 				}
 				m.PeriodID = uuid.NewString()
@@ -353,24 +382,37 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				m.ExpiresAt = now
 				m.TokenLimit = 0
 				m.UsedTokens = 0
+				m.QuestionLimit, m.UsedQuestions, m.ReservedQuestions = 0, 0, 0
 			}
 			m.ExpiresAt = m.ExpiresAt.Add(time.Duration(days) * 24 * time.Hour)
 			m.TokenLimit += tokens
+			if questions > 0 {
+				if m.QuestionLimit == 0 {
+					m.QuestionLimit = m.UsedQuestions + m.ReservedQuestions
+				}
+				m.QuestionLimit += questions
+			}
 			if plan.ID != "" {
 				m.PlanID = plan.ID
 				m.PlanName = plan.Name
 			}
 		case "topup":
-			if !exists || tokens <= 0 || days != 0 || req.PlanID != "" {
-				return fmt.Errorf("追加额度只允许正数Token且需要已开通套餐")
+			if !exists || (tokens <= 0 && questions <= 0) || days != 0 || req.PlanID != "" {
+				return fmt.Errorf("追加额度需要已开通套餐，并提供正数额度或问答条数")
 			}
 			m.TokenLimit += tokens
+			if questions > 0 {
+				if m.QuestionLimit == 0 {
+					m.QuestionLimit = m.UsedQuestions + m.ReservedQuestions
+				}
+				m.QuestionLimit += questions
+			}
 		case "extend":
-			if !exists || days <= 0 || tokens != 0 || req.PlanID != "" {
+			if !exists || days <= 0 || tokens != 0 || req.Questions != nil || req.PlanID != "" {
 				return fmt.Errorf("赠送天数只允许正数天数")
 			}
 			if !m.ExpiresAt.After(now) {
-				if m.ReservedTokens > 0 {
+				if m.ReservedTokens > 0 || m.ReservedQuestions > 0 {
 					return ErrConflict
 				}
 				m.StartsAt = now
@@ -378,29 +420,65 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				m.PeriodID = uuid.NewString()
 				m.TokenLimit = 0
 				m.UsedTokens = 0
+				// Extending days does not grant questions or turn a finite cap
+				// into unlimited. Keep its consumed allowance across this extension.
 			}
 			m.ExpiresAt = m.ExpiresAt.Add(time.Duration(days) * 24 * time.Hour)
 		case "suspend", "resume":
-			if !exists || days != 0 || tokens != 0 || req.PlanID != "" {
+			if !exists || days != 0 || tokens != 0 || req.Questions != nil || req.PlanID != "" {
 				return fmt.Errorf("无效暂停操作")
 			}
 			m.Suspended = req.Kind == "suspend"
+		case "set_question_limit":
+			if !exists || req.QuestionLimit == nil || req.Questions != nil || days != 0 || tokens != 0 || req.PlanID != "" {
+				return fmt.Errorf("设置问答上限仅允许指定总条数，0表示不限")
+			}
+			limit := *req.QuestionLimit
+			if limit > 0 && limit < m.UsedQuestions+m.ReservedQuestions {
+				return fmt.Errorf("问答上限不能低于已用和处理中条数")
+			}
+			m.QuestionLimit = limit
 		default:
 			return fmt.Errorf("未知操作")
 		}
-		if m.TokenLimit > MaxTokens {
+		if m.TokenLimit > MaxTokens || m.QuestionLimit > MaxQuestions {
 			return fmt.Errorf("额度超过上限")
 		}
 		if e := tx.Save(&m).Error; e != nil {
 			return e
 		}
 		after, _ := json.Marshal(m)
-		return tx.Create(&Adjustment{ID: uuid.NewString(), OperationID: req.OperationID, Fingerprint: fingerprint, UserID: id, ActorID: actor, Kind: req.Kind, Tokens: tokens, DurationDays: days, Note: req.Note, Before: string(before), After: string(after)}).Error
+		return tx.Create(&Adjustment{ID: uuid.NewString(), OperationID: req.OperationID, Fingerprint: fingerprint, UserID: id, ActorID: actor, Kind: req.Kind, Tokens: tokens, Questions: questions, DurationDays: days, Note: req.Note, Before: string(before), After: string(after)}).Error
 	})
 	if err != nil {
 		return nil, err
 	}
 	return s.Status(ctx, id)
+}
+
+// billingIdentity preserves the native tenant-key and detached-worker owner
+// fallback. Question admissions and provider reservations must charge the same
+// real account, while session authorization retains the caller's principal.
+func (s *Service) billingIdentity(ctx context.Context) (identity, error) {
+	uid, _ := types.UserIDFromContext(ctx)
+	if uid == "" || types.IsSyntheticUserID(uid) {
+		// Detached native processing carries the initiating identity when possible;
+		// old tenant jobs are billed to that tenant's owner, never the shared KB owner.
+		tid, _ := types.TenantIDFromContext(ctx)
+		var owner identity
+		if tid == 0 {
+			return identity{}, ErrForbidden
+		}
+		if e := s.db.WithContext(ctx).Table("users").Select("id").Where("tenant_id = ?", tid).Order("is_system_admin DESC").Take(&owner).Error; e != nil {
+			return identity{}, ErrForbidden
+		}
+		uid = owner.ID
+	}
+	u, e := s.identity(ctx, uid)
+	if e != nil {
+		return identity{}, ErrForbidden
+	}
+	return u, nil
 }
 
 // Reserve commits the right to begin one provider request. Provider calls cannot
@@ -409,24 +487,11 @@ func (s *Service) Reserve(ctx context.Context, purpose, model string, amount int
 	if s.platformMaintenance(ctx) {
 		return "", nil
 	}
-	uid, _ := types.UserIDFromContext(ctx)
-	if uid == "" || types.IsSyntheticUserID(uid) {
-		// Detached native processing carries the initiating identity when possible;
-		// old tenant jobs are billed to that tenant's owner, never the shared KB owner.
-		tid, _ := types.TenantIDFromContext(ctx)
-		var owner identity
-		if tid == 0 {
-			return "", ErrForbidden
-		}
-		if e := s.db.WithContext(ctx).Table("users").Select("id").Where("tenant_id = ?", tid).Order("is_system_admin DESC").Take(&owner).Error; e != nil {
-			return "", ErrForbidden
-		}
-		uid = owner.ID
-	}
-	u, e := s.identity(ctx, uid)
+	u, e := s.billingIdentity(ctx)
 	if e != nil {
-		return "", ErrForbidden
+		return "", e
 	}
+	uid := u.ID
 	if u.IsSystemAdmin {
 		return "", nil
 	}
@@ -519,5 +584,5 @@ func (s *Service) RecoverPending(ctx context.Context) error {
 			return e
 		}
 	}
-	return nil
+	return s.RecoverQuestions(ctx)
 }

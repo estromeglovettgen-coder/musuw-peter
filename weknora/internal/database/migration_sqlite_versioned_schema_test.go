@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,6 +23,7 @@ var versionedSQLiteTables = []string{
 	"fire_token_adjustments",
 	"fire_model_calls",
 	"fire_workspace_accounts",
+	"fire_question_calls",
 	"task_pending_ops",
 	"task_dead_letters",
 	"system_settings",
@@ -40,6 +43,9 @@ var versionedSQLiteTables = []string{
 // versionedSQLiteColumns maps each existing table to the columns that the
 // versioned migrations add and the SQLite baseline was missing.
 var versionedSQLiteColumns = map[string][]string{
+	"fire_token_plans":       {"question_limit"},
+	"fire_token_memberships": {"question_limit", "used_questions", "reserved_questions"},
+	"fire_token_adjustments": {"questions"},
 	"knowledge_bases":        {"customer_profile"},
 	"tenant_skills":          {"catalog_id", "install_session_id", "install_message_id", "envs"},
 	"tenant_skill_snapshots": {"planned_name"},
@@ -54,7 +60,73 @@ var versionedSQLiteColumns = map[string][]string{
 	"marketplace_products":   {"sample_conversations"},                                            // 000026
 }
 
-const expectedSQLiteMigrationVersion = 32
+const expectedSQLiteMigrationVersion = 33
+
+func TestSQLiteMigrationsUpgrade32QuestionAllowancesPreservesPaidCycle(t *testing.T) {
+	repoRoot := sqliteRepoRoot(t)
+	legacyRoot := t.TempDir()
+	destDir := filepath.Join(legacyRoot, "migrations", "sqlite")
+	require.NoError(t, os.MkdirAll(destDir, 0o755))
+	entries, err := os.ReadDir(filepath.Join(repoRoot, "migrations", "sqlite"))
+	require.NoError(t, err)
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".up.sql") || len(name) < 6 {
+			continue
+		}
+		version, err := strconv.Atoi(name[:6])
+		require.NoError(t, err)
+		if version > 32 {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(repoRoot, "migrations", "sqlite", name))
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(destDir, name), data, 0o600))
+	}
+	chdirAndRestore(t, legacyRoot)
+	dbPath := filepath.Join(t.TempDir(), "paid-upgrade.db")
+	require.NoError(t, RunMigrationsWithOptions("sqlite3://unused", MigrationOptions{SQLiteDBPath: dbPath}))
+	db := openSQLiteDB(t, dbPath)
+	version, dirty := sqliteMigrationState(t, db)
+	require.Equal(t, 32, version)
+	require.False(t, dirty)
+	_, err = db.Exec("INSERT INTO tenants (id,name,business) VALUES (1,'paid','fixture')")
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO users (id,username,email,password_hash,tenant_id) VALUES ('paid','paid','paid@example.test','not-a-real-hash',1)")
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO fire_token_memberships (user_id,tenant_id,period_id,starts_at,expires_at,token_limit,used_tokens) VALUES ('paid',1,'paid-period',CURRENT_TIMESTAMP,datetime('now','+1 day'),700,123)")
+	require.NoError(t, err)
+	chdirAndRestore(t, repoRoot)
+	require.NoError(t, RunMigrationsWithOptions("sqlite3://unused", MigrationOptions{SQLiteDBPath: dbPath}))
+	version, dirty = sqliteMigrationState(t, db)
+	require.Equal(t, 33, version)
+	require.False(t, dirty)
+	var period string
+	var tokens, used, limit, questions, reserved int64
+	require.NoError(t, db.QueryRow("SELECT period_id,token_limit,used_tokens,question_limit,used_questions,reserved_questions FROM fire_token_memberships WHERE user_id='paid'").Scan(&period, &tokens, &used, &limit, &questions, &reserved))
+	require.Equal(t, "paid-period", period)
+	require.EqualValues(t, 700, tokens)
+	require.EqualValues(t, 123, used)
+	require.Zero(t, limit)
+	require.Zero(t, questions)
+	require.Zero(t, reserved)
+	_, err = db.Exec("PRAGMA foreign_keys=ON")
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO fire_question_calls (id,user_id,period_id,message_id,session_id,status) VALUES ('question','paid','paid-period','message','session','settled')")
+	require.NoError(t, err)
+	// The old immutable period remains as history when the current one rotates.
+	_, err = db.Exec("UPDATE fire_token_memberships SET period_id='new-period' WHERE user_id='paid'")
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO fire_question_calls (id,user_id,period_id,message_id,session_id,status) VALUES ('duplicate','paid','new-period','message','session','reserved')")
+	require.Error(t, err)
+	_, err = db.Exec("INSERT INTO fire_question_calls (id,user_id,period_id,message_id,session_id,status) VALUES ('orphan','unknown','new-period','another','session','reserved')")
+	require.Error(t, err)
+	_, err = db.Exec("DELETE FROM fire_token_memberships WHERE user_id='paid'")
+	require.NoError(t, err)
+	var count int
+	require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM fire_question_calls").Scan(&count))
+	require.Zero(t, count)
+}
 
 func TestSQLiteMigrationsCreateVersionedSchema(t *testing.T) {
 	repoRoot := sqliteRepoRoot(t)

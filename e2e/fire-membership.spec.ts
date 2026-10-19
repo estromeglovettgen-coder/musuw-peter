@@ -28,7 +28,13 @@ async function api(page: Page, options: { admin?: boolean; status?: string; unav
     if (path.endsWith('/fire/users')) return ok({ items: [{ ...member, membership: state.membership }], total: 1, page: 1, page_size: 20 })
     if (path.endsWith('/adjustments')) {
       if (state.adjustmentFailure) { state.adjustmentFailure = false; return route.fulfill({ status: 503, json: { success: false, message: '调整暂时失败' } }) }
-      state.membership = { ...state.membership, remaining_tokens: 501 }; return ok(state.membership)
+      const mutation = request.postDataJSON()
+      if (mutation.kind === 'set_question_limit' || mutation.questions) {
+        const current = state.membership as any
+        const limit = mutation.kind === 'set_question_limit' ? mutation.question_limit : Number(current.question_limit || 0) + mutation.questions
+        Object.assign(state.membership, { question_limit: limit, remaining_questions: limit ? limit - Number(current.used_questions || 0) - Number(current.reserved_questions || 0) : 0 })
+      } else state.membership = { ...state.membership, remaining_tokens: 501 }
+      return ok(state.membership)
     }
     if (/\/fire\/users\//.test(path)) return ok({ user: member, membership: state.membership, usage, adjustments: [] })
     if (path.endsWith('/users/create')) {
@@ -246,7 +252,7 @@ test('administrator edits native plan settings including its active flag', async
   await dialog.getByRole('checkbox', { name: '启用套餐' }).uncheck()
   await dialog.getByRole('button', { name: '保存套餐', exact: true }).click()
   await expect(dialog).toBeHidden()
-  expect(mock.writes.find(write => write.path.endsWith(`/plans/${plan.id}`))?.body).toEqual({ name: '季度套餐', duration_days: 90, token_limit: 2000000, active: false })
+  expect(mock.writes.find(write => write.path.endsWith(`/plans/${plan.id}`))?.body).toEqual({ name: '季度套餐', duration_days: 90, token_limit: 2000000, question_limit: 0, active: false })
 })
 
 test('an empty Go plans slice is rendered as an empty catalog without a fake service failure', async ({ page }) => {
@@ -301,4 +307,82 @@ test('lost account credentials recover through the native admin password reset w
   await resetDialog.getByRole('button', { name: '确认重置', exact: true }).click()
   await expect(resetDialog.getByTestId('reset-password')).toHaveText('Custom12')
   expect(resets[2]).toEqual({ email: recoveredUser.email, new_password: 'Custom12' })
+})
+
+test('administrator creates a ten-question plan, inherits or overrides it at signup, and manages individual limits', async ({ page }) => {
+  const mock = await api(page, { admin: true })
+  Object.assign(mock.state.membership, { question_limit: 10, used_questions: 2, reserved_questions: 1, remaining_questions: 7 })
+  await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+  await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
+  await page.getByRole('button', { name: '新建套餐', exact: true }).click()
+  const planDialog = page.getByRole('dialog').filter({ hasText: '新建套餐' })
+  await planDialog.getByLabel('套餐名称', { exact: true }).fill('十问体验')
+  await planDialog.getByLabel('套餐天数', { exact: true }).fill('7')
+  await planDialog.getByLabel('套餐问答上限', { exact: true }).fill('10')
+  await planDialog.getByRole('button', { name: '保存套餐' }).click()
+  await expect(page.locator('.fire-management__plans')).toContainText('10 条问答')
+  expect(mock.writes.find(write => write.path.endsWith('/plans'))?.body).toMatchObject({ name: '十问体验', question_limit: 10, token_limit: 1000000 })
+
+  for (const override of ['', '7', '0']) {
+    await page.getByRole('button', { name: '新建账号', exact: true }).click()
+    const createDialog = page.getByRole('dialog').filter({ hasText: '新建账号' })
+    await createDialog.getByLabel('新账号套餐', { exact: true }).selectOption('new-plan')
+    await expect(createDialog).toContainText('套餐默认：10 条问答')
+    await createDialog.getByLabel('新账号问答上限', { exact: true }).fill(override)
+    await createDialog.getByRole('button', { name: '创建账号', exact: true }).click()
+    await expect(createDialog.getByTestId('generated-password')).toBeVisible()
+    const mutation = mock.writes.filter(write => write.path.endsWith('/users/create')).at(-1)?.body
+    expect(mutation.fire_plan_id).toBe('new-plan')
+    if (override === '') expect(mutation).not.toHaveProperty('fire_questions')
+    else expect(mutation.fire_questions).toBe(Number(override))
+    await createDialog.getByRole('button', { name: '我已保存，关闭' }).click()
+  }
+
+  await page.locator('.t-tabs__nav-item').filter({ hasText: /^用户$/ }).click()
+  await page.getByRole('button', { name: '详情', exact: true }).click()
+  const detail = page.locator('.t-drawer')
+  for (const label of ['问答总上限', '已用问答', '剩余问答', '预占问答']) await expect(detail.getByText(label, { exact: true })).toBeVisible()
+
+  async function adjust(kind: string, value: string) {
+    await detail.getByRole('button', { name: '调整会员', exact: true }).click()
+    const dialog = page.getByRole('dialog').filter({ hasText: '调整会员' })
+    await dialog.getByLabel('会员操作').selectOption(kind)
+    if (kind === 'set_question_limit') await dialog.getByLabel('用户问答总上限', { exact: true }).fill(value)
+    else {
+      if (kind === 'renew') await dialog.getByLabel('调整套餐', { exact: true }).selectOption('new-plan')
+      await dialog.getByLabel('调整问答条数', { exact: true }).fill(value)
+      if (kind === 'topup') await dialog.getByLabel('调整 Token', { exact: true }).fill('0')
+    }
+    await dialog.getByRole('button', { name: '确认调整', exact: true }).click()
+    await expect(dialog).not.toBeVisible()
+    return mock.writes.filter(write => write.path.endsWith('/adjustments')).at(-1)?.body
+  }
+  const firstLimit = await adjust('set_question_limit', '12')
+  expect(firstLimit).toMatchObject({ kind: 'set_question_limit', question_limit: 12 })
+  expect(Object.keys(firstLimit).sort()).toEqual(['kind', 'operation_id', 'question_limit'])
+  await expect(detail.locator('div').filter({ has: page.locator('dt', { hasText: /^剩余问答$/ }) }).last()).toContainText('9')
+  expect(await adjust('topup', '5')).toMatchObject({ kind: 'topup', tokens: 0, questions: 5 })
+  await expect(detail.locator('dd').filter({ hasText: /^17$/ })).toHaveCount(1)
+  await expect(detail.locator('dd').filter({ hasText: /^14$/ })).toHaveCount(1)
+  expect(await adjust('renew', '10')).toMatchObject({ kind: 'renew', plan_id: 'new-plan', questions: 10 })
+  expect(await adjust('set_question_limit', '0')).toMatchObject({ kind: 'set_question_limit', question_limit: 0 })
+  await detail.getByRole('button', { name: '调整会员', exact: true }).click()
+  const dialog = page.getByRole('dialog').filter({ hasText: '调整会员' })
+  await dialog.getByLabel('会员操作').selectOption('set_question_limit')
+  await dialog.getByLabel('用户问答总上限', { exact: true }).fill('2')
+  const previous = mock.writes.length
+  await dialog.getByRole('button', { name: '确认调整', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('不能低于已用和预占问答')
+  expect(mock.writes).toHaveLength(previous)
+})
+
+for (const [tokenRemaining, questionRemaining, label] of [[80, 2, '20%'], [20, 9, '20%'], [80, 0, '0%']] as const) test(`ordinary percentage respects token ${tokenRemaining}% and question ${questionRemaining}/10 without exposing counts`, async ({ page }) => {
+  const mock = await api(page)
+  Object.assign(mock.state.membership, { token_limit: 100, remaining_tokens: tokenRemaining, question_limit: 10, remaining_questions: questionRemaining, used_questions: 10 - questionRemaining, reserved_questions: 0 })
+  await page.goto('/e2e/fire-membership-harness.html')
+  await page.locator('.visual-user-menu__trigger').click()
+  const card = page.getByRole('region', { name: '会员套餐' })
+  await expect(card).toContainText(label)
+  await expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuenow', label.slice(0, -1))
+  await expect(card).not.toContainText(/Token|问答|明细/i)
 })
