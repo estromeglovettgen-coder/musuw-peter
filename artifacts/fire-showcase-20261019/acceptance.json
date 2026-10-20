@@ -93,7 +93,8 @@
     "sidecar": "musuw-peter-showcase:20261019-04",
     "frontend": "20261019-fire-19",
     "temporary_owner_directories_after_native_erasure": 0,
-    "sidecar_healthy_after_cleanup": true
+    "sidecar_healthy_after_cleanup": true,
+    "temporary_plan_removed_after_membership_erasure": true
   },
   "checks": {
     "python": 103,
