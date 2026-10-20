@@ -8,6 +8,8 @@
   let stopped = false;
   let allowanceRefreshedAt = Date.now();
   let allowance = null;
+  let active = true;
+  let activityListener = null;
 
   function nativeUser() {
     try { return JSON.parse(nativeStorage.getItem("weknora_user") || "null"); }
@@ -15,7 +17,7 @@
   }
   function sessionToken() {
     const token = nativeStorage.getItem("weknora_token");
-    if (!token || (owner && nativeUser()?.id !== owner.user_id)) throw new Error("登录状态已改变，请重新打开展示面。");
+    if (!token || (owner && nativeUser()?.id !== owner.user_id)) throw Object.assign(new Error("登录状态已改变，请重新打开展示面。"), { nativeAuthInvalid: true });
     return token;
   }
   function scopedStorage(userId) {
@@ -32,7 +34,8 @@
   }
   function allowanceLabel(s) {
     if (s?.unlimited) return "管理员 · 不计图片额度";
-    if (!s || s.status === "not_activated") return "暂无图片额度";
+    if (!s) return "额度暂时无法读取，请稍后重试";
+    if (s.status === "not_activated") return "暂无图片额度";
     if (s.status === "suspended" || s.status === "expired") return s.status === "suspended" ? "套餐已暂停" : "套餐已到期";
     const left = Math.max(0, Number(s.remaining_images || 0));
     const reserved = Math.max(0, Number(s.reserved_images || 0));
@@ -46,9 +49,12 @@
   }
   async function bootstrap() {
     const response = await originalFetch(bootstrapPath, { headers: { Authorization: `Bearer ${sessionToken()}` }, credentials: "same-origin", cache: "no-store" });
+    if (response.status === 401 || response.status === 403) throw Object.assign(new Error("登录状态已失效，请重新登录。"), { nativeAuthInvalid: true });
     const value = await response.json();
     if (!response.ok || !value.success || !value.data?.user_id) throw new Error("展示面暂时无法打开，请稍后重试。");
-    if (nativeUser()?.id !== value.data.user_id) throw new Error("登录状态已改变，请重新打开展示面。");
+    if (nativeUser()?.id !== value.data.user_id || (owner && (owner.user_id !== value.data.user_id || String(owner.tenant_id) !== String(value.data.tenant_id)))) {
+      throw Object.assign(new Error("登录状态已改变，请重新打开展示面。"), { nativeAuthInvalid: true });
+    }
     return value.data;
   }
   function syncTheme() {
@@ -70,6 +76,7 @@
   window.addEventListener("pagehide", () => readinessObserver.disconnect(), { once: true });
   function fail(error) {
     stopped = true;
+    activityListener?.(false);
     document.body.classList.remove("auth-pending");
     document.body.dataset.fireHostState = "failed";
     const panel = document.createElement("div");
@@ -79,6 +86,13 @@
     panel.append(message, button); document.body.replaceChildren(panel);
     notifyParentState();
   }
+  window.addEventListener("message", event => {
+    if (stopped || event.origin !== location.origin || event.source !== window.parent ||
+        event.data?.type !== "fire-showcase:active" || typeof event.data.active !== "boolean" || active === event.data.active) return;
+    active = event.data.active;
+    activityListener?.(active);
+    if (active && owner) void window.FireShowcaseHost.refreshAllowance().catch(() => {});
+  });
   function loadScript(file) {
     return new Promise((resolve, reject) => {
       const script = document.createElement("script"); script.src = `./${file}?v=20261019-fire-native-01`;
@@ -95,9 +109,15 @@
       window.addEventListener("storage", event => { if (!event.key || event.key === "weknora_user" || event.key === "weknora_token") checkOwner(); });
       document.addEventListener("visibilitychange", () => { if (!document.hidden) checkOwner(); });
       window.FireShowcaseHost = Object.freeze({ userId: owner.user_id, tenantId: owner.tenant_id,
-        canGenerate: () => Boolean(allowance?.unlimited || (allowance && !["not_activated", "expired", "suspended"].includes(allowance.status) && Number(allowance.remaining_images) > 0)),
-        unavailableReason: () => ["expired", "suspended"].includes(allowance?.status) ? allowanceLabel(allowance) : "图片额度不足",
-        refreshAllowance: async () => { const data = await bootstrap(); showAllowance(data.allowance); } });
+        isActive: () => active,
+        onActivity: listener => { activityListener = listener; },
+        canGenerate: () => !stopped && Boolean(allowance?.unlimited || (allowance && !["not_activated", "expired", "suspended"].includes(allowance.status) && Number(allowance.remaining_images) > 0)),
+        unavailableReason: () => !allowance || ["expired", "suspended"].includes(allowance.status) ? allowanceLabel(allowance) : "图片额度不足",
+        refreshAllowance: async () => {
+          allowanceRefreshedAt = Date.now();
+          try { const data = await bootstrap(); showAllowance(data.allowance); }
+          catch (error) { showAllowance(null); if (error?.nativeAuthInvalid) fail(error); throw error; }
+        } });
       Object.defineProperty(window, "localStorage", { value: scopedStorage(owner.user_id), configurable: true });
       window.fetch = async (input, init = {}) => {
         const request = input instanceof Request ? input : null;

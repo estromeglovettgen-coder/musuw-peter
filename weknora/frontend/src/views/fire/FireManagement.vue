@@ -12,9 +12,12 @@ const auth = useAuthStore(), { locale } = useI18n()
 const tokens = (value: unknown) => formatTokens(value, locale.value)
 const date = (value?: string | null) => formatMembershipDate(value, locale.value)
 const tab = ref('users'), query = ref(''), page = ref(1), users = ref<FireUser[]>([]), total = ref(0), plans = ref<FirePlan[]>([]), overview = ref<FireOverview | null>(null)
-const loading = ref(false), error = ref(''), metaError = ref('')
+const loading = ref(false), error = ref('')
+const plansLoading = ref(false), overviewLoading = ref(false), plansLoaded = ref(false)
+const plansError = ref(''), overviewError = ref('')
 const detail = ref<FireUserDetail | null>(null), selected = ref<FireUser | null>(null), drawer = ref(false), detailLoading = ref(false), detailError = ref('')
-let usersGeneration = 0, detailGeneration = 0
+let usersGeneration = 0, detailGeneration = 0, metaGeneration = 0
+let metaPending: Promise<void> | null = null, refreshPending: Promise<void> | null = null
 const enabledPlans = computed(() => plans.value.filter(plan => plan.active))
 const columns = [{ colKey: 'identity', title: '用户', minWidth: 180 }, { colKey: 'plan', title: '套餐', minWidth: 130 }, { colKey: 'status', title: '状态', width: 110 }, { colKey: 'balance', title: '剩余 Token', minWidth: 150 }, { colKey: 'expiry', title: '到期时间', minWidth: 170 }, { colKey: 'operation', title: '', width: 80 }]
 async function loadUsers() {
@@ -24,12 +27,30 @@ async function loadUsers() {
   catch (cause) { if (generation === usersGeneration) error.value = fireError(cause) }
   finally { if (generation === usersGeneration) loading.value = false }
 }
-async function loadMeta() {
+async function loadMeta(force = false) {
   if (!auth.isSystemAdmin) return
-  try { const result = await Promise.all([fireMembershipApi.overview(), fireMembershipApi.plans()]); overview.value = result[0]; plans.value = result[1] || []; metaError.value = '' }
-  catch (cause) { metaError.value = fireError(cause) }
+  if (metaPending && !force) return metaPending
+  const generation = ++metaGeneration
+  plansLoading.value = true; overviewLoading.value = true
+  const work = Promise.all([
+    fireMembershipApi.overview()
+      .then(result => { if (generation === metaGeneration) { overview.value = result; overviewError.value = '' } })
+      .catch(cause => { if (generation === metaGeneration) overviewError.value = fireError(cause) })
+      .finally(() => { if (generation === metaGeneration) overviewLoading.value = false }),
+    fireMembershipApi.plans()
+      .then(result => { if (generation === metaGeneration) { plans.value = result || []; plansLoaded.value = true; plansError.value = '' } })
+      .catch(cause => { if (generation === metaGeneration) plansError.value = fireError(cause) })
+      .finally(() => { if (generation === metaGeneration) plansLoading.value = false }),
+  ]).then(() => {}).finally(() => { if (generation === metaGeneration) metaPending = null })
+  metaPending = work
+  return work
 }
-async function refresh() { await Promise.all([loadUsers(), loadMeta()]) }
+async function refresh(force = false) {
+  if (refreshPending && !force) return refreshPending
+  const work: Promise<void> = Promise.all([loadUsers(), loadMeta(force)]).then(() => {}).finally(() => { if (refreshPending === work) refreshPending = null })
+  refreshPending = work
+  return work
+}
 async function openUser(user: FireUser) {
   selected.value = user; drawer.value = true; detail.value = null; detailError.value = ''; detailLoading.value = true
   const generation = ++detailGeneration
@@ -47,7 +68,7 @@ async function savePlan() {
   if (!Number.isSafeInteger(planForm.value.question_limit) || planForm.value.question_limit < 0) { planError.value = '问答上限请填写非负整数，0 表示不限条数'; return }
   if (!Number.isSafeInteger(planForm.value.image_limit) || planForm.value.image_limit < 0) { planError.value = '图片张数请填写非负整数，0 表示不赠送图片'; return }
   planSaving.value = true; planError.value = ''
-  try { await fireMembershipApi.savePlan({ ...planForm.value, name: planForm.value.name.trim() }, editingPlanId.value || undefined); planVisible.value = false; await loadMeta() }
+  try { await fireMembershipApi.savePlan({ ...planForm.value, name: planForm.value.name.trim() }, editingPlanId.value || undefined); planVisible.value = false; await loadMeta(true) }
   catch (cause) { planError.value = fireError(cause) }
   finally { planSaving.value = false }
 }
@@ -69,7 +90,7 @@ async function createUser() {
     const result = await fireMembershipApi.createUser({ operation_id: createOperation.value, ...(form.username.trim() ? { username: form.username.trim() } : {}), ...(form.email.trim() ? { email: form.email.trim() } : {}), ...(form.password ? { password: form.password } : {}), ...(form.plan_id ? { fire_plan_id: form.plan_id } : {}), ...(form.duration_days ? { fire_duration_days: form.duration_days } : {}), ...(form.tokens ? { fire_tokens: form.tokens } : {}), ...(form.questions !== '' ? { fire_questions: Number(form.questions) } : {}), ...(form.images !== '' ? { fire_images: Number(form.images) } : {}) })
     if (requestingUser !== auth.currentUserId) return
     credentials.value = { username: result.user.username, email: result.user.email, password: result.generated_password || form.password || undefined }
-    createForm.value.password = ''; void refresh()
+    createForm.value.password = ''; void refresh(true)
   } catch (cause) { createError.value = fireError(cause) }
   finally { createSaving.value = false }
 }
@@ -144,25 +165,26 @@ async function saveAdjustment() {
     ...(value.note?.trim() ? { note: value.note.trim() } : {}),
   }
   adjustmentSaving.value = true; adjustmentError.value = ''
-  try { await fireMembershipApi.adjust(target.id, payload); if (requestingUser !== auth.currentUserId) return; adjustmentVisible.value = false; window.dispatchEvent(new Event('fire-membership-updated')); await Promise.all([openUser(target), refresh()]) }
+  try { await fireMembershipApi.adjust(target.id, payload); if (requestingUser !== auth.currentUserId) return; adjustmentVisible.value = false; window.dispatchEvent(new Event('fire-membership-updated')); await Promise.all([openUser(target), refresh(true)]) }
   catch (cause) { if (requestingUser === auth.currentUserId) adjustmentError.value = fireError(cause) }
   finally { adjustmentSaving.value = false }
 }
-watch(() => auth.currentUserId, () => { usersGeneration += 1; detailGeneration += 1; users.value = []; detail.value = null; selected.value = null; drawer.value = false; credentials.value = null; createForm.value.password = ''; createVisible.value = false; adjustmentVisible.value = false; resetVisible.value = false; resetTarget.value = null; resetPassword.value = ''; resetComplete.value = false; resetError.value = ''; if (auth.isSystemAdmin) void refresh() })
+watch(() => auth.currentUserId, () => { usersGeneration += 1; detailGeneration += 1; metaGeneration += 1; metaPending = null; refreshPending = null; plans.value = []; overview.value = null; plansLoaded.value = false; plansLoading.value = false; overviewLoading.value = false; plansError.value = ''; overviewError.value = ''; users.value = []; detail.value = null; selected.value = null; drawer.value = false; credentials.value = null; createForm.value.password = ''; createVisible.value = false; adjustmentVisible.value = false; resetVisible.value = false; resetTarget.value = null; resetPassword.value = ''; resetComplete.value = false; resetError.value = ''; if (auth.isSystemAdmin) void refresh() })
 onMounted(() => { if (auth.isSystemAdmin) void refresh() })
 </script>
 
 <template>
   <main class="fire-management">
     <template v-if="auth.isSystemAdmin">
-      <header class="fire-management__header"><div><p class="fire-management__eyebrow">火种 / 管理</p><h1>会员管理</h1><p>管理用户、套餐与使用额度。</p></div><div class="fire-management__actions"><t-button variant="outline" :loading="loading" @click="refresh">刷新</t-button><t-button theme="primary" @click="openCreate">新建账号</t-button></div></header>
-      <p v-if="metaError" class="fire-management__error" role="alert">{{ metaError }} <button type="button" @click="loadMeta">重试概览</button></p>
+      <header class="fire-management__header"><div><p class="fire-management__eyebrow">火种 / 管理</p><h1>会员管理</h1><p>管理用户、套餐与使用额度。</p></div><div class="fire-management__actions"><t-button variant="outline" :loading="loading || plansLoading || overviewLoading" @click="refresh()">刷新</t-button><t-button theme="primary" :disabled="plansLoading || !!plansError" @click="openCreate">新建账号</t-button></div></header>
+      <p v-if="overviewError" class="fire-management__error" role="alert">{{ overviewError }} <button type="button" :disabled="overviewLoading" @click="loadMeta()">重试概览</button></p>
+      <p v-else-if="overviewLoading && !overview" role="status">正在读取概览…</p>
       <section v-if="overview" class="fire-management__metrics" aria-label="会员概览"><article><span>全部用户</span><strong>{{ overview.users_total }}</strong></article><article><span>有效会员</span><strong>{{ overview.active_users }}</strong></article><article><span>已到期</span><strong>{{ overview.expired_users }}</strong></article><article><span>累计 Token</span><strong>{{ tokens(overview.total_tokens) }}</strong></article></section>
       <t-tabs v-model="tab"><t-tab-panel value="users" label="用户"><div class="fire-management__toolbar"><form @submit.prevent="page = 1; loadUsers()"><t-input v-model="query" placeholder="搜索用户名或邮箱" aria-label="搜索用户" clearable /><t-button type="submit" variant="outline">搜索</t-button></form><span>{{ total }} 位用户</span></div>
         <p v-if="error" class="fire-management__error" role="alert">{{ error }} <button type="button" @click="loadUsers">重试</button></p>
         <div class="fire-management__table"><t-table row-key="id" :data="users" :columns="columns" :loading="loading" hover @row-click="({ row }: { row: FireUser }) => openUser(row)"><template #identity="{ row }"><div class="fire-management__identity"><strong>{{ row.username }}</strong><span>{{ row.email }}</span></div></template><template #plan="{ row }">{{ row.is_system_admin ? '管理账户' : row.membership?.plan_name || '未开通会员' }}</template><template #status="{ row }"><t-tag variant="light" :theme="row.is_system_admin || row.membership?.status === 'active' ? 'success' : 'warning'">{{ row.is_system_admin ? '管理员' : membershipStatusLabel[row.membership?.status as keyof typeof membershipStatusLabel] || '状态未知' }}</t-tag></template><template #balance="{ row }">{{ row.is_system_admin || row.membership?.unlimited ? '不限额度' : tokens(row.membership?.remaining_tokens) }}</template><template #expiry="{ row }">{{ row.is_system_admin ? '—' : date(row.membership?.expires_at) }}</template><template #operation="{ row }"><t-button variant="text" size="small" @click.stop="openUser(row)">详情</t-button></template></t-table></div>
         <t-pagination v-if="total > 20" v-model="page" :total="total" :page-size="20" :show-page-size="false" @current-change="loadUsers" />
-      </t-tab-panel><t-tab-panel value="plans" label="套餐"><div class="fire-management__toolbar"><p>修改套餐默认值不会重写已有会员额度。用量或问答条数任一达到上限后停止生成。</p><t-button theme="primary" @click="openPlan()">新建套餐</t-button></div><div class="fire-management__plans"><article v-for="plan in plans" :key="plan.id"><div><h2>{{ plan.name }}</h2><t-tag :theme="plan.active ? 'success' : 'default'" variant="light">{{ plan.active ? '启用' : '停用' }}</t-tag></div><strong>{{ tokens(plan.token_limit) }} <small>Token</small></strong><p>{{ plan.duration_days }} 天</p><p>{{ plan.question_limit ? `${tokens(plan.question_limit)} 条问答` : '不限问答条数' }}</p><p>{{ tokens(plan.image_limit ?? 0) }} 张图片</p><t-button variant="outline" @click="openPlan(plan)">编辑套餐</t-button></article><p v-if="!plans.length">暂无套餐，请先创建。</p></div></t-tab-panel></t-tabs>
+      </t-tab-panel><t-tab-panel value="plans" label="套餐"><div class="fire-management__toolbar"><p>修改套餐默认值不会重写已有会员额度。用量或问答条数任一达到上限后停止生成。</p><t-button theme="primary" @click="openPlan()">新建套餐</t-button></div><p v-if="plansError" class="fire-management__error" role="alert">{{ plansError }} <button type="button" :disabled="plansLoading" @click="loadMeta()">重试套餐</button></p><div class="fire-management__plans" :aria-busy="plansLoading"><article v-for="plan in plans" :key="plan.id"><div><h2>{{ plan.name }}</h2><t-tag :theme="plan.active ? 'success' : 'default'" variant="light">{{ plan.active ? '启用' : '停用' }}</t-tag></div><strong>{{ tokens(plan.token_limit) }} <small>Token</small></strong><p>{{ plan.duration_days }} 天</p><p>{{ plan.question_limit ? `${tokens(plan.question_limit)} 条问答` : '不限问答条数' }}</p><p>{{ tokens(plan.image_limit ?? 0) }} 张图片</p><t-button variant="outline" @click="openPlan(plan)">编辑套餐</t-button></article><p v-if="!plans.length && !plansError && !plansLoaded" role="status">正在读取套餐…</p><p v-else-if="!plans.length && !plansError">暂无套餐，请先创建。</p></div></t-tab-panel></t-tabs>
       <t-drawer v-model:visible="drawer" :header="selected?.username || '用户详情'" :footer="false" size="min(760px, 100vw)" :close-btn="true"><template v-if="selected"><div class="fire-management__drawer-heading"><div><h2>{{ selected.username }}</h2><p>{{ selected.email }}</p></div><div class="fire-management__actions"><t-button v-if="selected.id !== auth.currentUserId" variant="outline" @click="openReset">重置密码</t-button><t-button v-if="!selected.is_system_admin" theme="primary" :disabled="detailLoading || !!detailError" @click="openAdjustment">调整会员</t-button></div></div><p v-if="detailLoading" role="status">正在读取详情…</p><p v-if="detailError" class="fire-management__error" role="alert">{{ detailError }} <button type="button" @click="openUser(selected)">重试</button></p><template v-if="detail && detailMembership"><dl class="fire-management__definition"><div><dt>套餐</dt><dd>{{ selected.is_system_admin ? '管理账户' : detailMembership.plan_name || '未开通' }}</dd></div><div><dt>状态</dt><dd>{{ selected.is_system_admin ? '管理员' : membershipStatusLabel[detailMembership.status] }}</dd></div><div><dt>剩余 Token</dt><dd>{{ detailMembership.unlimited ? '不限额度' : tokens(detailMembership.remaining_tokens) }}</dd></div><div><dt>已用 Token</dt><dd>{{ tokens(detailMembership.used_tokens) }}</dd></div><div><dt>到期</dt><dd>{{ date(detailMembership.expires_at) }}</dd></div><div><dt>预占 Token</dt><dd>{{ tokens(detailMembership.reserved_tokens) }}</dd></div><div><dt>问答总上限</dt><dd>{{ Number(detailMembership.question_limit) > 0 ? tokens(detailMembership.question_limit) : '不限条数' }}</dd></div><div><dt>已用问答</dt><dd>{{ tokens(detailMembership.used_questions ?? 0) }}</dd></div><div><dt>剩余问答</dt><dd>{{ Number(detailMembership.question_limit) > 0 ? tokens(detailMembership.remaining_questions) : '不限条数' }}</dd></div><div><dt>预占问答</dt><dd>{{ tokens(detailMembership.reserved_questions ?? 0) }}</dd></div><div><dt>图片总额度</dt><dd>{{ tokens(detailMembership.image_limit ?? 0) }}</dd></div><div><dt>已用图片</dt><dd>{{ tokens(detailMembership.used_images ?? 0) }}</dd></div><div><dt>剩余图片</dt><dd>{{ tokens(detailMembership.remaining_images ?? 0) }}</dd></div><div><dt>预占图片</dt><dd>{{ tokens(detailMembership.reserved_images ?? 0) }}</dd></div></dl>
           <h3>图片任务</h3><p>结果待核实的任务会保留额度。核对实际交付后再确认结算或释放，不会重新生成图片。</p>
           <div class="fire-management__image-calls"><article v-for="call in detail.image_calls || []" :key="call.id"><div><strong>{{ imageStatusLabel[call.status] || '状态未知' }}</strong><span>{{ date(call.created_at) }}</span></div><p>{{ call.task_id }}</p><div v-if="call.status === 'reserved' || call.status === 'unknown'" class="fire-management__actions"><t-button size="small" variant="outline" @click="openImageResolution(call, 'succeeded')">确认已交付</t-button><t-button size="small" variant="outline" @click="openImageResolution(call, 'failed')">确认失败释放</t-button></div></article><p v-if="!detail.image_calls?.length">暂无图片任务</p></div>

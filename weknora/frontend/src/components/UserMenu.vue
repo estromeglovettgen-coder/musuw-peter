@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
@@ -22,6 +22,7 @@ import { handoffToExternalAuth } from '@/utils/nativeAuthHandoff'
 import { isPeterWorkspace, isWorkspaceSettingsSectionVisible } from '@/config/workspaceSurface'
 import { useCurrentEntitlementStore } from '@/stores/entitlement'
 import FireMembershipCard from '@/components/fire/FireMembershipCard.vue'
+import { useFireMembershipStore } from '@/stores/fireMembership'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -266,6 +267,14 @@ const loadUserInfo = async () => {
 }
 
 const loadEntitlement = () => entitlementStore.refresh()
+
+// The authenticated platform already owns this menu. Warm the same scoped
+// snapshot before it is opened; usage stays inside the avatar popover.
+const fireMembership = isPeterWorkspace ? useFireMembershipStore() : null
+watch(() => authStore.isLoggedIn && !authStore.isSystemAdmin
+  ? `${authStore.currentUserId}:${authStore.effectiveTenantId || ''}` : '', scope => {
+  if (scope) void fireMembership?.refresh(false)
+}, { immediate: true })
 
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as Node

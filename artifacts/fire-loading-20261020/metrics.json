@@ -1,0 +1,146 @@
+{
+  "browser": {
+    "beforeWorkspaceClickMs": 12341,
+    "afterWarmReturnMs": 396,
+    "ordinaryWorkspaceAfterIdleWarmupMs": 84,
+    "ordinaryMembershipMenuMs": 458,
+    "draftPreservedOnWarmReturn": true,
+    "warmDocumentNavigations": 0,
+    "versionedResourcesFromMemory": 8,
+    "forcedReloadMs": 9034,
+    "forcedReloadConfigMs": 5646,
+    "forcedReloadConfigNativeServerMs": 3.544904,
+    "fullDocumentInitialNavigationTimedOutAtToolTenSeconds": true,
+    "coldFrameNetworkUntilFirstTaskResponseMs": 4109,
+    "providerGenerationPosts": 0
+  },
+  "http": {
+    "client": [
+      {
+        "label": "admin_membership",
+        "passed": true,
+        "min_ms": 131.23,
+        "median_ms": 138.01,
+        "max_ms": 236.96
+      },
+      {
+        "label": "admin_showcase_bootstrap",
+        "passed": true,
+        "min_ms": 130.04,
+        "median_ms": 149.46,
+        "max_ms": 203.42
+      },
+      {
+        "label": "ordinary_membership_detail",
+        "passed": true,
+        "min_ms": 139.56,
+        "median_ms": 160.75,
+        "max_ms": 212.37
+      },
+      {
+        "label": "admin_plan_catalog",
+        "passed": true,
+        "min_ms": 132.04,
+        "median_ms": 142.21,
+        "max_ms": 290.36
+      },
+      {
+        "label": "showcase_runtime_config",
+        "passed": true,
+        "min_ms": 130.77,
+        "median_ms": 143.36,
+        "max_ms": 193.67
+      },
+      {
+        "label": "showcase_task_history",
+        "passed": true,
+        "min_ms": 116.86,
+        "median_ms": 135.92,
+        "max_ms": 244.36
+      },
+      {
+        "label": "ordinary_membership",
+        "passed": true,
+        "min_ms": 132.24,
+        "median_ms": 144.61,
+        "max_ms": 240.99
+      },
+      {
+        "label": "ordinary_showcase_bootstrap",
+        "passed": true,
+        "min_ms": 135.81,
+        "median_ms": 142.9,
+        "max_ms": 205.01
+      }
+    ],
+    "server": [
+      {
+        "label": "admin_membership",
+        "passed": true,
+        "min_ms": 2.37,
+        "median_ms": 2.42,
+        "max_ms": 2.62
+      },
+      {
+        "label": "admin_showcase_bootstrap",
+        "passed": true,
+        "min_ms": 2.4,
+        "median_ms": 2.5,
+        "max_ms": 3.09
+      },
+      {
+        "label": "ordinary_membership_detail",
+        "passed": true,
+        "min_ms": 4.24,
+        "median_ms": 4.38,
+        "max_ms": 4.52
+      },
+      {
+        "label": "admin_plan_catalog",
+        "passed": true,
+        "min_ms": 2.18,
+        "median_ms": 2.54,
+        "max_ms": 2.58
+      },
+      {
+        "label": "showcase_runtime_config",
+        "passed": true,
+        "min_ms": 3.73,
+        "median_ms": 4.08,
+        "max_ms": 4.12
+      },
+      {
+        "label": "showcase_task_history",
+        "passed": true,
+        "min_ms": 3.84,
+        "median_ms": 4.24,
+        "max_ms": 4.34
+      },
+      {
+        "label": "ordinary_membership",
+        "passed": true,
+        "min_ms": 2.53,
+        "median_ms": 2.72,
+        "max_ms": 3.04
+      },
+      {
+        "label": "ordinary_showcase_bootstrap",
+        "passed": true,
+        "min_ms": 2.8,
+        "median_ms": 2.91,
+        "max_ms": 3.09
+      }
+    ]
+  },
+  "cache_contract": {
+    "public_files": 8,
+    "private_checks": 8,
+    "html_no_store": true
+  },
+  "release": {
+    "frontend": "20261020-fire-01",
+    "native": "musuw-peter:loading-20261020-01",
+    "runtime": "musuw-peter-showcase:20261020-02"
+  },
+  "generation_calls": 0
+}

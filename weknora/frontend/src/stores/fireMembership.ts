@@ -11,7 +11,10 @@ export const useFireMembershipStore = defineStore('fire-membership', () => {
   let sequence = 0, loadedAt = 0, pending: Promise<void> | null = null
   async function refresh(force = true): Promise<void> {
     if (!scope.value || auth.isSystemAdmin) return
-    if (pending) return pending
+    // Menu/focus reads share pending work. A completed chat must supersede a
+    // prefetch started before the charge; the generation guard rejects its
+    // older receipt even if it arrives after the fresh balance.
+    if (pending && !force) return pending
     if (!force && value.value && Date.now() - loadedAt < 30000) return
     const startedScope = scope.value, generation = ++sequence
     loading.value = true

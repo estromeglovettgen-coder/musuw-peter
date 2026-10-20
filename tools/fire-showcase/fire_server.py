@@ -6,7 +6,9 @@ uses the original workers without creating a thread for every account. Its
 durable accounting outbox only retries native callbacks, never provider calls.
 """
 import argparse
+import hashlib
 import hmac
+import io
 import json
 import logging
 import os
@@ -19,7 +21,7 @@ from http.server import ThreadingHTTPServer
 from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 import server as source
@@ -143,7 +145,31 @@ class FireRuntime:
         self.dispatch_lock = threading.RLock()
         self.active_requests, self.deleted_owners, self.next_owner_check = {}, set(), {}
         self.cursor, self.stop_event, self.thread = 0, threading.Event(), None
+        self._load_public_bundle()
         self._scan()
+
+    def _load_public_bundle(self):
+        # Production code is mounted read-only. Hash the public site once per
+        # runtime, including paths, so every deployment gets one stable revision.
+        self.site_root = (source.ROOT / "site").resolve()
+        bundle = hashlib.sha256()
+        self.public_files, templates = {}, {}
+        for path in sorted(self.site_root.rglob("*")):
+            if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(self.site_root):
+                continue
+            relative = path.relative_to(self.site_root).as_posix()
+            content = path.read_bytes()
+            bundle.update(relative.encode() + b"\0" + str(len(content)).encode() + b"\0" + content)
+            self.public_files[relative] = '"' + hashlib.sha256(content).hexdigest() + '"'
+            if relative in ("index.html", "fire-host.js"):
+                templates[relative] = content
+        self.bundle_revision = bundle.hexdigest()
+        self.public_templates = {
+            name: re.sub(rb"\?v=[a-zA-Z0-9_-]+", b"?v=" + self.bundle_revision.encode(), content)
+            for name, content in templates.items()
+        }
+        for name, content in self.public_templates.items():
+            self.public_files[name] = '"' + hashlib.sha256(content).hexdigest() + '"'
 
     @staticmethod
     def owner_identity(user_id, tenant_id):
@@ -266,6 +292,7 @@ class Handler(source.Handler):
     def handle_one_request(self):
         self.owner_lease = None
         self.lease_runtime = None
+        self.public_cache = None
         try:
             super().handle_one_request()
         finally:
@@ -325,8 +352,42 @@ class Handler(source.Handler):
 
     def send_header(self, keyword, value):
         if keyword.lower() == "cache-control":
-            value = "no-store"
+            value = self.public_cache or "no-store"
         super().send_header(keyword, value)
+
+    def send_head(self):
+        runtime = self.server.runtime
+        path = Path(self.translate_path(self.path))
+        if path.is_dir():
+            path = path / "index.html"
+        try:
+            relative = path.resolve().relative_to(runtime.site_root).as_posix()
+            if path.is_symlink() or relative not in runtime.public_files:
+                raise ValueError("Not a public file")
+            content = runtime.public_templates.get(relative)
+            stream = io.BytesIO(content) if content is not None else path.open("rb")
+        except (OSError, ValueError):
+            self.send_error(404)
+            return None
+        is_html = path.suffix.lower() == ".html"
+        version = parse_qs(urlsplit(self.path).query).get("v")
+        self.public_cache = "no-store" if is_html else (
+            "public, max-age=31536000, immutable" if version == [runtime.bundle_revision] else "no-cache")
+        etag = runtime.public_files[relative]
+        conditional = self.headers.get("If-None-Match", "").split(",")
+        unchanged = not is_html and any(value.strip() == "*" or value.strip().removeprefix("W/") == etag
+                                        for value in conditional)
+        self.send_response(304 if unchanged else 200)
+        self.send_header("Cache-Control", self.public_cache)
+        self.send_header("ETag", etag)
+        if not unchanged:
+            self.send_header("Content-Type", self.guess_type(str(path)))
+            self.send_header("Content-Length", str(len(content) if content is not None else path.stat().st_size))
+        self.end_headers()
+        if unchanged:
+            stream.close()
+            return None
+        return stream
 
     def translate_path(self, path):
         prefix = "/tools/fire-showcase"

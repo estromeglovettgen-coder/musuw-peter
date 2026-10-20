@@ -20,7 +20,17 @@ function browserStorage(values) {
     getItem: key => values.get(String(key)) ?? null, setItem: (key, value) => values.set(String(key), String(value)),
     removeItem: key => values.delete(String(key)), clear: () => values.clear() };
 }
-async function host({ user = 'user-a', values = new Map(), autoScripts = true, bootstrapFailure = false, allowance = { status: 'active', remaining_images: 10, reserved_images: 2 } } = {}) {
+
+test('the initial native HTML hides legacy branding without any downloadable brand image', () => {
+  const document = parseHTML(html).document;
+  assert(document.body.classList.contains('fire-workbench'));
+  assert(document.body.classList.contains('auth-pending'));
+  for (const image of document.querySelectorAll('#legacy-auth-state img, .rail-brand img')) {
+    assert.equal(image.getAttribute('src'), null, 'hidden branding must never enter the browser image fetch queue');
+    assert.equal(image.getAttribute('srcset'), null);
+  }
+});
+async function host({ user = 'user-a', values = new Map(), autoScripts = true, bootstrapFailure = false, bootstrapStatus = bootstrapFailure ? 503 : 200, allowance = { status: 'active', remaining_images: 10, reserved_images: 2 } } = {}) {
   values.set('weknora_user', JSON.stringify({ id: user })); values.set('weknora_token', `${user}-native-token`);
   const nativeStorage = browserStorage(values);
   const document = parseHTML(html).document;
@@ -39,6 +49,7 @@ async function host({ user = 'user-a', values = new Map(), autoScripts = true, b
     dispatchEvent(event) { for (const callback of listeners.get(event.type) || []) callback(event); } };
   window.location = { origin: 'https://fire.test', href: 'https://fire.test/tools/fire-showcase/', reload() {} };
   Object.defineProperty(window, 'localStorage', { value: nativeStorage, configurable: true });
+  const backend = { bootstrapStatus, user, tenant: 42, allowance, bootstrapError: null };
   const calls = [], scripts = [];
   const originalAppend = window.document.body.append.bind(window.document.body);
   window.document.body.append = (...nodes) => {
@@ -52,11 +63,12 @@ async function host({ user = 'user-a', values = new Map(), autoScripts = true, b
     const url = String(input instanceof Request ? input.url : input);
     const headers = new Headers(init.headers || (input instanceof Request ? input.headers : {}));
     calls.push({ url, init, headers, input });
+    if (url.endsWith('/bootstrap') && backend.bootstrapError) throw backend.bootstrapError;
     const body = url.endsWith('/bootstrap')
-      ? { success: !bootstrapFailure, data: { user_id: user, tenant_id: 42, allowance } }
+      ? { success: backend.bootstrapStatus === 200, data: { user_id: backend.user, tenant_id: backend.tenant, allowance: backend.allowance } }
       : url.endsWith('/api/config') ? { fireAllowance: allowance }
       : { tasks: [] };
-    return new Response(JSON.stringify(body), { status: bootstrapFailure && url.endsWith('/bootstrap') ? 503 : 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify(body), { status: url.endsWith('/bootstrap') ? backend.bootstrapStatus : 200, headers: { 'Content-Type': 'application/json' } });
   };
   const context = vm.createContext({ window, document: window.document, location: window.location,
     URL, Request, Headers, Response, MutationObserver: window.MutationObserver, console,
@@ -64,8 +76,73 @@ async function host({ user = 'user-a', values = new Map(), autoScripts = true, b
     crypto: webcrypto, atob, setTimeout, clearTimeout, setInterval, clearInterval });
   vm.runInContext(hostSource, context, { filename: 'fire-host.js' });
   await settle();
-  return { window, context, values, nativeStorage, calls, scripts, parent, messages };
+  return { window, context, values, nativeStorage, calls, scripts, parent, messages, backend };
 }
+
+async function readyPollingHost(t) {
+  const h = await host();
+  h.window.document.body.classList.remove('auth-pending');
+  vm.runInContext(fs.readFileSync(`${root}site/generation-tasks.js`, 'utf8'), h.context);
+  const client = h.window.GenerationTasks.create({ pollInterval: 10 });
+  t.after(() => client.stop());
+  h.window.FireShowcaseHost.onActivity(active => { if (active) void client.start(); else client.stop(); });
+  await client.start(); await settle();
+  h.window.localStorage.setItem('draft', 'private-unsent-draft');
+  const draft = h.window.document.createElement('textarea'); draft.value = 'private-editor-draft'; h.window.document.body.append(draft);
+  const activity = active => h.window.dispatchEvent({ type: 'message', origin: h.window.location.origin,
+    source: h.window.parent, data: { type: 'fire-showcase:active', active } });
+  activity(false); await settle();
+  return { ...h, activity, draft };
+}
+
+for (const failure of [401, 403, 'user', 'tenant', 'session']) test(`returning after ${failure} authentication invalidation removes the ready workspace and stops real polling`, async t => {
+  const h = await readyPollingHost(t);
+  if (typeof failure === 'number') h.backend.bootstrapStatus = failure;
+  if (failure === 'user') h.backend.user = 'user-b';
+  if (failure === 'tenant') h.backend.tenant = 99;
+  if (failure === 'session') h.nativeStorage.removeItem('weknora_token');
+  h.activity(true); await settle();
+  assert.equal(h.window.document.body.dataset.fireHostState, 'failed');
+  assert.equal(h.window.FireShowcaseHost.canGenerate(), false);
+  assert.equal(h.window.document.querySelector('textarea'), null, 'private editor is removed on definite auth failure');
+  assert.equal(h.messages.at(-1).data.state, 'failed');
+  const afterFailure = h.calls.length;
+  await new Promise(resolve => setTimeout(resolve, 35));
+  assert.equal(h.calls.length, afterFailure, 'the existing generation client must stop polling');
+  assert.equal(h.calls.filter(call => call.init.method === 'POST').length, 0);
+});
+
+for (const failure of [503, 'network']) test(`temporary ${failure} on return preserves drafts, disables generation and recovers on the next return`, async t => {
+  const h = await readyPollingHost(t);
+  const body = h.window.document.body;
+  if (failure === 503) h.backend.bootstrapStatus = 503;
+  else h.backend.bootstrapError = new TypeError('fixture network offline');
+  h.activity(true); await settle();
+  assert.equal(h.window.document.body.dataset.fireHostState, 'ready');
+  assert.equal(h.window.FireShowcaseHost.canGenerate(), false);
+  assert.equal(h.window.FireShowcaseHost.unavailableReason(), '额度暂时无法读取，请稍后重试');
+  assert.equal(h.window.document.getElementById('fire-image-allowance').textContent, '额度暂时无法读取，请稍后重试');
+  assert.equal(h.window.localStorage.getItem('draft'), 'private-unsent-draft');
+  assert.equal(h.draft.value, 'private-editor-draft');
+  h.activity(false); h.backend.bootstrapStatus = 200; h.backend.bootstrapError = null;
+  h.activity(true); await settle();
+  assert.equal(h.window.FireShowcaseHost.canGenerate(), true);
+  assert.equal(h.window.document.getElementById('fire-image-allowance').textContent, '可生成 10 张 · 2 张处理中');
+  assert.equal(h.window.document.body, body);
+  assert.equal(h.draft.value, 'private-editor-draft');
+  assert.equal(h.scripts.length, 4, 'recovery must reuse the initialized app');
+  assert.equal(h.calls.filter(call => call.init.method === 'POST').length, 0);
+});
+
+test('an expired allowance returned with HTTP 200 retains the private workspace and its expiry message', async t => {
+  const h = await readyPollingHost(t);
+  h.backend.allowance = { status: 'expired', remaining_images: 10 };
+  h.activity(true); await settle();
+  assert.equal(h.window.document.body.dataset.fireHostState, 'ready');
+  assert.equal(h.window.FireShowcaseHost.canGenerate(), false);
+  assert.equal(h.window.document.getElementById('fire-image-allowance').textContent, '套餐已到期');
+  assert.equal(h.draft.value, 'private-editor-draft');
+});
 
 test('native host bootstraps with native bearer, scopes auth to the private proxy, and rejects external URLs', async () => {
   const h = await host();
@@ -113,6 +190,13 @@ test('bootstrap failure exposes only retry and never loads the source app script
   assert.doesNotMatch(h.window.document.body.textContent, /native-token|DeepSeek|Gemini|GPT|Claude/i);
 });
 
+for (const bootstrapStatus of [401, 403]) test(`initial bootstrap ${bootstrapStatus} still fails closed before loading the source app`, async () => {
+  const h = await host({ bootstrapStatus });
+  assert.equal(h.window.document.body.dataset.fireHostState, 'failed');
+  assert.equal(h.scripts.length, 0);
+  assert.equal(h.messages.at(-1).data.state, 'failed');
+});
+
 test('app scripts are loaded serially after identity bootstrap in the original dependency order', async () => {
   const h = await host({ autoScripts: false });
   assert.equal(h.calls[0].url, '/api/v1/fire-showcase/bootstrap');
@@ -123,6 +207,32 @@ test('app scripts are loaded serially after identity bootstrap in the original d
     h.scripts[index].onload(); await settle();
   }
   assert.equal(h.scripts.length, 4);
+});
+
+test('only same-origin parent activity messages pause and resume the existing workspace', async () => {
+  const h = await host();
+  const changes = [];
+  h.window.FireShowcaseHost.onActivity(active => changes.push(active));
+  h.window.localStorage.setItem('draft', 'private-unsent-draft');
+  const signal = (active, extra = {}) => h.window.dispatchEvent({ type: 'message', origin: h.window.location.origin,
+    source: h.window.parent, data: { type: 'fire-showcase:active', active }, ...extra });
+  const before = h.calls.length;
+  signal(false, { origin: 'https://other.test' });
+  signal(false, { source: h.window });
+  signal('false');
+  assert.equal(h.window.FireShowcaseHost.isActive(), true);
+  assert.equal(changes.length, 0);
+  signal(false); signal(false); await settle();
+  assert.equal(h.window.FireShowcaseHost.isActive(), false);
+  assert.deepEqual(changes, [false]);
+  assert.equal(h.calls.length, before, 'hiding cannot submit or refetch work');
+  signal(true); signal(true); await settle();
+  assert.equal(h.window.FireShowcaseHost.isActive(), true);
+  assert.deepEqual(changes, [false, true]);
+  assert.equal(h.calls.length, before + 1, 'returning refreshes allowance once');
+  assert.equal(h.calls.at(-1).url, '/api/v1/fire-showcase/bootstrap');
+  assert.equal(h.window.localStorage.getItem('draft'), 'private-unsent-draft');
+  assert.equal(h.scripts.length, 4, 'returning cannot reinitialize the source app');
 });
 
 test('per-user storage facade hides legacy data and cannot clear native auth or another user drafts', async () => {

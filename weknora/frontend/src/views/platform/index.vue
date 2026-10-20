@@ -9,7 +9,10 @@
       <button type="button" :aria-label="t('menu.newChat')" @click="router.push('/platform/creatChat')"><t-icon name="chat-add" /></button>
     </header>
     <div v-if="isRouterAlive" class="platform-route-outlet" :inert="mobileNavigationOpen">
-      <RouterView />
+      <!-- Keep this iframe in the document: KeepAlive would detach it and reset
+           its browsing context. Other routes retain their usual lifecycle. -->
+      <ShowcaseView v-if="showcaseMounted && showcaseScope" :key="showcaseScope" v-show="showcaseActive" :active="showcaseActive" />
+      <RouterView v-slot="{ Component }"><component :is="Component" v-if="!showcaseActive" /></RouterView>
     </div>
     <div class="upload-mask" v-show="ismask">
       <UploadMask></UploadMask>
@@ -28,7 +31,7 @@
 import Menu from "@/components/menu.vue";
 import FireBrand from '@/components/fire/FireBrand.vue'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
-import { computed, ref, onMounted, onUnmounted, nextTick, provide, watch } from "vue";
+import { computed, defineAsyncComponent, ref, onMounted, onUnmounted, nextTick, provide, watch } from "vue";
 import { defineRecoverableAsyncComponent } from '@/utils/recoverableAsyncComponent';
 import { useRoute, useRouter } from "vue-router";
 import UploadMask from "@/components/upload-mask.vue";
@@ -61,6 +64,30 @@ const router = useRouter();
 const commandPaletteStore = useCommandPaletteStore();
 const authStore = useAuthStore();
 const uiStore = useUIStore();
+const ShowcaseView = defineAsyncComponent(() => import('@/views/fire/ShowcaseView.vue'));
+const showcaseActive = computed(() => isPeterWorkspace && route.path === '/platform/showcase');
+const showcaseScope = computed(() => isPeterWorkspace && authStore.isLoggedIn && authStore.effectiveTenantId
+  ? `${authStore.currentUserId}:${authStore.effectiveTenantId}` : '');
+const showcaseMounted = ref(false);
+let showcaseIdle: number | undefined, showcaseIdleUsesTimeout = false;
+function cancelShowcaseWarmup() {
+  if (showcaseIdle === undefined) return;
+  if (showcaseIdleUsesTimeout) window.clearTimeout(showcaseIdle);
+  else window.cancelIdleCallback(showcaseIdle);
+  showcaseIdle = undefined;
+}
+watch(showcaseScope, scope => {
+  cancelShowcaseWarmup(); showcaseMounted.value = false;
+  if (!scope) return;
+  if (showcaseActive.value) { showcaseMounted.value = true; return; }
+  const warm = () => { showcaseIdle = undefined; if (showcaseScope.value === scope) showcaseMounted.value = true; };
+  showcaseIdleUsesTimeout = typeof window.requestIdleCallback !== 'function';
+  showcaseIdle = showcaseIdleUsesTimeout ? window.setTimeout(warm, 1500) : window.requestIdleCallback(warm, { timeout: 3000 });
+}, { immediate: true, flush: 'sync' });
+watch(showcaseActive, active => {
+  if (active && showcaseScope.value) { cancelShowcaseWarmup(); showcaseMounted.value = true; }
+}, { flush: 'sync' });
+onUnmounted(cancelShowcaseWarmup);
 const dropzone = ref<HTMLElement | null>(null);
 const mobileViewport = window.matchMedia('(max-width: 760px)');
 const isMobileViewport = ref(mobileViewport.matches);

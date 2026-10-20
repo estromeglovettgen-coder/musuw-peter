@@ -5194,7 +5194,13 @@ async function init() {
     restoreLastImages();
     renderResultHistory();
     connectFireWorkbench();
-    if (durableGenerationEnabled()) await durableClient.start();
+    if (durableGenerationEnabled()) {
+      window.FireShowcaseHost?.onActivity(active => {
+        if (active) void durableClient.start();
+        else durableClient.stop();
+      });
+      if (window.FireShowcaseHost?.isActive() !== false) await durableClient.start();
+    }
     setPromptLocked(true);
     const pending = readStoredJson(accountStorageKey(pendingGenerationKey), null);
     if (!durableGenerationEnabled()) {

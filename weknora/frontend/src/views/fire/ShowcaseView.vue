@@ -1,29 +1,25 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { bootstrapFireShowcase } from '@/api/fire-showcase'
 
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true })
 const auth = useAuthStore()
 const state = ref<'loading' | 'ready' | 'failed'>('loading')
 const frameVisible = ref(false), frameKey = ref(0), frameElement = ref<HTMLIFrameElement | null>(null)
-let pending: AbortController | undefined, frameObserver: MutationObserver | undefined
+let frameObserver: MutationObserver | undefined
 let generation = 0, timer: ReturnType<typeof setTimeout> | undefined
 function clearTimer() { if (timer) clearTimeout(timer); timer = undefined }
 function stopObservingFrame() { frameObserver?.disconnect(); frameObserver = undefined }
 function fail() { clearTimer(); stopObservingFrame(); frameVisible.value = false; state.value = 'failed' }
-async function load() {
+function load() {
   const current = ++generation
-  pending?.abort(); pending = new AbortController()
   clearTimer(); stopObservingFrame(); frameVisible.value = false; state.value = 'loading'
   if (!auth.isLoggedIn) { state.value = 'failed'; return }
-  // The native authenticated call establishes the private asset cookie. No JWT
-  // or identity is handed to the iframe through its URL or browser messaging.
-  try {
-    await bootstrapFireShowcase(pending.signal)
-    if (current !== generation) return
-    frameKey.value += 1; frameVisible.value = true
-    timer = setTimeout(() => { if (current === generation) fail() }, 20000)
-  } catch { if (current === generation) fail() }
+  // The child owns its authenticated bootstrap and private media cookie. Its
+  // static document can load in parallel instead of waiting for a duplicate
+  // parent request. Native route authorization still guards this workspace.
+  frameKey.value += 1; frameVisible.value = true
+  timer = setTimeout(() => { if (current === generation) fail() }, 20000)
 }
 function loaded(event: Event) { inspectFrame(event.target as HTMLIFrameElement) }
 function inspectFrame(frame: HTMLIFrameElement) {
@@ -53,8 +49,11 @@ function onHostMessage(event: MessageEvent) {
   inspectFrame(frameElement.value)
 }
 onMounted(() => window.addEventListener('message', onHostMessage))
-watch(() => [auth.currentUserId, auth.effectiveTenantId], () => { void load() }, { immediate: true })
-onBeforeUnmount(() => { window.removeEventListener('message', onHostMessage); generation += 1; pending?.abort(); clearTimer(); stopObservingFrame() })
+watch(() => [auth.currentUserId, auth.effectiveTenantId, auth.isLoggedIn], load, { immediate: true })
+watch([() => props.active, state], ([active, ready]) => {
+  if (ready === 'ready') frameElement.value?.contentWindow?.postMessage({ type: 'fire-showcase:active', active }, window.location.origin)
+}, { flush: 'post' })
+onBeforeUnmount(() => { window.removeEventListener('message', onHostMessage); generation += 1; clearTimer(); stopObservingFrame() })
 </script>
 
 <template>

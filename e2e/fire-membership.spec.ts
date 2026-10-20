@@ -6,13 +6,13 @@ const usage = [{ id: 'usage-1', input_tokens: 800, output_tokens: 200, total_tok
 const plan = { id: 'plan-monthly', name: '火种月度', duration_days: 30, token_limit: 1000000, active: true }
 async function api(page: Page, options: { admin?: boolean; status?: string; unavailable?: boolean } = {}) {
   const admin = !!options.admin, writes: Array<{ path: string; body: any }> = [], calls: string[] = []
-  const state = { membership: { ...baseMembership, status: options.status || 'active' }, unavailable: !!options.unavailable, createFailure: false, adjustmentFailure: false, plans: [{ ...plan }], imageCalls: [] as any[] }
+  const state = { expectedToken: 'membership-fixture-token', membership: { ...baseMembership, status: options.status || 'active' }, unavailable: !!options.unavailable, createFailure: false, adjustmentFailure: false, plans: [{ ...plan }], imageCalls: [] as any[] }
   const member = { id: 'member-fixture', username: 'Taylor学员', email: 'fixture@example.test', tenant_id: 42, is_system_admin: false, created_at: '2026-10-01T00:00:00Z' }
   await page.route('**/api/v1/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname
     calls.push(path)
     if (request.method() !== 'GET') writes.push({ path, body: request.postDataJSON() })
-    if (path.includes('/fire/') || path.endsWith('/users/create')) expect(request.headers().authorization).toBe('Bearer membership-fixture-token')
+    if (path.includes('/fire/') || path.endsWith('/users/create')) expect(request.headers().authorization).toBe(`Bearer ${state.expectedToken}`)
     const ok = (data: any) => route.fulfill({ json: { success: true, data } })
     if (path === '/api/v1/auth/me') return ok({ user: admin ? { ...member, id: 'admin-fixture', username: '管理者', is_system_admin: true } : member, tenant: { id: 42, name: '火种' }, memberships: [] })
     if (path === '/api/v1/fire/membership') {
@@ -477,28 +477,32 @@ test('zero image allowance neither grants unlimited images nor changes ordinary 
 })
 
 
-test('showcase establishes native identity before embedding and recovers from bootstrap failure', async ({ page }, info) => {
+function authenticatedShowcaseHtml(markup = '<main>私有作品</main>') {
+  return `<body class="fire-workbench auth-pending" data-fire-host-state="loading"><script>(async()=>{try{const response=await fetch('/api/v1/fire-showcase/bootstrap',{headers:{Authorization:'Bearer '+localStorage.getItem('weknora_token')}});if(!response.ok)throw Error('unavailable');document.body.insertAdjacentHTML('afterbegin',${JSON.stringify(markup)});document.body.classList.remove('auth-pending');document.body.dataset.fireHostState='ready';}catch{document.body.dataset.fireHostState='failed';}parent.postMessage({type:'fire-showcase:state',state:document.body.dataset.fireHostState},location.origin)})();</script></body>`
+}
+
+test('showcase child authenticates once and recovers from native bootstrap failure', async ({ page }, info) => {
   await api(page)
   let available = false, bootstraps = 0, frames = 0
   await page.route('**/api/v1/fire-showcase/bootstrap', route => {
     bootstraps++
     expect(route.request().headers().authorization).toBe('Bearer membership-fixture-token')
+    expect(route.request().frame().parentFrame()).not.toBeNull()
     return available ? route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }) : route.fulfill({ status: 503, json: { success: false, message: '暂不可用' } })
   })
   await page.route('**/tools/fire-showcase/', route => {
     frames++
-    expect(available).toBe(true)
     expect(route.request().url()).not.toContain('token')
-    return route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench"><main><h1>素材工作台</h1><button>上传参考照片</button></main></body>' })
+    return route.fulfill({ contentType: 'text/html', body: authenticatedShowcaseHtml('<main><h1>素材工作台</h1><button>上传参考照片</button></main>') })
   })
   await page.goto('/e2e/fire-membership-harness.html?page=showcase')
   await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
-  expect(frames).toBe(0)
+  expect(frames).toBe(1)
   available = true
   await page.getByRole('button', { name: '重试', exact: true }).click()
   await expect(page.frameLocator('iframe').getByRole('button', { name: '上传参考照片' })).toBeVisible()
   await expect(page.getByRole('status')).toHaveCount(0)
-  expect(bootstraps).toBe(2); expect(frames).toBe(1)
+  expect(bootstraps).toBe(2); expect(frames).toBe(2)
   await page.screenshot({ path: info.outputPath('showcase-native-frame.png') })
 })
 
@@ -532,18 +536,18 @@ test('native showcase navigation follows agents in expanded and collapsed sideba
 })
 
 test('showcase clears private frame on native identity change before loading the next workspace', async ({ page }) => {
-  await api(page)
+  const mock = await api(page)
   let nextAccount = false, release: (() => void) | undefined
   await page.route('**/api/v1/fire-showcase/bootstrap', async route => {
     if (nextAccount) await new Promise<void>(resolve => { release = resolve })
     return route.fulfill({ json: { success: true, data: { user_id: nextAccount ? 'member-two' : 'member-fixture', tenant_id: nextAccount ? 99 : 42 } } })
   })
-  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench"><main>私有作品</main></body>' }))
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: authenticatedShowcaseHtml() }))
   await page.goto('/e2e/fire-membership-harness.html?page=showcase')
   await expect(page.frameLocator('iframe').locator('main')).toHaveText('私有作品')
-  nextAccount = true
+  nextAccount = true; mock.state.expectedToken = 'next-account'
   await page.evaluate(() => { const auth = (window as any).__fireFixture.auth; auth.setToken('next-account'); auth.setUser({ ...auth.user, id: 'member-two' }); auth.setTenant({ id: 99 }) })
-  await expect(page.locator('iframe')).toHaveCount(0)
+  await expect(page.frameLocator('iframe').locator('main')).toHaveCount(0)
   await expect(page.getByRole('status')).toContainText('正在打开工作台')
   await expect.poll(() => !!release).toBe(true)
   release!()
@@ -586,8 +590,8 @@ test('showcase gives retry after embedded initialization timeout without automat
   await page.clock.install()
   await api(page)
   let calls = 0
-  await page.route('**/api/v1/fire-showcase/bootstrap', route => { calls++; return route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }) })
-  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench auth-pending"><main>正在初始化</main></body>' }))
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => { return route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }) })
+  await page.route('**/tools/fire-showcase/', route => { calls++; return route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench auth-pending"><main>正在初始化</main></body>' }) })
   await page.goto('/e2e/fire-membership-harness.html?page=showcase')
   await expect(page.frameLocator('iframe').locator('main')).toHaveText('正在初始化')
   await expect(page.getByRole('status')).toContainText('正在打开工作台')
@@ -631,7 +635,7 @@ test('showcase becomes ready before iframe load while a restored original image 
   await page.clock.install()
   const image = await delayedShowcase(page)
   try {
-    await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+    await page.goto('/e2e/fire-membership-harness.html?page=showcase', { waitUntil: 'domcontentloaded' })
     await expect(page.frameLocator('iframe').locator('body')).not.toHaveClass(/auth-pending/)
     expect(image.pending()).toBe(true)
     await expect(page.locator('iframe')).toHaveClass(/is-ready/, { timeout: 1000 })
@@ -646,7 +650,7 @@ test('showcase becomes ready before iframe load while a restored original image 
 test('showcase ignores forged ready sources and origins and still requires the real child DOM state', async ({ page }) => {
   const image = await delayedShowcase(page, false)
   try {
-    await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+    await page.goto('/e2e/fire-membership-harness.html?page=showcase', { waitUntil: 'domcontentloaded' })
     await expect(page.frameLocator('iframe').locator('main')).toHaveText('已经可以编辑的工作台')
     await page.locator('iframe').evaluate((element: HTMLIFrameElement) => { element.contentDocument!.body.dataset.fireHostState = 'ready'; element.contentDocument!.body.classList.remove('auth-pending') })
     await page.evaluate(() => {
@@ -674,7 +678,7 @@ test('showcase host failure before iframe load remains retryable and removes its
   })
   const image = await delayedShowcase(page)
   try {
-    await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+    await page.goto('/e2e/fire-membership-harness.html?page=showcase', { waitUntil: 'domcontentloaded' })
     await expect(page.locator('iframe')).toHaveClass(/is-ready/)
     const listenerCount = await page.evaluate(() => (window as any).__messageListeners.size)
     expect(listenerCount).toBeGreaterThan(0)
@@ -694,4 +698,197 @@ test('showcase host failure before iframe load remains retryable and removes its
     await expect(page.getByText('历史和新对话入口', { exact: true })).toBeVisible()
     await expect(page.getByRole('alert')).toHaveCount(0)
   } finally { image.release() }
+})
+
+test('performance: ordinary membership is prefetched without showing persistent usage UI', async ({ page }) => {
+  const mock = await api(page)
+  await page.goto('/e2e/fire-membership-harness.html')
+  await expect.poll(() => mock.calls.filter(path => path === '/api/v1/fire/membership').length, { timeout: 1000 }).toBe(1)
+  await expect(page.getByRole('region', { name: '会员套餐' })).toHaveCount(0)
+  await page.locator('.visual-user-menu__trigger').click()
+  await expect(page.getByRole('region', { name: '会员套餐' })).toContainText('火种月度')
+  await page.locator('.visual-user-menu__trigger').click()
+  await page.locator('.visual-user-menu__trigger').click()
+  expect(mock.calls.filter(path => path === '/api/v1/fire/membership')).toHaveLength(1)
+})
+
+test('performance: completed plans render while overview waits and pending refresh is shared', async ({ page }) => {
+  const mock = await api(page, { admin: true })
+  let release!: () => void, overviewCalls = 0
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/system/admin/fire/overview', async route => { overviewCalls++; await held; return route.fulfill({ json: { success: true, data: { users_total: 2, active_users: 1, expired_users: 1, total_tokens: 12345 } } }) })
+  try {
+    await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+    await expect(page.locator('.fire-management__table')).toContainText('Taylor学员')
+    await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
+    await expect(page.locator('.fire-management__plans')).toContainText('火种月度', { timeout: 1000 })
+    const refresh = page.getByRole('button', { name: '刷新', exact: true })
+    await expect(refresh).toBeDisabled()
+    await refresh.dispatchEvent('click')
+    expect(overviewCalls).toBe(1)
+    expect(mock.calls.filter(path => path.endsWith('/fire/plans'))).toHaveLength(1)
+    release()
+    await expect(page.getByRole('region', { name: '会员概览' })).toContainText('2')
+  } finally { release() }
+})
+
+test('performance: overview failure does not discard available plans or pretend the catalog is empty', async ({ page }) => {
+  await api(page, { admin: true })
+  await page.route('**/api/v1/system/admin/fire/overview', route => route.fulfill({ status: 503, json: { success: false, message: '概览暂时不可用' } }))
+  await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+  await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
+  await expect(page.locator('.fire-management__plans')).toContainText('火种月度', { timeout: 1000 })
+  await expect(page.getByRole('alert')).toContainText('概览暂时不可用')
+  await expect(page.locator('.fire-management__plans')).not.toContainText('暂无套餐')
+})
+
+async function showcaseFrameFixture(page: Page) {
+  await api(page)
+  let frames = 0, bootstraps = 0
+  await page.addInitScript(() => {
+    ;(window as any).requestIdleCallback = (callback: IdleRequestCallback) => { (window as any).__runShowcaseIdle = () => callback({ didTimeout: false, timeRemaining: () => 50 }); return 1 }
+    ;(window as any).cancelIdleCallback = () => { delete (window as any).__runShowcaseIdle }
+  })
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => { bootstraps++; return route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }) })
+  await page.route('**/tools/fire-showcase/', route => {
+    frames++
+    return route.fulfill({ contentType: 'text/html', body: `<body class="fire-workbench" data-fire-host-state="ready"><main><input aria-label="作品草稿"><button>保存作品</button></main><script>window.activeEvents=[];window.addEventListener('message',event=>{if(event.origin===location.origin&&event.source===parent&&event.data?.type==='fire-showcase:active')window.activeEvents.push(event.data.active)})</script></body>` })
+  })
+  return { frames: () => frames, bootstraps: () => bootstraps }
+}
+
+test('performance: platform keeps the same iframe and draft across route and settings changes', async ({ page }) => {
+  const mock = await showcaseFrameFixture(page)
+  await page.goto('/e2e/fire-membership-harness.html?platform&page=showcase')
+  await expect(page.locator('.fire-showcase__frame')).toHaveClass(/is-ready/)
+  const frame = page.frameLocator('iframe'), draft = frame.getByRole('textbox', { name: '作品草稿' })
+  await draft.fill('保留这份未保存的草稿')
+  await page.evaluate(() => { (window as any).__sameFrame = document.querySelector('iframe'); return (window as any).__fireFixture.router.push('/platform/settings') })
+  await expect(page.locator('.fire-showcase')).toBeHidden()
+  await expect(page.locator('iframe')).toHaveCount(1)
+  const switchedAt = Date.now()
+  await page.evaluate(() => (window as any).__fireFixture.router.push('/platform/showcase'))
+  await expect(draft).toHaveValue('保留这份未保存的草稿')
+  const warmSwitchMs = Date.now() - switchedAt
+  expect(warmSwitchMs).toBeLessThan(1000)
+  console.log(JSON.stringify({ warmSwitchMs, retainedDraft: true, frameNavigations: mock.frames() }))
+  expect(await page.evaluate(() => document.querySelector('iframe') === (window as any).__sameFrame)).toBe(true)
+  expect(mock.frames()).toBe(1)
+  expect(mock.bootstraps()).toBe(0) // This fixture is already authenticated; the native parent must not bootstrap again.
+  await expect.poll(() => page.frames().find(item => item.url().endsWith('/tools/fire-showcase/'))!.evaluate(() => (window as any).activeEvents)).toEqual([true, false, true])
+})
+
+test('performance: idle warms one hidden workbench and account or tenant changes destroy the private document', async ({ page }) => {
+  const mock = await showcaseFrameFixture(page)
+  await page.goto('/e2e/fire-membership-harness.html?platform')
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await expect.poll(() => page.evaluate(() => typeof (window as any).__runShowcaseIdle)).toBe('function')
+  await page.evaluate(() => (window as any).__runShowcaseIdle())
+  await expect(page.locator('.fire-showcase__frame')).toHaveClass(/is-ready/)
+  await expect(page.locator('.fire-showcase')).toBeHidden()
+  await page.evaluate(() => (window as any).__fireFixture.router.push('/platform/showcase'))
+  await page.frameLocator('iframe').getByRole('textbox', { name: '作品草稿' }).fill('账号A私有草稿')
+  await page.evaluate(() => { (window as any).__sameFrame = document.querySelector('iframe'); const auth = (window as any).__fireFixture.auth; auth.setUser({ ...auth.user, id: 'member-two' }); auth.setTenant({ id: 99 }) })
+  await expect(page.locator('.fire-showcase__frame')).toHaveClass(/is-ready/)
+  await expect(page.frameLocator('iframe').getByRole('textbox', { name: '作品草稿' })).toHaveValue('')
+  expect(await page.evaluate(() => document.querySelector('iframe') === (window as any).__sameFrame)).toBe(false)
+  await page.evaluate(() => { (window as any).__sameFrame = document.querySelector('iframe'); (window as any).__fireFixture.auth.setSelectedTenant(100) })
+  await expect(page.locator('.fire-showcase__frame')).toHaveClass(/is-ready/)
+  expect(await page.evaluate(() => document.querySelector('iframe') === (window as any).__sameFrame)).toBe(false)
+  await page.evaluate(() => (window as any).__fireFixture.auth.setToken(''))
+  await expect(page.locator('iframe')).toHaveCount(0)
+  expect(mock.frames()).toBe(3)
+})
+
+for (const deniedStatus of [401, 403]) test(`showcase child ${deniedStatus} never exposes a private workspace and remains retryable`, async ({ page }) => {
+  await api(page)
+  let allowed = false
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ status: allowed ? 200 : deniedStatus, json: allowed ? { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } : { success: false, message: '不可用' } }))
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: authenticatedShowcaseHtml('<main>恢复后的私有工作台</main>') }))
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+  await expect(page.locator('iframe')).toHaveCount(0)
+  allowed = true
+  await page.getByRole('button', { name: '重试', exact: true }).click()
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('恢复后的私有工作台')
+})
+
+test('performance: pending plans do not hide overview or show a false empty catalog and can retry', async ({ page }) => {
+  await api(page, { admin: true })
+  let release!: () => void, failed = true
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/system/admin/fire/plans', async route => {
+    await held
+    return failed ? route.fulfill({ status: 503, json: { success: false, message: '套餐暂时不可用' } }) : route.fulfill({ json: { success: true, data: [plan] } })
+  })
+  try {
+    await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+    await expect(page.getByRole('region', { name: '会员概览' })).toContainText('2')
+    await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
+    await expect(page.locator('.fire-management__plans')).toContainText('正在读取套餐')
+    await expect(page.locator('.fire-management__plans')).not.toContainText('暂无套餐')
+    release()
+    await expect(page.getByRole('alert')).toContainText('套餐暂时不可用')
+    await expect(page.getByRole('region', { name: '会员概览' })).toContainText('2')
+    failed = false
+    await page.getByRole('button', { name: '重试套餐', exact: true }).click()
+    await expect(page.locator('.fire-management__plans')).toContainText('火种月度')
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  } finally { release() }
+})
+
+test('performance: a chat completion supersedes an in-flight prefetch and the old receipt cannot restore stale usage', async ({ page }) => {
+  await api(page)
+  let release!: () => void, requests = 0
+  const oldReceipt = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/fire/membership', async route => {
+    const current = ++requests
+    if (current === 1) await oldReceipt
+    return route.fulfill({ json: { success: true, data: { ...baseMembership, remaining_tokens: current === 1 ? 900000 : 500000 } } })
+  })
+  try {
+    await page.goto('/e2e/fire-membership-harness.html')
+    await expect.poll(() => requests).toBe(1)
+    await page.evaluate(() => window.dispatchEvent(new Event('fire-membership-updated')))
+    await expect.poll(() => requests, { timeout: 1000 }).toBe(2)
+    await page.locator('.visual-user-menu__trigger').click()
+    const card = page.getByRole('region', { name: '会员套餐' })
+    await expect(card).toContainText('50%')
+    const returned = page.waitForResponse(response => response.url().endsWith('/api/v1/fire/membership') && response.status() === 200)
+    release(); await (await returned).finished()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    await expect(card).toContainText('50%')
+    await expect(card).not.toContainText('90%')
+    await page.locator('.visual-user-menu__trigger').click(); await page.locator('.visual-user-menu__trigger').click()
+    expect(requests).toBe(2)
+  } finally { release() }
+})
+
+test('performance: account changes discard both prefetch and charged-refresh receipts from the previous owner', async ({ page }) => {
+  const mock = await api(page)
+  let release!: () => void, oldRequests = 0, oldReturned = 0
+  const oldReceipts = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/fire/membership', async route => {
+    const oldOwner = route.request().headers().authorization === 'Bearer membership-fixture-token'
+    if (oldOwner) { oldRequests++; await oldReceipts }
+    await route.fulfill({ json: { success: true, data: { ...baseMembership, plan_name: oldOwner ? '旧账号套餐' : '新账号独立套餐', remaining_tokens: oldOwner ? 900000 : 700000 } } })
+    if (oldOwner) oldReturned++
+  })
+  try {
+    await page.goto('/e2e/fire-membership-harness.html')
+    await expect.poll(() => oldRequests).toBe(1)
+    await page.evaluate(() => window.dispatchEvent(new Event('fire-membership-updated')))
+    await expect.poll(() => oldRequests).toBe(2)
+    mock.state.expectedToken = 'next-account'
+    await page.evaluate(() => { const auth = (window as any).__fireFixture.auth; auth.setToken('next-account'); auth.setUser({ ...auth.user, id: 'member-two' }); auth.setTenant({ id: 99 }) })
+    await page.locator('.visual-user-menu__trigger').click()
+    const card = page.getByRole('region', { name: '会员套餐' })
+    await expect(card).toContainText('新账号独立套餐')
+    await expect(card).toContainText('70%')
+    release(); await expect.poll(() => oldReturned).toBe(2)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    await expect(card).toContainText('新账号独立套餐')
+    await expect(card).toContainText('70%')
+    await expect(card).not.toContainText('旧账号套餐')
+  } finally { release() }
 })

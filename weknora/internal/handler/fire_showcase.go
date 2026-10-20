@@ -49,6 +49,8 @@ func NewFireShowcaseHandler(b *firebilling.Service) *FireShowcaseHandler {
 
 func (h *FireShowcaseHandler) ready(c *gin.Context) bool {
 	if h == nil || !firebilling.Enabled() || !strings.EqualFold(os.Getenv("FIRE_SHOWCASE_ENABLED"), "true") || h.target == nil || len(h.secret) < 32 {
+		c.Header("Cache-Control", "no-store")
+		c.Header("Vary", "Authorization, Cookie")
 		c.AbortWithStatusJSON(503, gin.H{"success": false, "error": "展示面暂时不可用，请稍后重试"})
 		return false
 	}
@@ -90,6 +92,8 @@ func (h *FireShowcaseHandler) currentActor(c *gin.Context) (showcaseActor, bool)
 	id, _ := types.UserIDFromContext(c.Request.Context())
 	u, err := h.actor(c.Request.Context(), id)
 	if err != nil {
+		c.Header("Cache-Control", "no-store")
+		c.Header("Vary", "Authorization, Cookie")
 		c.AbortWithStatusJSON(403, gin.H{"success": false, "error": "无权访问展示面"})
 		return u, false
 	}
@@ -110,6 +114,8 @@ func (h *FireShowcaseHandler) mediaCookie(c *gin.Context) {
 }
 
 func (h *FireShowcaseHandler) Bootstrap(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	c.Header("Vary", "Authorization, Cookie")
 	if !h.ready(c) {
 		return
 	}
@@ -123,7 +129,6 @@ func (h *FireShowcaseHandler) Bootstrap(c *gin.Context) {
 		return
 	}
 	h.mediaCookie(c)
-	c.Header("Cache-Control", "no-store")
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"user_id": u.ID, "tenant_id": u.TenantID, "allowance": s}})
 }
 
@@ -160,6 +165,8 @@ func (h *FireShowcaseHandler) Proxy(c *gin.Context) {
 	}
 	p := "/api" + c.Param("resource")
 	if !showcaseAPIAllowed(c.Request.Method, p) {
+		c.Header("Cache-Control", "no-store")
+		c.Header("Vary", "Authorization, Cookie")
 		c.AbortWithStatusJSON(404, gin.H{"error": "接口不存在"})
 		return
 	}
@@ -175,11 +182,31 @@ func (h *FireShowcaseHandler) Static(c *gin.Context) {
 	if p == "/" {
 		p = "/index.html"
 	}
-	if p == "" || p != path.Clean(p) || strings.Contains(p, "\\") || strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/__") || strings.HasPrefix(path.Base(p), ".") {
+	if !showcaseStaticPathAllowed(p) {
+		c.Header("Cache-Control", "no-store")
 		c.AbortWithStatus(404)
 		return
 	}
 	h.serve(c, p, nil, false)
+}
+
+func showcaseStaticPathAllowed(p string) bool {
+	return p != "" && p == path.Clean(p) && !strings.Contains(p, "\\") && !strings.HasPrefix(p, "/api/") && !strings.HasPrefix(p, "/__") && !strings.HasPrefix(path.Base(p), ".")
+}
+
+func showcasePublicStaticResponse(p string, res *http.Response) bool {
+	if !showcaseStaticPathAllowed(p) || (res.StatusCode < 200 || res.StatusCode >= 300) && res.StatusCode != http.StatusNotModified || strings.Contains(strings.ToLower(res.Header.Get("Content-Type")), "text/html") {
+		return false
+	}
+	// Only public code, artwork and browser model files may inherit the
+	// sidecar's cache policy. HTML and API-shaped data remain uncacheable.
+	switch strings.ToLower(path.Ext(p)) {
+	case ".js", ".mjs", ".css", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm", ".tflite":
+	default:
+		return false
+	}
+	policies := res.Header.Values("Cache-Control")
+	return len(policies) == 1 && (policies[0] == "public, max-age=31536000, immutable" || policies[0] == "no-cache")
 }
 
 func (h *FireShowcaseHandler) Asset(c *gin.Context) {
@@ -191,6 +218,8 @@ func (h *FireShowcaseHandler) Asset(c *gin.Context) {
 		return
 	}
 	if c.Param("user_id") != u.ID || !showcaseAssetID.MatchString(c.Param("asset_id")) {
+		c.Header("Cache-Control", "no-store")
+		c.Header("Vary", "Authorization, Cookie")
 		c.AbortWithStatus(404)
 		return
 	}
@@ -240,9 +269,30 @@ func (h *FireShowcaseHandler) serve(c *gin.Context, p string, u *showcaseActor, 
 	proxy.Transport = h.transport
 	proxy.ModifyResponse = func(res *http.Response) error {
 		res.Header.Del("Set-Cookie")
-		res.Header.Del("ETag")
-		res.Header.Set("Cache-Control", "no-store")
-		res.Header.Set("Vary", "Authorization, Cookie")
+		if u == nil && !rewrite && (c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead) && showcasePublicStaticResponse(p, res) {
+			// Identity headers were removed before forwarding public requests.
+			// Retain genuine content negotiation without splitting by account.
+			var vary []string
+			for _, field := range res.Header.Values("Vary") {
+				for _, name := range strings.Split(field, ",") {
+					name = strings.TrimSpace(name)
+					if name != "" && !strings.EqualFold(name, "Authorization") && !strings.EqualFold(name, "Cookie") {
+						vary = append(vary, name)
+					}
+				}
+			}
+			res.Header.Del("Vary")
+			if len(vary) > 0 {
+				res.Header.Set("Vary", strings.Join(vary, ", "))
+			}
+		} else {
+			res.Header.Del("ETag")
+			res.Header.Del("Last-Modified")
+			res.Header.Del("Expires")
+			res.Header.Del("Age")
+			res.Header.Set("Cache-Control", "no-store")
+			res.Header.Set("Vary", "Authorization, Cookie")
+		}
 		res.Header.Set("X-Content-Type-Options", "nosniff")
 		if !rewrite || u == nil || !strings.Contains(res.Header.Get("Content-Type"), "application/json") || c.Request.Method == http.MethodHead {
 			return nil
@@ -274,6 +324,8 @@ func (h *FireShowcaseHandler) serve(c *gin.Context, p string, u *showcaseActor, 
 		return nil
 	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Vary", "Authorization, Cookie")
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(502)
 		_, _ = w.Write([]byte(`{"error":"展示面暂时不可用，请稍后重试"}`))

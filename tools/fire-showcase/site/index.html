@@ -7,18 +7,22 @@
     <title>火种工作台 · 参考图创作</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     
-  <link href="./components.css?v=20261015-fire-02" rel="stylesheet"><link href="./workbench.css?v=20261019-durable-01" rel="stylesheet"><link href="./fire-host.css?v=20261019-fire-native-01" rel="stylesheet"></head>
+  <link href="./components.css?v=20261015-fire-02" rel="stylesheet"><link href="./workbench.css?v=20261019-durable-01" rel="stylesheet"><link href="./fire-host.css?v=20261019-fire-native-01" rel="stylesheet">
+  <link rel="preload" as="script" href="./fire-components.js?v=20261019-fire-native-01">
+  <link rel="preload" as="script" href="./generation-tasks.js?v=20261019-fire-native-01">
+  <link rel="preload" as="script" href="./script.js?v=20261019-fire-native-01">
+  <link rel="preload" as="script" href="./workbench.js?v=20261019-fire-native-01"></head>
   <body class="fire-workbench auth-pending" data-creation-mode="compose">
     <div id="legacy-auth-state" hidden inert=""><section class="auth-loading" id="auth-loading" aria-live="polite" aria-label="正在检查登录状态">
       <span class="brand-logo-frame auth-loading-logo">
-        <img loading="lazy" src="./assets/brand/alphai-logo.png" alt="Alphai">
+        <img alt="Alphai">
       </span>
       <span>正在加载...</span>
     </section>
 <section class="login-screen" id="login-screen" hidden>
       <div class="login-shell">
         <h1 class="login-logo brand-logo-frame" id="login-admin-secret-trigger">
-          <img loading="lazy" src="./assets/brand/alphai-logo.png" alt="Alphai">
+          <img alt="Alphai">
         </h1>
         <div class="login-card">
         <p class="login-copy" id="auth-copy">手机号登录</p>
@@ -68,7 +72,7 @@
     <main class="app-shell">
       <div class="app-layout">
         <nav class="app-rail" aria-label="工作区导航">
-          <a class="rail-brand" href="#studio" data-brand-home aria-label="火种工作台首页"><img class="fire-brand-mark" loading="lazy" src="./assets/brand/fire-mark.png" alt=""><strong>火种工作台</strong></a>
+          <a class="rail-brand" href="#studio" data-brand-home aria-label="火种工作台首页"><img class="fire-brand-mark" alt=""><strong>火种工作台</strong></a>
           <div class="rail-links">
             <button class="rail-item" type="button" data-workbench-view="free" aria-current="false" title="自由创作"><span data-fire-icon="sparkle" aria-hidden="true"></span><span>自由创作</span></button>
             <button class="rail-item active" type="button" data-workbench-view="studio" aria-current="page" title="参考合成"><span data-fire-icon="squares-four" aria-hidden="true"></span><span>参考合成</span></button>

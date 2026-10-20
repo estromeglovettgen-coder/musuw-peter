@@ -3,6 +3,7 @@ import base64
 import http.client
 import json
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -20,6 +21,101 @@ from urllib.parse import urlsplit
 import fire_server
 import modelflare_adapter as adapter
 from test_generation_tasks import PNG
+
+
+class PublicBundleTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        site = self.root / "site"
+        site.mkdir()
+        original = fire_server.source.ROOT / "site"
+        for name in ("index.html", "fire-host.js", "components.css", "fire-components.js", "generation-tasks.js", "script.js", "workbench.js"):
+            (site / name).write_bytes((original / name).read_bytes())
+        (site / "fixture.png").write_bytes(base64.b64decode(PNG))
+        outside = self.root / "private-key.env"
+        outside.write_text("fixture-secret-not-public")
+        (site / "escape.js").symlink_to(outside)
+        self.root_patch = patch.object(fire_server.source, "ROOT", self.root)
+        self.root_patch.start()
+        self.addCleanup(self.root_patch.stop)
+        self.runtime = self.new_runtime()
+        self.server = fire_server.make_server(self.runtime, "127.0.0.1", 0)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(self.close_server)
+
+    def new_runtime(self):
+        return fire_server.FireRuntime(self.root / "data", "test-bridge", "http://127.0.0.1:1/internal")
+
+    def close_server(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join()
+
+    def get(self, path, *, method="GET", headers=None):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        connection.request(method, path, headers=headers or {})
+        response = connection.getresponse()
+        result = response.status, dict(response.getheaders()), response.read()
+        connection.close()
+        return result
+
+    def test_html_and_host_share_one_content_revision_and_preload_in_dependency_order(self):
+        status, headers, html = self.get("/tools/fire-showcase/")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        versions = re.findall(rb"[?]v=([a-f0-9]{64})", html)
+        self.assertGreaterEqual(len(versions), 8)
+        self.assertEqual(set(versions), {self.runtime.bundle_revision.encode()})
+        preloads = re.findall(rb'<link[^>]*rel="preload"[^>]*href="[.]/([^?]+)[?]', html)
+        self.assertEqual(preloads, [b"fire-components.js", b"generation-tasks.js", b"script.js", b"workbench.js"])
+        status, headers, host = self.get("/tools/fire-showcase/fire-host.js?v=" + self.runtime.bundle_revision)
+        self.assertEqual(status, 200)
+        self.assertIn(("?v=" + self.runtime.bundle_revision).encode(), host)
+        self.assertNotIn(b"?v=20261019-fire-native-01", host)
+
+    def test_only_current_public_versions_are_immutable_and_support_conditional_head(self):
+        revision = self.runtime.bundle_revision
+        for name in ("components.css", "fixture.png"):
+            url = "/tools/fire-showcase/" + name + "?v=" + revision
+            status, headers, content = self.get(url)
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["Cache-Control"], "public, max-age=31536000, immutable")
+            self.assertEqual(content, (self.root / "site" / name).read_bytes())
+            etag = headers["ETag"]
+            self.assertEqual(self.get(url, headers={"If-None-Match": etag})[0], 304)
+            status, head, content = self.get(url, method="HEAD")
+            self.assertEqual((status, head["ETag"], content), (200, etag, b""))
+            for query in ("", "?v=old", "?v=" + revision + "&v=old"):
+                self.assertEqual(self.get("/tools/fire-showcase/" + name + query)[1]["Cache-Control"], "no-cache")
+        self.assertEqual(self.get("/tools/fire-showcase/?v=" + revision)[1]["Cache-Control"], "no-store")
+        self.assertEqual(self.get("/tools/fire-showcase/escape.js?v=" + revision)[0], 404)
+
+    def test_revision_changes_when_real_public_content_changes(self):
+        old = self.runtime.bundle_revision
+        (self.root / "site" / "fixture.png").write_bytes(b"changed-fixture")
+        updated = self.new_runtime()
+        self.assertNotEqual(updated.bundle_revision, old)
+        self.server.runtime = updated
+        self.assertEqual(self.get("/tools/fire-showcase/fixture.png?v=" + old)[1]["Cache-Control"], "no-cache")
+
+    def test_get_and_head_weakly_compare_if_none_match_without_making_html_cacheable(self):
+        url = "/tools/fire-showcase/components.css?v=" + self.runtime.bundle_revision
+        etag = self.get(url)[1]["ETag"]
+        for method in ("GET", "HEAD"):
+            for condition in ("W/" + etag, '"unrelated", W/' + etag, "*"):
+                status, headers, content = self.get(url, method=method, headers={"If-None-Match": condition})
+                self.assertEqual(status, 304, (method, condition))
+                self.assertEqual(headers["Cache-Control"], "public, max-age=31536000, immutable")
+                self.assertEqual(headers["ETag"], etag)
+                self.assertEqual(content, b"")
+            self.assertEqual(self.get(url, method=method, headers={"If-None-Match": 'W/"unrelated"'})[0], 200)
+            html_etag = self.get("/tools/fire-showcase/")[1]["ETag"]
+            status, headers, _ = self.get("/tools/fire-showcase/", method=method, headers={"If-None-Match": "W/" + html_etag})
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["Cache-Control"], "no-store")
 
 
 class FireServerTests(unittest.TestCase):
@@ -208,6 +304,11 @@ class FireServerTests(unittest.TestCase):
         status, content, headers = self.call(path, user=self.user)
         self.assertEqual((status, content), (200, base64.b64decode(PNG)))
         self.assertEqual(headers["Cache-Control"], "no-store")
+        version = "?v=" + self.runtime.bundle_revision
+        for private in (path, "/api/config", "/api/generation-tasks"):
+            status, _, private_headers = self.call(private + version, user=self.user)
+            self.assertEqual(status, 200)
+            self.assertEqual(private_headers["Cache-Control"], "no-store", private)
         self.assertEqual(self.call(path, user=self.other)[0], 404)
         self.assertEqual(self.call(path, user=self.user, tenant="8")[0], 404)
         status, config, _ = self.call("/api/config", user=self.user)

@@ -39,6 +39,8 @@ cd weknora && go test ./internal/application/service ./internal/handler ./intern
 
 本地受控模型用于验证已保存的配置是否真正进入模型请求，不代表真实 AI 回答。在另一终端运行 `npm run peter:test-provider`，再运行 `npm run peter:acceptance`。验收脚本读取未跟踪的 `.runtime/peter/preview-account.json`，并要求已建立浏览器验收模型及智能体，具体步骤见验收记录。
 
+套餐预取、展示面保活与公共资源缓存的测速、边界验证和回滚记录见 [加载性能验收](docs/FIRE_LOADING_QA.md)。
+
 ## 来源
 
 基于 Musuw `edae9fcbf95c196767688909ad09d7c21ea3ac67` 的完整受版本控制源码建立，原生应用来源与后续适配记录保留在 `third_party/weknora/`。保留原有许可证和第三方声明。原 Musuw 发布工作流在此仓库禁用；Peter 使用独立的部署文件 `deploy/peter/`，不调用原 Musuw 发布脚本。
