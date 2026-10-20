@@ -226,6 +226,7 @@ type AdminCreateUserRequest struct {
 	FireDurationDays int     `json:"fire_duration_days,omitempty"`
 	FireTokens       int64   `json:"fire_tokens,omitempty"`
 	FireQuestions    *int64  `json:"fire_questions,omitempty"`
+	FireImages       *int64  `json:"fire_images,omitempty"`
 }
 
 // TenantProvisioningMode controls what UserService.Register does after it

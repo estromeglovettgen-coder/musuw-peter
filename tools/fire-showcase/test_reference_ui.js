@@ -1,0 +1,42 @@
+// Observable workflow rules are tested independently of DOM rendering.
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync('site/script.js', 'utf8');
+function load(name, globals = {}) {
+  const start = source.indexOf(`function ${name}(`);
+  assert(start >= 0, `${name} must exist`);
+  const end = source.indexOf('\n}', start) + 2;
+  return vm.runInNewContext(`(${source.slice(start, end)})`, {TextEncoder, ...globals});
+}
+const selectionErrors = load('referenceSelectionErrors');
+const roles = [{id:'face',label:'脸'}, {id:'pose',label:'动作'}, {id:'upper',label:'上半身穿搭'}];
+assert.equal(selectionErrors([{roles:['face']}, {roles:['pose']}], roles, false).length, 0);
+assert(selectionErrors([{roles:['face']}], roles, false).some(x => x.includes('2')));
+assert(selectionErrors([{roles:['face']}, {roles:['face']}], roles, false).some(x => x.includes('脸')));
+assert(selectionErrors([{roles:['face']}, {roles:[]}], roles, false).some(x => x.includes('图 2')));
+assert.equal(selectionErrors([], roles, true).length, 0);
+assert.equal(selectionErrors(Array.from({length:24}, () => ({roles:['face']})), roles, true).length, 0);
+assert(selectionErrors([{roles:['old-role']}, {roles:['pose']}], roles, false).some(x => x.includes('已失效')));
+const reusableRoles = load('rolesForReusedImage');
+assert.deepEqual([...reusableRoles({roles:['face','pose']}, [{roles:['face']}], roles)], ['pose']);
+assert.deepEqual([...reusableRoles({roles:['legacy']}, [], roles)], []);
+const sharedRoles = roles.map(role => ({...role, allowMultipleSources:role.id === 'face'}));
+assert.equal(selectionErrors([{roles:['face']}, {roles:['face']}], sharedRoles, false).length,0,'two face sources must be accepted');
+assert.equal(selectionErrors([{roles:['face','face']}, {roles:['face']}, {roles:['face']}], sharedRoles, false).length,0,'same card role deduplicates while three sources remain valid');
+assert(selectionErrors([{roles:['pose']}, {roles:['pose']}], sharedRoles, false).some(x=>x.includes('动作')),'non-shared roles still have one source');
+assert.deepEqual([...reusableRoles({roles:['face','pose']}, [{roles:['face','pose']}], sharedRoles)], ['face'],'history must retain shared face without copying an occupied exclusive role');
+const canAdd = load('canAddReferenceImage');
+const fullyAssigned = [{roles:['face','pose','upper']}];
+assert.equal(canAdd(fullyAssigned, sharedRoles, false),true,'shared source roles retain add capacity after all roles assigned');
+assert.equal(canAdd(fullyAssigned, roles, false),false,'exclusive-only configuration still exhausts capacity');
+assert.equal(canAdd([], [], false),false,'unknown configuration blocks synthesis additions');
+assert.equal(canAdd([], [], true),true,'custom additions remain unrestricted');
+const requestBytes = load('generationRequestBytes');
+assert(requestBytes({prompt:'',images:[]}, '协调'.repeat(10000)) > 60000);
+assert(requestBytes({prompt:'',images:[]}, '自然') < 60000);
+const counter = {textContent:''};
+const updateCount = load('updatePromptCharacterCount', {els:{output:{value:'hello',maxLength:32000},promptCharacterCount:counter}});
+updateCount();
+assert.equal(counter.textContent,'已输入 5 字符','The counter must not advertise an input ceiling');
+console.log('reference UI workflow behavior: 20 assertions passed');

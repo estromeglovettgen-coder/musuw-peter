@@ -23,7 +23,7 @@ func (h *SystemHandler) createFireAccount(c *gin.Context, ctx context.Context, r
 	result, err := h.fireWorkspace.CreateAccount(ctx, req, func(tx *gorm.DB, user *types.User) error {
 		membership, membershipErr = firebilling.NewService(tx).Apply(ctx, user.ID, firebilling.Mutation{
 			OperationID: "account:" + req.OperationID, Kind: "grant", PlanID: req.FirePlanID,
-			DurationDays: req.FireDurationDays, Tokens: req.FireTokens, Questions: req.FireQuestions, Note: "后台开户",
+			DurationDays: req.FireDurationDays, Tokens: req.FireTokens, Questions: req.FireQuestions, Images: req.FireImages, Note: "后台开户",
 		})
 		return membershipErr
 	})

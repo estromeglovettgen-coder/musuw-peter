@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>组件库 · 火种工作台</title>
+  <link rel="icon" href="./assets/brand/fire-mark.png">
+  <link rel="stylesheet" href="./components.css?v=20261015-fire-02">
+  <script src="./fire-components.js?v=20261015-fire-02" defer></script>
+</head>
+<body class="fire-library">
+  <header class="library-header">
+    <a class="library-brand" href="./"><img src="./assets/brand/fire-mark.png" alt="火种标志"><span>火种工作台</span></a>
+    <a href="./" class="fire-button" data-variant="ghost"><span data-fire-icon="arrow-left"></span>返回工作台</a>
+  </header>
+  <div class="library-layout">
+    <nav class="library-navigation" aria-label="组件目录">
+      <a href="#tokens">色彩与间距</a><a href="#buttons">按钮与状态</a><a href="#fields">表单控件</a>
+      <a href="#choices">要素选择</a><a href="#navigation">导航切换</a><a href="#panels">面板与上传</a>
+      <a href="#feedback">反馈与弹窗</a><a href="#empty">空状态</a>
+    </nav>
+    <main class="library-content">
+      <div class="library-intro"><h1>组件库</h1><p>与工作台共用的黑红视觉组件。所有示例在本地运行，不会发起生图请求。</p></div>
+
+      <section class="library-section" id="tokens" aria-labelledby="tokens-heading">
+        <h2 id="tokens-heading">色彩与间距</h2><p>以深黑承托照片，绯红标记主操作和选中状态。辅助文字与焦点保留清晰对比。</p>
+        <div class="token-grid">
+          <div class="token-swatch" style="--swatch:var(--fire-bg)"><span></span><strong>画布</strong><code>--fire-bg</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-surface)"><span></span><strong>面板</strong><code>--fire-surface</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-surface-raised)"><span></span><strong>控件</strong><code>--fire-surface-raised</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-accent)"><span></span><strong>主色</strong><code>--fire-accent</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-burgundy)"><span></span><strong>选中背景</strong><code>--fire-burgundy</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-text)"><span></span><strong>主要文字</strong><code>--fire-text</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-subtle)"><span></span><strong>辅助文字</strong><code>--fire-subtle</code></div>
+          <div class="token-swatch" style="--swatch:var(--fire-focus)"><span></span><strong>键盘焦点</strong><code>--fire-focus</code></div>
+        </div>
+        <p class="fire-help">间距：4 / 8 / 12 / 16 / 20 / 24 px。圆角：6 / 10 / 14 px。字体使用系统中文无衬线，不请求远程字体。</p>
+        <div class="library-row"><button class="fire-button" id="download-tokens" type="button"><span data-fire-icon="download-simple"></span>下载设计变量</button></div>
+      </section>
+
+      <section class="library-section" id="buttons" aria-labelledby="buttons-heading">
+        <h2 id="buttons-heading">按钮与状态</h2><p>支持主操作、次要操作、轻操作、危险操作、图标按钮、禁用与处理中状态。</p>
+        <div class="library-row">
+          <button class="fire-button" data-variant="primary" data-demo-toast="主操作已触发" type="button"><span data-fire-icon="sparkle"></span>生成展示面</button>
+          <button class="fire-button" data-demo-toast="上传示例已触发" type="button"><span data-fire-icon="upload-simple"></span>本地上传</button>
+          <button class="fire-button" data-variant="ghost" data-demo-toast="轻操作已触发" type="button">查看全部</button>
+          <button class="fire-button" data-variant="danger" data-demo-toast="这是移除按钮的本地演示" type="button"><span data-fire-icon="trash"></span>移除</button>
+        </div>
+        <div class="library-row">
+          <button class="fire-button" data-size="sm" type="button" data-demo-toast="小尺寸按钮已触发">小尺寸</button>
+          <button class="fire-icon-button" type="button" aria-label="放大预览示例" data-demo-toast="可通过标题与 aria-label 识别图标按钮"><span data-fire-icon="arrows-out"></span></button>
+          <button class="fire-button" data-variant="primary" type="button" disabled>暂不可生成</button>
+          <button class="fire-button" id="demo-busy" type="button"><span data-busy-label>点击体验处理中</span></button>
+        </div>
+        <code class="library-code">&lt;button class="fire-button" data-variant="primary"&gt;生成展示面&lt;/button&gt;
+FireUI.setBusy(button, true, "处理中");
+FireUI.setBusy(button, false);</code>
+      </section>
+
+      <section class="library-section" id="fields" aria-labelledby="fields-heading">
+        <h2 id="fields-heading">画面选项与表单</h2><p>比例直接点选，模型通过卡片切换。支持方向键、Home / End；底层 select 与工作台业务保持同步。</p>
+        <div class="library-grid">
+          <div class="fire-field"><span id="demo-ratio-label">画面比例</span><select id="demo-ratio" hidden tabindex="-1" aria-hidden="true"><option value="竖版 3:4">竖版 3:4</option><option value="竖版 9:16">竖版 9:16</option><option value="横版 16:9">横版 16:9</option><option value="方图 1:1">方图 1:1</option></select><div data-fire-choices-for="demo-ratio" data-choice-variant="ratio" aria-labelledby="demo-ratio-label"></div><small id="demo-ratio-help" aria-live="polite">当前：竖版 3:4</small></div>
+          <div class="fire-field"><span id="demo-model-label">生成模型</span><select id="demo-model" hidden tabindex="-1" aria-hidden="true"><option value="image-2.5" data-description="模型卡片演示 · 不发起请求">GPT Image 2.5</option><option value="image-2" data-description="点击切换，仅改变当前示例">GPT Image 2</option><option value="unavailable" disabled data-description="不可用状态不能选中">暂不可用模型</option></select><div data-fire-choices-for="demo-model" data-choice-variant="model" aria-labelledby="demo-model-label"></div><small id="demo-model-help" aria-live="polite">当前：GPT Image 2.5</small></div>
+          <label class="fire-field"><span>作品名称</span><input id="demo-title" placeholder="为这张照片起个名字" maxlength="32"><small>用于演示输入状态，不会保存作品。</small></label>
+          <label class="fire-field"><span>必填示例</span><input id="demo-required" aria-invalid="true" aria-describedby="demo-field-error" placeholder="输入内容后清除错误"><small class="fire-error" id="demo-field-error">请填写内容。</small></label>
+        </div>
+        <div class="library-row"><label class="fire-check"><input type="checkbox" checked>保持自然五官比例</label><label class="fire-check"><input type="checkbox" disabled>不可用选项</label></div>
+        <code class="library-code">&lt;select id="ratio" hidden&gt;...&lt;/select&gt;
+&lt;div data-fire-choices-for="ratio" data-choice-variant="ratio" aria-label="画面比例"&gt;&lt;/div&gt;
+FireUI.enhanceChoices(document); // 重复调用安全；模型使用 data-choice-variant="model"</code>
+      </section>
+
+      <section class="library-section" id="choices" aria-labelledby="choices-heading">
+        <h2 id="choices-heading">参考要素与状态标签</h2><p>选中、未选、不可用和联合参考状态清晰分开。按钮可直接切换。</p>
+        <div class="library-row" id="demo-chip-group" role="group" aria-label="参考要素演示">
+          <button class="fire-chip" type="button" aria-pressed="true" data-demo-chip="脸部身份"><span data-fire-icon="user" data-icon-size="16"></span>脸部身份</button>
+          <button class="fire-chip" type="button" aria-pressed="false" data-demo-chip="发型">发型</button>
+          <button class="fire-chip" type="button" aria-pressed="false" data-demo-chip="上半身穿搭">上半身穿搭</button>
+          <button class="fire-chip" type="button" aria-pressed="false" data-demo-chip="背景">背景</button>
+          <button class="fire-chip" type="button" disabled title="此要素已由其他参考图提供">动作 · 由图 2 提供</button>
+        </div>
+        <p class="library-state-line" id="demo-chip-status" aria-live="polite">已选择：脸部身份</p>
+        <div class="library-row"><span class="fire-badge" data-tone="accent">脸部联合参考 2 张</span><span class="fire-badge" data-tone="success"><span data-fire-icon="check-circle" data-icon-size="14"></span>参考素材已就绪</span><span class="fire-badge" data-tone="warning">尚未分配要素</span><span class="fire-badge" data-tone="error">图片读取失败</span></div>
+      </section>
+
+      <section class="library-section" id="navigation" aria-labelledby="navigation-heading">
+        <h2 id="navigation-heading">导航切换</h2><p>点击或使用方向键切换。焦点和当前页面状态分别可见。</p>
+        <div class="fire-nav" role="tablist" aria-label="导航组件演示" id="demo-tabs">
+          <button role="tab" id="demo-tab-studio" aria-controls="demo-panel-studio" aria-selected="true" tabindex="0" type="button">创作工作台</button>
+          <button role="tab" id="demo-tab-materials" aria-controls="demo-panel-materials" aria-selected="false" tabindex="-1" type="button">素材库</button>
+          <button role="tab" id="demo-tab-history" aria-controls="demo-panel-history" aria-selected="false" tabindex="-1" type="button">历史作品</button>
+        </div>
+        <div class="library-state-line" role="tabpanel" id="demo-panel-studio" aria-labelledby="demo-tab-studio">创作：上传参考图并分配需要参考的要素。</div>
+        <div class="library-state-line" role="tabpanel" id="demo-panel-materials" aria-labelledby="demo-tab-materials" hidden>素材库：查看并复用本地参考图片。</div>
+        <div class="library-state-line" role="tabpanel" id="demo-panel-history" aria-labelledby="demo-tab-history" hidden>历史作品：预览已保存的生成结果。</div>
+      </section>
+
+      <section class="library-section" id="panels" aria-labelledby="panels-heading">
+        <h2 id="panels-heading">面板与本地上传</h2><p>面板、图片区与操作栏共用同一组边框、间距和圆角。</p>
+        <div class="library-grid">
+          <article class="fire-panel"><div class="fire-panel-header"><h3 class="fire-panel-title">本地预览</h3><span class="fire-badge">组件演示</span></div><div class="fire-panel-body"><label class="library-upload"><span data-fire-icon="upload-simple" data-icon-size="28"></span><strong>选择图片查看预览</strong><span class="fire-help">仅在当前浏览器显示，不会上传。</span><input id="demo-upload" type="file" accept="image/*"><img id="demo-upload-preview" alt="本地选择图片的预览" hidden></label><p class="library-state-line" id="demo-upload-status" aria-live="polite">尚未选择图片</p></div></article>
+          <article class="fire-panel"><div class="fire-panel-header"><h3 class="fire-panel-title">图片面板</h3><button class="fire-icon-button" type="button" aria-label="查看示例图片" id="open-image-dialog"><span data-fire-icon="arrows-out"></span></button></div><img class="library-card-image" src="./assets/prompt-guide/default-result.webp" alt="参考图合成示例"><div class="fire-panel-body"><p class="fire-help">示例图片完整显示，避免把照片裁切成新的构图。</p></div></article>
+        </div>
+      </section>
+
+      <section class="library-section" id="feedback" aria-labelledby="feedback-heading">
+        <h2 id="feedback-heading">反馈与弹窗</h2><p>原生 dialog 提供焦点约束与 Esc 关闭；通知内容用 textContent 写入。</p>
+        <div class="library-row"><button class="fire-button" id="open-settings-demo" type="button"><span data-fire-icon="gear"></span>打开设置弹窗</button><button class="fire-button" id="demo-success-toast" type="button">成功通知</button><button class="fire-button" id="demo-error-toast" type="button">错误通知</button></div>
+        <code class="library-code">FireUI.openDialog(dialog);
+FireUI.toast("操作成功", { tone: "success" });</code>
+      </section>
+
+      <section class="library-section" id="empty" aria-labelledby="empty-heading">
+        <h2 id="empty-heading">空状态</h2><p>说明当前内容和下一步，始终保留真实可点击的入口。</p>
+        <div class="fire-panel"><div class="fire-empty-state"><span data-fire-icon="images" data-icon-size="40"></span><strong>还没有参考图片</strong><p>至少上传 2 张图片，再选择每张图片要提供的要素。</p><button class="fire-button" data-variant="primary" id="demo-empty-upload" type="button"><span data-fire-icon="plus"></span>选择一张图片</button></div></div>
+      </section>
+      <footer class="library-footer">原生 HTML / CSS / JavaScript · Phosphor Icons，MIT License · 支持键盘操作和减少动态效果。</footer>
+    </main>
+  </div>
+
+  <dialog class="fire-dialog" id="settings-demo" aria-labelledby="settings-demo-title">
+    <div class="fire-panel-header"><h2 class="fire-panel-title" id="settings-demo-title">设置弹窗</h2><button class="fire-icon-button" type="button" data-dialog-close aria-label="关闭设置"><span data-fire-icon="x"></span></button></div>
+    <div class="fire-panel-body"><p class="fire-help">这是组件演示，不会改变工作台设置。</p><hr class="fire-divider"><label class="fire-check"><input id="demo-dialog-check" type="checkbox" checked>显示操作提醒</label></div>
+    <div class="fire-dialog-footer"><button class="fire-button" type="button" data-dialog-close>关闭</button><button class="fire-button" data-variant="primary" type="button" id="demo-dialog-save">完成演示</button></div>
+  </dialog>
+  <dialog class="fire-dialog" id="image-demo" aria-labelledby="image-demo-title">
+    <div class="fire-panel-header"><h2 class="fire-panel-title" id="image-demo-title">图片预览</h2><button class="fire-icon-button" type="button" data-dialog-close aria-label="关闭图片预览"><span data-fire-icon="x"></span></button></div>
+    <img class="library-card-image" style="height:auto;max-height:70dvh" src="./assets/prompt-guide/default-result.webp" alt="参考图合成示例，原比例预览">
+  </dialog>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("[data-demo-toast]").forEach((button) => button.addEventListener("click", () => FireUI.toast(button.dataset.demoToast)));
+      document.querySelector("#demo-busy").addEventListener("click", (event) => {
+        const button = event.currentTarget;
+        FireUI.setBusy(button, true, "演示处理中");
+        window.setTimeout(() => { FireUI.setBusy(button, false); FireUI.toast("处理状态演示完成", { tone: "success" }); }, 1100);
+      });
+      document.querySelector("#demo-ratio").addEventListener("change", (event) => { document.querySelector("#demo-ratio-help").textContent = `当前：${event.target.value}`; });
+      document.querySelector("#demo-model").addEventListener("change", (event) => {
+        const option = [...event.target.options].find((item) => item.value === event.target.value);
+        document.querySelector("#demo-model-help").textContent = `当前：${option?.textContent || "未选择"}`;
+      });
+      document.querySelector("#demo-required").addEventListener("input", (event) => {
+        const invalid = !event.target.value.trim();
+        event.target.setAttribute("aria-invalid", String(invalid));
+        document.querySelector("#demo-field-error").hidden = !invalid;
+      });
+      document.querySelectorAll("[data-demo-chip]").forEach((button) => button.addEventListener("click", () => {
+        button.setAttribute("aria-pressed", String(button.getAttribute("aria-pressed") !== "true"));
+        const selected = [...document.querySelectorAll('[data-demo-chip][aria-pressed="true"]')].map((item) => item.dataset.demoChip);
+        document.querySelector("#demo-chip-status").textContent = selected.length ? `已选择：${selected.join("、")}` : "未选择参考要素";
+      }));
+      const tabs = [...document.querySelectorAll('#demo-tabs [role="tab"]')];
+      function activateTab(tab) {
+        tabs.forEach((item) => {
+          const active = item === tab;
+          item.setAttribute("aria-selected", String(active)); item.tabIndex = active ? 0 : -1;
+          document.getElementById(item.getAttribute("aria-controls")).hidden = !active;
+        });
+      }
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => activateTab(tab));
+        tab.addEventListener("keydown", (event) => {
+          let next;
+          if (event.key === "ArrowRight") next = tabs[(index + 1) % tabs.length];
+          if (event.key === "ArrowLeft") next = tabs[(index + tabs.length - 1) % tabs.length];
+          if (event.key === "Home") next = tabs[0];
+          if (event.key === "End") next = tabs[tabs.length - 1];
+          if (next) { event.preventDefault(); activateTab(next); next.focus(); }
+        });
+      });
+      let previewUrl;
+      document.querySelector("#demo-upload").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) { FireUI.toast("请选择图片文件", { tone: "error" }); return; }
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = URL.createObjectURL(file);
+        const image = document.querySelector("#demo-upload-preview");
+        image.src = previewUrl; image.hidden = false;
+        document.querySelector("#demo-upload-status").textContent = file.name;
+      });
+      window.addEventListener("pagehide", () => { if (previewUrl) URL.revokeObjectURL(previewUrl); });
+      document.querySelector("#demo-empty-upload").addEventListener("click", () => document.querySelector("#demo-upload").click());
+      const settingsDialog = document.querySelector("#settings-demo");
+      document.querySelector("#open-settings-demo").addEventListener("click", () => FireUI.openDialog(settingsDialog));
+      document.querySelector("#open-image-dialog").addEventListener("click", () => FireUI.openDialog(document.querySelector("#image-demo")));
+      document.querySelector("#demo-dialog-save").addEventListener("click", () => { FireUI.closeDialog(settingsDialog); FireUI.toast("弹窗演示已完成", { tone: "success" }); });
+      document.querySelector("#demo-success-toast").addEventListener("click", () => FireUI.toast("本地操作演示成功", { tone: "success" }));
+      document.querySelector("#demo-error-toast").addEventListener("click", () => FireUI.toast("这是一条错误状态演示", { tone: "error" }));
+      document.querySelector("#download-tokens").addEventListener("click", () => {
+        const styles = getComputedStyle(document.body);
+        const names = ["bg", "surface", "surface-raised", "accent", "accent-hover", "accent-soft", "burgundy", "text", "muted", "subtle", "line", "focus", "radius", "radius-sm", "radius-lg"];
+        const tokens = Object.fromEntries(names.map((name) => [`--fire-${name}`, styles.getPropertyValue(`--fire-${name}`).trim()]));
+        const url = URL.createObjectURL(new Blob([JSON.stringify(tokens, null, 2)], { type: "application/json" }));
+        const link = document.createElement("a"); link.href = url; link.download = "fire-workbench-tokens.json"; link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+    }, { once: true });
+  </script>
+</body>
+</html>

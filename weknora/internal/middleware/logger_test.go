@@ -79,6 +79,11 @@ func TestSanitizeQuery(t *testing.T) {
 }
 
 func TestShouldLogBodies(t *testing.T) {
+	for _, path := range []string{"/api/v1/fire-showcase/api/assets", "/api/v1/fire-showcase/api/prompt", "/api/v1/fire-showcase/api/generation-tasks", "/api/fire-showcase-assets/user/hash/content", "/internal/fire-showcase/images/reserve"} {
+		if shouldLogBodies(path) || shouldLogBodyPayload(path, 400) || shouldLogBodyPayload(path, 500) {
+			t.Fatalf("private image body must never enter access logs: %s", path)
+		}
+	}
 	if shouldLogBodies("/api/v1/client-diagnostics") {
 		t.Fatal("diagnostic input must only be read by the bounded handler")
 	}

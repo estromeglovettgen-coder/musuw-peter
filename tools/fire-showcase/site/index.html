@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>火种工作台 · 参考图创作</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    
+  <link href="./components.css?v=20261015-fire-02" rel="stylesheet"><link href="./workbench.css?v=20261019-durable-01" rel="stylesheet"><link href="./fire-host.css?v=20261019-fire-native-01" rel="stylesheet"></head>
+  <body class="fire-workbench auth-pending" data-creation-mode="compose">
+    <div id="legacy-auth-state" hidden inert=""><section class="auth-loading" id="auth-loading" aria-live="polite" aria-label="正在检查登录状态">
+      <span class="brand-logo-frame auth-loading-logo">
+        <img loading="lazy" src="./assets/brand/alphai-logo.png" alt="Alphai">
+      </span>
+      <span>正在加载...</span>
+    </section>
+<section class="login-screen" id="login-screen" hidden>
+      <div class="login-shell">
+        <h1 class="login-logo brand-logo-frame" id="login-admin-secret-trigger">
+          <img loading="lazy" src="./assets/brand/alphai-logo.png" alt="Alphai">
+        </h1>
+        <div class="login-card">
+        <p class="login-copy" id="auth-copy">手机号登录</p>
+
+        <label class="field password-login-only" hidden>
+          <span>手机号或账号</span>
+          <input id="login-username" type="text" autocomplete="username" placeholder="请输入手机号或账号">
+        </label>
+
+        <label class="field password-login-only" hidden>
+          <span>密码</span>
+          <span class="password-field">
+            <input id="login-password" type="password" autocomplete="current-password" placeholder="请输入密码">
+            <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="显示密码" title="显示密码">◉</button>
+          </span>
+        </label>
+
+        <label class="field phone-auth-only">
+          <span>手机号</span>
+          <div class="phone-field">
+            <span class="phone-prefix">+86</span>
+            <input id="auth-phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" placeholder="请输入手机号">
+          </div>
+        </label>
+
+        <label class="field phone-auth-only">
+          <span>验证码 / 内测码</span>
+          <div class="sms-code-field">
+            <input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="请输入验证码或内测码">
+            <button class="sms-send-button" id="send-sms-code" type="button">获取验证码</button>
+          </div>
+        </label>
+
+        <button class="generate-button" id="login-button">登录 / 注册</button>
+        <button class="auth-alternate" id="password-login-method" type="button">密码登录</button>
+        <p class="hint auth-agreement phone-auth-only legal-auth-consent" id="legal-auth-consent">
+          未注册手机号将自动创建账号，登录或完成注册即代表你已阅读并同意
+          <a href="./terms.html" target="_blank" rel="noopener">《用户协议》</a>
+          和
+          <a href="./privacy.html" target="_blank" rel="noopener">《图片处理说明》</a>。
+        </p>
+        <p class="hint" id="login-hint"></p>
+
+        </div>
+      </div>
+    </section></div>
+    <main class="app-shell">
+      <div class="app-layout">
+        <nav class="app-rail" aria-label="工作区导航">
+          <a class="rail-brand" href="#studio" data-brand-home aria-label="火种工作台首页"><img class="fire-brand-mark" loading="lazy" src="./assets/brand/fire-mark.png" alt=""><strong>火种工作台</strong></a>
+          <div class="rail-links">
+            <button class="rail-item" type="button" data-workbench-view="free" aria-current="false" title="自由创作"><span data-fire-icon="sparkle" aria-hidden="true"></span><span>自由创作</span></button>
+            <button class="rail-item active" type="button" data-workbench-view="studio" aria-current="page" title="参考合成"><span data-fire-icon="squares-four" aria-hidden="true"></span><span>参考合成</span></button>
+            <button class="rail-item" type="button" data-workbench-view="materials" aria-current="false" title="素材库"><span data-fire-icon="image" aria-hidden="true"></span><span>素材库</span></button>
+            <button class="rail-item" type="button" data-workbench-view="history" aria-current="false" title="历史作品"><span data-fire-icon="clock" aria-hidden="true"></span><span>历史作品</span></button>
+          </div>
+          <div class="rail-footer"><button class="rail-item" id="workbench-settings-button" type="button" title="设置"><span data-fire-icon="gear" aria-hidden="true"></span><span>设置</span></button></div>
+        </nav>
+        <section class="workbench workspace-view" id="studio" aria-label="参考图创作工作台">
+          <aside class="reference-panel workbench-panel fire-panel" aria-labelledby="reference-panel-title">
+            <header class="panel-heading reference-section-head"><div><h2 id="reference-panel-title">参考素材</h2><p id="reference-panel-description">至少 2 张图片，自由组合参考内容</p></div><button class="fire-button" data-variant="secondary" data-size="sm" id="upload-references-button" type="button"><span data-fire-icon="plus" aria-hidden="true"></span><span>本地上传</span></button></header>
+            <section class="free-create-panel" id="free-create-panel" hidden>
+              <label for="prompt-output">描述你想要的画面</label>
+              <textarea id="prompt-output" spellcheck="false" placeholder="想拍一张什么样的照片？描述人物、场景和光线，也可以添加参考图片。"></textarea>
+              <div class="free-create-caption"><span>参考图片可选</span><span id="prompt-character-count">已输入 0 字符</span></div>
+            </section>
+            <div class="reference-guidance" id="reference-guidance"><p>点选每张图要参考的内容。</p><small>同一人的脸可选多张，其余要素各选一个来源。原图上传，不压缩。</small></div>
+            <div class="reference-mobile-head"><strong>已添加参考图</strong><span id="reference-mobile-count">0 张 · 至少 2 张</span></div>
+            <div class="reference-list">
+          
+          <article class="upload-block identity" hidden>
+            <div class="upload-head">
+              <span class="chip">图 1</span>
+              <div>
+                <h2>参考图片</h2>
+                <p>上传后选择要参考的内容</p>
+              </div>
+            </div>
+            <label class="dropzone" for="image-one" title="上传参考图片">
+              <input id="image-one" type="file" accept="image/*">
+              <img alt="" class="preview" data-preview="image-one">
+              <span>上传参考图</span>
+            </label>
+            <div class="image-history" data-history="image-one" aria-label="图 1 历史图片"></div>
+          </article>
+
+          <article class="upload-block outfit" hidden>
+            <div class="upload-head">
+              <span class="chip">图 2</span>
+              <div>
+                <h2>参考图片</h2>
+                <p>角色由你选择，不绑定图片顺序</p>
+              </div>
+            </div>
+            <label class="dropzone" for="image-two" title="上传参考图片">
+              <input id="image-two" type="file" accept="image/*">
+              <img alt="" class="preview" data-preview="image-two">
+              <span>上传参考图</span>
+            </label>
+            <div class="image-history" data-history="image-two" aria-label="图 2 历史图片"></div>
+          </article>
+
+          <article class="upload-block scene" hidden>
+            <div class="upload-head">
+              <span class="chip">图 3</span>
+              <div>
+                <h2>参考图片</h2>
+                <p>脸可多图参考，其余要素单一来源</p>
+              </div>
+            </div>
+            <label class="dropzone" for="image-three" title="上传参考图片">
+              <input id="image-three" type="file" accept="image/*">
+              <img alt="" class="preview" data-preview="image-three">
+              <canvas class="mask-canvas" id="scene-mask-canvas"></canvas>
+              <span>上传参考图</span>
+              <div class="scene-image-tools reference-image-tools" aria-label="图 3 工具">
+                <button class="magic-button reference-tool-button" id="mask-scene-button" type="button" title="涂鸦遮盖" aria-label="涂鸦遮盖">✎</button>
+                <button disabled hidden class="magic-button reference-tool-button" id="analyze-scene-button" type="button" title="识别图片" aria-label="识别图片">✦</button>
+              </div>
+            </label>
+            <div class="mask-toolbar" id="scene-mask-toolbar" hidden>
+              <label>
+                笔刷
+                <input id="scene-brush-size" type="range" min="12" max="90" value="42">
+              </label>
+              <button class="mini-button" id="clear-scene-mask" type="button">清除</button>
+              <button class="mini-button" id="save-scene-mask" type="button">保存涂鸦</button>
+            </div>
+            <div class="image-history" data-history="image-three" aria-label="图 3 历史图片"></div>
+            <div class="scene-analysis" id="scene-analysis" hidden>
+              <p id="scene-analysis-text"></p>
+              <div class="scene-analysis-actions">
+                <button class="mini-button" id="copy-scene-analysis" type="button">复制</button>
+                <button class="mini-button" id="apply-scene-analysis" type="button">应用到自定义提示词</button>
+              </div>
+            </div>
+          </article>
+
+          <input id="reference-batch-input" type="file" accept="image/*" multiple hidden>
+          <button class="add-reference-button" id="add-reference-button" type="button" title="上传参考图片" aria-label="上传参考图片，支持多张图片，可拖拽或点击上传">
+            <span aria-hidden="true">+</span>
+            <strong>上传参考图片</strong>
+            <small>支持多张图片，拖拽或点击上传</small>
+          </button>
+          <details class="reference-library" id="reference-library" hidden>
+            <summary>历史参考图 <small>点击添加，角色可重新选择</small></summary>
+            <div id="reference-library-items"></div>
+          </details>
+        </div>
+            <p id="reference-workflow-status" class="reference-workflow-status" aria-live="polite">正在加载参考要素…</p>
+          </aside>
+          <section class="preview-panel workbench-panel fire-panel" aria-label="作品预览">
+            <header class="preview-toolbar"><div class="preview-toolbar-actions"><span class="preview-tab active"><span data-fire-icon="eye" aria-hidden="true"></span><span>预览</span></span><span class="preview-context-label" id="preview-context-label">作品预览</span></div><div class="preview-zoom-controls"><button class="fire-button" data-variant="ghost" data-size="sm" id="preview-expand-button" type="button" title="放大查看当前作品"><span data-fire-icon="arrows-out" aria-hidden="true"></span><span>放大</span></button><button class="fire-icon-button" id="preview-fullscreen-button" type="button" title="全屏预览" aria-label="全屏预览"><span data-fire-icon="arrows-out" aria-hidden="true"></span></button></div></header>
+            <div class="preview-stage" id="preview-stage">
+              <figure class="result-view is-empty" id="result-view"><div class="preview-placeholder fire-empty-state" id="preview-placeholder"><span data-fire-icon="images" aria-hidden="true"></span><strong>让参考成为你的下一张作品</strong><p>添加参考图并选择要素，成片会在这里展示。</p><button class="fire-button" data-variant="secondary" data-size="sm" type="button" data-upload-references=""><span data-fire-icon="plus" aria-hidden="true"></span><span>添加参考素材</span></button></div><div class="result-grid" id="result-grid" aria-label="生成结果"></div><img id="result-image" alt="当前生成作品"><figcaption><span id="result-meta">尚未选择作品</span><a id="download-link" download="fire-workbench-result.png">下载图片</a></figcaption></figure>
+            </div>
+
+          </section>
+          <aside class="control-panel workbench-panel fire-panel" aria-labelledby="settings-panel-title">
+            <header class="panel-heading"><h2 id="settings-panel-title">生成设置</h2></header>
+
+            <section class="generation-settings">
+              <div class="setting-section"><h3 id="ratio-label">画面比例</h3><select id="ratio" hidden tabindex="-1" aria-hidden="true"><option value="竖版 3:4">竖版 3:4</option><option value="竖版 9:16">竖版 9:16</option><option value="横版 16:9">横版 16:9</option><option value="方图 1:1">方图 1:1</option></select><div class="fire-choice-group" data-fire-choices-for="ratio" data-choice-variant="ratio" aria-labelledby="ratio-label"></div></div>
+              <div class="setting-section"><h3 id="model-label">生成模型</h3><select id="model-choice" hidden tabindex="-1" aria-hidden="true"></select><div class="fire-choice-group" data-fire-choices-for="model-choice" data-choice-variant="model" aria-labelledby="model-label"></div></div>
+              <div class="spec-summary"><div><span>清晰度</span><strong class="spec-value">1K 标准</strong></div><div><span>出图数量</span><strong class="spec-value">1 张</strong></div></div>
+              <select id="size" hidden tabindex="-1" aria-hidden="true"><option value="1k" selected>1K 标准</option></select><select id="count" hidden tabindex="-1" aria-hidden="true"><option value="1" selected>1 张</option></select><span id="model-help" hidden></span>
+            </section>
+            <section class="selection-summary"><div class="selection-summary-heading"><h3>已选择 <strong id="selected-reference-count">0</strong> 张参考图</h3><span id="reference-ready-state" class="fire-badge" data-tone="neutral">等待素材</span></div><div id="selected-reference-thumbs" class="selected-reference-thumbs"></div><div id="selection-summary" class="selection-summary-chips"></div><p id="selection-validation" class="selection-validation" aria-live="polite"></p></section>
+            <div class="generation-actions"><p id="workbench-generation-state" class="workbench-generation-state" aria-live="polite">正在连接本地工作台…</p><button class="generate-button fire-button generate-submit" data-variant="primary" id="generate-button" type="button"><span data-fire-icon="sparkle" aria-hidden="true"></span><span id="generate-label">生成作品</span><span data-fire-icon="arrow-right" aria-hidden="true"></span><strong id="generation-cost" hidden></strong></button><button class="fire-button download-current-button" data-variant="secondary" id="download-current-button" type="button" disabled><span data-fire-icon="download-simple" aria-hidden="true"></span><span data-button-label>下载原图</span></button><p class="hint" id="server-hint" aria-live="polite"></p></div>
+            <section class="generation-tasks-panel" id="generation-tasks-panel" hidden aria-labelledby="generation-tasks-title"><header><h3 id="generation-tasks-title">生成任务 <span id="generation-task-count">0</span></h3><button class="fire-button" data-variant="ghost" data-size="sm" type="button" data-task-list-refresh>刷新</button></header><p id="generation-task-sync-error" class="task-sync-error" aria-live="polite"></p><div id="generation-task-list" class="generation-task-list" aria-live="polite"></div></section>
+          </aside>
+        </section>
+        <section class="workspace-view collection-view fire-panel" id="materials-view" aria-labelledby="materials-title" hidden><header class="collection-heading"><div><p class="eyebrow">你的创作素材</p><h1 id="materials-title">素材库</h1><p>已上传的参考图保存在本机，可随时带回工作台。</p></div><button class="fire-button" data-variant="primary" type="button" data-upload-references=""><span data-fire-icon="plus" aria-hidden="true"></span><span>上传素材</span></button></header><div class="collection-grid workspace-card-grid materials-grid" id="materials-grid"></div></section>
+        <section class="workspace-view collection-view fire-panel" id="history-view" aria-labelledby="history-title" hidden><header class="collection-heading"><div><p class="eyebrow">已保存的创作</p><h1 id="history-title">历史作品</h1><p>查看保存在本机的生成结果，继续预览或下载。</p></div><button class="fire-button" data-variant="secondary" type="button" data-return-studio=""><span data-fire-icon="arrow-left" aria-hidden="true"></span><span>返回创作</span></button></header><div class="collection-grid workspace-card-grid history-grid" id="history-grid"></div></section>
+      </div>
+    </main>
+    <dialog class="fire-dialog workbench-settings-dialog" id="workbench-settings-dialog" aria-labelledby="workbench-settings-title"><div class="fire-dialog-header fire-panel-header"><h2 class="fire-panel-title" id="workbench-settings-title">工作台设置</h2><button data-dialog-close="" class="fire-icon-button" type="button" data-close-workbench-settings="" aria-label="关闭设置"><span data-fire-icon="x" aria-hidden="true"></span></button></div><dl class="connection-status"><div><dt>当前模型</dt><dd id="settings-model-name">正在加载</dd></div><div><dt>连接方式</dt><dd>本机服务 · 127.0.0.1:5173</dd></div><div><dt>图片传输</dt><dd id="settings-transfer-status">原图 · 不压缩</dd></div><div><dt>生成状态</dt><dd id="settings-generation-status">正在检查</dd></div></dl><p class="settings-note">程序不限制输入图片数量、文件大小或描述长度，服务商限制以实际响应为准。图片选择与参数调整不会提交生成请求，生成失败不自动重试，费用以服务商账单为准。</p><a class="fire-button" data-variant="secondary" href="./component-library.html"><span data-fire-icon="squares-four" aria-hidden="true"></span><span>查看组件库</span></a></dialog>
+    <div id="legacy-workspace-state" hidden inert=""><select id="prompt-mode" class="prompt-mode-native" tabindex="-1" aria-hidden="true">
+            <option value="default" selected>参考图合成</option>
+            <option value="custom">自定义提示词</option>
+          </select>
+<div class="default-prompt-guide" id="default-prompt-guide"></div>
+<div class="custom-prompt-editor is-hidden" id="custom-prompt-editor">
+            <div class="prompt-head">
+              <div class="prompt-editor-heading">
+                <strong>输入自定义提示词</strong>
+                <small>可以不上传图片；自动追加整体协调规则，程序不限制描述长度，服务商限制以实际响应为准。</small>
+              </div>
+              <div class="prompt-toolbuttons">
+                <select class="saved-prompt-select" id="saved-prompt-select" aria-label="使用预设提示词">
+                  <option value="">使用预设提示词</option>
+                </select>
+                <button class="icon-tool-button" id="save-prompt-button" type="button" title="保存当前自定义提示词" aria-label="保存当前自定义提示词">
+                  <svg class="save-prompt-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 16l4-4 4 4" />
+                    <path d="M12 12v9" />
+                    <path d="M7 19H5.5A4.5 4.5 0 0 1 5 10a7 7 0 0 1 13.4-1.8A5 5 0 0 1 19 18h-2" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="prompt-textarea-wrap">
+              
+              
+            </div>
+          </div>
+<details class="compiled-prompt-panel" open>
+            <summary>实际发送提示词 <span>自动同步 · 只读</span></summary>
+            <textarea id="compiled-prompt" readonly spellcheck="false" aria-label="实际发送提示词" placeholder="正在生成提示词预览…"></textarea>
+            <p id="prompt-validation" class="prompt-validation" aria-live="polite"></p>
+          </details><span id="local-status"></span><button id="nav-studio" type="button"></button><button id="nav-metadata-cleaner" type="button"></button><button id="nav-wallet" type="button"></button><div id="header-balance"><span id="header-balance-value"></span></div><button id="user-pill" type="button"></button></div>
+    <div id="legacy-application" hidden inert=""><section class="metadata-cleaner-page" id="metadata-cleaner-page" hidden>
+        <div class="metadata-cleaner-shell">
+          <header class="metadata-cleaner-heading">
+            <div>
+              <h2>一键去AI</h2>
+              <p class="metadata-cleaner-disclaimer">
+                <img src="./assets/icons/notice.png" alt="">
+                <span><strong>免责声明：</strong>本功能仅检测并移除可识别的相关人工智能痕迹，可能仍会残留不可见的水印痕迹，您仍需手动查找并屏蔽这些痕迹。</span>
+              </p>
+            </div>
+          </header>
+
+          <fieldset class="metadata-mode-picker" id="metadata-mode-picker" aria-label="处理模式">
+            <div class="metadata-mode-options">
+              <label class="metadata-mode-option">
+                <input type="radio" name="metadata-mode" value="mild" checked>
+                <span class="metadata-mode-surface">
+                  <span class="metadata-mode-title">轻度模式 <small>画质优先</small></span>
+                  <span class="metadata-mode-description">仅清理图片附带信息，不重新编码图像像素</span>
+                </span>
+              </label>
+              <label class="metadata-mode-option">
+                <input type="radio" name="metadata-mode" value="strong">
+                <span class="metadata-mode-surface">
+                  <span class="metadata-mode-title">强力模式 <small>深度处理</small></span>
+                  <span class="metadata-mode-description">额外调整细节频谱、相机颗粒与人脸区域</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="metadata-cleaner-card" id="metadata-cleaner-card">
+            <div class="metadata-upload-frame" id="metadata-upload-frame">
+              <label class="metadata-upload-area" for="metadata-image-input">
+                <input id="metadata-image-input" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+                <span class="metadata-upload-empty" id="metadata-upload-empty">
+                  <strong>上传图片</strong>
+                  <span class="metadata-upload-formats">支持 PNG、JPG/JPEG、WebP · 单张不超过 5 MB</span>
+                </span>
+                <span class="metadata-upload-preview" id="metadata-upload-preview" hidden>
+                  <img id="metadata-preview-image" alt="待处理图片预览">
+                  <strong id="metadata-file-name"></strong>
+                </span>
+              </label>
+              <button class="metadata-clear-button" id="metadata-clear-button" type="button" aria-label="移除图片" hidden>×</button>
+              <span class="metadata-scan-line" aria-hidden="true"></span>
+            </div>
+
+            <div class="metadata-cleaner-actions">
+              <button class="generate-button" id="metadata-process-button" type="button" disabled>
+                <span class="metadata-action-label">开始检测</span>
+              </button>
+            </div>
+            <p class="metadata-cleaner-status" id="metadata-cleaner-status" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <p class="metadata-cleaner-privacy">
+          <img src="./assets/icons/security.png" alt="">
+          您的图片仅用于本次检测，处理完成后将自动删除，不会用于其他用途。
+        </p>
+      </section>
+<section class="wallet-page" id="wallet-page" hidden>
+        <div class="wallet-shell">
+          <div class="wallet-hero">
+            <div>
+              <h2 data-i18n="walletTitle">钱包</h2>
+            </div>
+            <div class="wallet-user" id="wallet-user">账号：-</div>
+          </div>
+
+          <div class="wallet-stats">
+            <div class="account-stat">
+              <span data-i18n="currentBalance">当前余额</span>
+              <strong id="wallet-balance"><span class="energy-icon">⚡</span>0</strong>
+            </div>
+            <div class="account-stat">
+              <span data-i18n="historicalSpent">历史消耗</span>
+              <strong id="wallet-spent"><span class="energy-icon">⚡</span>0</strong>
+            </div>
+          </div>
+
+          <div class="wallet-section">
+            <h3 data-i18n="chooseRecharge">选择充值额度</h3>
+            <select id="recharge-amount" hidden></select>
+            <div class="wallet-amount-grid" id="recharge-amount-options"></div>
+            <p class="recharge-usage-note">按快速模式 1 点/张、高质量模式 2 点/张估算，高清规格以实际扣点为准。</p>
+          </div>
+
+          <div class="wallet-section">
+            <h3 data-i18n="choosePayment">选择支付方式</h3>
+            <select id="recharge-method" hidden>
+              <option value="alipay">支付宝</option>
+            </select>
+            <div class="wallet-method-grid" id="recharge-method-options">
+              <button class="payment-card active" data-pay-method="alipay" type="button">
+                <span data-i18n="alipayPay">支付宝支付</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="wallet-section usage-log-section">
+            <div class="usage-log-heading">
+              <h3>使用日志</h3>
+              <span class="usage-log-desktop-copy">展示图片生成和识别记录</span>
+              <span class="usage-log-mobile-copy">请前往电脑端查看</span>
+            </div>
+            <div class="usage-log-table-wrap">
+              <table class="usage-log-table">
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>类型</th>
+                    <th>使用内容</th>
+                    <th>花费</th>
+                    <th>余额</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody id="usage-log-body">
+                  <tr><td colspan="6" class="usage-log-empty">正在读取使用日志...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="wallet-section wallet-history">
+            <h3 class="wallet-mobile-section-heading">充值记录</h3>
+            <div class="recharge-orders" id="recharge-orders"></div>
+          </div>
+
+        </div>
+      </section>
+<section class="tracker-page" id="tracker-page" hidden>
+        <div class="tracker-shell">
+          <div class="tracker-hero">
+            <div>
+              <h2 data-i18n="trackerTitle">数据跟踪</h2>
+              <p>关注账号表现和数据变化</p>
+            </div>
+            <button class="generate-button tracker-add-trigger" id="open-tracker-add" type="button">＋ 添加关注</button>
+          </div>
+
+          <div class="tracker-overview">
+            <article>
+              <span>关注账号</span>
+              <strong id="tracker-total">0</strong>
+            </article>
+            <article>
+              <span>数据快照</span>
+              <strong id="tracker-snapshots">0</strong>
+            </article>
+            <article>
+              <span>最近更新</span>
+              <strong id="tracker-latest-update">暂无</strong>
+            </article>
+          </div>
+
+          <section class="tracker-section tracker-list-section">
+            <div class="tracker-section-head">
+              <div>
+                <h3>关注账号</h3>
+                <span id="tracker-count">0 个账号</span>
+              </div>
+              <button class="tracker-refresh-button" id="refresh-trackers" type="button">↻ 重新加载</button>
+            </div>
+            <p class="hint" id="tracker-hint" aria-live="polite"></p>
+            <div class="tracker-list" id="tracker-list"></div>
+          </section>
+        </div>
+
+        <div class="tracker-modal" id="tracker-add-modal" hidden>
+          <div class="tracker-modal-card tracker-add-card">
+            <button class="lightbox-close" id="tracker-add-close" type="button" aria-label="关闭">×</button>
+            <div class="tracker-modal-heading">
+              <span class="tracker-modal-icon">＋</span>
+              <div>
+                <h3>添加关注账号</h3>
+                <p>粘贴链接后自动识别昵称并添加</p>
+              </div>
+            </div>
+            <label class="field">
+              <span>抖音主页链接或分享文字</span>
+              <textarea id="tracker-url" rows="3" maxlength="1000" placeholder="粘贴抖音主页链接，或包含链接的整段分享文字" required></textarea>
+            </label>
+            <div class="tracker-modal-actions">
+              <button class="secondary-button" id="tracker-add-cancel" type="button">取消</button>
+              <button class="generate-button" id="add-tracker-button" type="button">开始识别</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tracker-modal" id="tracker-detail-modal" hidden>
+          <div class="tracker-modal-card tracker-detail-card">
+            <button class="lightbox-close" id="tracker-detail-close" type="button" aria-label="关闭">×</button>
+            <div id="tracker-detail-summary"></div>
+            <div class="tracker-detail-layout">
+              <section class="tracker-history-panel">
+                <div class="tracker-panel-heading">
+                  <h3>历史记录</h3>
+                  <span>按更新时间排列</span>
+                </div>
+                <div id="tracker-detail-history"></div>
+              </section>
+              <section class="tracker-update-panel">
+                <div class="tracker-panel-heading">
+                  <h3>记录最新数据</h3>
+                  <span>保存后自动计算变化</span>
+                </div>
+                <select id="tracker-select" hidden></select>
+                <div class="tracker-record-grid">
+                  <label class="field compact"><span>粉丝数</span><input id="tracker-followers" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>作品数</span><input id="tracker-works" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>新作品数</span><input id="tracker-new-works" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>点赞</span><input id="tracker-likes" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>评论</span><input id="tracker-comments" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>转发</span><input id="tracker-shares" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>收藏</span><input id="tracker-saves" type="number" min="0" placeholder="0"></label>
+                  <label class="field compact"><span>最新作品标题</span><input id="tracker-title" type="text" placeholder="选填"></label>
+                </div>
+                <label class="field"><span>最新作品链接 <small>选填</small></span><input id="tracker-work-url" type="url" placeholder="粘贴作品链接"></label>
+                <label class="field"><span>记录备注 <small>选填</small></span><textarea id="tracker-record-note" rows="2" placeholder="例如：今天新发 2 条"></textarea></label>
+                <button class="generate-button" id="add-tracker-record-button" type="button">保存本次数据</button>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section></div>
+    <div class="image-lightbox" id="image-lightbox" hidden>
+      <button class="lightbox-close" id="lightbox-close" type="button" aria-label="关闭大图">×</button>
+      <div class="lightbox-stage" id="lightbox-stage">
+        <img id="lightbox-image" alt="放大的生成结果">
+        <canvas class="lightbox-mask-canvas" id="lightbox-mask-canvas"></canvas>
+      </div>
+      <p id="lightbox-caption"></p>
+      <div class="lightbox-mask-toolbar" id="lightbox-mask-toolbar" hidden>
+        <label>
+          笔刷
+          <input id="lightbox-brush-size" type="range" min="12" max="120" value="52">
+        </label>
+        <button class="mini-button" id="undo-lightbox-mask" type="button">后撤</button>
+        <button class="mini-button" id="clear-lightbox-mask" type="button">清除</button>
+        <button class="mini-button" id="apply-lightbox-mask" type="button">应用</button>
+      </div>
+    </div>
+<section class="account-drawer" id="account-drawer" hidden>
+      <div class="account-card">
+        <button class="lightbox-close" id="account-close" type="button" aria-label="关闭个人主页">×</button>
+        <h2 data-i18n="profileTitle">个人主页</h2>
+        <div class="account-grid">
+          <div class="account-stat">
+            <span data-i18n="account">账号</span>
+            <strong id="account-name">-</strong>
+            <button class="account-stat-action" id="toggle-password-editor" type="button">修改密码</button>
+          </div>
+          <div class="account-stat">
+            <span data-i18n="currentBalance">当前余额</span>
+            <strong id="account-balance"><span class="energy-icon">⚡</span>0</strong>
+            <button class="account-stat-action account-stat-action-primary" id="account-recharge-button" type="button">充值</button>
+          </div>
+        </div>
+        <div class="account-section security-section">
+          <div class="password-editor" id="password-editor" hidden>
+            <label class="field">
+              <span>新密码</span>
+              <span class="password-field">
+                <input id="security-password" type="password" autocomplete="new-password" placeholder="至少8位，必须包含字母和数字">
+                <button class="password-toggle" type="button" data-password-toggle="security-password" aria-label="显示密码" title="显示密码">◉</button>
+              </span>
+            </label>
+            <label class="field">
+              <span>确认新密码</span>
+              <span class="password-field">
+                <input id="security-password-confirm" type="password" autocomplete="new-password" placeholder="请再次输入新密码">
+                <button class="password-toggle" type="button" data-password-toggle="security-password-confirm" aria-label="显示密码" title="显示密码">◉</button>
+              </span>
+            </label>
+            <div class="security-actions">
+              <button class="secondary-button" id="cancel-password-editor" type="button">取消</button>
+              <button class="secondary-button primary" id="save-account-security" type="button">保存新密码</button>
+            </div>
+          </div>
+          <p class="hint" id="security-hint"></p>
+        </div>
+        <div class="account-section account-actions">
+          <button class="secondary-button" id="logout-button" type="button" hidden data-i18n="logout">退出登录</button>
+        </div>
+      </div>
+    </section>
+<section class="admin-console-modal" id="admin-console-modal" hidden>
+      <div class="account-card admin-console-card">
+        <button class="lightbox-close" id="admin-console-close" type="button" aria-label="关闭管理员后台">×</button>
+        <div class="admin-auth-view" id="admin-auth-view">
+          <h2>管理员验证</h2>
+          <div class="admin-login-form">
+            <input id="admin-secret" type="password" placeholder="管理员口令" autocomplete="current-password">
+            <button class="generate-button" id="admin-confirm" type="button">确认</button>
+          </div>
+          <p class="hint admin-auth-hint" id="admin-auth-hint" aria-live="polite"></p>
+        </div>
+
+        <div class="admin-workspace" id="admin-workspace" hidden>
+          <div class="admin-workspace-heading">
+            <div>
+              <span class="brand-logo-frame admin-brand-logo">
+                <img loading="lazy" src="./assets/brand/alphai-logo.png" alt="Alphai">
+              </span>
+              <h2>管理员后台</h2>
+            </div>
+          </div>
+
+          <nav class="admin-main-tabs" aria-label="管理员后台导航">
+            <button class="active" type="button" data-admin-tab="recharges">历史充值记录</button>
+            <button type="button" data-admin-tab="users">查看用户</button>
+            <button type="button" data-admin-tab="usage">使用日志</button>
+            <button type="button" data-admin-tab="reconciliation">任务对账</button>
+            <button type="button" data-admin-tab="providers">API 供应商</button>
+          </nav>
+
+          <section class="admin-tab-panel" data-admin-panel="recharges">
+            <div class="admin-subtabs" aria-label="充值记录状态">
+              <button class="active" type="button" data-admin-recharge-filter="success">成功</button>
+              <button type="button" data-admin-recharge-filter="failed">失败</button>
+            </div>
+            <div class="recharge-orders admin-orders" id="admin-recharge-orders"></div>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="users" hidden>
+            <div class="admin-subtabs admin-user-subtabs" aria-label="用户状态">
+              <button class="active" type="button" data-admin-user-filter="active">正常账号</button>
+              <button type="button" data-admin-user-filter="disabled">已停用</button>
+            </div>
+            <div class="admin-user-search">
+              <input id="admin-user-search" type="search" placeholder="搜索手机号或账号 ID" autocomplete="off">
+              <button class="secondary-button primary" id="admin-user-search-button" type="button">搜索</button>
+            </div>
+            <div class="admin-users" id="admin-users"></div>
+            <div class="admin-user-pagination" id="admin-user-pagination" hidden>
+              <button class="secondary-button" type="button" data-admin-user-page="previous">上一页</button>
+              <span id="admin-user-page-summary"></span>
+              <button class="secondary-button" type="button" data-admin-user-page="next">下一页</button>
+            </div>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="usage" hidden>
+            <div class="admin-panel-heading">
+              <div><h3>用户使用日志</h3><p>不输入账号显示平台最新 50 条，输入账号后查询该用户最近 100 条记录</p></div>
+            </div>
+            <div class="admin-usage-search">
+              <input id="admin-usage-account" type="text" placeholder="输入用户账号" autocomplete="off">
+              <button class="secondary-button primary" id="load-admin-usage" type="button">查询</button>
+            </div>
+            <p class="admin-user-summary" id="admin-usage-summary"></p>
+            <div class="usage-log-table-wrap">
+              <table class="usage-log-table">
+                <thead><tr><th>时间</th><th>用户名</th><th>手机号</th><th>类型</th><th>使用内容</th><th>taskId</th><th>花费</th><th>余额</th><th>状态</th></tr></thead>
+                <tbody id="admin-usage-log-body">
+                  <tr><td colspan="9" class="usage-log-empty">正在读取平台最新 50 条记录...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="reconciliation" hidden>
+            <div class="admin-panel-heading">
+              <div><h3>待对账生成任务</h3><p>只处理供应商结果未知或账务落库中断的预留任务。每个任务只能最终处置一次。</p></div>
+              <button class="secondary-button" id="load-admin-reconciliation" type="button">刷新</button>
+            </div>
+            <p class="hint admin-reconciliation-hint" id="admin-reconciliation-hint" aria-live="polite"></p>
+            <div class="admin-reconciliation-list" id="admin-reconciliation-list">
+              <p class="hint">正在读取待对账任务...</p>
+            </div>
+            <div class="admin-provider-section-title admin-reconciliation-history-title"><strong>最近处置记录</strong><span>最多 100 条</span></div>
+            <div class="admin-reconciliation-history" id="admin-reconciliation-history"></div>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="providers" hidden>
+            <div class="admin-panel-heading">
+              <div><h3>API 供应商管理</h3><p>分别为网页端和小程序端的不同生图模式选择供应商。</p></div>
+            </div>
+            <div class="admin-subtabs" aria-label="API 供应商管理视图">
+              <button class="active" type="button" data-admin-provider-view="web">网页端</button>
+              <button type="button" data-admin-provider-view="mini">小程序端</button>
+              <button type="button" data-admin-provider-view="list">供应商清单</button>
+            </div>
+            <div class="admin-provider-settings" id="admin-provider-settings">
+              <p class="hint">正在读取供应商配置...</p>
+            </div>
+            <p class="hint admin-provider-hint" id="admin-provider-hint" aria-live="polite"></p>
+          </section>
+        </div>
+      </div>
+    </section>
+<section class="pay-modal" id="admin-manual-recharge-modal" hidden>
+      <div class="pay-modal-card admin-manual-recharge-card">
+        <button class="lightbox-close" id="admin-manual-recharge-close" type="button" aria-label="关闭手动充值">×</button>
+        <p class="eyebrow">线下充值</p>
+        <h2>手动增加代币</h2>
+        <p class="admin-manual-recharge-user" id="admin-manual-recharge-user"></p>
+        <label class="field">
+          <span>充值代币数量</span>
+          <input id="admin-manual-recharge-credits" type="number" min="1" max="100000" step="1" value="200" inputmode="numeric">
+        </label>
+        <p class="hint" id="admin-manual-recharge-hint">确认后将立即增加余额，并写入一条成功的线下充值记录。</p>
+        <div class="pay-confirm-actions">
+          <button class="secondary-button" id="admin-manual-recharge-cancel" type="button">取消</button>
+          <button class="generate-button" id="admin-manual-recharge-confirm" type="button">确认充值</button>
+        </div>
+      </div>
+    </section>
+<section class="pay-modal" id="pay-modal" hidden>
+      <div class="pay-modal-card">
+        <button class="lightbox-close" id="pay-modal-close" type="button" aria-label="关闭付款二维码">×</button>
+        <p class="eyebrow" id="pay-modal-method">付款</p>
+        <h2 id="pay-modal-title">确认充值</h2>
+        <div class="pay-confirm" id="pay-confirm">
+          <div><span>到账数量</span><strong id="pay-confirm-tokens"><span class="energy-icon">⚡</span>-</strong></div>
+          <div><span>实付金额</span><strong id="pay-confirm-amount">-</strong></div>
+          <div><span>支付方式</span><strong id="pay-confirm-method">-</strong></div>
+          <div class="pay-confirm-actions">
+            <button class="secondary-button" id="pay-cancel-button" type="button">取消</button>
+            <button class="generate-button" id="pay-confirm-button" type="button">确认</button>
+          </div>
+        </div>
+        <div class="pay-modal-qr-frame" id="pay-qr-frame" hidden>
+          <img id="pay-modal-qr" alt="付款二维码" hidden>
+          <span id="pay-modal-empty">该支付方式暂时不可用，请选择其他方式。</span>
+        </div>
+        <div class="pay-status waiting" id="pay-status" hidden role="status" aria-live="polite">
+          <span class="pay-status-icon" id="pay-status-icon" aria-hidden="true"></span>
+          <div>
+            <strong id="pay-status-title">等待扫码付款</strong>
+            <p id="pay-status-detail">请使用支付宝扫描上方二维码并完成付款</p>
+          </div>
+        </div>
+        <p class="hint" id="pay-modal-hint">支付成功后系统会自动入账。</p>
+      </div>
+    </section>
+<section class="pay-modal" id="sensitive-consent-modal" hidden>
+      <div class="pay-modal-card legal-consent-card" role="dialog" aria-modal="true" aria-labelledby="sensitive-consent-title">
+        <p class="eyebrow">敏感个人信息单独同意</p>
+        <h2 id="sensitive-consent-title">上传人物参考图前请确认</h2>
+        <p>人物图片可能包含人脸、肖像和身体特征。为完成图片分析与生成，图片及提示词将被发送给当前启用的人工智能服务商处理。</p>
+        <p>请确认你对图片具有合法使用权；上传他人图片前，应已取得本人明确授权。详细处理规则见 <a href="./privacy.html" target="_blank" rel="noopener">《图片处理说明》</a>。</p>
+        <label class="legal-sensitive-check">
+          <input id="sensitive-consent-checkbox" type="checkbox">
+          <span>我已知悉上述处理目的、方式和可能影响，并单独同意处理图片中可能包含的敏感个人信息。</span>
+        </label>
+        <p class="hint" id="sensitive-consent-hint" aria-live="polite"></p>
+        <div class="pay-confirm-actions">
+          <button class="secondary-button" id="sensitive-consent-cancel" type="button">暂不上传</button>
+          <button class="generate-button" id="sensitive-consent-confirm" type="button">同意并继续</button>
+        </div>
+      </div>
+    </section>
+<div class="toast" id="toast" role="status" aria-live="polite">已复制</div>
+    <script src="./fire-host.js?v=20261019-fire-native-01"></script>
+</body>
+</html>

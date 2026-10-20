@@ -1,0 +1,34 @@
+body.fire-workbench .app-layout { display: flex; flex-direction: column; min-height: 100dvh; }
+body.fire-workbench .app-rail { position: sticky; top: 0; z-index: 10; flex-direction: row; align-items: center; width: 100%; height: auto; padding: 12px 24px; gap: 20px; border-right: 0; border-bottom: 1px solid var(--fire-line-soft); background: var(--fire-bg); }
+body.fire-workbench .rail-brand, body.fire-workbench .rail-footer { display: none; }
+body.fire-workbench .rail-links { display: flex; gap: 6px; }
+body.fire-workbench .rail-item { width: auto; gap: 7px; min-height: 36px; padding: 9px 12px; white-space: nowrap; }
+body.fire-workbench .rail-item[aria-current="page"]::before { display: none; }
+#fire-image-allowance { margin-left: auto; color: var(--fire-muted); font-size: 12px; white-space: nowrap; }
+body.fire-workbench #studio { min-height: calc(100dvh - 61px); grid-template-columns: minmax(250px, 300px) minmax(200px, 1fr) minmax(220px, 260px); }
+body.fire-workbench #studio > .workbench-panel { max-height: calc(100dvh - 61px); padding: 24px 20px; }
+.fire-native-hidden, #local-status, .task-provider-error, #workbench-settings-dialog, #legacy-auth-state { display: none !important; }
+.fire-host-error { display: grid; justify-content: center; align-content: center; min-height: 70vh; gap: 16px; padding: 30px; text-align: center; }
+.fire-host-error button { justify-self: center; padding: 10px 20px; border: 1px solid var(--fire-line); border-radius: 8px; background: var(--fire-surface); color: var(--fire-text); }
+html[data-fire-theme="light"] .fire-workbench { color-scheme: light; --fire-bg:#fff; --fire-surface:#f6f6f8; --fire-surface-raised:#eeeef1; --fire-surface-hover:#e8e8ed; --fire-accent:#c91840; --fire-accent-hover:#b71336; --fire-accent-soft:#fbeef2; --fire-burgundy:#f8e5eb; --fire-text:#202027; --fire-muted:#65616b; --fire-subtle:#79747e; --fire-line:#d9d7df; --fire-line-soft:#e9e7ed; --fire-success:#1c8052; --fire-error:#b3173c; --fire-warning:#986219; --fire-focus:#c91840; --fire-shadow:0 18px 48px #40304012; }
+html[data-fire-theme="light"] body.fire-workbench .rail-item[aria-current="page"], html[data-fire-theme="light"] body.fire-workbench .reference-role-chip.is-selected { color: #a71035; }
+html[data-fire-theme="light"] body.fire-workbench .reference-role-chip.is-occupied { background: #efedf2; color: #99939c; }
+html[data-fire-theme="light"] body.fire-workbench .reference-role-chip.is-shared small { color: #9e3650; }
+html[data-fire-theme="light"] body.fire-workbench .generation-task-card { background: var(--fire-surface); }
+html[data-fire-theme="light"] body.fire-workbench .invalid-role-button { background: #fff6e8; border-color: #d8b47e; }
+html[data-fire-theme="light"] body.fire-workbench .add-reference-button:is(:hover, .is-paste-target) { background: var(--fire-accent-soft); }
+/* The native horizontal rail keeps three panels above 900px, including the
+   source workbench's 901–1100px two-column breakpoint. */
+@media(min-width:901px) {
+  body.fire-workbench .app-layout { height:100dvh; min-height:0; }
+  body.fire-workbench .app-rail { flex:0 0 auto; }
+  body.fire-workbench #studio { flex:1; height:auto; min-height:0; align-items:stretch; }
+  body.fire-workbench #studio > .workbench-panel { grid-column:auto; grid-row:auto; height:100%; min-height:0; max-height:100%; overflow-y:auto; }
+  body.fire-workbench #studio > .control-panel { display:flex; flex-direction:column; grid-template-columns:none; align-items:stretch; gap:0; border-top:0; border-left:1px solid var(--fire-line-soft); }
+  body.fire-workbench #studio > .control-panel > * { grid-column:auto; grid-row:auto; align-self:auto; }
+  body.fire-workbench #studio > .control-panel > .panel-heading { margin:0 0 24px; }
+  body.fire-workbench #studio > .control-panel > .selection-summary { margin:24px 0; }
+  body.fire-workbench #studio > .control-panel > .generation-actions { margin-top:auto; padding-top:24px; }
+}
+@media(max-width:900px) { body.fire-workbench #studio { grid-template-columns: minmax(230px, 280px) minmax(220px,1fr); } body.fire-workbench #studio > .control-panel { grid-column: 1 / -1; max-height:none; border-top:1px solid var(--fire-line-soft); border-left:0; } }
+@media(max-width:760px) { body.fire-workbench .app-rail { gap:10px; padding:10px 14px; flex-wrap:wrap; } body.fire-workbench .rail-links { width:100%; min-width:0; justify-content:space-between; overflow-x:auto; } body.fire-workbench .rail-item { flex:0 0 auto; padding:8px 7px; font-size:12px; } body.fire-workbench .rail-item > span:last-child { position:static; width:auto; height:auto; overflow:visible; clip:auto; } body.fire-workbench .rail-item .fire-icon { width:16px; height:16px; } #fire-image-allowance { margin-left:0; } body.fire-workbench #studio { display:flex; flex-direction:column; } body.fire-workbench #studio > .workbench-panel { max-height:none; } body.fire-workbench #studio > .reference-panel { border-right:0; } body.fire-workbench #studio > .control-panel { align-items:stretch; } body.fire-workbench #studio > .control-panel > * { grid-column:auto; grid-row:auto; align-self:auto; } }

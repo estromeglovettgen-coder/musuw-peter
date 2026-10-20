@@ -1,0 +1,13 @@
+:root { color-scheme: light; --ink:#132029; --muted:#667784; --line:#dce7eb; --brand:#0f6674; }
+* { box-sizing: border-box; }
+body { margin:0; color:var(--ink); background:linear-gradient(135deg,#f2ffff,#fff7fb); font:15px/1.75 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+main { width:min(880px,calc(100% - 28px)); margin:40px auto; padding:clamp(24px,5vw,52px); background:#fff; border:1px solid var(--line); border-radius:20px; box-shadow:0 18px 55px rgba(20,43,55,.08); }
+h1 { margin:0 0 8px; font-size:clamp(30px,5vw,46px); }
+h2 { margin:34px 0 8px; font-size:20px; }
+p,li { color:var(--muted); }
+.meta,.draft { padding:10px 12px; border-radius:10px; background:#f2f8f8; }
+.draft { color:#8a5b20; background:#fff8e8; }
+a { color:var(--brand); }
+table { width:100%; border-collapse:collapse; display:block; overflow:auto; }
+th,td { padding:10px; border:1px solid var(--line); text-align:left; min-width:130px; vertical-align:top; }
+footer { margin-top:40px; padding-top:20px; border-top:1px solid var(--line); }

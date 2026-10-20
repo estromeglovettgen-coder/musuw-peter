@@ -88,6 +88,11 @@ func shouldLogBodies(path string) bool {
 	if path == "/api/v1/client-diagnostics" {
 		return false
 	}
+	// The reused image workbench carries original private photos and prompts.
+	// Do not read or duplicate them into generic logs, including rejected calls.
+	if strings.HasPrefix(path, "/api/v1/fire-showcase/") || strings.HasPrefix(path, "/api/fire-showcase-assets/") || strings.HasPrefix(path, "/internal/fire-showcase/") {
+		return false
+	}
 	pathLower := strings.ToLower(path)
 	// Sharing and invitation endpoints carry tenant/user identifiers and
 	// sometimes operator-supplied messages or signed links. The generic

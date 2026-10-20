@@ -51,6 +51,7 @@ export default defineComponent({
         <button v-if="isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav fire-customers-nav" :class="{ 'is-active': isCustomerPage }" title="目标" @click="$router.push('/platform/customers')"><t-icon name="usergroup" /></button>
         <button v-if="!isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'marketplace' || currentpath === 'marketplaceProduct' }" :title="t('creatorMarketplace.title')" @click="handleMenuClick('marketplace')"><t-icon name="shop" /></button>
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'agentList' }" :title="t('menu.agents')" @click="handleMenuClick('agents')"><t-icon name="usergroup" /></button>
+        <button v-if="isPeterWorkspace" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'fireShowcase' }" title="展示面" aria-label="展示面" @click="$router.push('/platform/showcase')"><t-icon name="image" /></button>
         <button v-if="isPeterWorkspace && authStore.isSystemAdmin" type="button" class="visual-sidebar__collapsed-nav" title="会员管理" @click="$router.push('/platform/manage')"><t-icon name="user-safety" /></button>
         <button v-if="!isPeterWorkspace && visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__collapsed-nav" :class="{ 'is-active': currentpath === 'organizationList' }" :title="t('menu.organizations')" @click="handleMenuClick('organizations')"><t-icon name="system-sum" /></button>
       </div>
@@ -81,6 +82,7 @@ export default defineComponent({
         <button v-if="visibleMenuArr.some((item: { path?: string }) => item.path === 'agents')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'agentList' }" data-guide="nav-agents" @click="handleMenuClick('agents')">
           <span class="visual-sidebar__primary-copy"><t-icon name="usergroup" /><span>{{ t('menu.agents') }}</span></span>
         </button>
+        <button v-if="isPeterWorkspace" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'fireShowcase' }" data-guide="nav-showcase" @click="$router.push('/platform/showcase')"><span class="visual-sidebar__primary-copy"><t-icon name="image" /><span>展示面</span></span></button>
         <button v-if="!isPeterWorkspace && visibleMenuArr.some((item: { path?: string }) => item.path === 'organizations')" type="button" class="visual-sidebar__primary is-native" :class="{ 'is-active': currentpath === 'organizationList' }" data-guide="nav-organizations" @click="handleMenuClick('organizations')">
           <span class="visual-sidebar__primary-copy"><t-icon name="system-sum" /><span>{{ t('menu.organizations') }}</span></span>
           <span v-if="orgStore.totalPendingJoinRequestCount > 0" class="visual-sidebar__kb-count">{{ orgStore.totalPendingJoinRequestCount }}</span>

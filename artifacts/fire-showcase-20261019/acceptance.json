@@ -1,0 +1,109 @@
+{
+  "online-result-evidence": {
+    "ordinary_user_generated": true,
+    "reference_count": 4,
+    "used_images": 1,
+    "remaining_images": 0,
+    "reserved_images": 0,
+    "chat_tokens_unchanged": true,
+    "question_count_unchanged": true,
+    "foreign_asset_and_task_denied": true,
+    "anonymous_asset_denied": true,
+    "image_bytes": 1666668,
+    "image_sha256": "4576822d8b3fe9a6f0be912a84399b833a95a49de4ef95ea2d9b02ff349662ed"
+  },
+  "online-result-02-evidence": {
+    "ordinary_user_generated": true,
+    "reference_count": 4,
+    "used_images": 2,
+    "remaining_images": 0,
+    "reserved_images": 0,
+    "chat_allowances_unchanged": true,
+    "foreign_asset_and_task_denied": true,
+    "image_bytes": 2194381,
+    "image_sha256": "1878a97c21b5f38b12e3dea64bc7bad030398207e8f30ad296b32c358ea906a8",
+    "created": "2026-10-20T06:31:29.129976+00:00",
+    "completed": "2026-10-20T06:33:03.340558+00:00"
+  },
+  "online-exhaustion-evidence": {
+    "exhausted_before_provider": true,
+    "error_code": "image_allowance_exhausted",
+    "used_images": 1,
+    "reserved_images": 0,
+    "remaining_images": 0
+  },
+  "online-topup-evidence": {
+    "image_limit": 2,
+    "used_images": 1,
+    "remaining_images": 1,
+    "chat_allowances_unchanged": true
+  },
+  "browser_download_sha256_matches": true,
+  "baseline_preserved_expected": {
+    "existing_users": 7,
+    "documents": 95,
+    "wiki_pages": 358,
+    "chunks": 2346
+  },
+  "provider_console": {
+    "successful_requests": 2,
+    "billed_usd": [
+      0.065402,
+      0.063378
+    ],
+    "total_usd": 0.12878,
+    "provider_seconds": [
+      46,
+      56
+    ],
+    "failed_dns_request_not_in_usage_log": true
+  },
+  "mobile_online": {
+    "width": 390,
+    "document_scroll_width": 390,
+    "all_four_tab_labels_visible": true
+  },
+  "download": {
+    "browser_path": "Downloads/content.png",
+    "bytes": 2194381,
+    "sha256": "1878a97c21b5f38b12e3dea64bc7bad030398207e8f30ad296b32c358ea906a8"
+  },
+  "production_final": {
+    "before": {
+      "docs": 95,
+      "wiki": 358,
+      "users": 7,
+      "chunks": 2346,
+      "chunk_hash": "2de6a96416c5a152f03519b756b315e5",
+      "wiki_hash": "a7315761fedc93f2978cb21333860d17"
+    },
+    "after": {
+      "docs": 95,
+      "wiki": 358,
+      "users": 7,
+      "chunks": 2346,
+      "chunk_hash": "2de6a96416c5a152f03519b756b315e5",
+      "wiki_hash": "a7315761fedc93f2978cb21333860d17"
+    },
+    "temporary_user_rows_remaining": 0,
+    "source_data_unchanged": true,
+    "browser_account_switch_isolated": true,
+    "workbench_visible_before_image_download_complete": true,
+    "backend": "musuw-peter:showcase-20261019-01",
+    "sidecar": "musuw-peter-showcase:20261019-04",
+    "frontend": "20261019-fire-19",
+    "temporary_owner_directories_after_native_erasure": 0,
+    "sidecar_healthy_after_cleanup": true
+  },
+  "checks": {
+    "python": 103,
+    "chrome_original": 34,
+    "chrome_ready_corrective": 10,
+    "host_dom_final": 18,
+    "responsive_real_css": 5,
+    "typecheck": true,
+    "build": true,
+    "postgres_migration_114_115_and_concurrency": true,
+    "sqlite_migration_33_34": true
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "downloadedAt": "2026-10-14T14:35:43.808374+00:00",
+  "files": [
+    {
+      "path": "assets/brand/alphai-logo.png",
+      "source": "https://alphai.pages.dev/assets/brand/alphai-logo.png",
+      "bytes": 264481,
+      "sha256": "a44de2f468e6160284416c305b3efd3acdf9d9d1614ff32efc0410ff4d4563bd"
+    },
+    {
+      "path": "assets/icons/download.svg",
+      "source": "https://alphai.pages.dev/assets/icons/download.svg",
+      "bytes": 268,
+      "sha256": "3a3e4a508bdf0dbf50157eb1a0763ac83f32888f0cb294ba4517575cdba17321"
+    },
+    {
+      "path": "assets/icons/notice.png",
+      "source": "https://alphai.pages.dev/assets/icons/notice.png",
+      "bytes": 2622,
+      "sha256": "4cc9aa4a47ec682a94c6f5ad168eb8b40c71ba49f931034d587d60fa4c3bdf33"
+    },
+    {
+      "path": "assets/icons/security.png",
+      "source": "https://alphai.pages.dev/assets/icons/security.png",
+      "bytes": 6140,
+      "sha256": "77995bdb93660b2c009e73358ae93eca7e1fded4000ea28d436f8885ea3f05a4"
+    },
+    {
+      "path": "assets/models/blaze_face_short_range.tflite",
+      "source": "https://alphai.pages.dev/assets/models/blaze_face_short_range.tflite",
+      "bytes": 229746,
+      "sha256": "b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f"
+    },
+    {
+      "path": "assets/models/face_detection_full_range_sparse.tflite",
+      "source": "https://alphai.pages.dev/assets/models/face_detection_full_range_sparse.tflite",
+      "bytes": 676746,
+      "sha256": "2c3728e6da56f21e21a320433396fb06d40d9088f2247c05e5635a688d45dfe1"
+    },
+    {
+      "path": "assets/prompt-guide/default-outfit.webp",
+      "source": "https://alphai.pages.dev/assets/prompt-guide/default-outfit.webp",
+      "bytes": 15712,
+      "sha256": "385a67560252ae79d1b501db072d74db6e47a6a96455c0c8afb02b81eeed094e"
+    },
+    {
+      "path": "assets/prompt-guide/default-person.webp",
+      "source": "https://alphai.pages.dev/assets/prompt-guide/default-person.webp",
+      "bytes": 11520,
+      "sha256": "b0fb1a6089cd1aaa1dd7b2db52ed5aaae2793a551a3a34f46638e8b991891430"
+    },
+    {
+      "path": "assets/prompt-guide/default-pose-scene.webp",
+      "source": "https://alphai.pages.dev/assets/prompt-guide/default-pose-scene.webp",
+      "bytes": 57966,
+      "sha256": "f26496286955f8293219fa872568cc05745a3e0adbbc5844f735721efd2c7245"
+    },
+    {
+      "path": "assets/prompt-guide/default-result.webp",
+      "source": "https://alphai.pages.dev/assets/prompt-guide/default-result.webp",
+      "bytes": 47286,
+      "sha256": "33bc022d004ca708fef305941597dee02100ebf2a30100a4435e87dc3a0fa798"
+    },
+    {
+      "path": "index.html",
+      "source": "https://alphai.pages.dev/",
+      "bytes": 48191,
+      "sha256": "e251bef304d38bba019b8072cc8315019ae917088cc4b19e2ac761189548d216"
+    },
+    {
+      "path": "legal.css",
+      "source": "https://alphai.pages.dev/legal.css",
+      "bytes": 1054,
+      "sha256": "8ba01620c9af5ee0f9fe8d6f56059a5dc0707944ff0653548593773149957eee"
+    },
+    {
+      "path": "metadata-cleaner.js",
+      "source": "https://alphai.pages.dev/metadata-cleaner.js",
+      "bytes": 14164,
+      "sha256": "d8b62581b819ccba2afd2cfb4c452dee50f05cdc0550be9a23bdb8af66e8407d"
+    },
+    {
+      "path": "metadata-formats.js",
+      "source": "https://alphai.pages.dev/metadata-formats.js",
+      "bytes": 10891,
+      "sha256": "c2a0e006e31886ad2c37cad037f19c939db8186b4f98cf765e5d9f2067067450"
+    },
+    {
+      "path": "privacy.html",
+      "source": "https://alphai.pages.dev/privacy.html",
+      "bytes": 3848,
+      "sha256": "ee58102f7587e687962c7d181c3695e6efecb2261d5904f4651f79baf53b28d8"
+    },
+    {
+      "path": "script.js",
+      "source": "https://alphai.pages.dev/script.js",
+      "bytes": 202919,
+      "sha256": "9834884d76b5aa5f55b191985b9275ec39e87b7baafed52e66258388ef9cb23b"
+    },
+    {
+      "path": "shadowoff-browser.js",
+      "source": "https://alphai.pages.dev/shadowoff-browser.js",
+      "bytes": 5821,
+      "sha256": "a83e33b9f26066d90fd0e7a660557d02b60971e1503765c5923216bc829ab688"
+    },
+    {
+      "path": "shadowoff-core.js",
+      "source": "https://alphai.pages.dev/shadowoff-core.js",
+      "bytes": 12424,
+      "sha256": "aa845ac89e30764188325cdef05dee8e7b2ff42ef86a09cd3615b97f8d519be3"
+    },
+    {
+      "path": "shadowoff-worker.js",
+      "source": "https://alphai.pages.dev/shadowoff-worker.js",
+      "bytes": 1683,
+      "sha256": "670309653d56d245514614fd3f350597d7384514fdbeab9afe71bc13ce8a654e"
+    },
+    {
+      "path": "styles.css",
+      "source": "https://alphai.pages.dev/styles.css",
+      "bytes": 140246,
+      "sha256": "12c3d62c71c8d5a941c2bd83f224103fea5a4f3d0a631049ddfd8d4f897fb60e"
+    },
+    {
+      "path": "terms.html",
+      "source": "https://alphai.pages.dev/terms.html",
+      "bytes": 3231,
+      "sha256": "d9e92780d04e3c7fd41b8f3d663b944a62e2f3c551dad937d15d3050c9281acf"
+    },
+    {
+      "path": "vendor/mediapipe/vision_bundle.mjs",
+      "source": "https://alphai.pages.dev/vendor/mediapipe/vision_bundle.mjs",
+      "bytes": 156136,
+      "sha256": "7c57548cdac7ca72a025dcb1ad7a027c9352ae50d7485c7e9ae77e74ee0a14a6"
+    },
+    {
+      "path": "vendor/mediapipe/wasm/vision_wasm_internal.js",
+      "source": "https://alphai.pages.dev/vendor/mediapipe/wasm/vision_wasm_internal.js",
+      "bytes": 335394,
+      "sha256": "22834ec84589727102c58914465b34dc6af508ecd23f91e9e3fcfa0cec823458"
+    },
+    {
+      "path": "vendor/mediapipe/wasm/vision_wasm_internal.wasm",
+      "source": "https://alphai.pages.dev/vendor/mediapipe/wasm/vision_wasm_internal.wasm",
+      "bytes": 12997248,
+      "sha256": "782eda3ec1f414fdb4f1d66a8b59093eb4d5ab437e06117796abf05962d68eef"
+    },
+    {
+      "path": "vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js",
+      "source": "https://alphai.pages.dev/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js",
+      "bytes": 335197,
+      "sha256": "bfdaa4d34d94ddb1734ded331a7ffe68ccc6aff4a2a25a431dfc99db655b4ef3"
+    },
+    {
+      "path": "vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
+      "source": "https://alphai.pages.dev/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
+      "bytes": 12168316,
+      "sha256": "b802041d105876865d6a0806f2ff7c4419a7f1b80bc01340fe36e759c2030011"
+    }
+  ]
+}

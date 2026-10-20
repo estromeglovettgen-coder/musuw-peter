@@ -1,0 +1,5 @@
+/* Local preview only; original site styles are preserved. */
+.local-preview-banner { position: relative; z-index: 10001; display: flex; gap: 12px; justify-content: space-between; align-items: center; padding: 8px 20px; color: #d8e5f5; background: #182538; font: 12px/1.5 system-ui, sans-serif; }
+.local-preview-banner nav { display: flex; gap: 14px; flex-shrink: 0; }
+.local-preview-banner a { color: #d8e5f5; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 600px) { .local-preview-banner { padding: 8px 12px; font-size: 11px; } }

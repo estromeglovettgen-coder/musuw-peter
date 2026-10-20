@@ -55,7 +55,8 @@ type RouterParams struct {
 	MessageHandler               *handler.MessageHandler
 	MessageSuggestionHandler     *handler.MessageSuggestionHandler
 	ModelHandler                 *handler.ModelHandler
-	FireBillingHandler           *handler.FireBillingHandler `optional:"true"`
+	FireBillingHandler           *handler.FireBillingHandler  `optional:"true"`
+	FireShowcaseHandler          *handler.FireShowcaseHandler `optional:"true"`
 	EntitlementHandler           *handler.EntitlementHandler
 	MarketplaceHandler           *handler.MarketplaceHandler
 	ModelCredentialsHandler      *handler.ModelCredentialsHandler
@@ -194,7 +195,9 @@ func NewRouter(params RouterParams) *gin.Engine {
 	r.POST("/api/v1/client-diagnostics", handler.NewClientDiagnosticsHandler())
 
 	// 认证中间件
-	r.Use(middleware.Auth(params.TenantService, params.UserService, params.TenantMemberService, params.TenantAPIKeyService, params.Config))
+	nativeAuth := middleware.Auth(params.TenantService, params.UserService, params.TenantMemberService, params.TenantAPIKeyService, params.Config)
+	RegisterFireShowcasePublic(r, params.FireShowcaseHandler, nativeAuth)
+	r.Use(nativeAuth)
 
 	// 文件服务：统一代理本地/MinIO/COS/TOS存储后端（需要认证）
 	serveFilesWithResources(r, params.FileService, params.StorageBackendResolver, params.ResourceCatalog)
@@ -304,6 +307,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterModelRoutes(v1, params.ModelHandler, params.ModelCredentialsHandler, rbacGuards)
 		v1.GET("/entitlements/current", params.EntitlementHandler.Current)
 		RegisterFireBillingRoutes(v1, params.FireBillingHandler, rbacGuards)
+		RegisterFireShowcaseRoutes(v1, params.FireShowcaseHandler)
 		RegisterMarketplaceRoutes(v1, params.MarketplaceHandler, rbacGuards)
 		RegisterMarketplaceLibraryRoutes(v1, params.MarketplaceHandler, params.WikiPageHandler, rbacGuards)
 		v1.POST("/billing/paddle/portal-session", rbacGuards.Admin(), params.EntitlementHandler.PaddlePortalSession)

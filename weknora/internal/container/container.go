@@ -379,6 +379,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	// are registered, so its shared Paddle transport must already be provided.
 	must(container.Provide(handler.NewEntitlementHandler))
 	must(container.Provide(handler.NewFireBillingHandler))
+	must(container.Provide(handler.NewFireShowcaseHandler))
 	must(container.Provide(handler.NewMarketplacePaymentGateway))
 	must(container.Provide(service.NewHousekeepingService))
 	must(container.Invoke(configureAccountErasureRecovery))

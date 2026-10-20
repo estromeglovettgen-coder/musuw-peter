@@ -41,6 +41,7 @@ func (e *AccessError) HTTPStatus() int { return e.Code }
 
 const MaxTokens int64 = 1_000_000_000_000
 const MaxQuestions int64 = 1_000_000_000
+const MaxImages int64 = 1_000_000_000
 
 type Plan struct {
 	ID            string    `json:"id" gorm:"primaryKey"`
@@ -48,6 +49,7 @@ type Plan struct {
 	DurationDays  int       `json:"duration_days"`
 	TokenLimit    int64     `json:"token_limit"`
 	QuestionLimit int64     `json:"question_limit" gorm:"not null;default:0"`
+	ImageLimit    int64     `json:"image_limit" gorm:"not null;default:0"`
 	Active        bool      `json:"active"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -69,6 +71,9 @@ type Membership struct {
 	QuestionLimit     int64 `gorm:"not null;default:0"`
 	UsedQuestions     int64 `gorm:"not null;default:0"`
 	ReservedQuestions int64 `gorm:"not null;default:0"`
+	ImageLimit        int64 `gorm:"not null;default:0"`
+	UsedImages        int64 `gorm:"not null;default:0"`
+	ReservedImages    int64 `gorm:"not null;default:0"`
 	Suspended         bool
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
@@ -85,6 +90,10 @@ type Mutation struct {
 	Questions     *int64 `json:"questions,omitempty"`
 	QuestionLimit *int64 `json:"question_limit,omitempty"`
 	Note          string `json:"note,omitempty"`
+	Images        *int64 `json:"images,omitempty"`
+	ImageLimit    *int64 `json:"image_limit,omitempty"`
+	ImageTaskID   string `json:"image_task_id,omitempty"`
+	ImageOutcome  string `json:"image_outcome,omitempty"`
 }
 type Adjustment struct {
 	ID           string    `json:"id" gorm:"primaryKey"`
@@ -95,6 +104,9 @@ type Adjustment struct {
 	Kind         string    `json:"kind"`
 	Tokens       int64     `json:"tokens"`
 	Questions    int64     `json:"questions" gorm:"not null;default:0"`
+	Images       int64     `json:"images" gorm:"not null;default:0"`
+	ImageTaskID  string    `json:"image_task_id,omitempty" gorm:"not null;default:''"`
+	ImageOutcome string    `json:"image_outcome,omitempty" gorm:"not null;default:''"`
 	DurationDays int       `json:"duration_days"`
 	Note         string    `json:"note"`
 	Before       string    `json:"-"`
@@ -140,6 +152,10 @@ type Status struct {
 	InputTokens        int64      `json:"input_tokens"`
 	OutputTokens       int64      `json:"output_tokens"`
 	EstimatedTokens    int64      `json:"estimated_tokens"`
+	ImageLimit         int64      `json:"image_limit"`
+	UsedImages         int64      `json:"used_images"`
+	ReservedImages     int64      `json:"reserved_images"`
+	RemainingImages    int64      `json:"remaining_images"`
 }
 type Service struct{ db *gorm.DB }
 
@@ -246,6 +262,11 @@ func (s *Service) Begin(ctx context.Context, purpose, model string, input, reque
 }
 func (s *Service) Status(ctx context.Context, id string) (*Status, error) {
 	u, e := s.identity(ctx, id)
+	// Disabled accounts still need administrator financial reconciliation.
+	// Native authentication continues to reject the account itself.
+	if e != nil && u.ID != "" && !u.IsActive && s.RequireAdmin(ctx) == nil {
+		e = nil
+	}
 	if e != nil {
 		return nil, e
 	}
@@ -275,6 +296,8 @@ func (s *Service) Status(ctx context.Context, id string) (*Status, error) {
 func statusOf(m Membership) *Status {
 	st := &Status{Managed: true, Status: "active", PlanName: m.PlanName, StartsAt: &m.StartsAt, ExpiresAt: &m.ExpiresAt, TokenLimit: m.TokenLimit, UsedTokens: m.UsedTokens, ReservedTokens: m.ReservedTokens, RemainingTokens: max(int64(0), m.TokenLimit-m.UsedTokens-m.ReservedTokens)}
 	st.QuestionLimit, st.UsedQuestions, st.ReservedQuestions = m.QuestionLimit, m.UsedQuestions, m.ReservedQuestions
+	st.ImageLimit, st.UsedImages, st.ReservedImages = m.ImageLimit, m.UsedImages, m.ReservedImages
+	st.RemainingImages = max(int64(0), m.ImageLimit-m.UsedImages-m.ReservedImages)
 	if m.QuestionLimit > 0 {
 		st.RemainingQuestions = max(int64(0), m.QuestionLimit-m.UsedQuestions-m.ReservedQuestions)
 	}
@@ -298,6 +321,11 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 		(req.QuestionLimit != nil && (*req.QuestionLimit < 0 || *req.QuestionLimit > MaxQuestions)) ||
 		(req.QuestionLimit != nil && req.Kind != "set_question_limit") {
 		return nil, fmt.Errorf("invalid question allowance")
+	}
+	if (req.Images != nil && (*req.Images < 0 || *req.Images > MaxImages)) ||
+		(req.ImageLimit != nil && (*req.ImageLimit < 0 || *req.ImageLimit > MaxImages || req.Kind != "set_image_limit")) ||
+		((req.ImageTaskID != "" || req.ImageOutcome != "") && req.Kind != "resolve_image") {
+		return nil, fmt.Errorf("invalid image allowance")
 	}
 	raw, _ := json.Marshal(struct {
 		UserID   string
@@ -328,6 +356,11 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 			return e
 		}
 		u, e := NewService(tx).identity(ctx, id)
+		// Financial reconciliation remains possible after an account is
+		// disabled; the actor already passed the native administrator check.
+		if e != nil && req.Kind == "resolve_image" {
+			e = tx.Table("users").Select("id, tenant_id, is_system_admin, is_active").Where("id = ?", id).Take(&u).Error
+		}
 		if e != nil {
 			return e
 		}
@@ -344,6 +377,7 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 		now := time.Now().UTC()
 		days, tokens := req.DurationDays, req.Tokens
 		questions := int64(0)
+		images := int64(0)
 		var plan Plan
 		if req.PlanID != "" {
 			if e := tx.Where("id = ? AND active = ?", req.PlanID, true).Take(&plan).Error; e != nil {
@@ -352,6 +386,7 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 			days = plan.DurationDays
 			tokens = plan.TokenLimit
 			questions = plan.QuestionLimit
+			images = plan.ImageLimit
 			if req.DurationDays > 0 {
 				days = req.DurationDays
 			}
@@ -361,6 +396,12 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 		}
 		if req.Questions != nil {
 			questions = *req.Questions
+		}
+		if req.Images != nil {
+			images = *req.Images
+		}
+		if images < 0 || images > MaxImages {
+			return fmt.Errorf("图片额度超过上限")
 		}
 		if questions < 0 || questions > MaxQuestions {
 			return fmt.Errorf("问答额度超过上限")
@@ -374,7 +415,7 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				return fmt.Errorf("套餐天数和Token必须大于0")
 			}
 			if !m.ExpiresAt.After(now) {
-				if m.ReservedTokens > 0 || m.ReservedQuestions > 0 {
+				if m.ReservedTokens > 0 || m.ReservedQuestions > 0 || m.ReservedImages > 0 {
 					return ErrConflict
 				}
 				m.PeriodID = uuid.NewString()
@@ -383,9 +424,11 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				m.TokenLimit = 0
 				m.UsedTokens = 0
 				m.QuestionLimit, m.UsedQuestions, m.ReservedQuestions = 0, 0, 0
+				m.ImageLimit, m.UsedImages, m.ReservedImages = 0, 0, 0
 			}
 			m.ExpiresAt = m.ExpiresAt.Add(time.Duration(days) * 24 * time.Hour)
 			m.TokenLimit += tokens
+			m.ImageLimit += images
 			if questions > 0 {
 				if m.QuestionLimit == 0 {
 					m.QuestionLimit = m.UsedQuestions + m.ReservedQuestions
@@ -397,10 +440,11 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				m.PlanName = plan.Name
 			}
 		case "topup":
-			if !exists || (tokens <= 0 && questions <= 0) || days != 0 || req.PlanID != "" {
+			if !exists || (tokens <= 0 && questions <= 0 && images <= 0) || days != 0 || req.PlanID != "" {
 				return fmt.Errorf("追加额度需要已开通套餐，并提供正数额度或问答条数")
 			}
 			m.TokenLimit += tokens
+			m.ImageLimit += images
 			if questions > 0 {
 				if m.QuestionLimit == 0 {
 					m.QuestionLimit = m.UsedQuestions + m.ReservedQuestions
@@ -408,11 +452,11 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				m.QuestionLimit += questions
 			}
 		case "extend":
-			if !exists || days <= 0 || tokens != 0 || req.Questions != nil || req.PlanID != "" {
+			if !exists || days <= 0 || tokens != 0 || req.Questions != nil || req.Images != nil || req.PlanID != "" {
 				return fmt.Errorf("赠送天数只允许正数天数")
 			}
 			if !m.ExpiresAt.After(now) {
-				if m.ReservedTokens > 0 || m.ReservedQuestions > 0 {
+				if m.ReservedTokens > 0 || m.ReservedQuestions > 0 || m.ReservedImages > 0 {
 					return ErrConflict
 				}
 				m.StartsAt = now
@@ -425,12 +469,12 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 			}
 			m.ExpiresAt = m.ExpiresAt.Add(time.Duration(days) * 24 * time.Hour)
 		case "suspend", "resume":
-			if !exists || days != 0 || tokens != 0 || req.Questions != nil || req.PlanID != "" {
+			if !exists || days != 0 || tokens != 0 || req.Questions != nil || req.Images != nil || req.PlanID != "" {
 				return fmt.Errorf("无效暂停操作")
 			}
 			m.Suspended = req.Kind == "suspend"
 		case "set_question_limit":
-			if !exists || req.QuestionLimit == nil || req.Questions != nil || days != 0 || tokens != 0 || req.PlanID != "" {
+			if !exists || req.QuestionLimit == nil || req.Questions != nil || req.Images != nil || days != 0 || tokens != 0 || req.PlanID != "" {
 				return fmt.Errorf("设置问答上限仅允许指定总条数，0表示不限")
 			}
 			limit := *req.QuestionLimit
@@ -438,17 +482,36 @@ func (s *Service) Apply(ctx context.Context, id string, req Mutation) (*Status, 
 				return fmt.Errorf("问答上限不能低于已用和处理中条数")
 			}
 			m.QuestionLimit = limit
+		case "set_image_limit":
+			if !exists || req.ImageLimit == nil || req.Images != nil || req.Questions != nil || days != 0 || tokens != 0 || req.PlanID != "" {
+				return fmt.Errorf("设置图片上限仅允许指定累计总张数")
+			}
+			if *req.ImageLimit < m.UsedImages+m.ReservedImages {
+				return fmt.Errorf("图片上限不能低于已用和处理中张数")
+			}
+			m.ImageLimit = *req.ImageLimit
+		case "resolve_image":
+			if !exists || req.Images != nil || req.Questions != nil || req.QuestionLimit != nil || days != 0 || tokens != 0 || req.PlanID != "" || (req.ImageOutcome != "succeeded" && req.ImageOutcome != "failed") {
+				return fmt.Errorf("请明确图片任务和成功或失败的核实结果")
+			}
+			taskID, err := imageTaskID(req.ImageTaskID)
+			if err != nil {
+				return err
+			}
+			if err := settleImageInTx(tx, &m, taskID, req.ImageOutcome); err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("未知操作")
 		}
-		if m.TokenLimit > MaxTokens || m.QuestionLimit > MaxQuestions {
+		if m.TokenLimit > MaxTokens || m.QuestionLimit > MaxQuestions || m.ImageLimit > MaxImages {
 			return fmt.Errorf("额度超过上限")
 		}
 		if e := tx.Save(&m).Error; e != nil {
 			return e
 		}
 		after, _ := json.Marshal(m)
-		return tx.Create(&Adjustment{ID: uuid.NewString(), OperationID: req.OperationID, Fingerprint: fingerprint, UserID: id, ActorID: actor, Kind: req.Kind, Tokens: tokens, Questions: questions, DurationDays: days, Note: req.Note, Before: string(before), After: string(after)}).Error
+		return tx.Create(&Adjustment{ID: uuid.NewString(), OperationID: req.OperationID, Fingerprint: fingerprint, UserID: id, ActorID: actor, Kind: req.Kind, Tokens: tokens, Questions: questions, Images: images, ImageTaskID: req.ImageTaskID, ImageOutcome: req.ImageOutcome, DurationDays: days, Note: req.Note, Before: string(before), After: string(after)}).Error
 	})
 	if err != nil {
 		return nil, err

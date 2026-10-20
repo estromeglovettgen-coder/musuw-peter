@@ -34,10 +34,14 @@ func TestFireQuestionPlanHTTPContract(t *testing.T) {
 	})
 	r.POST("/plans", h.SavePlan)
 	r.PUT("/plans/:id", h.SavePlan)
+	var imageLimit any
 	send := func(method, path string, questions any) *httptest.ResponseRecorder {
 		body := map[string]any{"name": "十问体验", "duration_days": 30, "token_limit": 100000, "active": true}
 		if questions != nil {
 			body["question_limit"] = questions
+		}
+		if imageLimit != nil {
+			body["image_limit"] = imageLimit
 		}
 		data, err := json.Marshal(body)
 		require.NoError(t, err)
@@ -50,6 +54,7 @@ func TestFireQuestionPlanHTTPContract(t *testing.T) {
 	actor = "ordinary"
 	require.Equal(t, 403, send("POST", "/plans", 10).Code)
 	actor = "admin"
+	imageLimit = 10
 	w := send("POST", "/plans", 10)
 	require.Equal(t, 200, w.Code, w.Body.String())
 	var result struct {
@@ -57,12 +62,20 @@ func TestFireQuestionPlanHTTPContract(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
 	require.EqualValues(t, 10, result.Data.QuestionLimit)
+	require.EqualValues(t, 10, result.Data.ImageLimit)
 	id := result.Data.ID
+	imageLimit = 0
 	w = send("PUT", "/plans/"+id, 0)
 	require.Equal(t, 200, w.Code, w.Body.String())
 	var saved firebilling.Plan
 	require.NoError(t, db.Where("id = ?", id).Take(&saved).Error)
 	require.Zero(t, saved.QuestionLimit)
+	require.Zero(t, saved.ImageLimit)
+	for _, value := range []any{-1, firebilling.MaxImages + 1, 1.5} {
+		imageLimit = value
+		require.Equal(t, 400, send("POST", "/plans", 10).Code)
+	}
+	imageLimit = nil
 	for _, value := range []any{-1, firebilling.MaxQuestions + 1, 1.5} {
 		require.Equal(t, 400, send("POST", "/plans", value).Code)
 	}

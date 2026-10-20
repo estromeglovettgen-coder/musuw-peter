@@ -97,7 +97,7 @@ func (h *FireBillingHandler) SavePlan(c *gin.Context) {
 		return
 	}
 	var p firebilling.Plan
-	if c.ShouldBindJSON(&p) != nil || strings.TrimSpace(p.Name) == "" || len(p.Name) > 100 || p.DurationDays < 1 || p.DurationDays > 36500 || p.TokenLimit < 1 || p.TokenLimit > firebilling.MaxTokens || p.QuestionLimit < 0 || p.QuestionLimit > firebilling.MaxQuestions {
+	if c.ShouldBindJSON(&p) != nil || strings.TrimSpace(p.Name) == "" || len(p.Name) > 100 || p.DurationDays < 1 || p.DurationDays > 36500 || p.TokenLimit < 1 || p.TokenLimit > firebilling.MaxTokens || p.QuestionLimit < 0 || p.QuestionLimit > firebilling.MaxQuestions || p.ImageLimit < 0 || p.ImageLimit > firebilling.MaxImages {
 		c.JSON(400, gin.H{"success": false, "message": "请输入有效名称、1–36500天、正数Token额度和非负问答条数"})
 		return
 	}
@@ -115,6 +115,7 @@ func (h *FireBillingHandler) SavePlan(c *gin.Context) {
 			existing.DurationDays = p.DurationDays
 			existing.TokenLimit = p.TokenLimit
 			existing.QuestionLimit = p.QuestionLimit
+			existing.ImageLimit = p.ImageLimit
 			existing.Active = p.Active
 			e = db.Save(&existing).Error
 			p = existing
@@ -165,13 +166,22 @@ func (h *FireBillingHandler) User(c *gin.Context) {
 	s, e := h.billing.Status(c.Request.Context(), id)
 	var usage []firebilling.Call
 	var adjustments []firebilling.Adjustment
+	imageCalls := []firebilling.ImageCall{}
 	if e == nil {
 		e = db.Where("user_id = ? AND status = ?", id, "settled").Order("created_at DESC").Limit(50).Find(&usage).Error
 	}
 	if e == nil {
 		e = db.Where("user_id = ?", id).Order("created_at DESC").Limit(100).Find(&adjustments).Error
 	}
-	fireResult(c, gin.H{"user": u.ToUserInfo(), "membership": s, "usage": usage, "adjustments": adjustments}, e)
+	if e == nil {
+		e = db.Where("user_id = ? AND status IN ?", id, []string{"reserved", "unknown"}).Order("created_at ASC").Find(&imageCalls).Error
+	}
+	if e == nil {
+		var completed []firebilling.ImageCall
+		e = db.Where("user_id = ? AND status IN ?", id, []string{"succeeded", "failed"}).Order("created_at DESC").Limit(100).Find(&completed).Error
+		imageCalls = append(imageCalls, completed...)
+	}
+	fireResult(c, gin.H{"user": u.ToUserInfo(), "membership": s, "usage": usage, "adjustments": adjustments, "image_calls": imageCalls}, e)
 }
 func (h *FireBillingHandler) Adjust(c *gin.Context) {
 	if !h.enabled(c, true) {

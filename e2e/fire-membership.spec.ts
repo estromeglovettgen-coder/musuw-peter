@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 
 const baseMembership = { managed: true, unlimited: false, plan_name: '火种月度', status: 'active', starts_at: '2026-10-01T00:00:00Z', expires_at: '2026-11-01T00:00:00Z', token_limit: 1000000, used_tokens: 999999, reserved_tokens: 0, remaining_tokens: 1, input_tokens: 800000, output_tokens: 199999, estimated_tokens: 10 }
 const usage = [{ id: 'usage-1', input_tokens: 800, output_tokens: 200, total_tokens: 1000, estimated: true, purpose: 'chat', created_at: '2026-10-17T12:00:00Z' }]
 const plan = { id: 'plan-monthly', name: '火种月度', duration_days: 30, token_limit: 1000000, active: true }
 async function api(page: Page, options: { admin?: boolean; status?: string; unavailable?: boolean } = {}) {
   const admin = !!options.admin, writes: Array<{ path: string; body: any }> = [], calls: string[] = []
-  const state = { membership: { ...baseMembership, status: options.status || 'active' }, unavailable: !!options.unavailable, createFailure: false, adjustmentFailure: false, plans: [{ ...plan }] }
+  const state = { membership: { ...baseMembership, status: options.status || 'active' }, unavailable: !!options.unavailable, createFailure: false, adjustmentFailure: false, plans: [{ ...plan }], imageCalls: [] as any[] }
   const member = { id: 'member-fixture', username: 'Taylor学员', email: 'fixture@example.test', tenant_id: 42, is_system_admin: false, created_at: '2026-10-01T00:00:00Z' }
   await page.route('**/api/v1/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname
@@ -29,14 +30,21 @@ async function api(page: Page, options: { admin?: boolean; status?: string; unav
     if (path.endsWith('/adjustments')) {
       if (state.adjustmentFailure) { state.adjustmentFailure = false; return route.fulfill({ status: 503, json: { success: false, message: '调整暂时失败' } }) }
       const mutation = request.postDataJSON()
-      if (mutation.kind === 'set_question_limit' || mutation.questions) {
+      if (mutation.kind === 'resolve_image') {
+        const call = state.imageCalls.find(item => item.task_id === mutation.image_task_id)
+        if (call) call.status = mutation.image_outcome
+      } else if (mutation.kind === 'set_image_limit' || mutation.images != null) {
+        const current = state.membership as any
+        const limit = mutation.kind === 'set_image_limit' ? mutation.image_limit : Number(current.image_limit || 0) + mutation.images
+        Object.assign(state.membership, { image_limit: limit, remaining_images: limit - Number(current.used_images || 0) - Number(current.reserved_images || 0) })
+      } else if (mutation.kind === 'set_question_limit' || mutation.questions) {
         const current = state.membership as any
         const limit = mutation.kind === 'set_question_limit' ? mutation.question_limit : Number(current.question_limit || 0) + mutation.questions
         Object.assign(state.membership, { question_limit: limit, remaining_questions: limit ? limit - Number(current.used_questions || 0) - Number(current.reserved_questions || 0) : 0 })
       } else state.membership = { ...state.membership, remaining_tokens: 501 }
       return ok(state.membership)
     }
-    if (/\/fire\/users\//.test(path)) return ok({ user: member, membership: state.membership, usage, adjustments: [] })
+    if (/\/fire\/users\//.test(path)) return ok({ user: member, membership: state.membership, usage, adjustments: [], image_calls: state.imageCalls })
     if (path.endsWith('/users/create')) {
       if (state.createFailure) { state.createFailure = false; return route.fulfill({ status: 503, json: { success: false, message: '创建暂时失败' } }) }
       return route.fulfill({ status: 201, json: { user: { ...member, id: 'created-user', username: 'taylor001', email: 'taylor001@fire.localhost.test' }, generated_password: 'Ty123456', membership: state.membership } })
@@ -252,7 +260,7 @@ test('administrator edits native plan settings including its active flag', async
   await dialog.getByRole('checkbox', { name: '启用套餐' }).uncheck()
   await dialog.getByRole('button', { name: '保存套餐', exact: true }).click()
   await expect(dialog).toBeHidden()
-  expect(mock.writes.find(write => write.path.endsWith(`/plans/${plan.id}`))?.body).toEqual({ name: '季度套餐', duration_days: 90, token_limit: 2000000, question_limit: 0, active: false })
+  expect(mock.writes.find(write => write.path.endsWith(`/plans/${plan.id}`))?.body).toEqual({ name: '季度套餐', duration_days: 90, token_limit: 2000000, question_limit: 0, image_limit: 0, active: false })
 })
 
 test('an empty Go plans slice is rendered as an empty catalog without a fake service failure', async ({ page }) => {
@@ -385,4 +393,305 @@ for (const [tokenRemaining, questionRemaining, label] of [[80, 2, '20%'], [20, 9
   await expect(card).toContainText(label)
   await expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuenow', label.slice(0, -1))
   await expect(card).not.toContainText(/Token|问答|明细/i)
+})
+
+
+test('image allowance plans, signup overrides and adjustments preserve independent chat allowances', async ({ page }) => {
+  const mock = await api(page, { admin: true })
+  Object.assign(mock.state.membership, { image_limit: 10, used_images: 2, reserved_images: 1, remaining_images: 7 })
+  await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+  await page.locator('.t-tabs__nav-item').filter({ hasText: /^套餐$/ }).click()
+  await page.getByRole('button', { name: '新建套餐', exact: true }).click()
+  const planDialog = page.getByRole('dialog', { name: '新建套餐', exact: true })
+  await planDialog.getByLabel('套餐名称', { exact: true }).fill('十图体验')
+  await planDialog.getByLabel('套餐图片张数', { exact: true }).fill('10')
+  await planDialog.getByRole('button', { name: '保存套餐' }).click()
+  await expect(page.locator('.fire-management__plans')).toContainText('10 张图片')
+  expect(mock.writes.find(item => item.path.endsWith('/plans'))?.body).toMatchObject({ image_limit: 10, question_limit: 0, token_limit: 1000000 })
+  for (const override of ['', '0', '4']) {
+    await page.getByRole('button', { name: '新建账号', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '新建账号', exact: true })
+    await dialog.getByLabel('新账号套餐', { exact: true }).selectOption('new-plan')
+    await expect(dialog).toContainText('10 张图片')
+    await dialog.getByLabel('新账号图片张数', { exact: true }).fill(override)
+    await dialog.getByRole('button', { name: '创建账号', exact: true }).click()
+    await expect(dialog.getByTestId('generated-password')).toBeVisible()
+    const body = mock.writes.filter(item => item.path.endsWith('/users/create')).at(-1)?.body
+    if (override === '') expect(body).not.toHaveProperty('fire_images')
+    else expect(body.fire_images).toBe(Number(override))
+    await dialog.getByRole('button', { name: '我已保存，关闭' }).click()
+  }
+  await page.locator('.t-tabs__nav-item').filter({ hasText: /^用户$/ }).click()
+  await page.getByRole('button', { name: '详情', exact: true }).click()
+  const detail = page.locator('.t-drawer')
+  for (const label of ['图片总额度', '已用图片', '剩余图片', '预占图片']) await expect(detail.getByText(label, { exact: true })).toBeVisible()
+  for (const [kind, amount] of [['topup', '5'], ['renew', '2'], ['set_image_limit', '20']]) {
+    await detail.getByRole('button', { name: '调整会员', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '调整会员', exact: true })
+    await dialog.getByLabel('会员操作').selectOption(kind)
+    await dialog.getByLabel(kind === 'set_image_limit' ? '用户图片总额度' : '调整图片张数', { exact: true }).fill(amount)
+    await dialog.getByRole('button', { name: '确认调整', exact: true }).click()
+    await expect(dialog).toBeHidden()
+    const body = mock.writes.filter(item => item.path.endsWith('/adjustments')).at(-1)?.body
+    expect(body).toMatchObject(kind === 'set_image_limit' ? { kind, image_limit: 20 } : { kind, images: Number(amount) })
+    if (kind === 'topup') { expect(body.tokens).toBe(0); expect(body).not.toHaveProperty('duration_days'); expect(body).not.toHaveProperty('questions') }
+  }
+  await detail.getByRole('button', { name: '调整会员', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '调整会员', exact: true })
+  await dialog.getByLabel('会员操作').selectOption('set_image_limit')
+  await dialog.getByLabel('用户图片总额度', { exact: true }).fill('0')
+  const before = mock.writes.length
+  await dialog.getByRole('button', { name: '确认调整', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('不能低于已用和预占图片')
+  expect(mock.writes).toHaveLength(before)
+})
+
+for (const outcome of ['failed', 'succeeded'] as const) test(`administrator explicitly reconciles uncertain image tasks as ${outcome} without rerunning generation`, async ({ page }) => {
+  const mock = await api(page, { admin: true })
+  mock.state.imageCalls = [{ id: 'image-call-1', task_id: 'uncertain-image-1', status: 'unknown', created_at: '2026-10-19T12:00:00Z' }]
+  await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+  await page.getByRole('button', { name: '详情', exact: true }).click()
+  await page.getByRole('button', { name: outcome === 'failed' ? '确认失败释放' : '确认已交付', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '调整会员', exact: true })
+  await expect(dialog).toContainText('不会重新生成图片')
+  expect(mock.writes.filter(item => item.path.endsWith('/adjustments'))).toHaveLength(0)
+  await dialog.getByLabel('调整备注').fill('已核对实际交付结果')
+  await dialog.getByRole('button', { name: '确认调整', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  const mutations = mock.writes.filter(item => item.path.endsWith('/adjustments'))
+  expect(mutations).toHaveLength(1)
+  expect(mutations[0].body).toMatchObject({ kind: 'resolve_image', image_task_id: 'uncertain-image-1', image_outcome: outcome, note: '已核对实际交付结果' })
+  expect(Object.keys(mutations[0].body).sort()).toEqual(['image_outcome', 'image_task_id', 'kind', 'note', 'operation_id'])
+  await expect(page.getByRole('button', { name: '确认失败释放', exact: true })).toHaveCount(0)
+})
+
+test('zero image allowance neither grants unlimited images nor changes ordinary chat percentage', async ({ page }) => {
+  const mock = await api(page)
+  Object.assign(mock.state.membership, { token_limit: 100, remaining_tokens: 80, image_limit: 0, used_images: 0, reserved_images: 0, remaining_images: 0 })
+  await page.goto('/e2e/fire-membership-harness.html')
+  await page.locator('.visual-user-menu__trigger').click()
+  const card = page.getByRole('region', { name: '会员套餐' })
+  await expect(card).toContainText('80%')
+  await expect(card).not.toContainText(/图片|Token|明细/i)
+  expect(mock.calls.filter(path => path.includes('/system/admin/'))).toEqual([])
+})
+
+
+test('showcase establishes native identity before embedding and recovers from bootstrap failure', async ({ page }, info) => {
+  await api(page)
+  let available = false, bootstraps = 0, frames = 0
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => {
+    bootstraps++
+    expect(route.request().headers().authorization).toBe('Bearer membership-fixture-token')
+    return available ? route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }) : route.fulfill({ status: 503, json: { success: false, message: '暂不可用' } })
+  })
+  await page.route('**/tools/fire-showcase/', route => {
+    frames++
+    expect(available).toBe(true)
+    expect(route.request().url()).not.toContain('token')
+    return route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench"><main><h1>素材工作台</h1><button>上传参考照片</button></main></body>' })
+  })
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+  expect(frames).toBe(0)
+  available = true
+  await page.getByRole('button', { name: '重试', exact: true }).click()
+  await expect(page.frameLocator('iframe').getByRole('button', { name: '上传参考照片' })).toBeVisible()
+  await expect(page.getByRole('status')).toHaveCount(0)
+  expect(bootstraps).toBe(2); expect(frames).toBe(1)
+  await page.screenshot({ path: info.outputPath('showcase-native-frame.png') })
+})
+
+test('showcase rejects an unavailable embedded route and retries without a second login UI', async ({ page }) => {
+  await api(page)
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }))
+  let available = false
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ status: available ? 200 : 503, contentType: 'text/html', body: available ? '<body class="fire-workbench"><main>素材工作台</main></body>' : '<h1>503 Service Unavailable</h1>' }))
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+  await expect(page.getByRole('textbox', { name: /密码|账号/ })).toHaveCount(0)
+  available = true
+  await page.getByRole('button', { name: '重试', exact: true }).click()
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('素材工作台')
+})
+
+
+test('native showcase navigation follows agents in expanded and collapsed sidebar', async ({ page }) => {
+  await api(page)
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }))
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench"><main>展示面原工作台</main></body>' }))
+  await page.goto('/e2e/fire-membership-harness.html?nav')
+  const sidebar = page.locator('.visual-sidebar')
+  const order = await sidebar.locator('.visual-sidebar__primary-actions button').allTextContents()
+  expect(order.findIndex(text => text.trim() === '展示面')).toBe(order.findIndex(text => text.trim() === '智能体') + 1)
+  await sidebar.getByRole('button', { name: '展示面', exact: true }).click()
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('展示面原工作台')
+  await expect(sidebar.locator('[data-guide="nav-showcase"]')).toHaveClass(/is-active/)
+  await sidebar.getByRole('button', { name: '收起侧边栏', exact: true }).click()
+  await expect(sidebar.getByRole('button', { name: '展示面', exact: true })).toHaveClass(/is-active/)
+})
+
+test('showcase clears private frame on native identity change before loading the next workspace', async ({ page }) => {
+  await api(page)
+  let nextAccount = false, release: (() => void) | undefined
+  await page.route('**/api/v1/fire-showcase/bootstrap', async route => {
+    if (nextAccount) await new Promise<void>(resolve => { release = resolve })
+    return route.fulfill({ json: { success: true, data: { user_id: nextAccount ? 'member-two' : 'member-fixture', tenant_id: nextAccount ? 99 : 42 } } })
+  })
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench"><main>私有作品</main></body>' }))
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('私有作品')
+  nextAccount = true
+  await page.evaluate(() => { const auth = (window as any).__fireFixture.auth; auth.setToken('next-account'); auth.setUser({ ...auth.user, id: 'member-two' }); auth.setTenant({ id: 99 }) })
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await expect(page.getByRole('status')).toContainText('正在打开工作台')
+  await expect.poll(() => !!release).toBe(true)
+  release!()
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('私有作品')
+})
+
+
+test('administrator can explicitly set zero image grant on an unused account', async ({ page }) => {
+  const mock = await api(page, { admin: true })
+  Object.assign(mock.state.membership, { image_limit: 10, used_images: 0, reserved_images: 0, remaining_images: 10 })
+  await page.goto('/e2e/fire-membership-harness.html?admin&page=manage')
+  await page.getByRole('button', { name: '详情', exact: true }).click()
+  await page.getByRole('button', { name: '调整会员', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '调整会员', exact: true })
+  await dialog.getByLabel('会员操作').selectOption('set_image_limit')
+  await dialog.getByLabel('用户图片总额度', { exact: true }).fill('0')
+  await dialog.getByRole('button', { name: '确认调整', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  expect(mock.writes.find(item => item.path.endsWith('/adjustments'))?.body).toMatchObject({ kind: 'set_image_limit', image_limit: 0 })
+  await expect(page.locator('.t-drawer dl div').filter({ has: page.locator('dt', { hasText: /^剩余图片$/ }) })).toContainText('0')
+})
+
+test('showcase waits for embedded native app readiness and surfaces late host failure', async ({ page }) => {
+  await api(page)
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }))
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench auth-pending" data-fire-host-state="ready"><main>原生工作台</main></body>' }))
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('原生工作台')
+  await expect(page.getByRole('status')).toContainText('正在打开工作台')
+  const frame = page.frames().find(frame => frame.url().endsWith('/tools/fire-showcase/'))!
+  await frame.evaluate(() => document.body.classList.remove('auth-pending'))
+  await expect(page.getByRole('status')).toHaveCount(0)
+  await expect(page.locator('iframe')).toHaveClass(/is-ready/)
+  await page.locator('iframe').evaluate((element: HTMLIFrameElement) => { element.contentDocument!.body.dataset.fireHostState = 'failed' })
+  await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+  await expect(page.locator('iframe')).toHaveCount(0)
+})
+
+test('showcase gives retry after embedded initialization timeout without automatic reload', async ({ page }) => {
+  await page.clock.install()
+  await api(page)
+  let calls = 0
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => { calls++; return route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }) })
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: '<body class="fire-workbench auth-pending"><main>正在初始化</main></body>' }))
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.frameLocator('iframe').locator('main')).toHaveText('正在初始化')
+  await expect(page.getByRole('status')).toContainText('正在打开工作台')
+  await page.clock.fastForward(21000)
+  await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+  await expect(page.getByRole('button', { name: '重试', exact: true })).toBeVisible()
+  expect(calls).toBe(1)
+})
+
+test('showcase treats sidecar JSON 502 as failure instead of a ready workspace', async ({ page }) => {
+  await api(page)
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42 } } }))
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ status: 502, json: { success: false, error: 'sidecar unavailable' } }))
+  await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+  await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '重试', exact: true })).toBeVisible()
+  await expect(page.locator('main')).not.toContainText('sidecar unavailable')
+})
+
+
+async function delayedShowcase(page: Page, realHost = true) {
+  await api(page)
+  await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42, allowance: { status: 'active', remaining_images: 10 } } } }))
+  let release!: () => void, pendingImage = false
+  const heldImage = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/tools/fire-showcase/held-original.png', async route => {
+    pendingImage = true; await heldImage; pendingImage = false
+    try { await route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC', 'base64') }) } catch { /* removed iframe cancels the intentionally held image */ }
+  })
+  await page.route('**/tools/fire-showcase/*.js*', route => {
+    const path = new URL(route.request().url()).pathname
+    const body = path.endsWith('/fire-host.js') ? readFileSync(new URL('../tools/fire-showcase/site/fire-host.js', import.meta.url), 'utf8') : path.endsWith('/workbench.js') ? "document.body.classList.remove('auth-pending')" : ''
+    return route.fulfill({ contentType: 'text/javascript', body })
+  })
+  await page.route('**/tools/fire-showcase/', route => route.fulfill({ contentType: 'text/html', body: `<body class="fire-workbench auth-pending"><nav class="app-rail"></nav><section class="setting-section"><h3 id="model-label"></h3></section><main>已经可以编辑的工作台</main><img src="/tools/fire-showcase/held-original.png">${realHost ? '<script src="/tools/fire-showcase/fire-host.js"></script>' : ''}</body>` }))
+  return { release, pending: () => pendingImage }
+}
+
+test('showcase becomes ready before iframe load while a restored original image remains pending for 25 seconds', async ({ page }) => {
+  await page.clock.install()
+  const image = await delayedShowcase(page)
+  try {
+    await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+    await expect(page.frameLocator('iframe').locator('body')).not.toHaveClass(/auth-pending/)
+    expect(image.pending()).toBe(true)
+    await expect(page.locator('iframe')).toHaveClass(/is-ready/, { timeout: 1000 })
+    await page.clock.fastForward(25000)
+    expect(image.pending()).toBe(true)
+    await expect(page.locator('iframe')).toHaveCount(1)
+    await expect(page.locator('iframe')).toHaveClass(/is-ready/)
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  } finally { image.release() }
+})
+
+test('showcase ignores forged ready sources and origins and still requires the real child DOM state', async ({ page }) => {
+  const image = await delayedShowcase(page, false)
+  try {
+    await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+    await expect(page.frameLocator('iframe').locator('main')).toHaveText('已经可以编辑的工作台')
+    await page.locator('iframe').evaluate((element: HTMLIFrameElement) => { element.contentDocument!.body.dataset.fireHostState = 'ready'; element.contentDocument!.body.classList.remove('auth-pending') })
+    await page.evaluate(() => {
+      const source = document.querySelector('iframe')!.contentWindow
+      const data = { type: 'fire-showcase:state', state: 'ready' }
+      window.dispatchEvent(new MessageEvent('message', { origin: 'https://untrusted.invalid', source, data }))
+      window.dispatchEvent(new MessageEvent('message', { origin: location.origin, source: window, data }))
+      window.dispatchEvent(new MessageEvent('message', { origin: location.origin, source, data: { ...data, type: 'other-tool:state' } }))
+    })
+    await expect(page.getByRole('status')).toContainText('正在打开工作台')
+    await page.locator('iframe').evaluate((element: HTMLIFrameElement) => element.contentDocument!.body.classList.add('auth-pending'))
+    await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { origin: location.origin, source: document.querySelector('iframe')!.contentWindow, data: { type: 'fire-showcase:state', state: 'ready' } })))
+    await expect(page.getByRole('status')).toContainText('正在打开工作台')
+    await page.locator('iframe').evaluate((element: HTMLIFrameElement) => element.contentDocument!.body.classList.remove('auth-pending'))
+    await expect(page.locator('iframe')).toHaveClass(/is-ready/)
+  } finally { image.release() }
+})
+
+test('showcase host failure before iframe load remains retryable and removes its message listener on unmount', async ({ page }) => {
+  await page.addInitScript(() => {
+    const listeners = new Set<any>(), add = window.addEventListener.bind(window), remove = window.removeEventListener.bind(window)
+    ;(window as any).__messageListeners = listeners
+    window.addEventListener = ((type: string, listener: any, options: any) => { if (type === 'message') listeners.add(listener); return add(type, listener, options) }) as any
+    window.removeEventListener = ((type: string, listener: any, options: any) => { if (type === 'message') listeners.delete(listener); return remove(type, listener, options) }) as any
+  })
+  const image = await delayedShowcase(page)
+  try {
+    await page.goto('/e2e/fire-membership-harness.html?page=showcase')
+    await expect(page.locator('iframe')).toHaveClass(/is-ready/)
+    const listenerCount = await page.evaluate(() => (window as any).__messageListeners.size)
+    expect(listenerCount).toBeGreaterThan(0)
+    await page.locator('iframe').evaluate((element: HTMLIFrameElement) => { element.contentDocument!.body.dataset.fireHostState = 'failed' })
+    await expect(page.getByRole('alert')).toContainText('展示面暂时无法打开')
+    await expect(page.locator('iframe')).toHaveCount(0)
+    await page.getByRole('button', { name: '重试', exact: true }).click()
+    await expect(page.locator('iframe')).toHaveClass(/is-ready/)
+    expect(await page.evaluate(() => (window as any).__messageListeners.size)).toBe(listenerCount)
+    await page.evaluate(async () => {
+      ;(window as any).__oldShowcaseWindow = document.querySelector('iframe')!.contentWindow
+      await (window as any).__fireFixture.router.push('/platform/creatChat')
+    })
+    await expect(page.locator('iframe')).toHaveCount(0)
+    expect(await page.evaluate(() => (window as any).__messageListeners.size)).toBe(listenerCount - 1)
+    await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { origin: location.origin, source: (window as any).__oldShowcaseWindow, data: { type: 'fire-showcase:state', state: 'failed' } })))
+    await expect(page.getByText('历史和新对话入口', { exact: true })).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  } finally { image.release() }
 })

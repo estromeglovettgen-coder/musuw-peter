@@ -143,7 +143,7 @@ function isAllowedLitePath(path: string) {
     path === '/platform/marketplace-admin' ||
     path === '/platform/agents' ||
     path === '/platform/settings' ||
-    (isPeterWorkspace && (path === '/platform/usage' || path === '/platform/manage')) ||
+    (isPeterWorkspace && (path === '/platform/usage' || path === '/platform/manage' || path === '/platform/showcase')) ||
     path === '/onboarding/workspace'
   )
 }
@@ -236,6 +236,11 @@ const router = createRouter({
         {
           path: 'usage', name: 'fireUsage', component: () => import('../views/fire/FireUsage.vue'),
           beforeEnter: () => (isPeterWorkspace && useAuthStore().isSystemAdmin) || { path: '/platform/creatChat' },
+          meta: { requiresInit: true, requiresAuth: true },
+        },
+        {
+          path: 'showcase', name: 'fireShowcase', component: () => import('../views/fire/ShowcaseView.vue'),
+          beforeEnter: () => isPeterWorkspace || { path: '/platform/creatChat' },
           meta: { requiresInit: true, requiresAuth: true },
         },
         {

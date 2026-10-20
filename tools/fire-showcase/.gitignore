@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+server.log
+server.pid
+.env
+generation-attempt.json
+generation-attempt.*.json
+generation-result.json

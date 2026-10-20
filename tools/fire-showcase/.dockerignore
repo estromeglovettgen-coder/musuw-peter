@@ -1,0 +1,21 @@
+# Build with tools/fire-showcase as the context. Explicitly allow only runtime
+# dependencies and public static resources; local keys/history never enter it.
+**
+!Dockerfile
+!.dockerignore
+!fire_server.py
+!server.py
+!generation_tasks.py
+!modelflare_adapter.py
+!reference_workflow.py
+!public-config.json
+!site/
+!site/**
+
+**/.env
+**/.env.*
+**/.DS_Store
+**/__pycache__
+**/*.pyc
+**/*.pem
+**/*.key
