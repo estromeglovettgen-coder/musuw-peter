@@ -3,6 +3,7 @@
   "use strict";
   let bridge = null;
   let activeView = "studio";
+  const collectionLimits = { materials: 20, history: 20 };
   const views = new Map([
     ["studio", document.querySelector("#studio")],
     ["materials", document.querySelector("#materials-view")],
@@ -83,12 +84,17 @@
     if (!target || !bridge) return;
     target.replaceChildren();
     const materials = bridge.getMaterials?.() || [];
+    const removedCount = bridge.getRemovedMaterialCount?.() || 0;
+    if (removedCount) {
+      const restore = button(`恢复已移除素材（${removedCount}）`, "arrows-clockwise", { "data-material-restore": "" });
+      restore.classList.add("collection-recovery"); target.append(restore);
+    }
     if (!materials.length) {
       const action = button("上传第一张素材", "plus", { "data-upload-references": "" });
       emptyState(target, "你的素材库，等你来填满", "上传人像、穿搭或场景照片，素材会保存在这台设备上。", action);
       return;
     }
-    materials.forEach((item, index) => {
+    materials.slice(0, collectionLimits.materials).forEach((item, index) => {
       const card = document.createElement("article");
       card.className = "collection-card workspace-image-card material-card";
       const imageButton = document.createElement("button");
@@ -106,10 +112,12 @@
       const name = document.createElement("strong");
       name.textContent = item.name || "参考素材";
       const use = button("用于创作", "plus", { "data-material-use": String(index) });
-      details.append(name, use);
+      const remove = button("移除素材", "trash", { "data-material-remove": String(index) });
+      details.append(name, use, remove);
       card.append(imageButton, details);
       target.append(card);
     });
+    if (materials.length > collectionLimits.materials) appendLoadMore(target, "materials", materials.length);
   }
 
   function renderHistory() {
@@ -117,12 +125,17 @@
     if (!target || !bridge) return;
     target.replaceChildren();
     const results = bridge.getResults?.() || [];
+    const removedCount = bridge.getRemovedResultCount?.() || 0;
+    if (removedCount) {
+      const restore = button(`恢复已移除作品（${removedCount}）`, "arrows-clockwise", { "data-history-restore": "" });
+      restore.classList.add("collection-recovery"); target.append(restore);
+    }
     if (!results.length) {
       const action = button("开始一次创作", "sparkle", { "data-return-studio": "" });
       emptyState(target, "下一张作品，从这里开始", "完成生成后，作品将出现在这里，随时预览或下载原图。", action);
       return;
     }
-    results.forEach((item, index) => {
+    results.slice(0, collectionLimits.history).forEach((item, index) => {
       const card = document.createElement("article");
       card.className = "collection-card workspace-image-card history-card";
       const open = document.createElement("button");
@@ -142,10 +155,18 @@
       const date = document.createElement("small");
       date.textContent = item.savedAt ? new Date(item.savedAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "保存在本机";
       const download = button("下载原图", "download-simple", { "data-history-download": String(index) });
-      details.append(name, date, download);
+      const use = button("用作参考", "plus", { "data-history-use": String(index) });
+      const remove = button("移除作品", "trash", { "data-history-remove": String(index) });
+      details.append(name, date, use, download, remove);
       card.append(open, details);
       target.append(card);
     });
+    if (results.length > collectionLimits.history) appendLoadMore(target, "history", results.length);
+  }
+
+  function appendLoadMore(target, collection, total) {
+    const more = button(`加载更多（还有 ${total - collectionLimits[collection]} 张）`, "plus", { "data-collection-more": collection });
+    more.classList.add("collection-recovery"); target.append(more);
   }
 
   function renderSelection() {
@@ -275,15 +296,15 @@
       heading.append(title, info);
       row.append(heading);
       const detail = document.createElement("p");
-      detail.textContent = task.status === "unknown" ? "暂未确认生成结果，请核对中转站用量日志。此任务不会重发。" : task.error?.message || (task.status === "queued" ? "离开页面后，任务也会保留。" : "");
+      detail.textContent = task.status === "unknown" ? "结果尚未确认，先查询任务状态，请勿重复生成" : task.error?.message || (task.status === "queued" ? "离开页面后，任务也会保留。" : "");
       if (detail.textContent) row.append(detail);
-      if (task.error?.providerMessage || task.error?.providerParam) {
+      if ((!window.FireShowcaseHost || task.status !== "unknown") && (task.error?.providerMessage || task.error?.providerParam)) {
         const provider = document.createElement("small");
         provider.className = "task-provider-error";
         provider.textContent = [task.error.providerMessage, task.error.providerParam ? `相关参数：${task.error.providerParam}` : ""].filter(Boolean).join(" · ");
         row.append(provider);
       }
-      if (task.error?.transport?.summary) {
+      if ((!window.FireShowcaseHost || task.status !== "unknown") && task.error?.transport?.summary) {
         const transport = task.error.transport;
         const diagnostic = document.createElement("small");
         diagnostic.className = "task-provider-error";
@@ -330,6 +351,12 @@
   }
 
   document.addEventListener("click", (event) => {
+    const more = event.target.closest("[data-collection-more]");
+    if (more && Object.hasOwn(collectionLimits, more.dataset.collectionMore)) {
+      collectionLimits[more.dataset.collectionMore] += 20;
+      if (more.dataset.collectionMore === "materials") renderMaterials(); else renderHistory();
+      return;
+    }
     const nav = event.target.closest("[data-workbench-view]");
     if (nav) { navigate(nav.dataset.workbenchView); return; }
     if (event.target.closest("[data-brand-home]")) { event.preventDefault(); navigate("studio"); return; }
@@ -338,6 +365,12 @@
     if (event.target.closest("#upload-references-button, [data-upload-references]")) {
       navigate(creationView()); document.querySelector("#reference-batch-input")?.click(); return;
     }
+    if (event.target.closest("[data-material-restore]")) { bridge?.restoreMaterials?.(); return; }
+    if (event.target.closest("[data-history-restore]")) { bridge?.restoreResults?.(); return; }
+    const materialRemove = event.target.closest("[data-material-remove]");
+    if (materialRemove && bridge) { bridge.removeMaterial?.(bridge.getMaterials?.()[Number(materialRemove.dataset.materialRemove)]); return; }
+    const historyRemove = event.target.closest("[data-history-remove]");
+    if (historyRemove && bridge) { bridge.removeResult?.(bridge.getResults?.()[Number(historyRemove.dataset.historyRemove)]); return; }
     const materialUse = event.target.closest("[data-material-use]");
     if (materialUse && bridge) {
       const item = bridge.getMaterials?.()[Number(materialUse.getAttribute("data-material-use"))];
@@ -369,6 +402,12 @@
     }
     const historyDownload = event.target.closest("[data-history-download]");
     if (historyDownload && bridge) { bridge.downloadResult?.(bridge.getResults?.()[Number(historyDownload.getAttribute("data-history-download"))], historyDownload); return; }
+    const historyUse = event.target.closest("[data-history-use]");
+    if (historyUse && bridge) {
+      const item = bridge.getResults?.()[Number(historyUse.dataset.historyUse)];
+      void Promise.resolve(bridge.useResult?.(item, historyUse)).then((added) => { if (added) navigate(creationView()); });
+      return;
+    }
     if (event.target.closest("#preview-expand-button")) {
       const item = bridge?.getActiveResult?.();
       if (item) bridge.previewResult?.(item);

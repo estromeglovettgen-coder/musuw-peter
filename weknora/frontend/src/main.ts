@@ -15,7 +15,7 @@ import "@/assets/fire/fire-theme.css";
 // RecycleScroller/DynamicScroller to size their viewport correctly.
 // Without it the scroller computes 0 height and renders no items.
 import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
-import i18n from "./i18n";
+import i18n, { i18nReady } from "./i18n";
 import { initTheme } from "@/composables/useTheme";
 import { initFont } from "@/composables/useFont";
 import { installTDesignIconOfflineGuard } from "@/utils/tdesign-icon-offline";
@@ -57,6 +57,7 @@ app.config.errorHandler = (err, instance, info) => {
     }
   }
 
+  await i18nReady;
   app.use(router);
   app.use(i18n);
 

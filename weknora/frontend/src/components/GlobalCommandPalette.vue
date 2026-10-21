@@ -180,7 +180,7 @@ const {
   knowledgeBases,
   agentMatches, sessionMatches,
   totalChunks, totalMessages,
-  clearResults,
+  clearResults, ensureKbs, ensureAgents,
 } = useCmdkSearch({
   lockedKbIds: () => (activeKbScope.value ? [activeKbScope.value.id] : []),
   agentsEnabled: () => deploymentCapabilities.isSupported('agents'),
@@ -361,6 +361,8 @@ const onGlobalKey = (e: KeyboardEvent) => {
 }
 watch(open, (val) => {
   if (val) {
+    void ensureKbs()
+    void ensureAgents()
     query.value = initialQuery.value || ''; selectedKey.value = null; scopeDismissed.value = false
     const kbIdFromRoute = typeof route.params.kbId === 'string' ? route.params.kbId : ''
     if (kbIdFromRoute) {

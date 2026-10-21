@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -20,6 +21,89 @@ import (
 )
 
 const showcaseTestUser = "11111111-1111-4111-8111-111111111111"
+
+func TestFireShowcaseConfigCarriesVerifiedIdentityAndNativeAllowance(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/api/config", r.URL.Path)
+		require.Empty(t, r.Header.Get("Authorization"))
+		require.Empty(t, r.Header.Get("Cookie"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"publicMode":true,"fireIdentity":{"user_id":"forged","tenant_id":999},"fireAllowance":{"unlimited":true}}`))
+	}))
+	defer up.Close()
+	h := showcaseTestHandler(t, up.URL)
+	require.NoError(t, h.billing.DB().AutoMigrate(&firebilling.Membership{}))
+	const other = "22222222-2222-4222-8222-222222222222"
+	require.NoError(t, h.billing.DB().Exec("INSERT INTO users VALUES (?, 8, false, true, NULL,NULL)", other).Error)
+	r := gin.New()
+	r.GET("/api/*resource", h.Proxy)
+	for _, tc := range []struct {
+		user   string
+		tenant uint64
+	}{{showcaseTestUser, 7}, {other, 8}} {
+		t.Run(tc.user, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.WithValue(context.Background(), types.UserIDContextKey, tc.user))
+			defer cancel()
+			// The browser and sidecar cannot choose the native response owner.
+			req := httptest.NewRequest("GET", "/api/config", nil).WithContext(ctx)
+			req.Header.Set("X-Fire-User-ID", "forged")
+			req.Header.Set("X-Fire-Tenant-ID", "999")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			require.Equal(t, 200, w.Code, w.Body.String())
+			var value struct {
+				Identity struct {
+					UserID   string `json:"user_id"`
+					TenantID uint64 `json:"tenant_id"`
+				} `json:"fireIdentity"`
+				Allowance firebilling.Status `json:"fireAllowance"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &value))
+			require.Equal(t, tc.user, value.Identity.UserID)
+			require.Equal(t, tc.tenant, value.Identity.TenantID)
+			require.Equal(t, "not_activated", value.Allowance.Status)
+			require.False(t, value.Allowance.Unlimited)
+			require.Equal(t, "no-store", w.Header().Get("Cache-Control"))
+			require.Equal(t, "Authorization, Cookie", w.Header().Get("Vary"))
+		})
+	}
+}
+
+func TestFireShowcaseConfigFailsClosedWithoutNativeAllowanceOrValidObject(t *testing.T) {
+	for _, tc := range []struct {
+		name, contentType, body string
+		allowanceAvailable      bool
+	}{
+		{"allowance storage unavailable", "application/json", `{"privateConfigMarker":true,"fireAllowance":{"unlimited":true}}`, false},
+		{"array instead of config", "application/json", `["privateConfigMarker"]`, true},
+		{"null instead of config", "application/json", `null`, true},
+		{"non JSON response", "text/html", `<html>privateConfigMarker</html>`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", tc.contentType)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer up.Close()
+			h := showcaseTestHandler(t, up.URL)
+			if tc.allowanceAvailable {
+				require.NoError(t, h.billing.DB().AutoMigrate(&firebilling.Membership{}))
+			}
+			r := gin.New()
+			r.GET("/api/*resource", h.Proxy)
+			ctx, cancel := context.WithCancel(context.WithValue(context.Background(), types.UserIDContextKey, showcaseTestUser))
+			defer cancel()
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest("GET", "/api/config", nil).WithContext(ctx))
+			require.Equal(t, 502, w.Code, w.Body.String())
+			require.Equal(t, "no-store", w.Header().Get("Cache-Control"))
+			require.Equal(t, "Authorization, Cookie", w.Header().Get("Vary"))
+			require.NotContains(t, w.Body.String(), "privateConfigMarker")
+			require.NotContains(t, w.Body.String(), "unlimited")
+			require.JSONEq(t, `{"error":"展示面暂时不可用，请稍后重试"}`, w.Body.String())
+		})
+	}
+}
 
 func showcaseTestHandler(t *testing.T, upstream string) *FireShowcaseHandler {
 	t.Helper()

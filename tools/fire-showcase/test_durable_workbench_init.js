@@ -246,13 +246,14 @@ async function main() {
     assert.match(unknownCard.textContent, /curl 52/);
     assert.match(unknownCard.textContent, /1341855 字节/);
     assert.match(unknownCard.textContent, /2.51 秒/);
-    assert.match(unknownCard.textContent, /中转站用量日志/);
+    assert.match(unknownCard.textContent, /先查询任务状态/);
     const posts = calls.filter(call => call.method === 'POST').length;
     await assert.rejects(() => app.run(`durableClient.action(${JSON.stringify(fourth.id)},'retry')`), /未确认|禁止重发/);
     assert.equal(calls.filter(call => call.method === 'POST').length, posts);
 
     app.stop();
     reloaded = await startApp();
+    await until(() => reloaded.document.querySelectorAll('.generation-task-card[data-task-id]').length === 4, 'Background startup must restore persisted server tasks');
     assert.equal(reloaded.document.querySelectorAll('.generation-task-card[data-task-id]').length, 4, 'Full startup must consume persisted server tasks');
     assert.equal(reloaded.document.querySelectorAll('.generation-task-card').length, 5, 'The unmodified pending receipt stays visible alongside server tasks');
     assert(reloaded.document.querySelector(`[data-task-id="${legacyReceipt.key}"]`), 'The old receipt stays visible for explicit confirmation');

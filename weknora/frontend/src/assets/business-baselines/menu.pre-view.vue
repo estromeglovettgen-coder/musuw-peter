@@ -703,16 +703,13 @@ const loadSessionOriginMeta = async () => {
     embedChannelNames.value = {};
     return;
   }
-  try {
-    const res: any = await listAllIMChannels();
-    imPlatforms.value = configuredPlatforms(res?.data || []);
-  } catch { imPlatforms.value = []; }
-  try {
-    const res: any = await listAllEmbedChannels();
-    const names: Record<string, string> = {};
-    for (const ch of res?.data || []) if (ch?.id && ch?.name) names[ch.id] = ch.name;
-    embedChannelNames.value = names;
-  } catch { embedChannelNames.value = {}; }
+  const [im, embed] = await Promise.allSettled([listAllIMChannels(), listAllEmbedChannels()]);
+  imPlatforms.value = configuredPlatforms(im.status === "fulfilled" ? (im.value as any)?.data || [] : []);
+  const names: Record<string, string> = {};
+  if (embed.status === "fulfilled") {
+    for (const ch of (embed.value as any)?.data || []) if (ch?.id && ch?.name) names[ch.id] = ch.name;
+  }
+  embedChannelNames.value = names;
 };
 const handleSessionMutation = (event: Event) => {
   const detail = (event as CustomEvent<SessionMutationDetail>).detail;

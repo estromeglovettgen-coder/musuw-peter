@@ -180,7 +180,11 @@ class Handler(SimpleHTTPRequestHandler):
             if path == "/api/prompt":
                 self.send_json(200, preview_prompt(payload))
             elif path == "/api/assets":
-                self.send_json(201, {"asset": self.task_store().add_asset(payload.get("dataUrl"), payload.get("name"))})
+                asset = self.task_store().add_asset(payload.get("dataUrl"), payload.get("name"))
+                # The native JSON seam is intentionally bounded. Return the
+                # private asset URL, not a second giant Base64 photo.
+                normalized = {key: asset.pop(key) for key in ("normalized", "sourceName", "normalization") if key in asset}
+                self.send_json(201, {"asset": asset, **normalized})
             elif path == "/api/generation-tasks":
                 self.send_json(202, {"task": self.task_store().enqueue(payload.get("idempotencyKey"), payload.get("payload"))})
             elif path.startswith("/api/generation-tasks/"):

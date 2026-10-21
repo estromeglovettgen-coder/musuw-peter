@@ -1,4 +1,4 @@
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { knowledgeSemanticSearch } from '@/api/knowledge-base'
 import { searchMessages, type MessageSearchGroupItem } from '@/api/chat-history'
 import { useOrganizationStore } from '@/stores/organization'
@@ -347,14 +347,6 @@ export function useCmdkSearch(options: {
       const seq = ++requestSeq
       runSearch(trimmed, seq)
     }, debounceMs)
-  })
-
-  onMounted(() => {
-    // KB search stays available in Lite; Agent discovery is Standard-only.
-    ensureKbs()
-    if (!isLiteProductMode() && options.agentsEnabled?.() !== false) {
-      ensureAgents()
-    }
   })
 
   return {

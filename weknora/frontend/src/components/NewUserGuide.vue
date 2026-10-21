@@ -2,11 +2,12 @@
   <SpotlightGuide v-model:active="active" :steps="steps" step-i18n-prefix="newUserGuide.steps"
     labels-prefix="newUserGuide" @finish="onFinish" @dismiss="onFinish" @step-change="onStepChange" />
   <GlobalInvitationBell v-if="!authStore.isLiteMode" />
-  <AgentListContextualGuideBridge v-if="!authStore.isLiteMode" />
+  <AgentListContextualGuideBridge v-if="!authStore.isLiteMode && route.name === 'agentList'" />
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import SpotlightGuide from '@/components/SpotlightGuide.vue'
 import GlobalInvitationBell from '@/components/GlobalInvitationBell.vue'
 import AgentListContextualGuideBridge from '@/components/AgentListContextualGuideBridge.vue'
@@ -22,6 +23,7 @@ import { workspaceGuideSteps } from '@/config/workspaceGuides'
 
 const uiStore = useUIStore()
 const authStore = useAuthStore()
+const route = useRoute()
 let settingsOpenedByGuide = false
 
 const steps = computed<SpotlightGuideStep[]>(() => {

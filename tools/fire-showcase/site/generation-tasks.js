@@ -121,6 +121,31 @@
       })();
       return record.promise;
     }
+    async function uploadConvertedImage(image) {
+      // Only this authenticated API response may seed an already-saved photo.
+      const result = await request("/api/assets", { dataUrl: image.dataUrl, name: image.name || "reference-image" });
+      const asset = result.asset;
+      if (result.normalized !== true || !/^sha256_[a-f0-9]{64}$/.test(asset?.id || "") || typeof asset.url !== "string") throw new Error("图片转换回执无效，请重新上传。");
+      const url = new URL(asset.url, window.location.href);
+      const localPath = `/api/assets/${asset.id}/content`;
+      const privatePath = new RegExp(`^/api/fire-showcase-assets/[a-f0-9-]+/${asset.id}/content$`);
+      if (url.origin !== window.location.origin || url.username || url.password || url.search || url.hash ||
+          !(url.pathname === localPath || url.pathname === `/api/v1/fire-showcase${localPath}` || privatePath.test(url.pathname))) throw new Error("图片保存地址无效，请重新上传。");
+      const response = await requestFetch(url.href, { method: "GET", credentials: "same-origin", redirect: "error", cache: "no-store", headers: options.headers?.() || {} });
+      if (!response.ok) throw new Error("图片已保存，暂时无法读取，请稍后重新添加。");
+      const blob = await response.blob();
+      if (!blob.size || blob.type !== "image/png") throw new Error("图片读取回执无效，请重新上传。");
+      const normalized = await new Promise((resolve, reject) => {
+        const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error("图片暂时无法读取。")); reader.readAsDataURL(blob);
+      });
+      const hash = await hashPhoto(normalized);
+      if (result.asset?.id !== `sha256_${hash}`) throw new Error("图片保存回执不一致，请重新上传。");
+      uploadMap.set(normalized, { status: "uploaded", asset: result.asset, error: "", promise: null, transfer: normalized });
+      assetCache[hash] = result.asset;
+      verifiedAssets.add(result.asset.id);
+      persist(); emit();
+      return { ...result, normalizedDataUrl: normalized };
+    }
     async function sendReceipt(receipt) {
       if (receipt.promise) return receipt.promise;
       receipt.status = "sending"; receipt.error = ""; persist(); emit();
@@ -212,7 +237,7 @@
       return refresh();
     }
     function stop() { if (timer) clearInterval(timer); timer = null; }
-    return { upload, assetState, submit, refresh, action, start, stop, snapshot, changed() { currentIntent = null; } };
+    return { upload, uploadConvertedImage, assetState, submit, refresh, action, start, stop, snapshot, changed() { currentIntent = null; } };
   }
   window.GenerationTasks = { create };
 })();

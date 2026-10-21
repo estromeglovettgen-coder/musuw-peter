@@ -38,3 +38,27 @@ The release SHALL preserve courses, user data, snapshots and original parsing co
 #### Scenario: Four reference composition
 - **WHEN** the ordinary account uploads a face reference of an Asian adult and separate outfit, pose and background references and generates one image
 - **THEN** the result is visible and downloadable, image usage increases exactly one, question usage does not change, and another user cannot read its files.
+
+### Requirement: Single trustworthy startup response
+The native authenticated config response SHALL provide server-verified account/tenant identity and fresh image allowance together with the original runtime configuration. The source app SHALL reuse that initial response. Task history SHALL restore in the background without blocking editor readiness.
+
+#### Scenario: Sidecar spoofs identity or config is unavailable
+- **WHEN** sidecar config includes an untrusted identity, is malformed, or fails
+- **THEN** native identity/allowance override it, and malformed/error responses fail closed without caching private content or enabling generation.
+
+### Requirement: Common image and honest conversion boundaries
+The existing upload pipeline SHALL recognize real image bytes for JPEG/PNG/WebP, including missing or aliased browser MIME, preserve their originals, and provide bounded static conversion for extra supported formats without model calls.
+
+#### Scenario: Converted image exceeds config JSON limit
+- **WHEN** a valid HEIC/TIFF converts into a PNG larger than the native JSON response ceiling
+- **THEN** the response remains small metadata and the authenticated owner retrieves the original normalized PNG through the private asset route, without a second upload.
+
+### Requirement: Complete recoverable collection workflow
+Users SHALL preview, reuse, remove and restore local materials and results. Removing a collection item SHALL leave the active draft and accounting records intact; automatic task refresh SHALL NOT resurrect locally removed items. Storage failures and unsupported formats SHALL be visible and actionable.
+
+#### Scenario: Continue from an existing result
+- **WHEN** an owner selects 用作参考 on a saved result
+- **THEN** its authenticated original is appended through the existing upload pipeline with unselected reference roles, duplicate clicks are coalesced, and a failed read remains retryable without generation or charge.
+
+### Requirement: Actual cold-load performance verification
+The release SHALL measure the whole native page with cache disabled, not substitute a prewarmed iframe or route-return timing. Inactive language dictionaries, optional rendering tools and full icon catalogues SHALL NOT be mandatory first-screen resources; recovery paths SHALL remain usable if an optional download fails.

@@ -59,9 +59,9 @@ const tenantSubmenuStyle = ref<Record<string, string>>({})
 let tenantSubmenuHideTimer: ReturnType<typeof setTimeout> | null = null
 
 const userInfo = ref({ username: t('common.defaultUser'), email: 'user@example.com', avatar: '' })
-const userName = computed(() => userInfo.value.username)
-const userEmail = computed(() => userInfo.value.email)
-const userAvatar = computed(() => userInfo.value.avatar)
+const userName = computed(() => authStore.user?.username || userInfo.value.username)
+const userEmail = computed(() => authStore.user?.email || userInfo.value.email)
+const userAvatar = computed(() => authStore.user ? authStore.user.avatar || '' : userInfo.value.avatar)
 const userInitial = computed(() => userName.value.charAt(0).toUpperCase())
 const billingIsFree = computed(() =>
   entitlement.value?.plan === 'free'
@@ -287,7 +287,7 @@ const handleClickOutside = (event: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  loadUserInfo()
+  if (!authStore.user) void loadUserInfo()
   void entitlementStore.ensureFresh()
 })
 onUnmounted(() => {

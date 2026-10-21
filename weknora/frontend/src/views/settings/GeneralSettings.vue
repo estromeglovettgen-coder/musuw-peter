@@ -199,6 +199,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { normalizeLocale, persistLocalePreference } from '@/i18n/locale'
+import { ensureLocaleMessages } from '@/i18n'
 import { useTheme, type ThemeColor, type ThemeMode } from '@/composables/useTheme'
 import { useAuthStore } from '@/stores/auth'
 import { isPeterWorkspace } from '@/config/workspaceSurface'
@@ -313,7 +314,20 @@ const handlePreferenceSelect = (key: PreferenceSelect, value: string) => {
   }
 }
 
-const handleLanguageChange = () => {
+let languageChange = 0
+const handleLanguageChange = async () => {
+  const sequence = ++languageChange
+  const requested = localLanguage.value
+  try {
+    await ensureLocaleMessages(requested)
+  } catch {
+    if (sequence === languageChange) {
+      localLanguage.value = locale.value
+      MessagePlugin.error(t('common.resourceLoadFailed.title'))
+    }
+    return
+  }
+  if (sequence !== languageChange) return
   const persisted = persistLocalePreference(localLanguage.value)
   if (!persisted) {
     localLanguage.value = locale.value

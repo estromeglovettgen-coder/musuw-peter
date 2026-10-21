@@ -1,3 +1,7 @@
+FROM python:3.11-slim AS image-codecs
+COPY requirements-images.txt /tmp/requirements-images.txt
+RUN pip install --no-cache-dir --only-binary=:all: --target /opt/image-codecs -r /tmp/requirements-images.txt
+
 FROM musuw-peter:thin-common-20261019-capacity
 
 # The verified shared runtime already provides Python 3 and curl. Override its
@@ -8,7 +12,8 @@ RUN python3 -c "import fcntl, sqlite3, ssl" \
     && command -v curl >/dev/null \
     && install -d -o 10001 -g 10001 -m 0700 /data/showcase
 
-COPY --chown=10001:10001 fire_server.py server.py generation_tasks.py modelflare_adapter.py reference_workflow.py public-config.json ./
+COPY --from=image-codecs --chown=10001:10001 /opt/image-codecs/ ./
+COPY --chown=10001:10001 fire_server.py server.py generation_tasks.py image_ingest.py requirements-images.txt modelflare_adapter.py reference_workflow.py public-config.json ./
 COPY --chown=10001:10001 site/ ./site/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

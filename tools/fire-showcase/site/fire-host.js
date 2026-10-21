@@ -10,6 +10,7 @@
   let allowance = null;
   let active = true;
   let activityListener = null;
+  let startupConfig = null;
 
   function nativeUser() {
     try { return JSON.parse(nativeStorage.getItem("weknora_user") || "null"); }
@@ -102,7 +103,17 @@
   }
   async function start() {
     try {
-      owner = await bootstrap();
+      // The native config already validates the actor and reads fresh quota.
+      // One private response initializes both the host and the reused app.
+      const response = await originalFetch("/api/v1/fire-showcase/api/config", { headers: { Authorization: `Bearer ${sessionToken()}` }, credentials: "same-origin", cache: "no-store" });
+      if (response.status === 401 || response.status === 403) throw Object.assign(new Error("登录状态已失效，请重新登录。"), { nativeAuthInvalid: true });
+      const config = await response.clone().json();
+      const identity = config.fireIdentity;
+      if (!response.ok || !identity?.user_id || !identity.tenant_id || !config.fireAllowance) throw new Error("展示面暂时无法打开，请稍后重试。");
+      if (nativeUser()?.id !== identity.user_id) throw new Error("登录状态已改变，请重新打开展示面。");
+      owner = { ...identity, allowance: config.fireAllowance };
+      startupConfig = response;
+      allowanceRefreshedAt = Date.now();
       const checkOwner = () => {
         if (!nativeStorage.getItem("weknora_token") || nativeUser()?.id !== owner.user_id) fail(new Error("登录状态已改变，请重新打开展示面。"));
       };
@@ -130,7 +141,9 @@
         const headers = new Headers(request?.headers || {});
         new Headers(init.headers || {}).forEach((v, k) => headers.set(k, v));
         if (url.pathname.startsWith("/api/v1/fire-showcase/") || url.pathname.startsWith("/api/fire-showcase-assets/")) headers.set("Authorization", `Bearer ${sessionToken()}`);
-        const response = await originalFetch(request ? new Request(url, request) : url, { ...init, headers, credentials: "same-origin", cache: "no-store" });
+        const reuseStartup = startupConfig && url.pathname === "/api/v1/fire-showcase/api/config" && !url.search && (init.method || request?.method || "GET").toUpperCase() === "GET";
+        const response = reuseStartup ? startupConfig : await originalFetch(request ? new Request(url, request) : url, { ...init, headers, credentials: "same-origin", cache: "no-store" });
+        if (reuseStartup) startupConfig = null;
         if (url.pathname.endsWith("/api/config") && response.ok) {
           const data = await response.clone().json(); showAllowance(data.fireAllowance);
         }
@@ -138,8 +151,9 @@
           const data = await response.clone().json();
           const tasks = data.tasks || (data.task ? [data.task] : []);
           const signature = tasks.map(t => `${t.id}:${t.status}`).sort().join("|");
-          if (signature !== window.FireShowcaseTaskSignature || Date.now() - allowanceRefreshedAt > 15000) {
-            window.FireShowcaseTaskSignature = signature;
+          const previous = window.FireShowcaseTaskSignature;
+          window.FireShowcaseTaskSignature = signature;
+          if ((previous !== undefined && signature !== previous) || (init.method || request?.method || "GET").toUpperCase() !== "GET" || Date.now() - allowanceRefreshedAt > 15000) {
             allowanceRefreshedAt = Date.now();
             void window.FireShowcaseHost.refreshAllowance().catch(() => {});
           }

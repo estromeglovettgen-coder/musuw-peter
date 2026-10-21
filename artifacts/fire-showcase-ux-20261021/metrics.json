@@ -1,0 +1,104 @@
+{
+  "scope": "Beijing Fire existing showcase UX and true parent cold navigation",
+  "production": "https://62.234.188.55/platform/showcase",
+  "baseline_fullpage_ready_lower_bound_ms": 11209,
+  "ordinary_cache_disabled_fullpage_samples": [
+    {
+      "ms": 6234,
+      "ready": true,
+      "request_count": 104,
+      "startup_config_calls": 1,
+      "auth_me_calls": 1,
+      "unused_optional_locale_icon_graph_requests": [],
+      "unrelated_chat_apis": []
+    },
+    {
+      "ms": 6065,
+      "ready": true,
+      "request_count": 105,
+      "startup_config_calls": 1,
+      "auth_me_calls": 1,
+      "unused_optional_locale_icon_graph_requests": [],
+      "unrelated_chat_apis": []
+    }
+  ],
+  "other_ui_ms": {
+    "knowledge_route_first_open": 1160,
+    "return_to_live_workbench": 65
+  },
+  "production_generation": {
+    "ordinary_account": true,
+    "actual_task_status": "succeeded",
+    "reference_count": 4,
+    "generated_images": 1,
+    "used_images": 1,
+    "reserved_images": 0,
+    "remaining_images": 0,
+    "used_questions": 0,
+    "used_tokens": 0,
+    "native_original_sha256": "4831374b9a54028d7cbddff7899c6bb41aecf31da47f33aa34ffba7f15a5e525",
+    "native_original_bytes": 1258550,
+    "browser_download_matches_native": true,
+    "anonymous_and_other_account_denied": true
+  },
+  "production_ux": {
+    "jpg_heic_tiff_uploaded": true,
+    "material_cancel_remove_restore_counts": [
+      3,
+      2,
+      3
+    ],
+    "history_remove_restore_counts": [
+      1,
+      0,
+      1
+    ],
+    "reuse_appends_current_draft": [
+      4,
+      5
+    ],
+    "reuse_does_not_assign_roles": true,
+    "return_keeps_draft": true
+  },
+  "tests": {
+    "python": 127,
+    "full_browser_membership_and_workspace": 55,
+    "host_config_upload_js": 38,
+    "frontend_locale_auth_and_icons": 21,
+    "operations_dictionary_failure": 2,
+    "adjacent_guide_auth_sidebar": 39,
+    "types": true,
+    "production_build": true,
+    "public_cache_contract_checks": 8,
+    "private_auth_contract_checks": 8
+  },
+  "release": {
+    "runtime_image": "musuw-peter-showcase:20261021-03",
+    "previous_image": "musuw-peter:cold-20261021-01",
+    "release": "/opt/musuw-peter/releases/20261021-fire-02",
+    "rollback_release": "/opt/musuw-peter/releases/20261021-fire-01",
+    "schema": "115:false",
+    "protected": {
+      "users": 8,
+      "docs": 95,
+      "wiki": 358,
+      "chunks": 2346,
+      "wiki_hash": "a7315761fedc93f2978cb21333860d17",
+      "chunk_hash": "2de6a96416c5a152f03519b756b315e5"
+    },
+    "environments_mounts_limits_preserved": true,
+    "auth_sha256": "c9394545c2f1e75b024fde34a13524c34b2a8b39fecbd46f770de1501c102714",
+    "runtime_config_sha256": "be3bba535af4ecc590163c8868ae08fb37b4b5e24d28c25ae520407ee018fe7f",
+    "prompt_sha256": "10a5ea2ada9d61b555490a9be87d5555f5b685e26cf883ffa82645d5e8bf643c"
+  },
+  "limits": [
+    "Measured from this test machine; cold first visit remains about six seconds, not a one-second guarantee.",
+    "Chrome responsive tests do not replace every real iPhone/Safari file-picker/download implementation.",
+    "Collection removal is recoverable and local to this account/browser; server task/image/accounting records remain."
+  ],
+  "notes": [
+    "One failed instrumentation command was excluded rather than reported as an application measurement.",
+    "No provider, model, API key, prompt, knowledge/course content or parsing configuration was changed.",
+    "An existing ordinary demo received exactly one image allowance for the actual generation check; no real user allowance was altered."
+  ]
+}

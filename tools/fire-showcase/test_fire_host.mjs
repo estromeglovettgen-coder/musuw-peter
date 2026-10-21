@@ -66,9 +66,9 @@ async function host({ user = 'user-a', values = new Map(), autoScripts = true, b
     if (url.endsWith('/bootstrap') && backend.bootstrapError) throw backend.bootstrapError;
     const body = url.endsWith('/bootstrap')
       ? { success: backend.bootstrapStatus === 200, data: { user_id: backend.user, tenant_id: backend.tenant, allowance: backend.allowance } }
-      : url.endsWith('/api/config') ? { fireAllowance: allowance }
+      : url.endsWith('/api/config') ? { fireIdentity: { user_id: backend.user, tenant_id: backend.tenant }, fireAllowance: backend.allowance }
       : { tasks: [] };
-    return new Response(JSON.stringify(body), { status: url.endsWith('/bootstrap') ? backend.bootstrapStatus : 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify(body), { status: url.endsWith('/bootstrap') || url.endsWith('/api/config') ? backend.bootstrapStatus : 200, headers: { 'Content-Type': 'application/json' } });
   };
   const context = vm.createContext({ window, document: window.document, location: window.location,
     URL, Request, Headers, Response, MutationObserver: window.MutationObserver, console,
@@ -144,13 +144,15 @@ test('an expired allowance returned with HTTP 200 retains the private workspace 
   assert.equal(h.draft.value, 'private-editor-draft');
 });
 
-test('native host bootstraps with native bearer, scopes auth to the private proxy, and rejects external URLs', async () => {
+test('native host uses one fresh config for verified identity, allowance and application startup', async () => {
   const h = await host();
-  assert.equal(h.calls[0].url, '/api/v1/fire-showcase/bootstrap');
+  assert.equal(h.calls[0].url, '/api/v1/fire-showcase/api/config');
   assert.equal(h.calls[0].headers.get('authorization'), 'Bearer user-a-native-token');
-  await h.window.fetch('/api/config');
+  const configBody = await (await h.window.fetch('/api/config')).json();
+  assert.equal(configBody.fireIdentity.user_id, 'user-a');
+  assert.equal(h.calls.length, 1, 'the real application consumes the same fresh response, not a second network read');
   const config = h.calls.at(-1);
-  assert.equal(new URL(config.url).pathname, '/api/v1/fire-showcase/api/config');
+  assert.equal(new URL(config.url, h.window.location.origin).pathname, '/api/v1/fire-showcase/api/config');
   assert.equal(config.headers.get('authorization'), 'Bearer user-a-native-token');
   assert.equal(config.init.credentials, 'same-origin'); assert.equal(config.init.cache, 'no-store');
   await h.window.fetch('/tools/fire-showcase/assets/decoration.svg');
@@ -199,7 +201,7 @@ for (const bootstrapStatus of [401, 403]) test(`initial bootstrap ${bootstrapSta
 
 test('app scripts are loaded serially after identity bootstrap in the original dependency order', async () => {
   const h = await host({ autoScripts: false });
-  assert.equal(h.calls[0].url, '/api/v1/fire-showcase/bootstrap');
+  assert.equal(h.calls[0].url, '/api/v1/fire-showcase/api/config');
   const expected = ['fire-components.js', 'generation-tasks.js', 'script.js', 'workbench.js'];
   for (let index = 0; index < expected.length; index++) {
     assert.equal(h.scripts.length, index + 1, 'later dependency must wait for prior onload');

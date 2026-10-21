@@ -281,6 +281,7 @@ const pendingGenerationHoldMs = 10 * 60 * 1000;
 const resultHistoryKey = "aiShowcase.resultHistory";
 const historyDatabaseName = "alphai-image-history";
 const historyStoreName = "account-history";
+let historyStorageWarningShown = false;
 // Slots identify editor tools only. Image count and reference roles are dynamic.
 const imageSlotIds = ["image-one", "image-two", "image-three"];
 const slotNames = { "image-one": "图 1", "image-two": "图 2", "image-three": "图 3" };
@@ -291,6 +292,7 @@ let promptPreviewRevision = 0;
 const preparedPayloadRevisions = new WeakMap();
 let durableClient = null;
 let durablePreparing = false;
+let referenceFilesReading = 0;
 const importedGenerationTasks = new Set();
 
 function durableGenerationEnabled() {
@@ -299,10 +301,15 @@ function durableGenerationEnabled() {
 
 function updateDurableGenerationControls() {
   if (!durableGenerationEnabled() || !els.generate) return;
-  const uploadsReady = currentReferenceSequence().every((image) => durableClient?.assetState(image).status === "uploaded");
+  const references = currentReferenceSequence();
+  const custom = selectedPromptMode() === "custom";
+  const needsReferences = !custom && references.length < 2;
+  const needsDescription = custom && !els.output.value.trim();
+  const needsRoles = !custom && references.some((image) => !image.roles?.length);
+  const uploadsReady = references.every((image) => durableClient?.assetState(image).status === "uploaded");
   const allowed = !window.FireShowcaseHost || window.FireShowcaseHost.canGenerate();
-  els.generate.disabled = durablePreparing || !uploadsReady || !allowed;
-  els.generateLabel.textContent = durablePreparing ? "正在保存任务…" : !allowed ? window.FireShowcaseHost.unavailableReason() : !uploadsReady ? "等待素材保存" : state.siteConfig.generationPaused ? "保存生成任务" : "生成作品";
+  els.generate.disabled = durablePreparing || referenceFilesReading > 0 || needsReferences || needsDescription || needsRoles || !uploadsReady || !allowed;
+  els.generateLabel.textContent = durablePreparing ? "正在保存任务…" : !allowed ? window.FireShowcaseHost.unavailableReason() : referenceFilesReading ? "正在读取图片…" : needsReferences ? "至少添加 2 张参考图" : needsDescription ? "请先描述想要的画面" : !uploadsReady ? "等待素材保存" : needsRoles ? "请选择每张图参考的内容" : state.siteConfig.generationPaused ? "保存生成任务" : "生成作品";
 }
 
 function syncDurableGeneration(snapshot) {
@@ -312,7 +319,8 @@ function syncDurableGeneration(snapshot) {
     importedGenerationTasks.add(task.id);
     const items = task.result.images.map((image, index) => ({ image, meta: `${window.FireShowcaseHost ? "展示面" : task.result.model || task.modelChoice || "生成作品"}${task.result.size ? ` · ${task.result.size}` : ""}`, savedAt: Date.parse(task.updatedAt || task.createdAt) + index }));
     rememberResults(items);
-    showResultImage(items[0], items, items.length);
+    const visible = items.filter((item) => readResultHistory().some((saved) => saved.image === item.image));
+    if (visible.length) showResultImage(visible[0], visible, visible.length);
   }
   notifyFireWorkbench();
 }
@@ -339,7 +347,7 @@ function queueReferenceUpload(slotId, image, retry = false) {
 }
 
 async function submitDurableGeneration() {
-  if (durablePreparing) return;
+  if (durablePreparing || referenceFilesReading) return;
   initializeDurableGeneration();
   durablePreparing = true; updateDurableGenerationControls();
   saveConnectionSettings();
@@ -374,8 +382,14 @@ function connectFireWorkbench() {
   window.fireWorkbench.connect({
     getReferences: () => imageSlotIds.filter((id) => state.files[id]).map((slotId) => ({ ...state.files[slotId], slotId })),
     getRoles: referenceRoles,
-    getMaterials: () => [...new Map([...Object.values(readImageHistory()).flat(), ...currentReferenceSequence()].filter((item) => item?.dataUrl).map((item) => [item.dataUrl, item])).values()],
+    getMaterials: materialHistoryItems,
+    getRemovedMaterialCount: () => new Set(Object.values(readImageHistory()).flat().filter((item) => item.removedAt).map((item) => item.dataUrl)).size,
+    removeMaterial: (item) => deleteHistoryImage("", item),
+    restoreMaterials: restoreMaterialHistory,
     getResults: readResultHistory,
+    getRemovedResultCount: () => (state.resultHistory || []).filter((item) => item.removedAt).length,
+    removeResult: removeResultHistory,
+    restoreResults: restoreResultHistory,
     getSiteConfig: () => state.siteConfig,
     getValidation: () => state.promptPreview,
     getReferenceUpload: (image) => durableClient?.assetState(image) || { status: "idle", asset: null, error: "" },
@@ -410,6 +424,7 @@ function connectFireWorkbench() {
     showResult: (item) => { showResultImage(item); renderResultHistory(item.image); },
     previewResult: (item) => { if (item?.image) openLightbox(item.image, item.meta || "生成作品"); },
     downloadResult: (item, trigger) => { if (item?.image) return downloadOriginalImage(item.image, "fire-workbench-result", trigger); },
+    useResult: useResultAsReference,
     uploadFiles: appendReferenceFiles,
     moveReference: (slotId, direction) => {
       const ids = imageSlotIds.filter((id) => state.files[id]);
@@ -592,6 +607,7 @@ function promptDraft() {
 }
 
 function schedulePromptPreview() {
+  updateDurableGenerationControls();
   promptPreviewRevision += 1;
   durableClient?.changed();
   state.promptPreview = { valid: false, errors: [] };
@@ -705,17 +721,24 @@ async function historyDatabaseGet(key, fallback) {
 }
 
 async function historyDatabasePut(key, value) {
+  let db;
   try {
-    const db = await openHistoryDatabase();
+    db = await openHistoryDatabase();
     await new Promise((resolve, reject) => {
       const transaction = db.transaction(historyStoreName, "readwrite");
       transaction.objectStore(historyStoreName).put(value, key);
       transaction.oncomplete = resolve;
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
     });
-    db.close();
+    historyStorageWarningShown = false;
+    return true;
   } catch {
-    // Keep the current session usable even if private browsing blocks storage.
+    if (!historyStorageWarningShown) showToast("本次仍可使用，但历史保存失败，刷新后图片或记录可能丢失。", { tone: "error", duration: 10000 });
+    historyStorageWarningShown = true;
+    return false;
+  } finally {
+    db?.close();
   }
 }
 
@@ -751,10 +774,8 @@ async function loadAccountImageHistory() {
   state.resultHistory = (Array.isArray(state.resultHistory) ? state.resultHistory : [])
     .map((item) => (item?.blob instanceof Blob ? { ...item, image: URL.createObjectURL(item.blob) } : item))
     .filter((item) => item?.blob instanceof Blob || !String(item?.image || "").startsWith("blob:"));
-  if (Object.keys(legacyImages).length) await historyDatabasePut(imageKey, state.imageHistory);
-  if (legacyResults.length) await historyDatabasePut(resultKey, state.resultHistory);
-  localStorage.removeItem(imageKey);
-  localStorage.removeItem(resultKey);
+  if (!Object.keys(legacyImages).length || await historyDatabasePut(imageKey, state.imageHistory)) localStorage.removeItem(imageKey);
+  if (!legacyResults.length || await historyDatabasePut(resultKey, state.resultHistory)) localStorage.removeItem(resultKey);
 }
 
 const defaults = {
@@ -930,11 +951,13 @@ function authHeaders(extra = {}) {
 async function loadSiteConfig() {
   try {
     const response = await fetch(apiUrl("/api/config"));
+    if (!response.ok && window.FireShowcaseHost) throw new Error("工作台配置暂时无法读取，请刷新重试。");
     if (response.ok) {
       state.siteConfig = await readJsonResponse(response);
       initializeDurableGeneration();
     }
-  } catch {
+  } catch (error) {
+    if (window.FireShowcaseHost) throw error;
     state.siteConfig = { publicMode: false, requireInvite: false, requireLogin: false, modelOptions: [] };
   }
   renderModelOptions();
@@ -2897,8 +2920,8 @@ function setDefaults() {
   render(true);
 }
 
-function showToast(text) {
-  if (isFireWorkbench() && window.FireUI?.toast) { window.FireUI.toast(text); return; }
+function showToast(text, options = {}) {
+  if (isFireWorkbench() && window.FireUI?.toast) { window.FireUI.toast(text, options); return; }
   els.toast.textContent = text;
   els.toast.classList.add("show");
   window.setTimeout(() => els.toast.classList.remove("show"), 1800);
@@ -3003,8 +3026,46 @@ function imageFileExtension(type = "") {
   return "png";
 }
 
+const resultReferenceLoads = new Set();
+
+async function useResultAsReference(item, trigger = null) {
+  const source = item?.downloadUrl || item?.image;
+  if (!source || resultReferenceLoads.has(source)) return false;
+  if (!nextReferenceSlot()) { showToast(referenceAddUnavailableMessage()); return false; }
+  resultReferenceLoads.add(source);
+  const label = trigger?.querySelector("[data-button-label]");
+  const originalLabel = label?.textContent;
+  if (trigger) { trigger.disabled = true; trigger.setAttribute("aria-busy", "true"); }
+  if (label) label.textContent = "读取原图…";
+  referenceFilesReading += 1;
+  updateDurableGenerationControls();
+  try {
+    const url = new URL(source, window.location.href);
+    if (!["http:", "https:", "data:"].includes(url.protocol)
+        || url.username || url.password
+        || window.FireShowcaseHost && url.protocol !== "data:" && url.origin !== window.location.origin
+        || url.protocol === "data:" && !url.href.startsWith("data:image/")) throw new Error("Invalid image URL");
+    const response = await fetch(url.href, { credentials: "same-origin", cache: "no-store", redirect: "error",
+      headers: url.origin === window.location.origin ? authHeaders() : {} });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    if (!blob.size || !blob.type.startsWith("image/")) throw new Error("Invalid image response");
+    const file = new File([blob], `history-reference-${Date.now()}.${imageFileExtension(blob.type)}`, { type: blob.type });
+    return await appendReferenceFiles([file]) > 0;
+  } catch {
+    showToast("作品原图暂时无法读取，请重试。", { tone: "error" });
+    return false;
+  } finally {
+    resultReferenceLoads.delete(source);
+    referenceFilesReading -= 1;
+    updateDurableGenerationControls();
+    if (trigger) { trigger.disabled = false; trigger.removeAttribute("aria-busy"); }
+    if (label) label.textContent = originalLabel;
+  }
+}
+
 async function downloadOriginalImage(source, baseName = "alphai-result", trigger = null) {
-  if (!source) return;
+  if (!source || trigger?.getAttribute("aria-busy") === "true") return;
   const label = trigger?.querySelector("[data-button-label]") || trigger?.querySelector("span");
   const originalLabel = label?.textContent || "下载原图";
   if (trigger) {
@@ -3164,13 +3225,21 @@ function showResultImage(item, items = item ? [item] : [], count = Math.max(item
   notifyFireWorkbench();
 }
 
+let lightboxReturnFocus = null;
+
 function openLightbox(image = els.resultImage?.src, caption = els.resultMeta?.textContent || "生成结果") {
   if (!els.lightbox || !els.lightboxImage || !image) return;
+  if (els.lightbox.hidden) lightboxReturnFocus = document.activeElement;
   stopLightboxMaskEditor();
   els.lightboxImage.src = image;
   if (els.lightboxCaption) els.lightboxCaption.textContent = caption;
   els.lightbox.hidden = false;
+  els.lightbox.setAttribute("role", "dialog");
+  els.lightbox.setAttribute("aria-modal", "true");
+  els.lightbox.setAttribute("aria-label", caption || "图片预览");
+  els.lightbox.tabIndex = -1;
   document.body.classList.add("lightbox-open");
+  els.lightboxClose?.focus?.();
 }
 
 function openReferenceLightbox(slotId) {
@@ -3334,14 +3403,22 @@ function closeLightbox() {
   stopLightboxMaskEditor();
   els.lightbox.hidden = true;
   document.body.classList.remove("lightbox-open");
+  const trigger = lightboxReturnFocus;
+  lightboxReturnFocus = null;
+  if (trigger?.isConnected) trigger.focus?.();
+  else if (trigger) {
+    const image = trigger.querySelector?.("img")?.getAttribute("src");
+    const replacement = image && [...document.querySelectorAll(".collection-image-button")].find((button) => button.querySelector("img")?.getAttribute("src") === image && button.getClientRects().length);
+    (replacement || document.querySelector('[data-workbench-view][aria-current="page"]'))?.focus?.();
+  }
 }
 
 function readResultHistory() {
-  return state.resultHistory || [];
+  return (state.resultHistory || []).filter((item) => !item.removedAt);
 }
 
 function saveResultHistory(items) {
-  state.resultHistory = items.slice(0, 12);
+  state.resultHistory = items;
   void queueHistoryDatabasePut(accountStorageKey(resultHistoryKey), state.resultHistory);
 }
 
@@ -3350,15 +3427,81 @@ function rememberResult(item) {
 }
 
 function rememberResults(items, activeImage = "") {
-  const current = readResultHistory();
-  const cleanItems = items.filter((item) => item?.image);
+  const current = state.resultHistory || [];
+  const cleanItems = items.filter((item) => item?.image).map((item) => {
+    const saved = current.find((previous) => previous.image === item.image);
+    return saved?.removedAt ? { ...item, removedAt: saved.removedAt } : item;
+  });
   const currentImages = new Set(cleanItems.map((item) => item.image));
   const next = [
     ...cleanItems,
     ...current.filter((historyItem) => !currentImages.has(historyItem.image))
-  ].slice(0, 12);
+  ];
   saveResultHistory(next);
   renderResultHistory(activeImage || cleanItems[0]?.image || "");
+}
+
+let collectionRemovalPending = false;
+
+function confirmCollectionRemoval(message) {
+  if (collectionRemovalPending) return Promise.resolve(false);
+  collectionRemovalPending = true;
+  const trigger = document.activeElement;
+  const action = trigger?.hasAttribute("data-material-remove") ? "data-material-remove" : trigger?.hasAttribute("data-history-remove") ? "data-history-remove" : "";
+  const index = action ? trigger.getAttribute(action) : "";
+  const dialog = document.createElement("dialog");
+  dialog.id = "collection-removal-dialog";
+  dialog.className = "fire-dialog collection-removal-dialog";
+  dialog.setAttribute("aria-labelledby", "collection-removal-title");
+  dialog.setAttribute("aria-describedby", "collection-removal-message");
+  dialog.innerHTML = '<div class="fire-dialog-header fire-panel-header"><h2 class="fire-panel-title" id="collection-removal-title">确认移除</h2></div><p class="collection-removal-copy" id="collection-removal-message"></p><div class="fire-dialog-footer"><button class="fire-button" data-variant="secondary" type="button" data-cancel-removal autofocus>取消</button><button class="fire-button" data-variant="primary" type="button" data-confirm-removal>确认移除</button></div>';
+  dialog.querySelector("#collection-removal-message").textContent = message;
+  document.body.append(dialog);
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = (accepted) => {
+      if (finished) return;
+      finished = true;
+      collectionRemovalPending = false;
+      if (window.FireUI?.closeDialog) window.FireUI.closeDialog(dialog);
+      else if (dialog.open) dialog.close();
+      dialog.remove();
+      resolve(accepted);
+      // Removal refreshes the collection. Focus its current button after the
+      // awaiting caller has updated the cards, rather than a detached trigger.
+      Promise.resolve().then(() => {
+        const replacement = action && (document.querySelector(`[${action}="${index}"]`) || document.querySelector(`[${action}]`));
+        (trigger?.isConnected ? trigger : replacement || document.querySelector('[data-workbench-view][aria-current="page"]'))?.focus?.();
+      });
+    };
+    dialog.querySelector("[data-cancel-removal]").addEventListener("click", () => finish(false));
+    dialog.querySelector("[data-confirm-removal]").addEventListener("click", () => finish(true));
+    dialog.addEventListener("cancel", (event) => { event.preventDefault(); finish(false); });
+    dialog.addEventListener("close", () => finish(false), { once: true });
+    try {
+      if (window.FireUI?.openDialog) window.FireUI.openDialog(dialog);
+      else dialog.showModal();
+      dialog.querySelector("[data-cancel-removal]").focus();
+    } catch {
+      finish(false);
+      showToast("确认窗口暂时无法打开，请刷新重试。");
+    }
+  });
+}
+
+async function removeResultHistory(item) {
+  if (!item?.image || !await confirmCollectionRemoval("将这张作品移出本机历史？之后可以恢复，任务记录和原图仍会保留。")) return false;
+  saveResultHistory((state.resultHistory || []).map((saved) => saved.image === item.image ? { ...saved, removedAt: Date.now() } : saved));
+  renderResultHistory();
+  showToast("已移出作品历史，可在历史页恢复");
+  return true;
+}
+
+function restoreResultHistory() {
+  const items = state.resultHistory || [];
+  saveResultHistory([...items.filter((item) => item.removedAt), ...items.filter((item) => !item.removedAt)].map(({ removedAt, ...item }) => item));
+  renderResultHistory();
+  showToast("已恢复作品历史");
 }
 
 function renderResultHistory(activeImage = "") {
@@ -3701,7 +3844,20 @@ async function saveSceneMask() {
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const original = String(reader.result || "");
+      const encoded = original.split(",")[1] || "";
+      const header = atob(encoded.slice(0, 32));
+      const mime = header.startsWith("\xff\xd8\xff") ? "image/jpeg"
+        : header.startsWith("\x89PNG\r\n\x1a\n") ? "image/png"
+        : header.startsWith("RIFF") && header.slice(8, 12) === "WEBP" ? "image/webp"
+        : header.startsWith("GIF8") ? "image/gif"
+        : header.startsWith("BM") ? "image/bmp"
+        : header.slice(4, 8) === "ftyp" && /avif|avis/.test(header.slice(8)) ? "image/avif"
+        : header.slice(4, 8) === "ftyp" && /heic|heix|hevc|hevx|heif/.test(header.slice(8)) ? "image/heic"
+        : header.startsWith("II*\x00") || header.startsWith("MM\x00*") ? "image/tiff" : "";
+      resolve(mime ? `data:${mime};base64,${encoded}` : original);
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -3736,12 +3892,29 @@ async function compressImageDataUrl(dataUrl, options = {}) {
 }
 
 async function fileToStoredImage(file) {
-  const original = await fileToDataUrl(file);
-  await imageElementFromDataUrl(original);
-  const mime = String(original.match(/^data:([^;,]+)/)?.[1] || file.type || "image/jpeg").toLowerCase();
+  let original = await fileToDataUrl(file);
+  const sourceMime = String(original.match(/^data:([^;,]+)/)?.[1] || file.type || "").toLowerCase();
+  if (durableGenerationEnabled() && (["image/heic", "image/heif", "image/tiff"].includes(sourceMime)
+      || !["image/jpeg", "image/png", "image/webp"].includes(sourceMime) && /\.(?:heic|heif|tiff?)$/i.test(file.name || ""))) {
+    initializeDurableGeneration();
+    const converted = await durableClient.uploadConvertedImage({ dataUrl: original, name: file.name });
+    original = converted.normalizedDataUrl;
+  }
+  let element;
+  try { element = await imageElementFromDataUrl(original); }
+  catch { throw new Error("图片无法读取，请选择 JPG、PNG、WebP，或先转换图片格式。"); }
+  let mime = String(original.match(/^data:([^;,]+)/)?.[1] || file.type || "image/jpeg").toLowerCase();
+  if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
+    if (!["image/gif", "image/bmp", "image/avif"].includes(mime)) throw new Error("暂不支持此格式，请先转换为 JPG、PNG 或 WebP。");
+    const canvas = document.createElement("canvas");
+    canvas.width = element.naturalWidth; canvas.height = element.naturalHeight;
+    canvas.getContext("2d").drawImage(element, 0, 0);
+    original = canvas.toDataURL("image/png");
+    mime = "image/png";
+  }
   return {
     name: String(file.name || "reference-image"),
-    type: file.type || mime,
+    type: mime,
     dataUrl: original,
     previewDataUrl: original,
     uploadDataUrl: original,
@@ -3889,12 +4062,10 @@ function isEditablePasteTarget(target) {
   return Boolean(target.closest('textarea, input:not([type="file"]), [contenteditable="true"]'));
 }
 
-function clipboardImageFile(clipboardData) {
-  const imageItem = [...(clipboardData?.items || [])]
-    .find((item) => item.kind === "file" && String(item.type || "").startsWith("image/"));
-  return imageItem?.getAsFile?.()
-    || [...(clipboardData?.files || [])].find((file) => String(file.type || "").startsWith("image/"))
-    || null;
+function clipboardImageFiles(clipboardData) {
+  const files = [...(clipboardData?.files || [])].filter(isReferenceImageFile);
+  if (files.length) return files;
+  return [...(clipboardData?.items || [])].filter((item) => item.kind === "file").map((item) => item.getAsFile?.()).filter((file) => file && isReferenceImageFile(file));
 }
 
 function setClipboardReferenceTarget(target) {
@@ -3914,14 +4085,16 @@ function setupClipboardReferencePaste() {
   });
 
   document.addEventListener("paste", async (event) => {
-    if (!clipboardReferenceTarget || isEditablePasteTarget(event.target)) return;
-    const file = clipboardImageFile(event.clipboardData);
-    if (!file) {
+    if (isEditablePasteTarget(event.target) || isEditablePasteTarget(document.activeElement)) return;
+    const focusedTarget = document.activeElement?.closest?.("#add-reference-button, #upload-references-button, [data-upload-references], .dropzone");
+    const target = clipboardReferenceTarget || focusedTarget;
+    if (!target) return;
+    const files = clipboardImageFiles(event.clipboardData);
+    if (!files.length) {
       showToast("剪贴板中没有可用图片");
       return;
     }
 
-    const target = clipboardReferenceTarget;
     const slotId = target.classList.contains("dropzone")
       ? target.querySelector("input[type='file']")?.id
       : nextReferenceSlot();
@@ -3932,18 +4105,18 @@ function setupClipboardReferencePaste() {
 
     event.preventDefault();
     setClipboardReferenceTarget(null);
-    await uploadReferenceFile(slotId, file);
+    if (target.classList.contains("dropzone")) { await uploadReferenceFile(slotId, files[0]); if (files.length > 1) await appendReferenceFiles(files.slice(1)); }
+    else await appendReferenceFiles(files);
   });
 }
 
 async function uploadReferenceFile(slotId, file) {
   if (!slotId || !file) return false;
-  if (!(await requestSensitiveImageConsent())) return false;
-  if (!String(file.type || "").startsWith("image/")) {
-    showToast("请选择图片文件");
-    return false;
-  }
+  referenceFilesReading += 1;
+  updateDurableGenerationControls();
   try {
+    if (!(await requestSensitiveImageConsent())) return false;
+    if (!isReferenceImageFile(file)) { showToast("请选择图片文件"); return false; }
     const image = await fileToStoredImage(file);
     setSlotImage(slotId, image);
     if (slotId === "image-three") setSceneAnalysis("");
@@ -3951,9 +4124,12 @@ async function uploadReferenceFile(slotId, file) {
     persistActiveReferenceSequence();
     showToast(durableGenerationEnabled() ? `${slotNames[slotId]}已添加，正在保存素材` : `${slotNames[slotId]}上传成功`);
     return true;
-  } catch {
-    showToast("图片读取失败");
+  } catch (error) {
+    showToast(error.message || "图片读取失败");
     return false;
+  } finally {
+    referenceFilesReading -= 1;
+    updateDurableGenerationControls();
   }
 }
 
@@ -3991,27 +4167,46 @@ function saveImageHistory(history) {
   void queueHistoryDatabasePut(accountStorageKey(imageHistoryKey), history);
 }
 
+function materialHistoryItems() {
+  const saved = Object.values(readImageHistory()).flat();
+  const removed = new Set(saved.filter((item) => item.removedAt).map((item) => item.dataUrl));
+  return [...new Map([...saved, ...currentReferenceSequence()].filter((item) => item?.dataUrl && !removed.has(item.dataUrl)).map((item) => [item.dataUrl, item])).values()];
+}
+
 function rememberImage(slotId, image) {
   const history = readImageHistory();
   const current = history[slotId] || [];
+  const removed = Object.values(history).flat().find((item) => item.dataUrl === image.dataUrl && item.removedAt);
+  const { removedAt, ...cleanImage } = image;
   history[slotId] = [
-    image,
+    removed ? { ...cleanImage, removedAt: removed.removedAt } : cleanImage,
     ...current.filter((item) => item.dataUrl !== image.dataUrl)
-  ].slice(0, 6);
+  ];
   saveImageHistory(history);
   renderImageHistory();
 }
 
-function deleteHistoryImage(slotId, image) {
+async function deleteHistoryImage(slotId, image) {
+  if (!image?.dataUrl || !await confirmCollectionRemoval("将这张素材移出本机素材库？之后可以恢复，当前创作中的参考图会保留。")) return false;
   const history = readImageHistory();
-  const current = history[slotId] || [];
-  history[slotId] = current.filter((item) => item.dataUrl !== image.dataUrl);
-  saveImageHistory(history);
-  if (state.files[slotId]?.dataUrl === image.dataUrl) {
-    clearSlotImage(slotId, { showMessage: false });
+  const removedAt = Date.now();
+  for (const key of Object.keys(history)) history[key] = history[key].map((item) => item.dataUrl === image.dataUrl ? { ...item, removedAt } : item);
+  if (!Object.values(history).flat().some((item) => item.dataUrl === image.dataUrl)) {
+    const key = slotId || "image-one";
+    history[key] = [{ ...image, removedAt }, ...(history[key] || [])];
   }
+  saveImageHistory(history);
   renderImageHistory();
-  showToast(`已删除${slotNames[slotId]}历史缩略图`);
+  showToast("已移出素材库，可在素材库恢复");
+  return true;
+}
+
+function restoreMaterialHistory() {
+  const history = readImageHistory();
+  for (const key of Object.keys(history)) history[key] = history[key].map(({ removedAt, ...item }) => item);
+  saveImageHistory(history);
+  renderImageHistory();
+  showToast("已恢复历史素材");
 }
 
 function renderImageHistory() {
@@ -4019,10 +4214,10 @@ function renderImageHistory() {
   const library = document.querySelector("#reference-library-items");
   if (library) {
     library.innerHTML = "";
-    const unique = [...new Map(Object.values(history).flat().map((image) => [image.dataUrl, image])).values()];
+    const unique = materialHistoryItems();
     const libraryPanel = library.closest("details");
     if (libraryPanel) libraryPanel.hidden = unique.length === 0;
-    unique.forEach((item) => {
+    unique.slice(0, 20).forEach((item) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "history-thumb";
@@ -4039,11 +4234,16 @@ function renderImageHistory() {
       });
       library.append(button);
     });
+    if (unique.length > 20) {
+      const more = document.createElement("button"); more.type = "button"; more.textContent = `查看全部 ${unique.length} 张素材`;
+      more.addEventListener("click", () => window.fireWorkbench?.navigate("materials")); library.append(more);
+    }
   }
   imageSlotIds.forEach((slotId) => {
     const holder = document.querySelector(`[data-history="${slotId}"]`);
     if (!holder) return;
-    const items = history[slotId] || [];
+    if (isFireWorkbench()) { holder.replaceChildren(); holder.hidden = true; return; }
+    const items = (history[slotId] || []).filter((item) => !item.removedAt);
     holder.innerHTML = "";
     holder.hidden = items.length === 0;
 
@@ -4105,7 +4305,7 @@ function restoreLastImages() {
         const image = allSavedImages.find((item) => Number(item.savedAt || 0) === Number(marker.savedAt || 0) && (!marker.name || item.name === marker.name));
         return image ? { ...image, roles: Array.isArray(marker.roles) ? marker.roles : [] } : null;
       }).filter(Boolean)
-    : Object.values(history).map((items) => items?.[0]).filter(Boolean).map((image) => ({ ...image, roles: [] }));
+    : Object.values(history).map((items) => items?.find((item) => !item.removedAt)).filter(Boolean).map((image) => ({ ...image, roles: [] }));
   applyReferenceSequence(images);
 }
 
@@ -4865,20 +5065,27 @@ els.undoLightboxMask?.addEventListener("click", undoLightboxMask);
 els.clearLightboxMask?.addEventListener("click", clearLightboxMask);
 els.applyLightboxMask?.addEventListener("click", applyLightboxMask);
 els.addReference?.addEventListener("click", addExtraReferenceSlot);
-async function appendReferenceFiles(files) {
-  const images = [...files].filter((file) => String(file.type || "").startsWith("image/"));
-  if (!images.length) {
-    showToast("请选择图片文件");
-    return;
-  }
-  for (const file of images) {
-    const nextSlot = nextReferenceSlot();
-    if (!nextSlot) {
-      showToast(referenceAddUnavailableMessage());
-      break;
+function isReferenceImageFile(file) {
+  return String(file.type || "").startsWith("image/") || /\.(?:jpe?g|png|webp|gif|bmp|avif|heic|heif|tiff?)$/i.test(String(file.name || ""));
+}
+
+let referenceAppendQueue = Promise.resolve();
+
+function appendReferenceFiles(files) {
+  const images = [...files].filter(isReferenceImageFile);
+  const append = async () => {
+    if (!images.length) { showToast("请选择图片文件"); return 0; }
+    let added = 0;
+    for (const file of images) {
+      const nextSlot = nextReferenceSlot();
+      if (!nextSlot) { showToast(referenceAddUnavailableMessage()); break; }
+      if (await uploadReferenceFile(nextSlot, file)) added += 1;
     }
-    await uploadReferenceFile(nextSlot, file);
-  }
+    return added;
+  };
+  const result = referenceAppendQueue.then(append);
+  referenceAppendQueue = result.catch(() => {});
+  return result;
 }
 document.querySelector("#reference-batch-input")?.addEventListener("change", async (event) => {
   await appendReferenceFiles(event.target.files || []);
@@ -4980,6 +5187,15 @@ els.lightbox?.addEventListener("click", (event) => {
   if (event.target === els.lightbox) closeLightbox();
 });
 window.addEventListener("keydown", (event) => {
+  if (els.lightbox && !els.lightbox.hidden && ["Tab", "Escape"].includes(event.key)) {
+    if (event.key === "Escape") { event.preventDefault(); closeLightbox(); return; }
+    const controls = [...els.lightbox.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')].filter((item) => item.getClientRects().length);
+    const first = controls[0], last = controls.at(-1), focused = document.activeElement;
+    if (!first) { event.preventDefault(); els.lightbox.focus(); }
+    else if (event.shiftKey && (focused === first || !els.lightbox.contains(focused))) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && (focused === last || !els.lightbox.contains(focused))) { event.preventDefault(); first.focus(); }
+    return;
+  }
   if (event.key === "Escape" && !els.adminManualRechargeModal?.hidden) {
     closeAdminManualRecharge();
     return;
@@ -5196,10 +5412,10 @@ async function init() {
     connectFireWorkbench();
     if (durableGenerationEnabled()) {
       window.FireShowcaseHost?.onActivity(active => {
-        if (active) void durableClient.start();
+        if (active) void durableClient.start().catch(() => notifyFireWorkbench());
         else durableClient.stop();
       });
-      if (window.FireShowcaseHost?.isActive() !== false) await durableClient.start();
+      if (window.FireShowcaseHost?.isActive() !== false) void durableClient.start().catch(() => notifyFireWorkbench());
     }
     setPromptLocked(true);
     const pending = readStoredJson(accountStorageKey(pendingGenerationKey), null);

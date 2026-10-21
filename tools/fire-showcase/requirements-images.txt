@@ -1,0 +1,3 @@
+# Official Pillow/Pillow-HEIF wheels include the required native codecs.
+Pillow==12.3.0
+pillow-heif==1.8.1

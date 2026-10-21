@@ -404,8 +404,14 @@ class Handler(source.Handler):
     do_DELETE = unsupported_write
 
 
+class ShowcaseHTTPServer(ThreadingHTTPServer):
+    # Python 3.11 defaults to five waiting connections. A cold browser downloads
+    # more resources at once, overflowing that queue and adding ~1s TCP retries.
+    request_queue_size = 128
+
+
 def make_server(runtime, host="0.0.0.0", port=5179):
-    httpd = ThreadingHTTPServer((host, port), Handler)
+    httpd = ShowcaseHTTPServer((host, port), Handler)
     httpd.runtime = runtime
     return httpd
 

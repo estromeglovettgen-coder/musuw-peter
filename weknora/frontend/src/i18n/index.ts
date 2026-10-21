@@ -1,18 +1,12 @@
 import { createI18n } from 'vue-i18n'
 import zhCN from './locales/zh-CN.ts'
-import ruRU from './locales/ru-RU.ts'
-import enUS from './locales/en-US.ts'
-import koKR from './locales/ko-KR.ts'
-import { resolveInitialLocale } from './locale'
+import { normalizeLocale, resolveInitialLocale, type SupportedLocale } from './locale'
 import { BUILT_IN_DEFAULT, resolveDefaultLocale } from './resolveDefaultLocale.ts'
 import { isPeterWorkspace } from '../config/workspaceSurface'
 import { workspaceBrandMessages } from '../config/workspaceBrand'
 
-const messages = {
+const messages: Partial<Record<SupportedLocale, typeof zhCN>> = {
   'zh-CN': zhCN,
-  'en-US': enUS,
-  'ru-RU': ruRU,
-  'ko-KR': koKR
 }
 
 // Existing preference wins. A deployment-provided default is used when no
@@ -44,3 +38,32 @@ const i18n = createI18n({
 })
 
 export default i18n
+
+const localeImports = {
+  'en-US': () => import('./locales/en-US.ts'),
+  'ko-KR': () => import('./locales/ko-KR.ts'),
+  'ru-RU': () => import('./locales/ru-RU.ts'),
+}
+const localeLoads = new Map<SupportedLocale, Promise<void>>()
+
+/** Keep the native Chinese fallback; fetch another complete dictionary only when needed. */
+export function ensureLocaleMessages(value: string): Promise<void> {
+  const locale = normalizeLocale(value)
+  if (!locale || locale === 'zh-CN') return Promise.resolve()
+  const existing = localeLoads.get(locale)
+  if (existing) return existing
+  const pending = localeImports[locale]().then(module => {
+    const branded = workspaceBrandMessages({ [locale]: module.default }, isPeterWorkspace)
+    i18n.global.setLocaleMessage(locale, branded[locale])
+  }).catch(error => {
+    localeLoads.delete(locale)
+    throw error
+  })
+  localeLoads.set(locale, pending)
+  return pending
+}
+
+export const i18nReady = ensureLocaleMessages(initialLocale)
+// Entry points await the same promise. Prevent a fast asset failure becoming
+// an unhandled rejection while native authentication is still pending.
+void i18nReady.catch(() => {})

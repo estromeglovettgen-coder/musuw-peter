@@ -15,7 +15,7 @@ assert.ok(startupStart >= 0 && startupEnd > startupStart)
 const startup = mainSource.slice(startupStart, startupEnd)
 const createBootstrap = new Function(
   'createApp', 'App', 'installTDesignServices', 'createPinia', 'useAuthStore', 'localStorage',
-  'router', 'i18n', 'installAutofillGuard', 'window', 'hasPendingOIDCCallback',
+  'router', 'i18n', 'installAutofillGuard', 'window', 'hasPendingOIDCCallback', 'i18nReady',
   `${startup}; return bootstrap;`,
 )
 
@@ -68,7 +68,7 @@ async function startPage({ hash = '', status = 200, refreshStatus } = {}) {
   const bootstrap = createBootstrap(
     () => app, {}, () => {}, () => ({}), () => authStore, storage,
     { async isReady() { events.push('router-ready') } }, {}, () => {}, window,
-    hasPendingOIDCCallback,
+    hasPendingOIDCCallback, Promise.resolve(),
   )
   await bootstrap()
   return { events, token: storage.getItem('weknora_token') }

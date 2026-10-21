@@ -6,7 +6,7 @@ import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/noto-sans-sc'
 import OperationsApp from './operations/OperationsApp.vue'
 import './operations/operations-console.less'
-import i18n from './i18n'
+import i18n, { i18nReady } from './i18n'
 import { installTDesignIconOfflineGuard } from './utils/tdesign-icon-offline'
 import { installTDesignServices } from './utils/installTDesignServices'
 
@@ -19,4 +19,7 @@ app.config.errorHandler = (error, instance, info) => {
 }
 app.use(createPinia())
 app.use(i18n)
-app.mount('#operations-app')
+void i18nReady.catch(error => {
+  console.warn('[Musuw Operations] Locale unavailable; using Chinese fallback', error)
+  i18n.global.locale.value = 'zh-CN'
+}).then(() => app.mount('#operations-app'))

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ../../tools/build-workspace-icons.mjs",
+    "prebuild-only": "node ../../tools/build-workspace-icons.mjs",
     "build": "vite build",
     "build-with-types": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",

@@ -48,11 +48,12 @@ class BrowserStartupTests(unittest.TestCase):
                     owner.assertEqual(self.headers.get("Authorization"), "Bearer fixture-native-token")
                     with lock:
                         counts["bootstrap"] += 1
-                    all_started.wait(3)
-                    parallel_at_bootstrap.append(all_started.is_set())
                     self.send_json(200, {"success": True, "data": {"user_id": user, "tenant_id": 7,
                         "allowance": {"status": "active", "remaining_images": 2}}})
                     return
+                if path == "/api/v1/fire-showcase/api/config":
+                    all_started.wait(3)
+                    parallel_at_bootstrap.append(all_started.is_set())
                 self.native_path()
                 return super().do_GET()
 
@@ -61,6 +62,12 @@ class BrowserStartupTests(unittest.TestCase):
                     requests.append(("POST", urlsplit(self.path).path))
                 self.native_path()
                 return super().do_POST()
+
+            def send_json(self, status, data):
+                if urlsplit(self.path).path == "/api/config" and status == 200:
+                    data = {**data, "fireIdentity": {"user_id": user, "tenant_id": 7},
+                        "fireAllowance": {"status": "active", "remaining_images": 2}}
+                return super().send_json(status, data)
 
             def native_path(self):
                 prefix = "/api/v1/fire-showcase"
@@ -96,7 +103,7 @@ class BrowserStartupTests(unittest.TestCase):
                         capture_output=True, timeout=30)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr + repr({"counts": counts, "started": started, "requests": requests}))
                     self.assertTrue(json.loads(result.stdout)["ready"])
-                    self.assertTrue(all(parallel_at_bootstrap), "all four public script requests must start while native bootstrap is pending")
+                    self.assertTrue(all(parallel_at_bootstrap), "all four public script requests must start while native config is pending")
                     self.assertEqual(started, {name: 1 for name in scripts}, "preloads must be reused, never downloaded twice")
                     self.assertFalse(any("/assets/brand/" in path for _, path in requests), "hidden branding must not download")
                     self.assertFalse(any(method == "POST" and "generation-tasks" in path for method, path in requests))

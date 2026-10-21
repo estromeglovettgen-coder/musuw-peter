@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Both must be ready before the application runs. Discover them before
+         Vite's module preloads instead of queueing them behind the whole app. -->
+    <link rel="preload" href="/config.js" as="script" fetchpriority="high">
+    <link rel="preload" href="/tdesign-icons/0.4.1/fonts/workspace.js" as="script" fetchpriority="high">
     <title>Musuw</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -161,7 +165,7 @@
   <t-icon> 运行时向 https://tdesign.gtimg.com 发起请求（见 issue #867 / #897）。
   升级 tdesign-icons-vue-next 时需同步更新 public/tdesign-icons/<version>/fonts/index.js。
 -->
-<script src="/tdesign-icons/0.4.1/fonts/index.js"></script>
+<script src="/tdesign-icons/0.4.1/fonts/workspace.js"></script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

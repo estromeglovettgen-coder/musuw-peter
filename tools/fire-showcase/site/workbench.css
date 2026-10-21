@@ -97,6 +97,9 @@ body.fire-workbench .image-history { display: none; }
 body.fire-workbench .delete-slot-button, body.fire-workbench .history-delete-button { position: absolute; z-index: 5; top: 4px; right: 4px; display: grid; place-items: center; width: 21px; height: 21px; padding: 0; border: 1px solid #ffffff24; border-radius: 50%; background: #111113db; color: #fff; font-size: 16px; line-height: 1; }
 body.fire-workbench .reference-image-tools { position: absolute; z-index: 5; right: 4px; bottom: 4px; display: flex; gap: 4px; }
 body.fire-workbench .reference-tool-button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid #ffffff24; border-radius: 4px; background: #111113db; color: #fff; }
+@media (max-width: 700px), (pointer: coarse) {
+  body.fire-workbench .reference-image-tools .reference-tool-button { position: relative; top: auto; right: auto; min-width: 44px; min-height: 44px; width: 44px; height: 44px; }
+}
 body.fire-workbench .add-reference-button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 116px; padding: 20px; border: 1px dashed #3b3b40; border-radius: 8px; background: var(--fire-surface); color: var(--fire-muted); }
 body.fire-workbench .add-reference-button > span { color: var(--fire-muted); font-size: 25px; line-height: 1; }
 body.fire-workbench .add-reference-button strong { font-size: 12px; font-weight: 500; }
@@ -185,6 +188,8 @@ body.fire-workbench .collection-card-details { display: grid; gap: 8px; margin-t
 body.fire-workbench .collection-card-details > strong { overflow: hidden; color: var(--fire-muted); font-size: 12px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
 body.fire-workbench .collection-card-details > small { color: var(--fire-subtle); font-size: 10px; }
 body.fire-workbench .collection-card-details > button { width: 100%; }
+body.fire-workbench .collection-recovery { grid-column: 1 / -1; justify-self: start; }
+body.fire-workbench .collection-removal-copy { margin: 0; padding: 20px; color: var(--fire-muted); font-size: 13px; line-height: 1.7; }
 body.fire-workbench .collection-empty-state { grid-column: 1 / -1; min-height: 65dvh; }
 body.fire-workbench .collection-empty-state h2 { font-size: 18px; font-weight: 550; }
 body.fire-workbench .collection-empty-state .fire-icon { width: 40px; height: 40px; color: #6f6975; }

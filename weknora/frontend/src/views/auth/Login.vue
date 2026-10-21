@@ -359,6 +359,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useI18n } from 'vue-i18n'
 import { persistLocalePreference } from '@/i18n/locale'
+import { ensureLocaleMessages } from '@/i18n'
 
 // Import screenshot images
 import screenshot1 from '@/assets/img/screenshot-1.svg'
@@ -520,7 +521,12 @@ const toggleLanguageMenu = () => {
 }
 
 // Select language
-const selectLanguage = (lang: string) => {
+let languageChange = 0
+const selectLanguage = async (lang: string) => {
+  const sequence = ++languageChange
+  try { await ensureLocaleMessages(lang) }
+  catch { if (sequence === languageChange) MessagePlugin.error(t('common.resourceLoadFailed.title')); return }
+  if (sequence !== languageChange) return
   const persisted = persistLocalePreference(lang)
   if (!persisted) return
   locale.value = persisted

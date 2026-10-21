@@ -54,6 +54,59 @@ async function api(page: Page, options: { admin?: boolean; status?: string; unav
   return { state, writes, calls }
 }
 
+test('cold platform showcase only loads its resources and consumes the reconciled user snapshot', async ({ page }) => {
+  const mock = await api(page)
+  await page.route('**/tools/fire-showcase/**', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><body class="fire-workbench" data-fire-host-state="ready">offline child fixture</body>' }))
+  await page.goto('/e2e/fire-membership-harness.html?platform&cold&page=showcase')
+  await expect(page.locator('.visual-user-menu__identity')).toContainText('Taylor学员')
+  await expect(page.locator('iframe')).toHaveCount(1)
+  await expect.poll(() => mock.calls.filter(path => path === '/api/v1/sessions').length).toBeGreaterThan(0)
+  const chatOnly = ['/api/v1/models', '/api/v1/knowledge-bases', '/api/v1/agents', '/api/v1/shared-agents', '/api/v1/shared-knowledge-bases', '/api/v1/web-search-providers', '/api/v1/organizations']
+  expect(mock.calls.filter(path => chatOnly.includes(path))).toEqual([])
+  expect(mock.calls.filter(path => path === '/api/v1/auth/me')).toHaveLength(1)
+  await page.evaluate(() => {
+    const auth = (window as any).__fireFixture.auth
+    auth.setUser({ ...auth.user, username: '当前快照姓名', email: 'current@example.test' })
+  })
+  await expect(page.locator('.visual-user-menu__identity')).toContainText('当前快照姓名')
+  expect(mock.calls.filter(path => path === '/api/v1/auth/me')).toHaveLength(1)
+  await page.evaluate(() => (window as any).__fireFixture.router.push('/platform/agents'))
+  await expect.poll(() => mock.calls.filter(path => path === '/api/v1/models').length).toBe(1)
+  await page.evaluate(() => (window as any).__fireFixture.router.push('/platform/showcase'))
+  const beforeChat = mock.calls.length
+  await page.evaluate(() => (window as any).__fireFixture.router.push('/platform/creatChat'))
+  await expect(page.locator('.visual-chat-composer')).toBeVisible()
+  await expect.poll(() => mock.calls.slice(beforeChat).filter(path => path === '/api/v1/knowledge-bases').length).toBe(1)
+  expect(mock.calls).toContain('/api/v1/agents')
+})
+
+test('cold platform starts independent channel metadata together before loading sessions', async ({ page }) => {
+  const mock = await api(page), pending: Array<() => Promise<void>> = [], started: string[] = []
+  await page.route('**/tools/fire-showcase/**', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><body class="fire-workbench" data-fire-host-state="ready">offline child fixture</body>' }))
+  await page.route(/\/api\/v1\/(?:im|embed)-channels(?:\?|$)/, route => {
+    started.push(new URL(route.request().url()).pathname)
+    return new Promise<void>(resolve => pending.push(async () => { await route.fulfill({ json: { success: true, data: [] } }); resolve() }))
+  })
+  try {
+    await page.goto('/e2e/fire-membership-harness.html?platform&cold&page=showcase', { waitUntil: 'domcontentloaded' })
+    await expect.poll(() => started.length).toBe(2)
+    expect(mock.calls.filter(path => path === '/api/v1/sessions')).toEqual([])
+    await Promise.all(pending.splice(0).map(release => release()))
+    await expect.poll(() => mock.calls.filter(path => path === '/api/v1/sessions').length).toBeGreaterThan(0)
+    expect(mock.calls.filter(path => path === '/api/v1/knowledge-bases')).toHaveLength(0)
+    await page.keyboard.press('Control+k')
+    await expect.poll(() => mock.calls.filter(path => path === '/api/v1/knowledge-bases').length).toBe(1)
+    await expect.poll(() => mock.calls.filter(path => path === '/api/v1/agents').length).toBe(1)
+  } finally { await Promise.all(pending.splice(0).map(release => release().catch(() => {}))) }
+})
+
+test('avatar menu still reconciles a missing user snapshot', async ({ page }) => {
+  const mock = await api(page)
+  await page.goto('/e2e/fire-membership-harness.html?missing-user')
+  await expect(page.locator('.visual-user-menu__identity')).toContainText('Taylor学员')
+  expect(mock.calls.filter(path => path === '/api/v1/auth/me')).toHaveLength(1)
+})
+
 test('membership stays inside the avatar menu and exposes percentages without user details', async ({ page }, info) => {
  const mock=await api(page)
  await page.goto('/e2e/fire-membership-harness.html')
@@ -616,6 +669,10 @@ test('showcase treats sidecar JSON 502 as failure instead of a ready workspace',
 async function delayedShowcase(page: Page, realHost = true) {
   await api(page)
   await page.route('**/api/v1/fire-showcase/bootstrap', route => route.fulfill({ json: { success: true, data: { user_id: 'member-fixture', tenant_id: 42, allowance: { status: 'active', remaining_images: 10 } } } }))
+  await page.route('**/api/v1/fire-showcase/api/config', route => route.fulfill({ json: {
+    fireIdentity: { user_id: 'member-fixture', tenant_id: 42 },
+    fireAllowance: { status: 'active', remaining_images: 10 },
+  } }))
   let release!: () => void, pendingImage = false
   const heldImage = new Promise<void>(resolve => { release = resolve })
   await page.route('**/tools/fire-showcase/held-original.png', async route => {
@@ -891,4 +948,55 @@ test('performance: account changes discard both prefetch and charged-refresh rec
     await expect(card).toContainText('70%')
     await expect(card).not.toContainText('旧账号套餐')
   } finally { release() }
+})
+
+test('initial local icons do not request the full catalogue; a dynamic icon loads it once', async ({ page }) => {
+ await page.route('**/e2e/fire-membership-harness.html', route => route.fulfill({ contentType: 'text/html', body: readFileSync('weknora/frontend/e2e/fire-membership-harness.html', 'utf8').replace('<body>', '<body><script src="/tdesign-icons/0.4.1/fonts/workspace.js"></script>') }))
+ let fullRequests = 0
+ let release!: () => void
+ const delayed = new Promise<void>(resolve => { release = resolve })
+ await page.route('**/tdesign-icons/0.4.1/fonts/index.js', async route => {
+   fullRequests++
+   await delayed
+   await route.fulfill({ contentType: 'application/javascript', body: readFileSync('weknora/frontend/public/tdesign-icons/0.4.1/fonts/index.js', 'utf8') })
+ })
+ await api(page)
+ await page.goto('/e2e/fire-membership-harness.html')
+ await page.evaluate(async () => {
+   const { installTDesignIconOfflineGuard } = await import('/src/utils/tdesign-icon-offline.ts')
+   installTDesignIconOfflineGuard()
+   document.body.insertAdjacentHTML('beforeend', '<svg width="24" height="24"><use href="#t-icon-search"></use></svg>')
+   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+ })
+ expect(fullRequests).toBe(0)
+ await expect(page.locator('[data-workspace-icons="core"]')).toHaveCount(1)
+ await page.evaluate(() => {
+   document.body.insertAdjacentHTML('beforeend', '<svg width="24" height="24"><use href="#t-icon-ability-open"></use></svg>')
+ })
+ await expect.poll(() => fullRequests).toBe(1)
+ release()
+ await expect(page.locator('#t-icon-ability-open')).toHaveCount(1)
+ await expect(page.locator('[data-workspace-icons="core"]')).toHaveCount(0)
+ await expect(page.locator('#t-icon-search')).toHaveCount(1)
+ expect(fullRequests).toBe(1)
+})
+
+test('critical configuration and native symbols are discovered early and execute once before the entry', async ({ page }) => {
+ const html = readFileSync('weknora/frontend/index.html', 'utf8').replace('src="/src/main.ts"', 'src="/e2e/startup-probe.mjs"')
+ let configs = 0, sprites = 0
+ await page.route('**/e2e/critical-startup.html', route => route.fulfill({ contentType: 'text/html', body: html }))
+ await page.route('**/config.js', async route => {
+   configs++
+   await new Promise(resolve => setTimeout(resolve, 150))
+   await route.fulfill({ contentType: 'application/javascript', body: 'window.__startupConfigReady = true;' })
+ })
+ await page.route('**/tdesign-icons/0.4.1/fonts/workspace.js', route => {
+   sprites++
+   return route.fulfill({ contentType: 'application/javascript', body: readFileSync('weknora/frontend/public/tdesign-icons/0.4.1/fonts/workspace.js', 'utf8') })
+ })
+ await page.route('**/e2e/startup-probe.mjs', route => route.fulfill({ contentType: 'application/javascript', body: 'document.body.dataset.entryReady = String(window.__startupConfigReady === true && !!document.getElementById("t-icon-search"));' }))
+ await page.goto('/e2e/critical-startup.html')
+ await expect(page.locator('body')).toHaveAttribute('data-entry-ready', 'true')
+ expect(configs).toBe(1)
+ expect(sprites).toBe(1)
 })

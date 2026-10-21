@@ -294,7 +294,14 @@ func (h *FireShowcaseHandler) serve(c *gin.Context, p string, u *showcaseActor, 
 			res.Header.Set("Vary", "Authorization, Cookie")
 		}
 		res.Header.Set("X-Content-Type-Options", "nosniff")
-		if !rewrite || u == nil || !strings.Contains(res.Header.Get("Content-Type"), "application/json") || c.Request.Method == http.MethodHead {
+		if !rewrite || u == nil || c.Request.Method == http.MethodHead {
+			return nil
+		}
+		configResponse := p == "/api/config" && res.StatusCode >= 200 && res.StatusCode < 300
+		if !strings.Contains(res.Header.Get("Content-Type"), "application/json") {
+			if configResponse {
+				return errors.New("invalid workbench config")
+			}
 			return nil
 		}
 		data, err := io.ReadAll(io.LimitReader(res.Body, 8*1024*1024+1))
@@ -307,12 +314,17 @@ func (h *FireShowcaseHandler) serve(c *gin.Context, p string, u *showcaseActor, 
 			return errors.New("invalid workbench response")
 		}
 		value = rewriteShowcaseAssets(value, u.ID)
-		if p == "/api/config" {
-			if config, ok := value.(map[string]any); ok {
-				if s, err := h.billing.Status(c.Request.Context(), u.ID); err == nil {
-					config["fireAllowance"] = s
-				}
+		if configResponse {
+			config, ok := value.(map[string]any)
+			if !ok {
+				return errors.New("invalid workbench config")
 			}
+			s, err := h.billing.Status(c.Request.Context(), u.ID)
+			if err != nil {
+				return errors.New("native workbench allowance unavailable")
+			}
+			config["fireIdentity"] = gin.H{"user_id": u.ID, "tenant_id": u.TenantID}
+			config["fireAllowance"] = s
 		}
 		data, err = json.Marshal(value)
 		if err != nil {

@@ -16,8 +16,8 @@
  *       `.t-iconfont-stylesheet--unique-class[href="<url>"]`
  *   - 占位 <script> / <link> 使用非标准 type / rel，浏览器不会真正发起网络请求。
  *
- * SVG sprite 的符号则通过 index.html 中的 <script src="/tdesign-icons/.../index.js"></script>
- * 在本地提前注册，因此 <t-icon name="..."> 仍可正常渲染。
+ * Static workspace symbols load from a small local sprite. Only a visible
+ * dynamic icon missing from that set requests the complete local catalogue.
  */
 
 const SVG_SCRIPT_CLASS = "t-svg-js-stylesheet--unique-class";
@@ -35,6 +35,35 @@ const BLOCKED_LINK_URLS = BLOCKED_ICON_VERSIONS.map(
 );
 
 let installed = false;
+
+function loadMissingLocalSymbols(): void {
+  let scheduled = false;
+  let loading = false;
+  const observer = new MutationObserver(() => {
+    if (scheduled || loading) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      if (loading) return;
+      const missing = [...document.querySelectorAll('svg use')].some(use => {
+        const target = use.getAttribute('href') || use.getAttribute('xlink:href') || '';
+        return target.startsWith('#t-icon-') && !document.getElementById(target.slice(1)) &&
+          Boolean(use.closest('svg')?.getClientRects().length);
+      });
+      if (!missing) return;
+      loading = true;
+      observer.disconnect();
+      const script = document.createElement('script');
+      script.src = '/tdesign-icons/0.4.1/fonts/index.js';
+      script.async = true;
+      script.fetchPriority = 'low';
+      script.onload = () => document.querySelector('[data-workspace-icons="core"]')?.remove();
+      document.body.append(script);
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href', 'xlink:href'] });
+  window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+}
 
 export function installTDesignIconOfflineGuard(): void {
   if (installed || typeof document === "undefined") return;
@@ -78,4 +107,5 @@ export function installTDesignIconOfflineGuard(): void {
     stub.setAttribute("data-weknora-blocked-cdn", "tdesign-icons");
     document.head.appendChild(stub);
   });
+  loadMissingLocalSymbols();
 }

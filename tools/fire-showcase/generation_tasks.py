@@ -15,6 +15,7 @@ from pathlib import Path
 
 from modelflare_adapter import MODEL_CHOICES, ProviderError, _image_data, _SIZES, _LEGACY_1K_SIZES
 from reference_workflow import build_prompt
+from image_ingest import ingest_image
 
 ACTIVE = ("queued", "preparing", "submitting", "unknown")
 DEFINITE_REJECTIONS = {400, 401, 403, 404, 413, 422}
@@ -115,10 +116,10 @@ class GenerationStore:
             connection.close()
 
     def add_asset(self, data_url, name="image"):
-        validated = _image_data(data_url)
-        data = base64.b64decode(validated["data"], validate=True)
+        validated = ingest_image(data_url, name)
+        data = validated["data"]
         identifier = "sha256_" + hashlib.sha256(data).hexdigest()
-        name = name.strip() if isinstance(name, str) and name.strip() else "image"
+        name = validated["name"]
         destination = self.assets_dir / identifier
         temporary = self.assets_dir / (".upload-" + uuid.uuid4().hex)
         try:
@@ -137,7 +138,9 @@ class GenerationStore:
         with self._connection() as connection:
             connection.execute("INSERT OR IGNORE INTO assets VALUES (?, ?, ?, ?, ?)",
                                (identifier, name, validated["mime_type"], len(data), _now()))
-        return self.asset(identifier)
+        asset = self.asset(identifier)
+        asset.update({key: validated[key] for key in ("normalized", "sourceName", "normalization") if key in validated})
+        return asset
 
     @staticmethod
     def _sync_directory(path):
