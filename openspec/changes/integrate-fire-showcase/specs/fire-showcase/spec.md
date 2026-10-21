@@ -62,3 +62,7 @@ Users SHALL preview, reuse, remove and restore local materials and results. Remo
 
 ### Requirement: Actual cold-load performance verification
 The release SHALL measure the whole native page with cache disabled, not substitute a prewarmed iframe or route-return timing. Inactive language dictionaries, optional rendering tools and full icon catalogues SHALL NOT be mandatory first-screen resources; recovery paths SHALL remain usable if an optional download fails.
+
+#### Scenario: Ordinary account opens a completely uncached native page
+- **WHEN** an authenticated ordinary account navigates to the full showcase page with browser cache disabled
+- **THEN** acceptance records the full navigation-to-editor-ready duration, verifies one native identity check and one initial config response, and confirms unrelated chat configuration and optional language/graph/icon resources are not requested.
